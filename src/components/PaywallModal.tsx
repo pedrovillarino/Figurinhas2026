@@ -149,7 +149,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
         </div>
 
         <p className="text-[10px] text-gray-300 text-center">
-          Pagamento único via Stripe. Aceita cartão e Pix.
+          Pagamento único via Stripe. Aceita cartão e boleto.
         </p>
       </div>
     </div>
