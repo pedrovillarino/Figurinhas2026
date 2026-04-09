@@ -22,9 +22,6 @@ export default async function Home() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <header className="px-6 pt-5 pb-2 animate-fade-up">
-          <span className="text-[13px] font-semibold tracking-tight text-white/80">
-            figurinhas<span className="text-violet-400">.</span>
-          </span>
         </header>
 
         {/* Hero */}
