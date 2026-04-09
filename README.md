@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Figurinhas Copa 2026
 
-## Getting Started
+PWA para gerenciar seu album de figurinhas da Copa do Mundo 2026. Rastreie suas figurinhas, escaneie com IA e encontre pessoas para trocar.
 
-First, run the development server:
+## Stack
+
+- **Next.js 14** (App Router)
+- **Supabase** (Auth + PostgreSQL)
+- **Tailwind CSS**
+- **Google Gemini 2.5 Flash** (scanner de figurinhas)
+- **Stripe** (pagamento Premium)
+- **Vercel** (deploy)
+
+## Setup
+
+### 1. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 2. Configurar variaveis de ambiente
+
+Copie o arquivo de exemplo e preencha:
+
+```bash
+cp .env.local.example .env.local
+```
+
+### 3. Supabase
+
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. Execute os scripts SQL na ordem:
+   - `supabase/schema.sql` — tabelas, RLS, triggers
+   - `supabase/migration-001.sql` — ajustes no perfil
+   - `supabase/migration-002-trades.sql` — funcoes de trade matching
+   - `supabase/migration-003-premium.sql` — colunas premium
+3. Configure Google OAuth no Supabase Dashboard > Auth > Providers
+
+### 4. Seed de figurinhas
+
+```bash
+npm run seed
+```
+
+### 5. Stripe
+
+1. Crie uma conta em [stripe.com](https://stripe.com)
+2. Copie as chaves (Dashboard > Developers > API Keys):
+   - `STRIPE_SECRET_KEY` (sk_test_...)
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (pk_test_...)
+3. Crie um webhook (Dashboard > Developers > Webhooks):
+   - URL: `https://your-app.vercel.app/api/stripe/webhook`
+   - Eventos: `checkout.session.completed`, `checkout.session.async_payment_succeeded`
+   - Copie o `STRIPE_WEBHOOK_SECRET` (whsec_...)
+
+### 6. Deploy na Vercel
+
+```bash
+npx vercel
+```
+
+Adicione as variaveis de ambiente no dashboard da Vercel (Settings > Environment Variables).
+
+### 7. Google Gemini
+
+1. Acesse [aistudio.google.com](https://aistudio.google.com)
+2. Crie uma API Key para o projeto
+3. Ative a Generative Language API no Google Cloud Console
+
+## Desenvolvimento
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Modelo Freemium
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Feature | Free | Plus (R$9,90) | Premium (R$19,90) |
+|---------|------|---------------|-------------------|
+| Rastreamento manual | Ate 100 figurinhas | Ilimitado | Ilimitado |
+| Scanner IA | Bloqueado | Ilimitado | Ilimitado |
+| Trade matching | Bloqueado | Bloqueado | Ilimitado |
+| Relatorio semanal | Nao | Nao | Sim |

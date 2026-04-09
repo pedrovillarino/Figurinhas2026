@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
+import PremiumBanner from '@/components/PremiumBanner'
+import { getStickerLimit, type Tier } from '@/lib/tiers'
 
 type Sticker = {
   id: number
@@ -22,10 +24,12 @@ export default function AlbumClient({
   stickers,
   userStickersMap: initialMap,
   userId,
+  tier = 'free',
 }: {
   stickers: Sticker[]
   userStickersMap: Record<number, UserStickerInfo>
   userId: string
+  tier?: Tier
 }) {
   const [userMap, setUserMap] = useState(initialMap)
   const [activeTab, setActiveTab] = useState<Tab>('all')
@@ -128,9 +132,21 @@ export default function AlbumClient({
     setLoading(null)
   }
 
+  const stickerLimit = getStickerLimit(tier)
+  const hasReachedFreeLimit = stats.owned >= stickerLimit
+  const [showLimitBanner, setShowLimitBanner] = useState(false)
+
   function handleIncrement(e: React.MouseEvent, sticker: Sticker) {
     e.stopPropagation()
     const current = userMap[sticker.id]
+
+    // Check tier sticker limit for new stickers
+    const isNewSticker = !current || current.status === 'missing'
+    if (isNewSticker && stats.owned >= stickerLimit) {
+      setShowLimitBanner(true)
+      return
+    }
+
     if (!current) {
       // missing → owned (qty 1)
       updateSticker(sticker.id, 'owned', 1)
@@ -306,6 +322,9 @@ export default function AlbumClient({
           </div>
         </div>
       </div>
+
+      {/* Premium banner */}
+      {(hasReachedFreeLimit || showLimitBanner) && <PremiumBanner />}
 
       {/* Search + view toggle */}
       <div className="flex gap-2 mb-3">
