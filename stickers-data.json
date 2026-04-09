@@ -1,0 +1,5362 @@
+[
+  {
+    "number": "FIFA-1",
+    "player_name": "Panini",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-2",
+    "player_name": "FIFA",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-3",
+    "player_name": "Official Trophy 1",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "trophy",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-4",
+    "player_name": "Official Trophy 2",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "trophy",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-5",
+    "player_name": "Official Mascot 1",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-6",
+    "player_name": "Official Mascot 2",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-7",
+    "player_name": "Official Emblem 1",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-8",
+    "player_name": "Official Emblem 2",
+    "country": "FIFA",
+    "section": "Introduction",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-9",
+    "player_name": "Ahmad Bin Ali Stadium",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-10",
+    "player_name": "Al Janoub Stadium",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-11",
+    "player_name": "Al Thumama Stadium",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-12",
+    "player_name": "Education City Stadium",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-13",
+    "player_name": "Khalifa International Stadium",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-14",
+    "player_name": "Stadium 974",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-15",
+    "player_name": "Al Bayt Stadium Exterior",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-16",
+    "player_name": "Al Bayt Stadium Interior",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-17",
+    "player_name": "Lusail Stadium Exterior",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-18",
+    "player_name": "Lusail Stadium Interior",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "stadium",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-19",
+    "player_name": "Official Ball",
+    "country": "FIFA",
+    "section": "Stadiums",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-1",
+    "player_name": "Team Photo",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-2",
+    "player_name": "Emblem",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-3",
+    "player_name": "Saad Al Sheeb",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-4",
+    "player_name": "Meshaal Barsham",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-5",
+    "player_name": "Homam Ahmed",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-6",
+    "player_name": "Bassam Alrawi",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-7",
+    "player_name": "Abdulkarim Hassan",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-8",
+    "player_name": "Musaab Khidir",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-9",
+    "player_name": "Boualem Khoukhi",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-10",
+    "player_name": "Pedro Miguel",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-11",
+    "player_name": "Tarek Salman",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-12",
+    "player_name": "Karim Boudiaf",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-13",
+    "player_name": "Abdulaziz Hatem",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-14",
+    "player_name": "Assim Omer Madibo",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-15",
+    "player_name": "Yousuf Abdurisag",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-16",
+    "player_name": "Akram Hassan Afif",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-17",
+    "player_name": "Ahmad Alaaeldin",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-18",
+    "player_name": "Hasan Al-Haydos",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-19",
+    "player_name": "Almoez Ali",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "QAT-20",
+    "player_name": "Mohammed Muntari",
+    "country": "Qatar",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-1",
+    "player_name": "Team Photo",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-2",
+    "player_name": "Emblem",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-3",
+    "player_name": "Hernán Galíndez",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-4",
+    "player_name": "Alexander Domínguez",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-5",
+    "player_name": "Robert Arboleda",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-6",
+    "player_name": "Byron Castillo",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-7",
+    "player_name": "Pervis Estupiñán",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-8",
+    "player_name": "Piero Hincapié",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-9",
+    "player_name": "Ángelo Preciado",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-10",
+    "player_name": "Félix Torres",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-11",
+    "player_name": "Moisés Caicedo",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-12",
+    "player_name": "Alan Franco",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-13",
+    "player_name": "Carlos Gruezo",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-14",
+    "player_name": "Jhegson Méndez",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-15",
+    "player_name": "Jeremy Sarmiento",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-16",
+    "player_name": "Michael Estrada",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-17",
+    "player_name": "Ángel Mena",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-18",
+    "player_name": "Gonzalo Plata",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-19",
+    "player_name": "Ayrton Preciado",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ECU-20",
+    "player_name": "Enner Valencia",
+    "country": "Ecuador",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-1",
+    "player_name": "Team Photo",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-2",
+    "player_name": "Emblem",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-3",
+    "player_name": "Édouard Mendy",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-4",
+    "player_name": "Alfred Gomis",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-5",
+    "player_name": "Saliou Ciss",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-6",
+    "player_name": "Pape Abou Cissé",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-7",
+    "player_name": "Abdou Diallo",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-8",
+    "player_name": "Kalidou Koulibaly",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-9",
+    "player_name": "Ibrahima Mbaye",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-10",
+    "player_name": "Bouna Sarr",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-11",
+    "player_name": "Krépin Diatta",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-12",
+    "player_name": "Idrissa Gueye",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-13",
+    "player_name": "Pape Gueye",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-14",
+    "player_name": "Cheikhou Kouyaté",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-15",
+    "player_name": "Nampalys Mendy",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-16",
+    "player_name": "Boulaye Dia",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-17",
+    "player_name": "Famara Diédhiou",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-18",
+    "player_name": "Bamba Dieng",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-19",
+    "player_name": "Sadio Mané",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SEN-20",
+    "player_name": "Ismaïla Sarr",
+    "country": "Senegal",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-1",
+    "player_name": "Team Photo",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-2",
+    "player_name": "Emblem",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-3",
+    "player_name": "Justin Bijlow",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-4",
+    "player_name": "Jasper Cillessen",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-5",
+    "player_name": "Daley Blind",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-6",
+    "player_name": "Matthijs de Ligt",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-7",
+    "player_name": "Stefan de Vrij",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-8",
+    "player_name": "Denzel Dumfries",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-9",
+    "player_name": "Virgil van Dijk",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-10",
+    "player_name": "Steven Berghuis",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-11",
+    "player_name": "Frenkie de Jong",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-12",
+    "player_name": "Ryan Gravenberch",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-13",
+    "player_name": "Davy Klaassen",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-14",
+    "player_name": "Teun Koopmeiners",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-15",
+    "player_name": "Georginio Wijnaldum",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-16",
+    "player_name": "Steven Bergwijn",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-17",
+    "player_name": "Arnaut Danjuma",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-18",
+    "player_name": "Memphis Depay",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-19",
+    "player_name": "Cody Gakpo",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "NED-20",
+    "player_name": "Donyell Malen",
+    "country": "Netherlands",
+    "section": "Group A",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-1",
+    "player_name": "Team Photo",
+    "country": "England",
+    "section": "Group B",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-2",
+    "player_name": "Emblem",
+    "country": "England",
+    "section": "Group B",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-3",
+    "player_name": "Jordan Pickford",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-4",
+    "player_name": "Aaron Ramsdale",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-5",
+    "player_name": "Trent Alexander-Arnold",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-6",
+    "player_name": "Conor Coady",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-7",
+    "player_name": "Harry Maguire",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-8",
+    "player_name": "Luke Shaw",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-9",
+    "player_name": "John Stones",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-10",
+    "player_name": "Kyle Walker",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-11",
+    "player_name": "Jude Bellingham",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-12",
+    "player_name": "Jack Grealish",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-13",
+    "player_name": "Jordan Henderson",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-14",
+    "player_name": "Mason Mount",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-15",
+    "player_name": "Kalvin Phillips",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-16",
+    "player_name": "Declan Rice",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-17",
+    "player_name": "Phil Foden",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-18",
+    "player_name": "Harry Kane",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-19",
+    "player_name": "Bukayo Saka",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ENG-20",
+    "player_name": "Raheem Sterling",
+    "country": "England",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-1",
+    "player_name": "Team Photo",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-2",
+    "player_name": "Emblem",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-3",
+    "player_name": "Amir Abedzadeh",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-4",
+    "player_name": "Alireza Beiranvand",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-5",
+    "player_name": "Ehsan Hajsafi",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-6",
+    "player_name": "Majid Hosseini",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-7",
+    "player_name": "Hossein Kanaani",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-8",
+    "player_name": "Shoja Khalilzadeh",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-9",
+    "player_name": "Milad Mohammadi",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-10",
+    "player_name": "Sadegh Moharrami",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-11",
+    "player_name": "Omid Noorafkan",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-12",
+    "player_name": "Vahid Amiri",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-13",
+    "player_name": "Saeid Ezatolahi",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-14",
+    "player_name": "Ali Gholizadeh",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-15",
+    "player_name": "Alireza Jahanbakhsh",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-16",
+    "player_name": "Ahmad Nourollahi",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-17",
+    "player_name": "Karim Ansarifard",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-18",
+    "player_name": "Sardar Azmoun",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-19",
+    "player_name": "Saman Ghoddos",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "IRN-20",
+    "player_name": "Mehdi Taremi",
+    "country": "Iran",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-1",
+    "player_name": "Team Photo",
+    "country": "United States",
+    "section": "Group B",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-2",
+    "player_name": "Emblem",
+    "country": "United States",
+    "section": "Group B",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-3",
+    "player_name": "Matt Turner",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-4",
+    "player_name": "Zack Steffen",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-5",
+    "player_name": "Sergiño Dest",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-6",
+    "player_name": "Aaron Long",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-7",
+    "player_name": "Chris Richards",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-8",
+    "player_name": "Antonee Robinson",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-9",
+    "player_name": "DeAndre Yedlin",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-10",
+    "player_name": "Walker Zimmerman",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-11",
+    "player_name": "Brenden Aaronson",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-12",
+    "player_name": "Kellyn Acosta",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-13",
+    "player_name": "Tyler Adams",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-14",
+    "player_name": "Weston McKennie",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-15",
+    "player_name": "Yunus Musah",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-16",
+    "player_name": "Jesús Ferreira",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-17",
+    "player_name": "Ricardo Pepi",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-18",
+    "player_name": "Christian Pulisic",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-19",
+    "player_name": "Giovanni Reyna",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "USA-20",
+    "player_name": "Timothy Weah",
+    "country": "United States",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-1",
+    "player_name": "Team Photo",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-2",
+    "player_name": "Emblem",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-3",
+    "player_name": "Danny Ward",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-4",
+    "player_name": "Wayne Hennessey",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-5",
+    "player_name": "Ethan Ampadu",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-6",
+    "player_name": "Ben Davies",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-7",
+    "player_name": "Chris Gunter",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-8",
+    "player_name": "Chris Mepham",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-9",
+    "player_name": "Connor Roberts",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-10",
+    "player_name": "Joe Rodon",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-11",
+    "player_name": "Neco Williams",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-12",
+    "player_name": "Joe Allen",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-13",
+    "player_name": "Joe Morrell",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-14",
+    "player_name": "Aaron Ramsey",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-15",
+    "player_name": "Jonathan Williams",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-16",
+    "player_name": "Harry Wilson",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-17",
+    "player_name": "Gareth Bale",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-18",
+    "player_name": "Daniel James",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-19",
+    "player_name": "Brennan Johnson",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "WAL-20",
+    "player_name": "Kieffer Moore",
+    "country": "Wales",
+    "section": "Group B",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-1",
+    "player_name": "Team Photo",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-2",
+    "player_name": "Emblem",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-3",
+    "player_name": "Emiliano Martínez",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-4",
+    "player_name": "Franco Armani",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-5",
+    "player_name": "Marcos Acuña",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-6",
+    "player_name": "Nahuel Molina",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-7",
+    "player_name": "Nicolás Otamendi",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-8",
+    "player_name": "Germán Pezzella",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-9",
+    "player_name": "Cristian Romero",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-10",
+    "player_name": "Rodrigo De Paul",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-11",
+    "player_name": "Ángel Di María",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-12",
+    "player_name": "Giovani Lo Celso",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-13",
+    "player_name": "Leandro Paredes",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-14",
+    "player_name": "Guido Rodríguez",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-15",
+    "player_name": "Julián Álvarez",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-16",
+    "player_name": "Joaquín Correa",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-17",
+    "player_name": "Alejandro Gómez",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-18",
+    "player_name": "Nicolás González",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-19",
+    "player_name": "Lautaro Martínez",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ARG-20",
+    "player_name": "Lionel Messi",
+    "country": "Argentina",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-1",
+    "player_name": "Team Photo",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-2",
+    "player_name": "Emblem",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-3",
+    "player_name": "Mohammed Al-Owais",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-4",
+    "player_name": "Mohammed Al-Rubaie",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-5",
+    "player_name": "Abdulelah Al-Amri",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-6",
+    "player_name": "Ali Al-Boleahi",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-7",
+    "player_name": "Mohammed Al-Burayk",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-8",
+    "player_name": "Sultan Al-Ghannam",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-9",
+    "player_name": "Yasser Al-Shahrani",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-10",
+    "player_name": "Hassan Al-Tambakti",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-11",
+    "player_name": "Abdullah Madu",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-12",
+    "player_name": "Salman Al-Faraj",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-13",
+    "player_name": "Abdulelah Al-Malki",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-14",
+    "player_name": "Sami Al-Najei",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-15",
+    "player_name": "Hattan Bahebri",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-16",
+    "player_name": "Mohamed Kanno",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-17",
+    "player_name": "Abdullah Otayf",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-18",
+    "player_name": "Firas Al-Buraikan",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-19",
+    "player_name": "Salem Al-Dawsari",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KSA-20",
+    "player_name": "Khalid Al-Ghannam",
+    "country": "Saudi Arabia",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-1",
+    "player_name": "Team Photo",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-2",
+    "player_name": "Emblem",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-3",
+    "player_name": "Guillermo Ochoa",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-4",
+    "player_name": "Alfredo Talavera",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-5",
+    "player_name": "Néstor Araújo",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-6",
+    "player_name": "Jesús Gallardo",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-7",
+    "player_name": "César Montes",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-8",
+    "player_name": "Héctor Moreno",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-9",
+    "player_name": "Luis Romo",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-10",
+    "player_name": "Jorge Sánchez",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-11",
+    "player_name": "Edson Álvarez",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-12",
+    "player_name": "Jesús Manuel Corona",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-13",
+    "player_name": "Andrés Guardado",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-14",
+    "player_name": "Érick Gutiérrez",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-15",
+    "player_name": "Héctor Herrera",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-16",
+    "player_name": "Diego Lainez",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-17",
+    "player_name": "Carlos Rodríguez",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-18",
+    "player_name": "Rogelio Funes Mori",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-19",
+    "player_name": "Raúl Jiménez",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MEX-20",
+    "player_name": "Hirving Lozano",
+    "country": "Mexico",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-1",
+    "player_name": "Team Photo",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-2",
+    "player_name": "Emblem",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-3",
+    "player_name": "Wojciech Szczęsny",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-4",
+    "player_name": "Łukasz Skorupski",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-5",
+    "player_name": "Jan Bednarek",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-6",
+    "player_name": "Bartosz Bereszyński",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-7",
+    "player_name": "Matty Cash",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-8",
+    "player_name": "Kamil Glik",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-9",
+    "player_name": "Tymoteusz Puchacz",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-10",
+    "player_name": "Maciej Rybus",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-11",
+    "player_name": "Kamil Jóźwiak",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-12",
+    "player_name": "Mateusz Klich",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-13",
+    "player_name": "Grzegorz Krychowiak",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-14",
+    "player_name": "Jakub Moder",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-15",
+    "player_name": "Sebastian Szymański",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-16",
+    "player_name": "Piotr Zieliński",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-17",
+    "player_name": "Robert Lewandowski",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-18",
+    "player_name": "Arkadiusz Milik",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-19",
+    "player_name": "Krzysztof Piątek",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POL-20",
+    "player_name": "Karol Świderski",
+    "country": "Poland",
+    "section": "Group C",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-1",
+    "player_name": "Team Photo",
+    "country": "France",
+    "section": "Group D",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-2",
+    "player_name": "Emblem",
+    "country": "France",
+    "section": "Group D",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-3",
+    "player_name": "Hugo Lloris",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-4",
+    "player_name": "Mike Maignan",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-5",
+    "player_name": "Lucas Hernández",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-6",
+    "player_name": "Theo Hernández",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-7",
+    "player_name": "Presnel Kimpembe",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-8",
+    "player_name": "Jules Koundé",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-9",
+    "player_name": "Benjamin Pavard",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-10",
+    "player_name": "Raphaël Varane",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-11",
+    "player_name": "N’Golo Kanté",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-12",
+    "player_name": "Paul Pogba",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-13",
+    "player_name": "Adrien Rabiot",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-14",
+    "player_name": "Aurélien Tchouaméni",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-15",
+    "player_name": "Wissam Ben Yedder",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-16",
+    "player_name": "Karim Benzema",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-17",
+    "player_name": "Kingsley Coman",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-18",
+    "player_name": "Antoine Griezmann",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-19",
+    "player_name": "Kylian Mbappé",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FRA-20",
+    "player_name": "Christopher Nkunku",
+    "country": "France",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-1",
+    "player_name": "Team Photo",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-2",
+    "player_name": "Emblem",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-3",
+    "player_name": "Mathew Ryan",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-4",
+    "player_name": "Andrew Redmayne",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-5",
+    "player_name": "Aziz Behich",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-6",
+    "player_name": "Miloš Degenek",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-7",
+    "player_name": "Rhyan Grant",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-8",
+    "player_name": "Joel King",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-9",
+    "player_name": "Trent Sainsbury",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-10",
+    "player_name": "Harry Souttar",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-11",
+    "player_name": "Ajdin Hrustić",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-12",
+    "player_name": "Jackson Irvine",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-13",
+    "player_name": "James Jeggo",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-14",
+    "player_name": "Awer Mabil",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-15",
+    "player_name": "Aaron Mooy",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-16",
+    "player_name": "Martin Boyle",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-17",
+    "player_name": "Mitchell Duke",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-18",
+    "player_name": "Craig Goodwin",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-19",
+    "player_name": "Mathew Leckie",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "AUS-20",
+    "player_name": "Adam Taggart",
+    "country": "Australia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-1",
+    "player_name": "Team Photo",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-2",
+    "player_name": "Emblem",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-3",
+    "player_name": "Kasper Schmeichel",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-4",
+    "player_name": "Frederik Rønnow",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-5",
+    "player_name": "Andreas Christensen",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-6",
+    "player_name": "Simon Kjær",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-7",
+    "player_name": "Joakim Mæhle",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-8",
+    "player_name": "Jens Stryger Larsen",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-9",
+    "player_name": "Jannik Vestergaard",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-10",
+    "player_name": "Mikkel Damsgaard",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-11",
+    "player_name": "Thomas Delaney",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-12",
+    "player_name": "Christian Eriksen",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-13",
+    "player_name": "Pierre Emile Højbjerg",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-14",
+    "player_name": "Christian Nørgaard",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-15",
+    "player_name": "Daniel Wass",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-16",
+    "player_name": "Martin Braithwaite",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-17",
+    "player_name": "Kasper Dolberg",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-18",
+    "player_name": "Yussuf Poulsen",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-19",
+    "player_name": "Andreas Skov Olsen",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "DEN-20",
+    "player_name": "Jonas Wind",
+    "country": "Denmark",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-1",
+    "player_name": "Team Photo",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-2",
+    "player_name": "Emblem",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-3",
+    "player_name": "Bechir Ben Saïd",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-4",
+    "player_name": "Farouk Ben Mustapha",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-5",
+    "player_name": "Dylan Bronn",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-6",
+    "player_name": "Mohamed Dräger",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-7",
+    "player_name": "Bilel Ifa",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-8",
+    "player_name": "Ali Maâloul",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-9",
+    "player_name": "Hamza Mathlouthi",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-10",
+    "player_name": "Yassine Meriah",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-11",
+    "player_name": "Montassar Talbi",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-12",
+    "player_name": "Mohamed Ali Ben Romdhane",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-13",
+    "player_name": "Wahbi Khazri",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-14",
+    "player_name": "Aïssa Laïdouni",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-15",
+    "player_name": "Ferjani Sassi",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-16",
+    "player_name": "Ellyes Skhiri",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-17",
+    "player_name": "Anis Slimane",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-18",
+    "player_name": "Seifeddine Jaziri",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-19",
+    "player_name": "Youssef Msakni",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "TUN-20",
+    "player_name": "Naïm Sliti",
+    "country": "Tunisia",
+    "section": "Group D",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-1",
+    "player_name": "Team Photo",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-2",
+    "player_name": "Emblem",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-3",
+    "player_name": "Unai Simón",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-4",
+    "player_name": "Robert Sánchez",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-5",
+    "player_name": "César Azpilicueta",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-6",
+    "player_name": "Eric García",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-7",
+    "player_name": "Jordi Alba",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-8",
+    "player_name": "Aymeric Laporte",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-9",
+    "player_name": "Pau Torres",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-10",
+    "player_name": "Gavi",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-11",
+    "player_name": "Koke",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-12",
+    "player_name": "Marcos Llorente",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-13",
+    "player_name": "Pedri",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-14",
+    "player_name": "Rodri",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-15",
+    "player_name": "Sergio Busquets",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-16",
+    "player_name": "Dani Olmo",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-17",
+    "player_name": "Ansu Fati",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-18",
+    "player_name": "Ferran Torres",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-19",
+    "player_name": "Álvaro Morata",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "ESP-20",
+    "player_name": "Pablo Sarabia",
+    "country": "Spain",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-1",
+    "player_name": "Team Photo",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-2",
+    "player_name": "Emblem",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-3",
+    "player_name": "Keylor Navas",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-4",
+    "player_name": "Leonel Moreira",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-5",
+    "player_name": "Ricardo Blanco",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-6",
+    "player_name": "Francisco Calvo",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-7",
+    "player_name": "Óscar Duarte",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-8",
+    "player_name": "Keysher Fuller",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-9",
+    "player_name": "Bryan Oviedo",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-10",
+    "player_name": "Juan Pablo Vargas",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-11",
+    "player_name": "Kendall Waston",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-12",
+    "player_name": "Celso Borges",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-13",
+    "player_name": "Orlando Galo",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-14",
+    "player_name": "Bryan Ruiz",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-15",
+    "player_name": "Yeltsin Tejeda",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-16",
+    "player_name": "Jewison Bennette",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-17",
+    "player_name": "Joel Campbell",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-18",
+    "player_name": "Anthony Contreras",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-19",
+    "player_name": "Gerson Torres",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRC-20",
+    "player_name": "Johan Venegas",
+    "country": "Costa Rica",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-1",
+    "player_name": "Team Photo",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-2",
+    "player_name": "Emblem",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-3",
+    "player_name": "Manuel Neuer",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-4",
+    "player_name": "Marc-André ter Stegen",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-5",
+    "player_name": "Matthias Ginter",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-6",
+    "player_name": "Robin Gosens",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-7",
+    "player_name": "Thilo Kehrer",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-8",
+    "player_name": "David Raum",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-9",
+    "player_name": "Antonio Rüdiger",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-10",
+    "player_name": "Niklas Süle",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-11",
+    "player_name": "Leon Goretzka",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-12",
+    "player_name": "İlkay Gündoğan",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-13",
+    "player_name": "Kai Havertz",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-14",
+    "player_name": "Jonas Hofmann",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-15",
+    "player_name": "Joshua Kimmich",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-16",
+    "player_name": "Serge Gnabry",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-17",
+    "player_name": "Thomas Müller",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-18",
+    "player_name": "Marco Reus",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-19",
+    "player_name": "Leroy Sané",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GER-20",
+    "player_name": "Timo Werner",
+    "country": "Germany",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-1",
+    "player_name": "Team Photo",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-2",
+    "player_name": "Emblem",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-3",
+    "player_name": "Shuichi Gonda",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-4",
+    "player_name": "Eiji Kawashima",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-5",
+    "player_name": "Yuto Nagatomo",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-6",
+    "player_name": "Yuta Nakayama",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-7",
+    "player_name": "Takehiro Tomiyasu",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-8",
+    "player_name": "Miki Yamane",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-9",
+    "player_name": "Maya Yoshida",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-10",
+    "player_name": "Wataru Endo",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-11",
+    "player_name": "Genki Haraguchi",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-12",
+    "player_name": "Hidemasa Morita",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-13",
+    "player_name": "Gaku Shibasaki",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-14",
+    "player_name": "Ao Tanaka",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-15",
+    "player_name": "Takuma Asano",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-16",
+    "player_name": "Kyogo Furuhashi",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-17",
+    "player_name": "Junya Ito",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-18",
+    "player_name": "Takumi Minamino",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-19",
+    "player_name": "Kaoru Mitoma",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "JPN-20",
+    "player_name": "Yuya Osako",
+    "country": "Japan",
+    "section": "Group E",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-1",
+    "player_name": "Team Photo",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-2",
+    "player_name": "Emblem",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-3",
+    "player_name": "Thibaut Courtois",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-4",
+    "player_name": "Simon Mignolet",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-5",
+    "player_name": "Toby Alderweireld",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-6",
+    "player_name": "Timothy Castagne",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-7",
+    "player_name": "Jason Denayer",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-8",
+    "player_name": "Thomas Meunier",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-9",
+    "player_name": "Jan Vertonghen",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-10",
+    "player_name": "Yannick Carrasco",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-11",
+    "player_name": "Kevin De Bruyne",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-12",
+    "player_name": "Charles De Ketelaere",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-13",
+    "player_name": "Thorgan Hazard",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-14",
+    "player_name": "Youri Tielemans",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-15",
+    "player_name": "Hans Vanaken",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-16",
+    "player_name": "Axel Witsel",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-17",
+    "player_name": "Jérémy Doku",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-18",
+    "player_name": "Eden Hazard",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-19",
+    "player_name": "Romelu Lukaku",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BEL-20",
+    "player_name": "Dries Mertens",
+    "country": "Belgium",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-1",
+    "player_name": "Team Photo",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-2",
+    "player_name": "Emblem",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-3",
+    "player_name": "Milan Borjan",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-4",
+    "player_name": "Maxime Crépeau",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-5",
+    "player_name": "Samuel Adekugbe",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-6",
+    "player_name": "Doneil Henry",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-7",
+    "player_name": "Alistair Johnston",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-8",
+    "player_name": "Richie Laryea",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-9",
+    "player_name": "Kamal Miller",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-10",
+    "player_name": "Steven Vitória",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-11",
+    "player_name": "Tajon Buchanan",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-12",
+    "player_name": "Alphonso Davies",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-13",
+    "player_name": "Stephen Eustáquio",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-14",
+    "player_name": "Atiba Hutchinson",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-15",
+    "player_name": "Mark-Anthony Kaye",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-16",
+    "player_name": "Jonathan Osorio",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-17",
+    "player_name": "Samuel Piette",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-18",
+    "player_name": "Jonathan David",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-19",
+    "player_name": "David Junior Hoilett",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CAN-20",
+    "player_name": "Cyle Larin",
+    "country": "Canada",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-1",
+    "player_name": "Team Photo",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-2",
+    "player_name": "Emblem",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-3",
+    "player_name": "Yassine Bounou",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-4",
+    "player_name": "Munir Mohamedi",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-5",
+    "player_name": "Nayef Aguerd",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-6",
+    "player_name": "Achraf Hakimi",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-7",
+    "player_name": "Adam Masina",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-8",
+    "player_name": "Samy Mmaee",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-9",
+    "player_name": "Romain Saïss",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-10",
+    "player_name": "Selim Amallah",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-11",
+    "player_name": "Sofyan Amrabat",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-12",
+    "player_name": "Aymen Barkok",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-13",
+    "player_name": "Ilias Chair",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-14",
+    "player_name": "Imrân Louza",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-15",
+    "player_name": "Sofiane Boufal",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-16",
+    "player_name": "Ayoub El Kaabi",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-17",
+    "player_name": "Youssef En-Nesyri",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-18",
+    "player_name": "Ryan Mmaee",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-19",
+    "player_name": "Munir",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "MAR-20",
+    "player_name": "Tarik Tissoudali",
+    "country": "Morocco",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-1",
+    "player_name": "Team Photo",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-2",
+    "player_name": "Emblem",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-3",
+    "player_name": "Dominik Livaković",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-4",
+    "player_name": "Ivica Ivušić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-5",
+    "player_name": "Duje Ćaleta-Car",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-6",
+    "player_name": "Joško Gvardiol",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-7",
+    "player_name": "Josip Juranović",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-8",
+    "player_name": "Dejan Lovren",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-9",
+    "player_name": "Borna Sosa",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-10",
+    "player_name": "Domagoj Vida",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-11",
+    "player_name": "Marcelo Brozović",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-12",
+    "player_name": "Mateo Kovačić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-13",
+    "player_name": "Luka Modrić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-14",
+    "player_name": "Mario Pašalić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-15",
+    "player_name": "Ivan Perišić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-16",
+    "player_name": "Nikola Vlašić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-17",
+    "player_name": "Josip Brekalo",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-18",
+    "player_name": "Andrej Kramarić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-19",
+    "player_name": "Marko Livaja",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CRO-20",
+    "player_name": "Mislav Oršić",
+    "country": "Croatia",
+    "section": "Group F",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-1",
+    "player_name": "Team Photo",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-2",
+    "player_name": "Emblem",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-3",
+    "player_name": "Alisson",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-4",
+    "player_name": "Ederson",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-5",
+    "player_name": "Alex Sandro",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-6",
+    "player_name": "Danilo",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-7",
+    "player_name": "Éder Militão",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-8",
+    "player_name": "Marquinhos",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-9",
+    "player_name": "Thiago Silva",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-10",
+    "player_name": "Casemiro",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-11",
+    "player_name": "Philippe Coutinho",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-12",
+    "player_name": "Fabinho",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-13",
+    "player_name": "Fred",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-14",
+    "player_name": "Lucas Paquetá",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-15",
+    "player_name": "Antony",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-16",
+    "player_name": "Gabriel Jesus",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-17",
+    "player_name": "Neymar Jr",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-18",
+    "player_name": "Raphinha",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-19",
+    "player_name": "Richarlison",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "BRA-20",
+    "player_name": "Vinícius Jr",
+    "country": "Brazil",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-1",
+    "player_name": "Team Photo",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-2",
+    "player_name": "Emblem",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-3",
+    "player_name": "Predrag Rajković",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-4",
+    "player_name": "Vanja Milinković-Savić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-5",
+    "player_name": "Nikola Milenković",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-6",
+    "player_name": "Strahinja Pavlović",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-7",
+    "player_name": "Miloš Veljković",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-8",
+    "player_name": "Filip Đuričić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-9",
+    "player_name": "Nemanja Gudelj",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-10",
+    "player_name": "Filip Kostić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-11",
+    "player_name": "Darko Lazović",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-12",
+    "player_name": "Saša Lukić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-13",
+    "player_name": "Nemanja Maksimović",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-14",
+    "player_name": "Sergej Milinković-Savić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-15",
+    "player_name": "Nemanja Radonjić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-16",
+    "player_name": "Andrija Živković",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-17",
+    "player_name": "Luka Jović",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-18",
+    "player_name": "Aleksandar Mitrović",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-19",
+    "player_name": "Dušan Tadić",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SRB-20",
+    "player_name": "Dušan Vlahović",
+    "country": "Serbia",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-1",
+    "player_name": "Team Photo",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-2",
+    "player_name": "Emblem",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-3",
+    "player_name": "Yann Sommer",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-4",
+    "player_name": "Gregor Kobel",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-5",
+    "player_name": "Manuel Akanji",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-6",
+    "player_name": "Nico Elvedi",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-7",
+    "player_name": "Kevin Mbabu",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-8",
+    "player_name": "Ricardo Rodríguez",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-9",
+    "player_name": "Fabian Schär",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-10",
+    "player_name": "Silvan Widmer",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-11",
+    "player_name": "Remo Freuler",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-12",
+    "player_name": "Xherdan Shaqiri",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-13",
+    "player_name": "Djibril Sow",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-14",
+    "player_name": "Granit Xhaka",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-15",
+    "player_name": "Denis Zakaria",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-16",
+    "player_name": "Steven Zuber",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-17",
+    "player_name": "Breel Embolo",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-18",
+    "player_name": "Noah Okafor",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-19",
+    "player_name": "Haris Seferović",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "SUI-20",
+    "player_name": "Ruben Vargas",
+    "country": "Switzerland",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-1",
+    "player_name": "Team Photo",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-2",
+    "player_name": "Emblem",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-3",
+    "player_name": "André Onana",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-4",
+    "player_name": "Devis Epassy",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-5",
+    "player_name": "Jean-Charles Castelletto",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-6",
+    "player_name": "Collins Fai",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-7",
+    "player_name": "Olivier Mbaizo",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-8",
+    "player_name": "Harold Moukoudi",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-9",
+    "player_name": "Michael Ngadeu",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-10",
+    "player_name": "Nouhou",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-11",
+    "player_name": "Martin Hongla",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-12",
+    "player_name": "Pierre Kunde",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-13",
+    "player_name": "James Léa Siliki",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-14",
+    "player_name": "Samuel Oum Gouet",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-15",
+    "player_name": "André-Frank Zambo Anguissa",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-16",
+    "player_name": "Vincent Aboubakar",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-17",
+    "player_name": "Stéphane Bahoken",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-18",
+    "player_name": "Eric Maxim Choupo-Moting",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-19",
+    "player_name": "Nicolas Moumi Ngamaleu",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "CMR-20",
+    "player_name": "Karl Toko Ekambi",
+    "country": "Cameroon",
+    "section": "Group G",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-1",
+    "player_name": "Team Photo",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-2",
+    "player_name": "Emblem",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-3",
+    "player_name": "Diogo Costa",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-4",
+    "player_name": "Rui Patrício",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-5",
+    "player_name": "João Cancelo",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-6",
+    "player_name": "José Fonte",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-7",
+    "player_name": "Nuno Mendes",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-8",
+    "player_name": "Pepe",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-9",
+    "player_name": "Raphaël Guerreiro",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-10",
+    "player_name": "Rúben Dias",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-11",
+    "player_name": "Bernardo Silva",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-12",
+    "player_name": "Bruno Fernandes",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-13",
+    "player_name": "Danilo Pereira",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-14",
+    "player_name": "João Moutinho",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-15",
+    "player_name": "Renato Sanches",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-16",
+    "player_name": "Rúben Neves",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-17",
+    "player_name": "André Silva",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-18",
+    "player_name": "Cristiano Ronaldo",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-19",
+    "player_name": "Diogo Jota",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "POR-20",
+    "player_name": "Gonçalo Guedes",
+    "country": "Portugal",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-1",
+    "player_name": "Team Photo",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-2",
+    "player_name": "Emblem",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-3",
+    "player_name": "Joe Wollacott",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-4",
+    "player_name": "Richard Ofori",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-5",
+    "player_name": "Daniel Amartey",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-6",
+    "player_name": "Abdul-Rahman Baba",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-7",
+    "player_name": "Alexander Djiku",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-8",
+    "player_name": "Gideon Mensah",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-9",
+    "player_name": "Jonathan Mensah",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-10",
+    "player_name": "Andy Yiadom",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-11",
+    "player_name": "Iddrisu Baba",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-12",
+    "player_name": "Mohammed Kudus",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-13",
+    "player_name": "Daniel-Kofi Kyereh",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-14",
+    "player_name": "Thomas Partey",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-15",
+    "player_name": "Mubarak Wakaso",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-16",
+    "player_name": "Felix Afena-Gyan",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-17",
+    "player_name": "André Ayew",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-18",
+    "player_name": "Jordan Ayew",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-19",
+    "player_name": "Issahaku Abdul Fatawu",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "GHA-20",
+    "player_name": "Kamaldeen Sulemana",
+    "country": "Ghana",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-1",
+    "player_name": "Team Photo",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-2",
+    "player_name": "Emblem",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-3",
+    "player_name": "Fernando Muslera",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-4",
+    "player_name": "Sergio Rochet",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-5",
+    "player_name": "Ronald Araújo",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-6",
+    "player_name": "Martín Cáceres",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-7",
+    "player_name": "José María Giménez",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-8",
+    "player_name": "Diego Godín",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-9",
+    "player_name": "Mathías Olivera",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-10",
+    "player_name": "Matías Viña",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-11",
+    "player_name": "Rodrigo Bentancur",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-12",
+    "player_name": "Giorgian De Arrascaeta",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-13",
+    "player_name": "Nicolás De La Cruz",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-14",
+    "player_name": "Lucas Torreira",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-15",
+    "player_name": "Federico Valverde",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-16",
+    "player_name": "Matías Vecino",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-17",
+    "player_name": "Edinson Cavani",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-18",
+    "player_name": "Darwin Núñez",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-19",
+    "player_name": "Facundo Pellistri",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "URU-20",
+    "player_name": "Luis Suárez",
+    "country": "Uruguay",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-1",
+    "player_name": "Team Photo",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-2",
+    "player_name": "Emblem",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "badge",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-3",
+    "player_name": "Seung-gyu Kim",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-4",
+    "player_name": "Hyeon-woo Jo",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-5",
+    "player_name": "Chul Hong",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-6",
+    "player_name": "Tae-hwan Kim",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-7",
+    "player_name": "Min-jae Kim",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-8",
+    "player_name": "Young-gwon Kim",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-9",
+    "player_name": "Jin-su Kim",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-10",
+    "player_name": "Yong Lee",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-11",
+    "player_name": "In-beom Hwang",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-12",
+    "player_name": "Woo-young Jung",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-13",
+    "player_name": "Jae-sung Lee",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-14",
+    "player_name": "Seung-ho Paik",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-15",
+    "player_name": "Gue-sung Cho",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-16",
+    "player_name": "Hee-chan Hwang",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-17",
+    "player_name": "Ui-jo Hwang",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-18",
+    "player_name": "Chang-hoon Kwon",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-19",
+    "player_name": "Heung-min Son",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "KOR-20",
+    "player_name": "Min-kyu Song",
+    "country": "South Korea",
+    "section": "Group H",
+    "type": "player",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-20",
+    "player_name": "Uruguay 1930",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-21",
+    "player_name": "Italy 1938",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-22",
+    "player_name": "Brazil 1958",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-23",
+    "player_name": "England 1966",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-24",
+    "player_name": "Brazil 1970",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-25",
+    "player_name": "Argentina 1978",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-26",
+    "player_name": "Italy 1982",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-27",
+    "player_name": "Germany 1990",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-28",
+    "player_name": "France 1998",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-29",
+    "player_name": "Spain 2010",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  },
+  {
+    "number": "FIFA-30",
+    "player_name": "France 2018",
+    "country": "FIFA",
+    "section": "FIFA Museum",
+    "type": "special",
+    "edition": "2022"
+  }
+]

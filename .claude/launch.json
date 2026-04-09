@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nextjs-dev",
+      "runtimeExecutable": "/Users/pedro.villarino/.local/bin/node",
+      "runtimeArgs": ["node_modules/.bin/next", "dev"],
+      "env": {"PATH": "/Users/pedro.villarino/.local/bin:/usr/bin:/bin"},
+      "port": 3000
+    }
+  ]
+}

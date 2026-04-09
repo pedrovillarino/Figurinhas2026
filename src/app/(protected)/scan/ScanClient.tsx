@@ -1,0 +1,462 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { getFlag } from '@/lib/countries'
+
+type ScanState = 'idle' | 'preview' | 'loading' | 'results' | 'success' | 'error'
+
+type MatchedSticker = {
+  sticker_id: number
+  number: string
+  player_name: string | null
+  country: string
+  status: string // filled | empty
+}
+
+type ScanResponse = {
+  matched: MatchedSticker[]
+  unmatched: string[]
+  warnings: string[]
+  confidence: string
+}
+
+export default function ScanClient({ userId, totalStickers }: { userId: string; totalStickers: number }) {
+  const [state, setState] = useState<ScanState>('idle')
+  const [imageData, setImageData] = useState<string | null>(null)
+  const [mimeType, setMimeType] = useState<string>('image/jpeg')
+  const [scanResult, setScanResult] = useState<ScanResponse | null>(null)
+  const [checked, setChecked] = useState<Record<number, boolean>>({})
+  const [errorMsg, setErrorMsg] = useState('')
+  const [savedCount, setSavedCount] = useState(0)
+  const [ownedCount, setOwnedCount] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const supabase = createClient()
+
+  function compressImage(dataUrl: string, maxWidth = 1200): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ratio = Math.min(maxWidth / img.width, 1)
+        canvas.width = img.width * ratio
+        canvas.height = img.height * ratio
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.7))
+      }
+      img.src = dataUrl
+    })
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const result = reader.result as string
+      const compressed = await compressImage(result)
+      setMimeType('image/jpeg')
+      setImageData(compressed)
+      setState('preview')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  async function handleAnalyze() {
+    if (!imageData) return
+    setState('loading')
+
+    try {
+      const base64 = imageData.split(',')[1]
+
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, mimeType }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Erro ao processar scan')
+        setState('error')
+        return
+      }
+
+      setScanResult(data)
+      // Pre-check all "filled" stickers
+      const initial: Record<number, boolean> = {}
+      data.matched.forEach((s: MatchedSticker) => {
+        initial[s.sticker_id] = s.status === 'filled'
+      })
+      setChecked(initial)
+      setState('results')
+    } catch {
+      setErrorMsg('Falha na conexão. Verifique sua internet.')
+      setState('error')
+    }
+  }
+
+  function toggleCheck(stickerId: number) {
+    setChecked((prev) => ({ ...prev, [stickerId]: !prev[stickerId] }))
+  }
+
+  const selectedCount = Object.values(checked).filter(Boolean).length
+
+  async function handleSave() {
+    if (!scanResult) return
+    setSaving(true)
+
+    const toSave = scanResult.matched.filter((s) => checked[s.sticker_id])
+
+    for (const sticker of toSave) {
+      const { data: existing } = await supabase
+        .from('user_stickers')
+        .select('id, status, quantity')
+        .eq('user_id', userId)
+        .eq('sticker_id', sticker.sticker_id)
+        .single()
+
+      if (existing) {
+        if (existing.status === 'owned') {
+          // Already owned → make duplicate, increment quantity
+          await supabase
+            .from('user_stickers')
+            .update({ status: 'duplicate', quantity: existing.quantity + 1, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+        }
+        // If already duplicate or missing, mark as owned
+        if (existing.status === 'missing') {
+          await supabase
+            .from('user_stickers')
+            .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+        }
+      } else {
+        await supabase.from('user_stickers').insert({
+          user_id: userId,
+          sticker_id: sticker.sticker_id,
+          status: 'owned',
+          quantity: 1,
+        })
+      }
+    }
+
+    // Get updated count
+    const { count } = await supabase
+      .from('user_stickers')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('status', ['owned', 'duplicate'])
+
+    setSavedCount(toSave.length)
+    setOwnedCount(count || 0)
+    setSaving(false)
+    setState('success')
+  }
+
+  function reset() {
+    setState('idle')
+    setImageData(null)
+    setScanResult(null)
+    setChecked({})
+    setErrorMsg('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const progressPct = totalStickers > 0 ? Math.round((ownedCount / totalStickers) * 100) : 0
+
+  // ── IDLE ──
+  if (state === 'idle') {
+    return (
+      <div className="px-4 pt-6">
+        <h1 className="text-xl font-black tracking-tight text-gray-900 mb-1">Scan</h1>
+        <p className="text-[13px] text-gray-400 mb-6">
+          Fotografe ou escolha da galeria para registrar automaticamente.
+        </p>
+
+        {/* Camera input (hidden) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileSelect}
+          className="hidden"
+          id="camera-input"
+        />
+
+        {/* Gallery input (hidden) */}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+          id="gallery-input"
+        />
+
+        {/* Buttons */}
+        <div className="space-y-3">
+          <label
+            htmlFor="camera-input"
+            className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Tirar Foto</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Página do álbum, figurinha individual ou várias juntas
+              </p>
+            </div>
+            <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </label>
+
+          <label
+            htmlFor="gallery-input"
+            className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">Escolher da Galeria</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Selecione uma foto já tirada
+              </p>
+            </div>
+            <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </label>
+        </div>
+
+        {/* What you can scan */}
+        <div className="mt-8">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">O que posso escanear</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+              <div className="text-2xl mb-1.5">📖</div>
+              <p className="text-[10px] font-medium text-gray-600">Página inteira</p>
+              <p className="text-[9px] text-gray-300">do álbum</p>
+            </div>
+            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+              <div className="text-2xl mb-1.5">🃏</div>
+              <p className="text-[10px] font-medium text-gray-600">Uma figurinha</p>
+              <p className="text-[9px] text-gray-300">individual</p>
+            </div>
+            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+              <div className="text-2xl mb-1.5">🎴</div>
+              <p className="text-[10px] font-medium text-gray-600">Várias juntas</p>
+              <p className="text-[9px] text-gray-300">na mesa</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tips */}
+        <div className="mt-6 flex items-start gap-2.5 px-1">
+          <svg className="w-4 h-4 text-gray-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+          </svg>
+          <p className="text-[11px] text-gray-300 leading-relaxed">
+            Boa iluminação e números visíveis. A IA identifica automaticamente cada figurinha.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── PREVIEW ──
+  if (state === 'preview') {
+    return (
+      <div className="px-4 pt-6">
+        <h1 className="text-2xl font-bold mb-4">Confirmar Foto</h1>
+
+        <div className="rounded-xl overflow-hidden border border-gray-200 mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageData!} alt="Preview" className="w-full" />
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={reset}
+            className="flex-1 bg-gray-100 text-gray-700 rounded-xl px-4 py-3 text-sm font-medium hover:bg-gray-200 transition"
+          >
+            Tirar Outra
+          </button>
+          <button
+            onClick={handleAnalyze}
+            className="flex-1 bg-violet-600 text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-violet-700 transition"
+          >
+            Analisar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── LOADING ──
+  if (state === 'loading') {
+    return (
+      <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-5xl mb-4 animate-bounce">📸</div>
+        <p className="text-lg font-semibold text-gray-700">Analisando suas figurinhas...</p>
+        <p className="text-sm text-gray-400 mt-2">Isso pode levar alguns segundos</p>
+        <div className="mt-6 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-violet-600 rounded-full animate-pulse" style={{ width: '70%' }} />
+        </div>
+      </div>
+    )
+  }
+
+  // ── ERROR ──
+  if (state === 'error') {
+    return (
+      <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-5xl mb-4">😕</div>
+        <p className="text-lg font-semibold text-gray-700 text-center">{errorMsg}</p>
+        <button
+          onClick={reset}
+          className="mt-6 bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-violet-700 transition"
+        >
+          Tentar Novamente
+        </button>
+      </div>
+    )
+  }
+
+  // ── RESULTS ──
+  if (state === 'results' && scanResult) {
+    return (
+      <div className="px-4 pt-6">
+        <h1 className="text-2xl font-bold mb-1">Figurinhas Detectadas</h1>
+        <p className="text-gray-500 text-sm mb-4">
+          {scanResult.matched.length} encontrada(s). Desmarque as incorretas.
+        </p>
+
+        {scanResult.warnings.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            {scanResult.warnings.map((w, i) => (
+              <p key={i} className="text-xs text-amber-700">{w}</p>
+            ))}
+          </div>
+        )}
+
+        {scanResult.matched.length === 0 ? (
+          <div className="text-center text-gray-400 mt-8">
+            <p className="text-4xl mb-2">🤷</p>
+            <p className="text-sm">Nenhuma figurinha reconhecida. Tente outra foto.</p>
+            <button
+              onClick={reset}
+              className="mt-4 bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-medium"
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-4 max-h-[50vh] overflow-y-auto">
+              {scanResult.matched.map((sticker) => (
+                <button
+                  key={sticker.sticker_id}
+                  onClick={() => toggleCheck(sticker.sticker_id)}
+                  className={`w-full flex items-center gap-3 rounded-lg border p-3 transition ${
+                    checked[sticker.sticker_id]
+                      ? 'bg-green-50 border-green-300'
+                      : 'bg-gray-50 border-gray-200 opacity-60'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                    checked[sticker.sticker_id]
+                      ? 'bg-green-500 border-green-500 text-white'
+                      : 'border-gray-300'
+                  }`}>
+                    {checked[sticker.sticker_id] && (
+                      <span className="text-xs">✓</span>
+                    )}
+                  </div>
+                  <span className="text-lg">{getFlag(sticker.country)}</span>
+                  <div className="text-left flex-1">
+                    <p className="text-sm font-semibold">{sticker.number}</p>
+                    <p className="text-xs text-gray-500">{sticker.player_name || sticker.country}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    sticker.status === 'filled'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {sticker.status === 'filled' ? 'Colada' : 'Vazia'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3 sticky bottom-20 bg-gray-50 pt-2 pb-2">
+              <button
+                onClick={reset}
+                className="flex-1 bg-gray-100 text-gray-700 rounded-xl px-4 py-3 text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={selectedCount === 0 || saving}
+                className="flex-1 bg-violet-600 text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-violet-700 transition disabled:opacity-50"
+              >
+                {saving ? 'Salvando...' : `Salvar ${selectedCount} figurinha${selectedCount !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // ── SUCCESS ──
+  if (state === 'success') {
+    return (
+      <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-5xl mb-4">✅</div>
+        <p className="text-xl font-bold text-gray-800">
+          {savedCount} nova{savedCount !== 1 ? 's' : ''} figurinha{savedCount !== 1 ? 's' : ''} registrada{savedCount !== 1 ? 's' : ''}!
+        </p>
+        <p className="text-gray-500 mt-2">
+          Coleção: {ownedCount}/{totalStickers} ({progressPct}%)
+        </p>
+        <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-3">
+          <div
+            className="bg-violet-600 h-2.5 rounded-full transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <div className="flex gap-3 mt-8">
+          <button
+            onClick={reset}
+            className="bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-violet-700 transition"
+          >
+            Escanear Mais
+          </button>
+          <a
+            href="/album"
+            className="bg-gray-100 text-gray-700 rounded-xl px-6 py-3 text-sm font-medium hover:bg-gray-200 transition"
+          >
+            Ver Álbum
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
