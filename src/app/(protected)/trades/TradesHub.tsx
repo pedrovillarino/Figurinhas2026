@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { canTrade, type Tier } from '@/lib/tiers'
@@ -34,18 +34,19 @@ type TradeDetail = {
   direction: 'they_have' | 'i_have'
 }
 
-const WATCHLIST_KEY = 'figurinhas_watchlist'
+// localStorage stores EXCLUDED sticker ids (inverse logic: all missing are watched by default)
+const EXCLUDED_KEY = 'figurinhas_watch_excluded'
 const WATCH_RADIUS_KEY = 'figurinhas_watch_radius'
 
-function loadWatchlist(): number[] {
+function loadExcluded(): number[] {
   if (typeof window === 'undefined') return []
   try {
-    return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || '[]')
+    return JSON.parse(localStorage.getItem(EXCLUDED_KEY) || '[]')
   } catch { return [] }
 }
 
-function saveWatchlist(ids: number[]) {
-  localStorage.setItem(WATCHLIST_KEY, JSON.stringify(ids))
+function saveExcluded(ids: number[]) {
+  localStorage.setItem(EXCLUDED_KEY, JSON.stringify(ids))
 }
 
 export default function TradesHub({
@@ -70,10 +71,10 @@ export default function TradesHub({
 
   // ─── State ───
   const [showPaywall, setShowPaywall] = useState(false)
-  const [watchlist, setWatchlist] = useState<number[]>([])
+  const [excluded, setExcluded] = useState<number[]>([])
   const [watchRadius, setWatchRadius] = useState(50)
-  const [showWatchPicker, setShowWatchPicker] = useState(false)
-  const [watchSearch, setWatchSearch] = useState('')
+  const [showExcludeManager, setShowExcludeManager] = useState(false)
+  const [excludeSearch, setExcludeSearch] = useState('')
   const [nearbyCount, setNearbyCount] = useState(initialNearbyCount)
   const [matches, setMatches] = useState<NearbyMatch[]>(initialMatches)
   const [hasLocation, setHasLocation] = useState(initialHasLocation)
@@ -83,10 +84,12 @@ export default function TradesHub({
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null)
   const [radius, setRadius] = useState(50)
   const [loadingMatches, setLoadingMatches] = useState(false)
+  const [phones, setPhones] = useState<Record<string, string | null>>({})
+  const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null)
 
-  // Load watchlist from localStorage
+  // Load excluded list from localStorage
   useEffect(() => {
-    setWatchlist(loadWatchlist())
+    setExcluded(loadExcluded())
     const savedRadius = localStorage.getItem(WATCH_RADIUS_KEY)
     if (savedRadius) setWatchRadius(Number(savedRadius))
   }, [])
@@ -100,6 +103,15 @@ export default function TradesHub({
     [stickers, userStickersMap]
   )
 
+  // Watchlist = all missing MINUS excluded (auto-synced: collected stickers disappear automatically)
+  const watchedIds = useMemo(() => {
+    const missingIds = new Set(missingStickers.map((s) => s.id))
+    // Clean excluded: remove ids that are no longer missing (already collected)
+    return missingStickers.filter((s) => !excluded.includes(s.id)).map((s) => s.id)
+  }, [missingStickers, excluded])
+
+  const watchedCount = watchedIds.length
+
   const duplicateStickers = useMemo(() =>
     stickers.filter((s) => userStickersMap[s.id]?.status === 'duplicate'),
     [stickers, userStickersMap]
@@ -110,40 +122,35 @@ export default function TradesHub({
     [duplicateStickers, userStickersMap]
   )
 
-  // Average sticker price estimate (R$1.50 each)
   const STICKER_PRICE = 1.5
   const potentialSavings = totalExtras * STICKER_PRICE
   const missingCost = missingStickers.length * STICKER_PRICE
 
-  const watchedStickers = useMemo(() =>
-    stickers.filter((s) => watchlist.includes(s.id)),
-    [stickers, watchlist]
-  )
-
-  const filteredMissing = useMemo(() => {
-    if (!watchSearch.trim()) return missingStickers.slice(0, 50)
-    const q = watchSearch.toLowerCase()
-    return missingStickers.filter(
-      (s) =>
-        s.number.toLowerCase().includes(q) ||
-        (s.player_name && s.player_name.toLowerCase().includes(q)) ||
-        s.country.toLowerCase().includes(q)
-    ).slice(0, 50)
-  }, [missingStickers, watchSearch])
-
-  // Total stickers that nearby people have that user needs
   const nearbyStickersAvailable = useMemo(() =>
     matches.reduce((acc, m) => acc + m.they_have, 0),
     [matches]
   )
 
+  // Stickers the user can search to exclude from watchlist
+  const filteredWatched = useMemo(() => {
+    const watched = missingStickers.filter((s) => !excluded.includes(s.id))
+    if (!excludeSearch.trim()) return watched.slice(0, 50)
+    const q = excludeSearch.toLowerCase()
+    return watched.filter(
+      (s) =>
+        s.number.toLowerCase().includes(q) ||
+        (s.player_name && s.player_name.toLowerCase().includes(q)) ||
+        s.country.toLowerCase().includes(q)
+    ).slice(0, 50)
+  }, [missingStickers, excluded, excludeSearch])
+
   // ─── Actions ───
-  function toggleWatch(stickerId: number) {
-    setWatchlist((prev) => {
+  function toggleExclude(stickerId: number) {
+    setExcluded((prev) => {
       const next = prev.includes(stickerId)
         ? prev.filter((id) => id !== stickerId)
         : [...prev, stickerId]
-      saveWatchlist(next)
+      saveExcluded(next)
       return next
     })
   }
@@ -185,13 +192,13 @@ export default function TradesHub({
       },
       () => {
         setRequestingLocation(false)
-        alert('Não foi possível obter sua localização. Verifique as permissões do navegador.')
+        alert('Nao foi possivel obter sua localizacao. Verifique as permissoes do navegador.')
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }
 
-  async function loadMatchesFromServer() {
+  const loadMatchesFromServer = useCallback(async () => {
     setLoadingMatches(true)
     try {
       const { data } = await supabase.rpc('get_trade_matches', {
@@ -206,7 +213,7 @@ export default function TradesHub({
       // RPC might not exist
     }
     setLoadingMatches(false)
-  }
+  }, [supabase, userId, radius])
 
   async function loadDetails(otherId: string) {
     if (details[otherId]) return
@@ -232,17 +239,41 @@ export default function TradesHub({
     })
   }
 
-  function openWhatsApp(match: NearbyMatch) {
-    const stickers = details[match.user_id] || []
-    const theyHave = stickers.filter((s) => s.direction === 'they_have').slice(0, 10).map((s) => s.number)
-    const iHave = stickers.filter((s) => s.direction === 'i_have').slice(0, 10).map((s) => s.number)
+  // Fetch phone number for a matched user and open WhatsApp directly
+  async function notifyViaWhatsApp(match: NearbyMatch) {
+    setSendingWhatsApp(match.user_id)
 
-    let msg = 'Oi! Vi no app do Album da Copa que a gente pode trocar figurinhas!\n\n'
+    // Get phone if not cached
+    let phone = phones[match.user_id]
+    if (phone === undefined) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', match.user_id)
+        .single()
+      phone = data?.phone || null
+      setPhones((prev) => ({ ...prev, [match.user_id]: phone }))
+    }
+
+    const matchStickers = details[match.user_id] || []
+    const theyHave = matchStickers.filter((s) => s.direction === 'they_have').slice(0, 10).map((s) => s.number)
+    const iHave = matchStickers.filter((s) => s.direction === 'i_have').slice(0, 10).map((s) => s.number)
+
+    let msg = 'Oi! Vi no app Figurinhas Copa 2026 que a gente pode trocar figurinhas!\n\n'
     if (iHave.length > 0) msg += 'Tenho repetidas pra te dar:\n' + iHave.join(', ') + '\n\n'
     if (theyHave.length > 0) msg += 'Preciso dessas suas:\n' + theyHave.join(', ') + '\n\n'
-    msg += 'Bora trocar?'
+    msg += 'Bora trocar?\n\nhttps://figurinhas2026.vercel.app'
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+    if (phone) {
+      // Clean phone: remove spaces, dashes, etc. Keep + and digits
+      const cleanPhone = phone.replace(/[^+\d]/g, '')
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank')
+    } else {
+      // No phone saved — open generic WhatsApp share
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+    }
+
+    setSendingWhatsApp(null)
   }
 
   function getInitials(name: string | null): string {
@@ -275,12 +306,12 @@ export default function TradesHub({
         <div className="flex gap-4">
           <div>
             <p className="text-xl font-bold text-white">{totalExtras}</p>
-            <p className="text-[10px] text-emerald-200">figurinhas para trocar</p>
+            <p className="text-[10px] text-emerald-200">para trocar</p>
           </div>
           <div className="w-px bg-white/20" />
           <div>
             <p className="text-xl font-bold text-white">{missingStickers.length}</p>
-            <p className="text-[10px] text-emerald-200">figurinhas faltantes</p>
+            <p className="text-[10px] text-emerald-200">faltantes</p>
           </div>
           <div className="w-px bg-white/20" />
           <div>
@@ -290,7 +321,108 @@ export default function TradesHub({
         </div>
       </div>
 
-      {/* ─── Nearby People Teaser ─── */}
+      {/* ─── Watchlist (auto = all missing) ─── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🔔</div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Lista de desejos</p>
+              <p className="text-[10px] text-gray-400">
+                Monitorando <span className="font-bold text-amber-600">{watchedCount}</span> de {missingStickers.length} faltantes
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-gray-400 mb-2">
+          Todas as figurinhas faltantes sao monitoradas automaticamente. Quando voce cola uma no album, ela sai da lista.
+        </p>
+
+        {/* Radius */}
+        <div className="mb-3">
+          <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio de busca</p>
+          <div className="flex gap-1.5">
+            {[10, 25, 50, 100].map((r) => (
+              <button
+                key={r}
+                onClick={() => updateWatchRadius(r)}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                  watchRadius === r ? 'bg-amber-400 text-white' : 'bg-gray-50 text-gray-400'
+                }`}
+              >
+                {r} km
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Excluded count + manage */}
+        {excluded.length > 0 && (
+          <p className="text-[10px] text-gray-400 mb-2">
+            {excluded.length} figurinha{excluded.length > 1 ? 's' : ''} removida{excluded.length > 1 ? 's' : ''} manualmente
+          </p>
+        )}
+
+        <button
+          onClick={() => setShowExcludeManager(!showExcludeManager)}
+          className="text-[10px] font-semibold text-violet-500 hover:text-violet-600 transition"
+        >
+          {showExcludeManager ? 'Fechar gerenciamento' : 'Gerenciar lista (remover/adicionar figurinhas)'}
+        </button>
+
+        {/* Exclude manager */}
+        {showExcludeManager && (
+          <div className="border-t border-gray-100 pt-3 mt-3">
+            <p className="text-[10px] text-gray-500 mb-2">Desmarque as que voce <span className="font-bold">nao</span> quer monitorar:</p>
+            <div className="relative mb-3">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={excludeSearch}
+                onChange={(e) => setExcludeSearch(e.target.value)}
+                placeholder="Buscar figurinha..."
+                className="w-full bg-gray-50 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-violet-300 outline-none"
+              />
+            </div>
+
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filteredWatched.map((s) => {
+                const isExcluded = excluded.includes(s.id)
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => toggleExclude(s.id)}
+                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ${
+                      isExcluded ? 'bg-gray-100 opacity-50' : 'bg-amber-50 border border-amber-100'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                      !isExcluded ? 'bg-amber-400 border-amber-400' : 'border-gray-300'
+                    }`}>
+                      {!isExcluded && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-base leading-none">{getFlag(s.country)}</span>
+                    <span className="text-[11px] font-bold text-gray-700">{s.number}</span>
+                    <span className="text-[10px] text-gray-400 truncate flex-1">{s.player_name || s.country}</span>
+                  </button>
+                )
+              })}
+              {filteredWatched.length === 0 && (
+                <p className="text-center text-[10px] text-gray-400 py-4">Nenhuma figurinha encontrada</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Nearby People ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
@@ -304,10 +436,7 @@ export default function TradesHub({
             <p className="text-[10px] text-gray-400">Raio de {radius} km</p>
           </div>
           {hasLocation && (
-            <button
-              onClick={loadMatchesFromServer}
-              className="text-[10px] text-violet-500 font-semibold"
-            >
+            <button onClick={loadMatchesFromServer} className="text-[10px] text-violet-500 font-semibold">
               Atualizar
             </button>
           )}
@@ -318,14 +447,9 @@ export default function TradesHub({
           {[10, 25, 50, 100].map((r) => (
             <button
               key={r}
-              onClick={() => {
-                setRadius(r)
-                if (hasLocation) loadMatchesFromServer()
-              }}
+              onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}
               className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-                radius === r
-                  ? 'bg-violet-500 text-white shadow-sm'
-                  : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                radius === r ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
               }`}
             >
               {r} km
@@ -372,12 +496,13 @@ export default function TradesHub({
               </div>
             </div>
 
-            {/* Match preview cards */}
+            {/* Match cards */}
             <div className="space-y-2">
               {matches.map((match) => {
                 const isExpanded = expandedId === match.user_id
                 const matchDetails = details[match.user_id]
                 const isLoadingDetail = loadingDetails === match.user_id
+                const isSending = sendingWhatsApp === match.user_id
 
                 return (
                   <div key={match.user_id} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
@@ -437,8 +562,12 @@ export default function TradesHub({
                                 <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider mb-1.5">Tem pra te dar</p>
                                 <div className="flex flex-wrap gap-1">
                                   {matchDetails.filter((d) => d.direction === 'they_have').map((d) => (
-                                    <span key={d.sticker_id} className="bg-emerald-50 text-emerald-800 rounded-lg px-1.5 py-0.5 text-[10px] font-medium">
-                                      {d.number}
+                                    <span key={d.sticker_id} className={`rounded-lg px-1.5 py-0.5 text-[10px] font-medium ${
+                                      watchedIds.includes(d.sticker_id)
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                        : 'bg-emerald-50 text-emerald-800'
+                                    }`}>
+                                      {watchedIds.includes(d.sticker_id) && '🔔 '}{d.number}
                                     </span>
                                   ))}
                                 </div>
@@ -456,14 +585,20 @@ export default function TradesHub({
                                 </div>
                               </div>
                             )}
+                            {/* WhatsApp button — direct to user's phone */}
                             <button
-                              onClick={(e) => { e.stopPropagation(); openWhatsApp(match) }}
-                              className="mt-3 w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20BD5A] text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98]"
+                              onClick={(e) => { e.stopPropagation(); notifyViaWhatsApp(match) }}
+                              disabled={isSending}
+                              className="mt-3 w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20BD5A] text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
                             >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                              </svg>
-                              Chamar no WhatsApp
+                              {isSending ? (
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                </svg>
+                              )}
+                              Notificar via WhatsApp
                             </button>
                           </>
                         ) : null}
@@ -479,7 +614,7 @@ export default function TradesHub({
                 onClick={() => setShowPaywall(true)}
                 className="w-full mt-3 py-3 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition active:scale-[0.98]"
               >
-                Desbloquear trocas — ver detalhes e contatar
+                Desbloquear trocas — ver detalhes e notificar
               </button>
             )}
           </div>
@@ -492,120 +627,6 @@ export default function TradesHub({
         )}
       </div>
 
-      {/* ─── Watchlist ─── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-sm">
-              🔔
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900">Lista de desejos</p>
-              <p className="text-[10px] text-gray-400">
-                {watchlist.length > 0
-                  ? `${watchlist.length} figurinha${watchlist.length > 1 ? 's' : ''} monitorada${watchlist.length > 1 ? 's' : ''}`
-                  : 'Marque figurinhas para ser notificado'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowWatchPicker(!showWatchPicker)}
-            className="text-xs font-semibold text-violet-500 bg-violet-50 px-3 py-1.5 rounded-lg hover:bg-violet-100 transition"
-          >
-            {showWatchPicker ? 'Fechar' : '+ Adicionar'}
-          </button>
-        </div>
-
-        {/* Watch radius */}
-        {watchlist.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] text-gray-400 mb-1.5">Raio de notificacao</p>
-            <div className="flex gap-1.5">
-              {[10, 25, 50, 100].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => updateWatchRadius(r)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-                    watchRadius === r
-                      ? 'bg-amber-400 text-white'
-                      : 'bg-gray-50 text-gray-400'
-                  }`}
-                >
-                  {r} km
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Watched stickers display */}
-        {watchedStickers.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {watchedStickers.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => toggleWatch(s.id)}
-                className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-2 py-1 text-[10px] font-medium hover:bg-amber-100 transition group"
-              >
-                {getFlag(s.country)} {s.number}
-                <svg className="w-3 h-3 text-amber-400 group-hover:text-red-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Sticker picker */}
-        {showWatchPicker && (
-          <div className="border-t border-gray-100 pt-3">
-            <div className="relative mb-3">
-              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={watchSearch}
-                onChange={(e) => setWatchSearch(e.target.value)}
-                placeholder="Buscar figurinha faltante..."
-                className="w-full bg-gray-50 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-violet-300 outline-none"
-              />
-            </div>
-
-            <div className="max-h-48 overflow-y-auto space-y-1">
-              {filteredMissing.map((s) => {
-                const isWatched = watchlist.includes(s.id)
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => toggleWatch(s.id)}
-                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ${
-                      isWatched ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                      isWatched ? 'bg-amber-400 border-amber-400' : 'border-gray-200'
-                    }`}>
-                      {isWatched && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-base leading-none">{getFlag(s.country)}</span>
-                    <span className="text-[11px] font-bold text-gray-700">{s.number}</span>
-                    <span className="text-[10px] text-gray-400 truncate flex-1">{s.player_name || s.country}</span>
-                  </button>
-                )
-              })}
-              {filteredMissing.length === 0 && (
-                <p className="text-center text-[10px] text-gray-400 py-4">Nenhuma figurinha encontrada</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* ─── How it works ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
         <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -613,10 +634,10 @@ export default function TradesHub({
           Como funciona
         </h2>
         <div className="space-y-3">
-          <Step num={1} title="Encontre pessoas" desc="Veja quem perto de voce tem figurinhas que voce precisa" />
-          <Step num={2} title="Combine trocas" desc="O app mostra automaticamente quais figurinhas combinem" />
-          <Step num={3} title="Converse via WhatsApp" desc="Envie uma mensagem pronta e combine o ponto de encontro" />
-          <Step num={4} title="Economize dinheiro" desc={`Ao inves de comprar, troque! Cada figurinha sai em media R$${STICKER_PRICE.toFixed(2)}`} />
+          <Step num={1} title="Suas faltantes sao monitoradas" desc="Todas as figurinhas que voce precisa entram automaticamente na lista de desejos" />
+          <Step num={2} title="Encontramos quem tem" desc="Buscamos colecionadores perto de voce que tem o que voce precisa" />
+          <Step num={3} title="Notifique via WhatsApp" desc="Envie uma mensagem direto no WhatsApp da pessoa com a lista de trocas" />
+          <Step num={4} title="Colou? Sai da lista!" desc="Quando voce marca uma figurinha como colada no album, ela sai da lista automaticamente" />
         </div>
       </div>
 
@@ -627,40 +648,38 @@ export default function TradesHub({
           <div className="flex items-start gap-2">
             <span className="text-sm">💰</span>
             <p className="text-xs text-white/85 leading-relaxed">
-              Completar o album comprando custaria aproximadamente <span className="font-bold">R${(stickers.length * STICKER_PRICE).toFixed(0)}</span>. Trocando, voce pode economizar muito!
+              Completar o album comprando custaria ~<span className="font-bold">R${(stickers.length * STICKER_PRICE).toFixed(0)}</span>. Trocando, voce economiza muito!
             </p>
           </div>
           {totalExtras > 0 && (
             <div className="flex items-start gap-2">
               <span className="text-sm">🔄</span>
               <p className="text-xs text-white/85 leading-relaxed">
-                Suas <span className="font-bold">{totalExtras} figurinhas extras</span> valem <span className="font-bold">R${potentialSavings.toFixed(0)}</span> em trocas
+                Suas <span className="font-bold">{totalExtras} extras</span> valem <span className="font-bold">R${potentialSavings.toFixed(0)}</span> em trocas
               </p>
             </div>
           )}
           <div className="flex items-start gap-2">
             <span className="text-sm">📊</span>
             <p className="text-xs text-white/85 leading-relaxed">
-              Em media, colecionadores precisam trocar <span className="font-bold">3x mais</span> figurinhas do que o tamanho do album para completa-lo
+              Em media, colecionadores precisam trocar <span className="font-bold">3x mais</span> figurinhas do que o tamanho do album
             </p>
           </div>
         </div>
       </div>
 
-      {/* ─── Premium CTA for non-premium ─── */}
+      {/* ─── Premium CTA ─── */}
       {!isPremium && (
         <div className="bg-white rounded-2xl border-2 border-violet-200 p-4">
-          <div className="text-center mb-3">
-            <span className="text-3xl">🔓</span>
-          </div>
+          <div className="text-center mb-3"><span className="text-3xl">🔓</span></div>
           <h3 className="text-sm font-bold text-gray-900 text-center mb-1">Desbloqueie Trocas</h3>
           <p className="text-[10px] text-gray-400 text-center mb-3">
-            Veja detalhes dos matches, converse via WhatsApp e receba notificacoes da sua lista de desejos
+            Veja detalhes, notifique via WhatsApp e troque figurinhas com quem esta perto
           </p>
           <div className="flex flex-col gap-1 mb-3 px-4">
             <FeatureCheck text="Ver detalhes de cada colecionador" />
-            <FeatureCheck text="Mensagem pronta no WhatsApp" />
-            <FeatureCheck text="Alerta de figurinhas desejadas" />
+            <FeatureCheck text="Notificar direto no WhatsApp da pessoa" />
+            <FeatureCheck text="Monitoramento automatico das faltantes" />
             <FeatureCheck text="Scanner IA ilimitado" />
           </div>
           <button
@@ -675,11 +694,7 @@ export default function TradesHub({
 
       {/* Paywall Modal */}
       {showPaywall && (
-        <PaywallModal
-          feature="trades"
-          currentTier={tier}
-          onClose={() => setShowPaywall(false)}
-        />
+        <PaywallModal feature="trades" currentTier={tier} onClose={() => setShowPaywall(false)} />
       )}
     </div>
   )
