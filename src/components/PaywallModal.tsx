@@ -24,17 +24,65 @@ const featureInfo = {
   },
 }
 
+const TIER_PRICES: Record<string, number> = {
+  plus: 990,
+  premium: 1990,
+}
+
+const TIER_DISPLAY: Record<string, string> = {
+  plus: 'R$9,90',
+  premium: 'R$19,90',
+}
+
 export default function PaywallModal({ feature, currentTier, onClose }: PaywallModalProps) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [showCoupon, setShowCoupon] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponStatus, setCouponStatus] = useState<{
+    valid: boolean
+    percent_off: number
+    tier: string
+    error?: string
+  } | null>(null)
+  const [validating, setValidating] = useState(false)
   const info = featureInfo[feature]
+
+  async function validateCoupon(tier: string) {
+    if (!couponCode.trim()) return
+    setValidating(true)
+    setCouponStatus(null)
+
+    try {
+      const res = await fetch('/api/discount/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim(), tier }),
+      })
+      const data = await res.json()
+
+      if (res.ok && data.valid) {
+        setCouponStatus({ valid: true, percent_off: data.percent_off, tier: data.tier })
+      } else {
+        setCouponStatus({ valid: false, percent_off: 0, tier, error: data.error || 'Código inválido' })
+      }
+    } catch {
+      setCouponStatus({ valid: false, percent_off: 0, tier, error: 'Erro ao validar' })
+    }
+    setValidating(false)
+  }
 
   async function handleUpgrade(targetTier: 'plus' | 'premium') {
     setLoading(targetTier)
     try {
+      const bodyData: Record<string, string> = { tier: targetTier }
+      if (couponStatus?.valid && couponStatus.tier === targetTier) {
+        bodyData.discountCode = couponCode.trim()
+      }
+
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: targetTier }),
+        body: JSON.stringify(bodyData),
       })
       const data = await res.json()
       if (data.url) {
@@ -49,10 +97,21 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
     }
   }
 
+  function getDiscountedPrice(tier: string): string | null {
+    if (!couponStatus?.valid || couponStatus.tier !== tier) return null
+    const original = TIER_PRICES[tier] || 0
+    const discounted = Math.round(original * (1 - couponStatus.percent_off / 100))
+    if (discounted === 0) return 'Grátis'
+    return `R$${(discounted / 100).toFixed(2).replace('.', ',')}`
+  }
+
   // For scan paywall: show Plus option (and Premium as upgrade)
   // For trades paywall: show Premium only (user might already be Plus)
   const showPlus = feature === 'scan' && currentTier === 'free'
   const showPremium = true
+
+  const plusDiscountedPrice = getDiscountedPrice('plus')
+  const premiumDiscountedPrice = getDiscountedPrice('premium')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-6">
@@ -82,6 +141,49 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
           {info.description}
         </p>
 
+        {/* Discount code section */}
+        <div className="mb-4">
+          {!showCoupon ? (
+            <button
+              onClick={() => setShowCoupon(true)}
+              className="w-full text-xs text-violet-600 hover:text-violet-700 font-medium transition"
+            >
+              Tem código de desconto?
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase())
+                    setCouponStatus(null)
+                  }}
+                  placeholder="Digite o código"
+                  className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs uppercase tracking-wider focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
+                />
+                <button
+                  onClick={() => validateCoupon(showPlus ? 'plus' : 'premium')}
+                  disabled={validating || !couponCode.trim()}
+                  className="bg-gray-900 text-white rounded-xl px-3 py-2 text-xs font-semibold hover:bg-gray-800 transition disabled:opacity-50"
+                >
+                  {validating ? '...' : 'Aplicar'}
+                </button>
+              </div>
+              {couponStatus && (
+                <p className={`text-xs text-center ${couponStatus.valid ? 'text-emerald-600 font-medium' : 'text-red-500'}`}>
+                  {couponStatus.valid
+                    ? couponStatus.percent_off === 100
+                      ? 'Código aplicado — upgrade grátis!'
+                      : `Código aplicado — ${couponStatus.percent_off}% de desconto!`
+                    : couponStatus.error}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Tier cards */}
         <div className="space-y-3 mb-5">
           {/* Plus tier */}
@@ -89,7 +191,14 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
             <div className="border border-gray-200 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-bold text-gray-800">Plus</span>
-                <span className="text-sm font-black text-gray-900">R$9,90</span>
+                <div className="flex items-center gap-1.5">
+                  {plusDiscountedPrice && (
+                    <span className="text-xs text-gray-400 line-through">{TIER_DISPLAY.plus}</span>
+                  )}
+                  <span className={`text-sm font-black ${plusDiscountedPrice ? 'text-emerald-600' : 'text-gray-900'}`}>
+                    {plusDiscountedPrice || TIER_DISPLAY.plus}
+                  </span>
+                </div>
               </div>
               <div className="flex flex-col gap-1 mb-3">
                 <Feature text="Scanner IA ilimitado" />
@@ -105,6 +214,8 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
                     <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Redirecionando...
                   </span>
+                ) : plusDiscountedPrice === 'Grátis' ? (
+                  'Ativar Plus Grátis'
                 ) : (
                   'Desbloquear Plus'
                 )}
@@ -120,7 +231,14 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
                   <span className="text-sm font-bold text-gray-800">Premium</span>
                   <span className="text-[9px] bg-violet-500 text-white rounded-full px-1.5 py-0.5 font-bold">MELHOR</span>
                 </div>
-                <span className="text-sm font-black text-gray-900">R$19,90</span>
+                <div className="flex items-center gap-1.5">
+                  {premiumDiscountedPrice && (
+                    <span className="text-xs text-gray-400 line-through">{TIER_DISPLAY.premium}</span>
+                  )}
+                  <span className={`text-sm font-black ${premiumDiscountedPrice ? 'text-emerald-600' : 'text-gray-900'}`}>
+                    {premiumDiscountedPrice || TIER_DISPLAY.premium}
+                  </span>
+                </div>
               </div>
               <div className="flex flex-col gap-1 mb-3">
                 <Feature text="Scanner IA ilimitado" />
@@ -137,6 +255,8 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
                     <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Redirecionando...
                   </span>
+                ) : premiumDiscountedPrice === 'Grátis' ? (
+                  'Ativar Premium Grátis'
                 ) : currentTier === 'plus' ? (
                   'Upgrade para Premium'
                 ) : (

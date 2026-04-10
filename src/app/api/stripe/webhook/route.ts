@@ -37,6 +37,38 @@ async function upgradeTier(userId: string, tier: string, customerId: string | nu
   return true
 }
 
+async function recordDiscountRedemption(metadata: Record<string, string>, userId: string) {
+  const codeId = metadata.discount_code_id
+  const percentOff = parseInt(metadata.percent_off || '0', 10)
+  const tier = metadata.tier || 'premium'
+
+  if (!codeId || percentOff === 0) return
+
+  const supabase = getAdminClient()
+
+  // Record redemption (ignore if already exists)
+  await supabase.from('discount_redemptions').insert({
+    code_id: codeId,
+    user_id: userId,
+    tier,
+    percent_off: percentOff,
+  })
+
+  // Increment usage counter
+  const { data: code } = await supabase
+    .from('discount_codes')
+    .select('times_used')
+    .eq('id', codeId)
+    .single()
+
+  if (code) {
+    await supabase
+      .from('discount_codes')
+      .update({ times_used: code.times_used + 1 })
+      .eq('id', codeId)
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')
@@ -68,6 +100,10 @@ export async function POST(req: NextRequest) {
       if (userId) {
         const ok = await upgradeTier(userId, tier, session.customer as string)
         if (!ok) return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+        // Record discount redemption if applicable
+        if (session.metadata) {
+          await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
+        }
       }
     }
   }
@@ -80,6 +116,9 @@ export async function POST(req: NextRequest) {
 
     if (userId) {
       await upgradeTier(userId, tier, session.customer as string)
+      if (session.metadata && userId) {
+        await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
+      }
     }
   }
 
