@@ -117,7 +117,7 @@ BEGIN
     ) AS match_score
   FROM nearby n
   WHERE n.dist <= p_radius_km
-  ORDER BY match_score DESC
+  ORDER BY n.dist ASC, match_score DESC
   LIMIT 15;
 END;
 $$;

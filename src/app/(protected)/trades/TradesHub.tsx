@@ -108,7 +108,9 @@ export default function TradesHub({
   const [showExcludeManager, setShowExcludeManager] = useState(false)
   const [excludeSearch, setExcludeSearch] = useState('')
   const [nearbyCount, setNearbyCount] = useState(initialNearbyCount)
-  const [matches, setMatches] = useState<NearbyMatch[]>(initialMatches)
+  const [matches, setMatches] = useState<NearbyMatch[]>(
+    [...initialMatches].sort((a, b) => a.distance_km - b.distance_km)
+  )
   const [hasLocation, setHasLocation] = useState(initialHasLocation)
   const [requestingLocation, setRequestingLocation] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -343,7 +345,7 @@ export default function TradesHub({
         p_radius_km: radius,
       })
       if (data) {
-        setMatches(data as NearbyMatch[])
+        setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km))
         setNearbyCount(data.length)
       }
     } catch {
@@ -394,11 +396,11 @@ export default function TradesHub({
 
       const data = await res.json()
       if (res.ok) {
-        setRequestedTrades((prev) => new Set([...prev, match.user_id]))
+        setRequestedTrades((prev) => new Set([...Array.from(prev), match.user_id]))
       } else {
         // Already requested or other error
         if (res.status === 409) {
-          setRequestedTrades((prev) => new Set([...prev, match.user_id]))
+          setRequestedTrades((prev) => new Set([...Array.from(prev), match.user_id]))
         }
         alert(data.error || 'Erro ao solicitar troca.')
       }
