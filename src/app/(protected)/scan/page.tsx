@@ -2,6 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ScanHub from './ScanHub'
 import { type Tier } from '@/lib/tiers'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Escanear Figurinhas',
+  description: 'Use a câmera para escanear e registrar figurinhas no seu álbum da Copa 2026.',
+}
 
 export const dynamic = 'force-dynamic'
 

@@ -8,14 +8,53 @@ const geistSans = localFont({
   weight: "100 900",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://figurinhas2026.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Figurinhas Copa 2026",
-  description: "Gerencie seu álbum de figurinhas da Copa do Mundo FIFA 2026",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "Figurinhas Copa 2026 — Gerencie seu Álbum",
+    template: "%s | Figurinhas Copa 2026",
+  },
+  description: "Gerencie seu álbum de figurinhas da Copa do Mundo FIFA 2026. Controle suas figurinhas, encontre trocas e complete sua coleção.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Figurinhas 2026",
+  },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Figurinhas Copa 2026",
+    title: "Figurinhas Copa 2026 — Gerencie seu Álbum",
+    description: "Controle suas figurinhas, encontre trocas perto de você e complete sua coleção da Copa do Mundo FIFA 2026.",
+    url: APP_URL,
+    images: [
+      {
+        url: "/album-cover.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Álbum de Figurinhas Copa do Mundo FIFA 2026",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Figurinhas Copa 2026",
+    description: "Gerencie seu álbum de figurinhas da Copa do Mundo FIFA 2026.",
+    images: ["/album-cover.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    canonical: APP_URL,
   },
 };
 

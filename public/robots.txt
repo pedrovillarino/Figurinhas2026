@@ -1,0 +1,12 @@
+# Figurinhas Copa 2026
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /album
+Disallow: /dashboard
+Disallow: /trades
+Disallow: /scan
+Disallow: /export
+Disallow: /profile
+
+Sitemap: https://figurinhas2026.vercel.app/sitemap.xml

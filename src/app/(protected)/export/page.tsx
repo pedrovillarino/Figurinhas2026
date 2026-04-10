@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ExportPageClient from './ExportPageClient'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Exportar Lista',
+  description: 'Exporte sua lista de figurinhas faltantes ou repetidas da Copa 2026.',
+}
 
 export const dynamic = 'force-dynamic'
 

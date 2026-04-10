@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DashboardClient from './DashboardClient'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Dashboard',
+  description: 'Painel com resumo do progresso do seu álbum de figurinhas da Copa 2026.',
+}
 
 export const dynamic = 'force-dynamic'
 

@@ -465,7 +465,7 @@ export default function TradesHub({
               Monitorando <span className="text-amber-600">{watchedCount}</span> figurinha{watchedCount !== 1 ? 's' : ''} faltante{watchedCount !== 1 ? 's' : ''}
             </p>
             <p className="text-[9px] text-amber-600">
-              {notifyPriorityIds.length > 0 && `${notifyPriorityIds.length} prioritaria${notifyPriorityIds.length > 1 ? 's' : ''} · `}
+              {notifyPriorityIds.length > 0 && `${notifyPriorityIds.length} prioritária${notifyPriorityIds.length > 1 ? 's' : ''} · `}
               Via {notifyChannel === 'whatsapp' ? 'WhatsApp' : notifyChannel === 'email' ? 'e-mail' : 'WhatsApp + e-mail'} · Raio {watchRadius}km · Min. {notifyMinThreshold} fig.
             </p>
           </div>
@@ -560,7 +560,7 @@ export default function TradesHub({
               {notifyMinThreshold > 1 && (
                 <p className="text-[9px] text-amber-600 mt-1.5">
                   ⚡ Você só será notificado quando alguém tiver {notifyMinThreshold}+ figurinhas que você precisa
-                  {notifyPriorityIds.length > 0 && ' (exceto figurinhas prioritarias, que sempre notificam)'}
+                  {notifyPriorityIds.length > 0 && ' (exceto figurinhas prioritárias, que sempre notificam)'}
                 </p>
               )}
             </div>
@@ -569,7 +569,7 @@ export default function TradesHub({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div>
-                  <p className="text-[10px] text-gray-500 font-medium">Figurinhas prioritarias</p>
+                  <p className="text-[10px] text-gray-500 font-medium">Figurinhas prioritárias</p>
                   <p className="text-[9px] text-gray-400">Sempre notificar quando alguém tiver, independente do mínimo</p>
                 </div>
                 {notifyPriorityIds.length > 0 && (
@@ -605,7 +605,7 @@ export default function TradesHub({
                 onClick={() => setShowPriorityPicker(!showPriorityPicker)}
                 className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 transition"
               >
-                {showPriorityPicker ? 'Fechar' : '+ Adicionar figurinhas prioritarias'}
+                {showPriorityPicker ? 'Fechar' : '+ Adicionar figurinhas prioritárias'}
               </button>
 
               {showPriorityPicker && (
@@ -834,7 +834,7 @@ export default function TradesHub({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-xs font-semibold text-gray-800 truncate">
-                            {match.display_name?.split(' ')[0] || 'Usuario'}
+                            {match.display_name?.split(' ')[0] || 'Usuário'}
                           </span>
                           <span className="text-[9px] text-gray-400">{match.distance_km} km</span>
                         </div>
@@ -939,7 +939,7 @@ export default function TradesHub({
         ) : (
           <div className="text-center py-4">
             <p className="text-2xl mb-2">🔍</p>
-            <p className="text-xs text-gray-500 font-medium">Ninguem encontrado em {radius} km</p>
+            <p className="text-xs text-gray-500 font-medium">Ninguém encontrado em {radius} km</p>
             <p className="text-[10px] text-gray-400 mt-1">Tente aumentar o raio de busca</p>
           </div>
         )}
@@ -1015,7 +1015,7 @@ export default function TradesHub({
               <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-red-400 rounded-full" style={{ width: '100%' }} />
               </div>
-              <p className="text-[8px] text-gray-400 mt-0.5">~{albumStats.expectedPacks} pacotes necessarios (matematicamente)</p>
+              <p className="text-[8px] text-gray-400 mt-0.5">~{albumStats.expectedPacks} pacotes necessários (matematicamente)</p>
             </div>
 
             {/* With app-optimized trading */}
@@ -1063,10 +1063,10 @@ export default function TradesHub({
               </div>
               <div>
                 <p className="text-[11px] font-bold text-white">
-                  Economize ate R${albumStats.savingsVsAlone} com troca otimizada!
+                  Economize até R${albumStats.savingsVsAlone} com troca otimizada!
                 </p>
                 <p className="text-[9px] text-emerald-100">
-                  {albumStats.savingsOptPercent}% mais barato que comprando sozinho. Use o app para encontrar quem tem o que voce precisa perto de voce.
+                  {albumStats.savingsOptPercent}% mais barato que comprando sozinho. Use o app para encontrar quem tem o que você precisa perto de você.
                 </p>
               </div>
             </div>
@@ -1074,7 +1074,7 @@ export default function TradesHub({
 
           {/* Explanation */}
           <p className="text-[8px] text-gray-300 mt-2 text-center leading-relaxed">
-            Calculo baseado no Problema do Colecionador (Coupon Collector). Pacote = {PACK_SIZE} fig. a R${PACK_PRICE.toFixed(2)}
+            Cálculo baseado no Problema do Colecionador (Coupon Collector). Pacote = {PACK_SIZE} fig. a R${PACK_PRICE.toFixed(2)}
           </p>
         </div>
       )}
@@ -1085,12 +1085,12 @@ export default function TradesHub({
           <div className="text-center mb-3"><span className="text-3xl">🔓</span></div>
           <h3 className="text-sm font-bold text-gray-900 text-center mb-1">Desbloqueie Trocas</h3>
           <p className="text-[10px] text-gray-400 text-center mb-3">
-            Veja detalhes, notifique via WhatsApp e troque figurinhas com quem esta perto
+            Veja detalhes, notifique via WhatsApp e troque figurinhas com quem está perto
           </p>
           <div className="flex flex-col gap-1 mb-3 px-4">
             <FeatureCheck text="Ver detalhes de cada colecionador" />
             <FeatureCheck text="Notificar direto no WhatsApp da pessoa" />
-            <FeatureCheck text="Monitoramento automatico das faltantes" />
+            <FeatureCheck text="Monitoramento automático das faltantes" />
             <FeatureCheck text="Scanner IA ilimitado" />
           </div>
           <button
@@ -1099,7 +1099,7 @@ export default function TradesHub({
           >
             Desbloquear por R$19,90
           </button>
-          <p className="text-[9px] text-gray-300 text-center mt-2">Pagamento unico. Sem assinatura.</p>
+          <p className="text-[9px] text-gray-300 text-center mt-2">Pagamento único. Sem assinatura.</p>
         </div>
       )}
 

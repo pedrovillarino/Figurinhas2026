@@ -2,6 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TradesHub from './TradesHub'
 import { type Tier } from '@/lib/tiers'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Trocas',
+  description: 'Encontre colecionadores perto de você e troque figurinhas repetidas da Copa 2026.',
+}
 
 export const dynamic = 'force-dynamic'
 
