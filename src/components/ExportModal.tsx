@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 
 type Sticker = {
   id: number
@@ -13,8 +13,9 @@ type Sticker = {
 
 type UserStickerInfo = { status: string; quantity: number }
 
-type ExportType = 'missing' | 'duplicates'
 type ExportChannel = 'whatsapp' | 'email' | 'clipboard'
+
+const SITE_URL = 'https://figurinhas2026.vercel.app'
 
 export default function ExportModal({
   isOpen,
@@ -27,13 +28,13 @@ export default function ExportModal({
   stickers: Sticker[]
   userMap: Record<number, UserStickerInfo>
 }) {
-  const [exportType, setExportType] = useState<ExportType>('missing')
+  const [exportMissing, setExportMissing] = useState(true)
+  const [exportDuplicates, setExportDuplicates] = useState(false)
   const [groupByCountry, setGroupByCountry] = useState(true)
   const [copied, setCopied] = useState(false)
 
   if (!isOpen) return null
 
-  // Build the sticker lists
   const missingStickers = stickers.filter((s) => {
     const us = userMap[s.id]
     return !us || us.status === 'missing'
@@ -41,14 +42,20 @@ export default function ExportModal({
 
   const duplicateStickers = stickers.filter((s) => userMap[s.id]?.status === 'duplicate')
 
-  const selectedStickers = exportType === 'missing' ? missingStickers : duplicateStickers
+  const totalDuplicateExtras = duplicateStickers.reduce((acc, s) => {
+    const qty = userMap[s.id]?.quantity || 0
+    return acc + (qty - 1)
+  }, 0)
 
-  function formatStickerList(stickerList: Sticker[], type: ExportType): string {
+  const hasSelection = exportMissing || exportDuplicates
+  const hasStickersToExport = (exportMissing && missingStickers.length > 0) || (exportDuplicates && duplicateStickers.length > 0)
+
+  function formatSection(stickerList: Sticker[], type: 'missing' | 'duplicates'): string {
     const title = type === 'missing'
-      ? `Figurinhas Faltantes (${stickerList.length})`
-      : `Figurinhas Repetidas (${stickerList.length})`
+      ? `FIGURINHAS FALTANTES (${stickerList.length})`
+      : `FIGURINHAS REPETIDAS (${stickerList.length})`
 
-    const lines: string[] = [`${title}`, '']
+    const lines: string[] = [title, '']
 
     if (groupByCountry) {
       const groups: Record<string, Sticker[]> = {}
@@ -82,25 +89,40 @@ export default function ExportModal({
         return s.number
       })
       lines.push(nums.join(', '))
+      lines.push('')
     }
-
-    lines.push('')
-    lines.push('Enviado via Figurinhas Copa 2026')
 
     return lines.join('\n')
   }
 
+  function buildFullText(): string {
+    const parts: string[] = []
+
+    if (exportMissing && missingStickers.length > 0) {
+      parts.push(formatSection(missingStickers, 'missing'))
+    }
+    if (exportDuplicates && duplicateStickers.length > 0) {
+      parts.push(formatSection(duplicateStickers, 'duplicates'))
+    }
+
+    parts.push('Gerado em Figurinhas Copa 2026')
+    parts.push(SITE_URL)
+
+    return parts.join('\n')
+  }
+
   function handleExport(channel: ExportChannel) {
-    const text = formatStickerList(selectedStickers, exportType)
+    const text = buildFullText()
 
     if (channel === 'whatsapp') {
       const encoded = encodeURIComponent(text)
       window.open(`https://wa.me/?text=${encoded}`, '_blank')
     } else if (channel === 'email') {
+      const subjectParts: string[] = []
+      if (exportMissing) subjectParts.push('faltantes')
+      if (exportDuplicates) subjectParts.push('repetidas')
       const subject = encodeURIComponent(
-        exportType === 'missing'
-          ? `Minhas figurinhas faltantes - Copa 2026`
-          : `Minhas figurinhas repetidas - Copa 2026`
+        `Minhas figurinhas ${subjectParts.join(' e ')} - Copa 2026`
       )
       const body = encodeURIComponent(text)
       window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
@@ -111,11 +133,6 @@ export default function ExportModal({
       })
     }
   }
-
-  const totalDuplicateExtras = duplicateStickers.reduce((acc, s) => {
-    const qty = userMap[s.id]?.quantity || 0
-    return acc + (qty - 1)
-  }, 0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -143,42 +160,58 @@ export default function ExportModal({
             </button>
           </div>
 
-          {/* Type selector */}
+          {/* Type selector - checkboxes */}
           <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">O que exportar?</p>
           <div className="flex gap-2 mb-5">
             <button
-              onClick={() => setExportType('missing')}
+              onClick={() => setExportMissing(!exportMissing)}
               className={`flex-1 py-3 px-3 rounded-xl border-2 transition-all ${
-                exportType === 'missing'
+                exportMissing
                   ? 'border-orange-400 bg-orange-50'
                   : 'border-gray-100 bg-white'
               }`}
             >
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${exportType === 'missing' ? 'bg-orange-400' : 'bg-gray-200'}`} />
-                <span className={`text-sm font-semibold ${exportType === 'missing' ? 'text-orange-700' : 'text-gray-500'}`}>
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                  exportMissing ? 'border-orange-400 bg-orange-400' : 'border-gray-200 bg-white'
+                }`}>
+                  {exportMissing && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-sm font-semibold ${exportMissing ? 'text-orange-700' : 'text-gray-500'}`}>
                   Faltantes
                 </span>
               </div>
-              <p className={`text-xl font-bold mt-1 ${exportType === 'missing' ? 'text-orange-500' : 'text-gray-400'}`}>
+              <p className={`text-xl font-bold mt-1 ${exportMissing ? 'text-orange-500' : 'text-gray-300'}`}>
                 {missingStickers.length}
               </p>
             </button>
             <button
-              onClick={() => setExportType('duplicates')}
+              onClick={() => setExportDuplicates(!exportDuplicates)}
               className={`flex-1 py-3 px-3 rounded-xl border-2 transition-all ${
-                exportType === 'duplicates'
+                exportDuplicates
                   ? 'border-violet-400 bg-violet-50'
                   : 'border-gray-100 bg-white'
               }`}
             >
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${exportType === 'duplicates' ? 'bg-violet-500' : 'bg-gray-200'}`} />
-                <span className={`text-sm font-semibold ${exportType === 'duplicates' ? 'text-violet-700' : 'text-gray-500'}`}>
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                  exportDuplicates ? 'border-violet-500 bg-violet-500' : 'border-gray-200 bg-white'
+                }`}>
+                  {exportDuplicates && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-sm font-semibold ${exportDuplicates ? 'text-violet-700' : 'text-gray-500'}`}>
                   Repetidas
                 </span>
               </div>
-              <p className={`text-xl font-bold mt-1 ${exportType === 'duplicates' ? 'text-violet-500' : 'text-gray-400'}`}>
+              <p className={`text-xl font-bold mt-1 ${exportDuplicates ? 'text-violet-500' : 'text-gray-300'}`}>
                 {duplicateStickers.length}
                 {totalDuplicateExtras > 0 && (
                   <span className="text-xs font-normal ml-1">({totalDuplicateExtras} extras)</span>
@@ -186,6 +219,10 @@ export default function ExportModal({
               </p>
             </button>
           </div>
+
+          {!hasSelection && (
+            <p className="text-center text-xs text-orange-500 mb-4 font-medium">Selecione pelo menos uma opcao acima</p>
+          )}
 
           {/* Group toggle */}
           <div className="flex items-center justify-between mb-5 bg-gray-50 rounded-xl px-4 py-3">
@@ -205,12 +242,12 @@ export default function ExportModal({
           </div>
 
           {/* Preview */}
-          {selectedStickers.length > 0 && (
+          {hasStickersToExport && (
             <div className="mb-5 bg-gray-50 rounded-xl p-3 max-h-32 overflow-y-auto">
               <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Preview</p>
               <p className="text-xs text-gray-600 whitespace-pre-line leading-relaxed">
-                {formatStickerList(selectedStickers, exportType).slice(0, 300)}
-                {formatStickerList(selectedStickers, exportType).length > 300 && '...'}
+                {buildFullText().slice(0, 300)}
+                {buildFullText().length > 300 && '...'}
               </p>
             </div>
           )}
@@ -220,7 +257,7 @@ export default function ExportModal({
           <div className="flex flex-col gap-2">
             <button
               onClick={() => handleExport('whatsapp')}
-              disabled={selectedStickers.length === 0}
+              disabled={!hasStickersToExport}
               className="flex items-center gap-3 w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -230,7 +267,7 @@ export default function ExportModal({
             </button>
             <button
               onClick={() => handleExport('email')}
-              disabled={selectedStickers.length === 0}
+              disabled={!hasStickersToExport}
               className="flex items-center gap-3 w-full py-3.5 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -240,7 +277,7 @@ export default function ExportModal({
             </button>
             <button
               onClick={() => handleExport('clipboard')}
-              disabled={selectedStickers.length === 0}
+              disabled={!hasStickersToExport}
               className="flex items-center gap-3 w-full py-3.5 px-4 bg-gray-700 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -249,14 +286,6 @@ export default function ExportModal({
               {copied ? 'Copiado!' : 'Copiar texto'}
             </button>
           </div>
-
-          {selectedStickers.length === 0 && (
-            <p className="text-center text-xs text-gray-400 mt-3">
-              {exportType === 'missing'
-                ? 'Voce ja tem todas as figurinhas!'
-                : 'Voce nao tem figurinhas repetidas'}
-            </p>
-          )}
         </div>
       </div>
     </div>
