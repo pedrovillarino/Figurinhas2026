@@ -130,7 +130,6 @@ export async function POST(req: NextRequest) {
       const targetPhone = targetProfile?.phone ? formatPhone(targetProfile.phone) : null
 
       if (requesterPhone) {
-        const targetContact = targetPhone || targetProfile?.email || 'Abra o app para ver'
         const contactLine = targetPhone
           ? `📱 WhatsApp: wa.me/${targetPhone}`
           : targetProfile?.email

@@ -35,7 +35,6 @@ export default function ImportListModal({
   const [matched, setMatched] = useState<MatchedSticker[]>([])
   const [unmatched, setUnmatched] = useState<string[]>([])
   const [warnings, setWarnings] = useState<string[]>([])
-  const [total, setTotal] = useState(0)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [errorMessage, setErrorMessage] = useState('')
   const [savedCount, setSavedCount] = useState(0)
@@ -143,7 +142,6 @@ export default function ImportListModal({
     setMatched(data.matched)
     setUnmatched(data.unmatched)
     setWarnings(data.warnings || [])
-    setTotal(data.total)
     // Select all matched by default
     setSelected(new Set(data.matched.map((m) => m.sticker_id)))
     setStep('results')
