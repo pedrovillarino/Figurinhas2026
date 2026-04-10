@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 
-type ScanState = 'idle' | 'preview' | 'loading' | 'results' | 'success' | 'error'
+type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
 type MatchedSticker = {
   sticker_id: number
@@ -31,6 +31,8 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
   const [savedCount, setSavedCount] = useState(0)
   const [ownedCount, setOwnedCount] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [batchIndex, setBatchIndex] = useState(0)
+  const [batchTotal, setBatchTotal] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
@@ -50,9 +52,67 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
     })
   }
 
+  function readFile(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function handleBatchFiles(files: File[]) {
+    setBatchTotal(files.length)
+    setBatchIndex(0)
+    setState('batch')
+
+    const accumulated: MatchedSticker[] = []
+    const accWarnings: string[] = []
+
+    for (let i = 0; i < files.length; i++) {
+      setBatchIndex(i + 1)
+
+      try {
+        const dataUrl = await readFile(files[i])
+        const compressed = await compressImage(dataUrl)
+        const base64 = compressed.split(',')[1]
+
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
+        })
+
+        if (res.ok) {
+          const data: ScanResponse = await res.json()
+          accumulated.push(...data.matched)
+          accWarnings.push(...data.warnings)
+        }
+      } catch {
+        // skip failed image, continue batch
+      }
+    }
+
+    // Deduplicate by sticker_id, keeping last occurrence
+    const deduped = accumulated.filter(
+      (s, idx, arr) => arr.findLastIndex((x) => x.sticker_id === s.sticker_id) === idx
+    )
+
+    const result: ScanResponse = { matched: deduped, unmatched: [], warnings: accWarnings, confidence: 'high' }
+    setScanResult(result)
+    const initial: Record<number, boolean> = {}
+    deduped.forEach((s) => { initial[s.sticker_id] = s.status === 'filled' })
+    setChecked(initial)
+    setState('results')
+  }
+
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    if (files.length > 1) {
+      handleBatchFiles(files)
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = async () => {
@@ -62,7 +122,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
       setImageData(compressed)
       setState('preview')
     }
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(files[0])
   }
 
   async function handleAnalyze() {
@@ -164,6 +224,8 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
     setScanResult(null)
     setChecked({})
     setErrorMsg('')
+    setBatchIndex(0)
+    setBatchTotal(0)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -193,6 +255,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         <input
           type="file"
           accept="image/*"
+          multiple
           onChange={handleFileSelect}
           className="hidden"
           id="gallery-input"
@@ -233,7 +296,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Escolher da Galeria</p>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                Selecione uma foto já tirada
+                Selecione uma ou várias fotos de uma vez
               </p>
             </div>
             <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -316,6 +379,27 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         <div className="mt-6 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div className="h-full bg-violet-600 rounded-full animate-pulse" style={{ width: '70%' }} />
         </div>
+      </div>
+    )
+  }
+
+  // ── BATCH ──
+  if (state === 'batch') {
+    const pct = batchTotal > 0 ? Math.round((batchIndex / batchTotal) * 100) : 0
+    return (
+      <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-5xl mb-4 animate-bounce">🎴</div>
+        <p className="text-lg font-semibold text-gray-700">Analisando fotos...</p>
+        <p className="text-sm text-gray-400 mt-2">
+          Foto {batchIndex} de {batchTotal}
+        </p>
+        <div className="mt-6 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-violet-600 rounded-full transition-all duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-300 mt-3">{pct}%</p>
       </div>
     )
   }
