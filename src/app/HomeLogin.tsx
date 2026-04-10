@@ -46,13 +46,20 @@ export default function HomeLogin() {
     setMessage(null)
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
       if (error) setError(error.message)
-      else setMessage('Verifique seu email para confirmar!')
+      else if (data.session) {
+        // Confirmação de email desativada — sessão ativa imediatamente
+        router.push('/album')
+        router.refresh()
+      } else {
+        // Confirmação de email ativada — pede para verificar caixa de entrada
+        setMessage('Verifique seu email para confirmar!')
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError(error.message)
