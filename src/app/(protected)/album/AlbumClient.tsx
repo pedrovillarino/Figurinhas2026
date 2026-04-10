@@ -345,8 +345,8 @@ export default function AlbumClient({
         </svg>
       </Link>
 
-      {/* Premium banner */}
-      {(hasReachedFreeLimit || showLimitBanner) && <PremiumBanner />}
+      {/* Premium banner - only shows if there's still a tier limit */}
+      {showLimitBanner && <PremiumBanner />}
 
       {/* Search + view toggle */}
       <div className="flex gap-2 mb-3">

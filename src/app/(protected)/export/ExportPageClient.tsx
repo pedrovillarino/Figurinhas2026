@@ -117,7 +117,9 @@ export default function ExportPageClient({
       parts.push(formatSection(duplicateStickers, 'duplicates'))
     }
 
-    parts.push(`Gerado em Figurinhas Copa 2026`)
+    parts.push('---')
+    parts.push('Controle suas figurinhas da Copa 2026 de graca!')
+    parts.push('Marque coladas, faltantes e repetidas, exporte e troque.')
     parts.push(SITE_URL)
 
     return parts.join('\n')

@@ -3,7 +3,7 @@ export type Tier = 'free' | 'plus' | 'premium'
 export const TIER_CONFIG = {
   free: {
     label: 'Free',
-    stickerLimit: 100,
+    stickerLimit: Infinity,
     canScan: false,
     canTrade: false,
   },

@@ -93,7 +93,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
               </div>
               <div className="flex flex-col gap-1 mb-3">
                 <Feature text="Scanner IA ilimitado" />
-                <Feature text="Figurinhas ilimitadas" />
+                <Feature text="Registre 50+ figurinhas por foto" />
               </div>
               <button
                 onClick={() => handleUpgrade('plus')}
@@ -124,7 +124,6 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
               </div>
               <div className="flex flex-col gap-1 mb-3">
                 <Feature text="Scanner IA ilimitado" />
-                <Feature text="Figurinhas ilimitadas" />
                 <Feature text="Trocas com colecionadores" />
                 <Feature text="Relatório semanal" />
               </div>
