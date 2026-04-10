@@ -343,7 +343,7 @@ export default function TradesHub({
         <div className="mb-3">
           <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio de busca</p>
           <div className="flex gap-1.5">
-            {[10, 25, 50, 100].map((r) => (
+            {[5, 10, 25, 50, 100].map((r) => (
               <button
                 key={r}
                 onClick={() => updateWatchRadius(r)}
@@ -444,7 +444,7 @@ export default function TradesHub({
 
         {/* Radius selector */}
         <div className="flex gap-1.5 mb-4">
-          {[10, 25, 50, 100].map((r) => (
+          {[5, 10, 25, 50, 100].map((r) => (
             <button
               key={r}
               onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}

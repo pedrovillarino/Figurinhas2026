@@ -267,7 +267,7 @@ export default function TradesClient({ userId }: { userId: string }) {
 
       {/* Radius selector */}
       <div className="flex gap-2 mb-5">
-        {[10, 25, 50, 100].map((r) => (
+        {[5, 10, 25, 50, 100].map((r) => (
           <button
             key={r}
             onClick={() => {
