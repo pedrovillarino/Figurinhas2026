@@ -150,8 +150,64 @@ export default function TradesHub({
   )
 
   const STICKER_PRICE = 1.5
+  const PACK_SIZE = 5
+  const PACK_PRICE = PACK_SIZE * STICKER_PRICE // R$7,50 por pacote
   const potentialSavings = totalExtras * STICKER_PRICE
   const missingCost = missingStickers.length * STICKER_PRICE
+
+  // ─── Probabilidade & Custo (Problema do Colecionador de Cupons) ───
+  const albumStats = useMemo(() => {
+    const N = stickers.length
+    const k = N - missingStickers.length // figurinhas ja coladas
+    const missing = missingStickers.length
+    const totalExtrasCount = totalExtras
+
+    if (N === 0) return null
+
+    // Numero harmonico: H(n) = 1 + 1/2 + 1/3 + ... + 1/n
+    function harmonic(n: number): number {
+      let h = 0
+      for (let i = 1; i <= n; i++) h += 1 / i
+      return h
+    }
+
+    // Probabilidade de uma figurinha avulsa ser nova
+    const probNova = missing / N
+
+    // Probabilidade de pelo menos 1 nova no pacote de PACK_SIZE
+    const probPacote = missing > 0 ? 1 - Math.pow(k / N, PACK_SIZE) : 0
+
+    // Custo esperado RESTANTE sem trocar (Coupon Collector corrigido)
+    // E[restante | ja tem k] = N × H(N-k) figurinhas individuais
+    const expectedRemaining = missing > 0 ? N * harmonic(missing) : 0
+    const expectedPacks = expectedRemaining / PACK_SIZE
+    const expectedCost = expectedPacks * PACK_PRICE
+
+    // Custo se pudesse comprar exatamente as faltantes (cenario ideal com trocas)
+    const idealCost = missing * STICKER_PRICE
+
+    // Custo com troca otimizada (app encontra as trocas certas)
+    // Estima que trocando repetidas o usuario cobre ~70% das faltantes, comprando so ~30%
+    const tradeEfficiency = Math.min(0.7, totalExtrasCount > 0 ? (totalExtrasCount / missing) * 0.8 : 0.3)
+    const optimizedCost = Math.round(missing * (1 - tradeEfficiency) * STICKER_PRICE + (missing * tradeEfficiency * STICKER_PRICE * 0.15))
+    const savingsVsAlone = expectedCost - optimizedCost
+    const savingsOptPercent = expectedCost > 0 ? Math.round((savingsVsAlone / expectedCost) * 100) : 0
+
+    return {
+      total: N,
+      owned: k,
+      missing,
+      probNova: Math.round(probNova * 100),
+      probPacote: Math.round(probPacote * 100),
+      expectedPacks: Math.round(expectedPacks),
+      expectedCost: Math.round(expectedCost),
+      idealCost: Math.round(idealCost),
+      optimizedCost,
+      savingsVsAlone: Math.round(savingsVsAlone),
+      savingsOptPercent,
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stickers.length, missingStickers.length, totalExtras])
 
   const nearbyStickersAvailable = useMemo(() =>
     matches.reduce((acc, m) => acc + m.they_have, 0),
@@ -903,32 +959,125 @@ export default function TradesHub({
         </div>
       </div>
 
-      {/* ─── Fun facts ─── */}
-      <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl p-5 shadow-lg mb-4">
-        <h2 className="text-sm font-bold text-white/90 mb-3">Voce sabia?</h2>
-        <div className="space-y-2.5">
-          <div className="flex items-start gap-2">
-            <span className="text-sm">💰</span>
-            <p className="text-xs text-white/85 leading-relaxed">
-              Completar o album comprando custaria ~<span className="font-bold">R${(stickers.length * STICKER_PRICE).toFixed(0)}</span>. Trocando, voce economiza muito!
-            </p>
+      {/* ─── Probabilidade & Custo para completar ─── */}
+      {albumStats && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm shadow-sm">📊</div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Probabilidade & custo</p>
+              <p className="text-[10px] text-gray-400">Suas chances e quanto falta para completar</p>
+            </div>
           </div>
-          {totalExtras > 0 && (
-            <div className="flex items-start gap-2">
-              <span className="text-sm">🔄</span>
-              <p className="text-xs text-white/85 leading-relaxed">
-                Suas <span className="font-bold">{totalExtras} extras</span> valem <span className="font-bold">R${potentialSavings.toFixed(0)}</span> em trocas
-              </p>
+
+          {/* Probability gauges */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-black text-blue-600">{albumStats.probNova}%</p>
+              <p className="text-[9px] text-blue-500 font-medium mt-0.5">chance de figurinha nova</p>
+              <p className="text-[8px] text-gray-400">(por figurinha avulsa)</p>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-black text-emerald-600">{albumStats.probPacote}%</p>
+              <p className="text-[9px] text-emerald-500 font-medium mt-0.5">chance de nova no pacote</p>
+              <p className="text-[8px] text-gray-400">(pelo menos 1 em {PACK_SIZE})</p>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mb-3">
+            <div className="flex justify-between items-baseline mb-1">
+              <p className="text-[10px] font-semibold text-gray-600">Progresso do album</p>
+              <p className="text-[10px] text-gray-400">{albumStats.owned}/{albumStats.total}</p>
+            </div>
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+                style={{ width: `${(albumStats.owned / albumStats.total) * 100}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-gray-400 mt-0.5">{Math.round((albumStats.owned / albumStats.total) * 100)}% completo</p>
+          </div>
+
+          {/* Cost comparison */}
+          <div className="bg-gray-50 rounded-xl p-3 mb-3">
+            <p className="text-[10px] font-bold text-gray-700 mb-2.5">Custo estimado para completar</p>
+
+            {/* Without trading */}
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">😰</span>
+                  <span className="text-[10px] text-gray-500">Comprando sozinho</span>
+                </div>
+                <span className="text-sm font-black text-red-500">R${albumStats.expectedCost}</span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-red-400 rounded-full" style={{ width: '100%' }} />
+              </div>
+              <p className="text-[8px] text-gray-400 mt-0.5">~{albumStats.expectedPacks} pacotes necessarios (matematicamente)</p>
+            </div>
+
+            {/* With app-optimized trading */}
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">🚀</span>
+                  <span className="text-[10px] text-gray-500 font-semibold">Com troca otimizada</span>
+                </div>
+                <span className="text-sm font-black text-emerald-500">R${albumStats.optimizedCost}</span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
+                  style={{ width: `${albumStats.expectedCost > 0 ? Math.max(5, (albumStats.optimizedCost / albumStats.expectedCost) * 100) : 0}%` }}
+                />
+              </div>
+              <p className="text-[8px] text-gray-400 mt-0.5">App encontra quem tem suas faltantes e troca suas {totalExtras} repetidas</p>
+            </div>
+
+            {/* Ideal scenario */}
+            <div className="mb-1">
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">🎯</span>
+                  <span className="text-[10px] text-gray-400">Cenario ideal (100% troca)</span>
+                </div>
+                <span className="text-xs font-bold text-gray-400">R${albumStats.idealCost}</span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gray-300 rounded-full"
+                  style={{ width: `${albumStats.expectedCost > 0 ? Math.max(3, (albumStats.idealCost / albumStats.expectedCost) * 100) : 0}%` }}
+                />
+              </div>
+              <p className="text-[8px] text-gray-300 mt-0.5">{albumStats.missing} × R${STICKER_PRICE.toFixed(2)} se trocar todas</p>
+            </div>
+          </div>
+
+          {/* Savings highlight */}
+          {albumStats.savingsVsAlone > 0 && (
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-3 flex items-center gap-3">
+              <div className="w-11 h-11 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+                <span className="text-xl">💰</span>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-white">
+                  Economize ate R${albumStats.savingsVsAlone} com troca otimizada!
+                </p>
+                <p className="text-[9px] text-emerald-100">
+                  {albumStats.savingsOptPercent}% mais barato que comprando sozinho. Use o app para encontrar quem tem o que voce precisa perto de voce.
+                </p>
+              </div>
             </div>
           )}
-          <div className="flex items-start gap-2">
-            <span className="text-sm">📊</span>
-            <p className="text-xs text-white/85 leading-relaxed">
-              Em media, colecionadores precisam trocar <span className="font-bold">3x mais</span> figurinhas do que o tamanho do album
-            </p>
-          </div>
+
+          {/* Explanation */}
+          <p className="text-[8px] text-gray-300 mt-2 text-center leading-relaxed">
+            Calculo baseado no Problema do Colecionador (Coupon Collector). Pacote = {PACK_SIZE} fig. a R${PACK_PRICE.toFixed(2)}
+          </p>
         </div>
-      </div>
+      )}
 
       {/* ─── Premium CTA ─── */}
       {!isPremium && (
