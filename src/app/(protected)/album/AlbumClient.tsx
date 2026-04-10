@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import PremiumBanner from '@/components/PremiumBanner'
+import ExportModal from '@/components/ExportModal'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
 
 type Sticker = {
@@ -37,6 +38,7 @@ export default function AlbumClient({
   const [loading, setLoading] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [showExport, setShowExport] = useState(false)
   const supabase = createClient()
 
   const TOTAL = stickers.length || 670
@@ -341,6 +343,15 @@ export default function AlbumClient({
           />
         </div>
         <button
+          onClick={() => setShowExport(true)}
+          className="w-10 h-10 rounded-xl border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-violet-500 hover:border-violet-200 hover:bg-violet-50 transition"
+          title="Exportar lista"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+        </button>
+        <button
           onClick={() => setViewMode(viewMode === 'grid' ? 'sections' : 'grid')}
           className={`w-10 h-10 rounded-xl border flex items-center justify-center transition ${
             viewMode === 'sections' ? 'bg-violet-50 border-violet-200 text-violet-500' : 'bg-white border-gray-100 text-gray-400'
@@ -420,6 +431,14 @@ export default function AlbumClient({
           {filtered.map(renderCard)}
         </div>
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExport}
+        onClose={() => setShowExport(false)}
+        stickers={stickers}
+        userMap={userMap}
+      />
     </div>
   )
 }
