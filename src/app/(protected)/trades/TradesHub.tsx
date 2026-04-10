@@ -509,7 +509,7 @@ export default function TradesHub({
           {/* Contextual message */}
           {albumStats && albumStats.probNova < 40 && (
             <p className="text-[10px] text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mt-2.5 leading-relaxed">
-              Com {albumStats.probNova}% de chance de nova, {albumStats.probNova < 20 ? '4 em cada 5' : '3 em cada 5'} figurinhas compradas serao repetidas. Trocar e muito mais eficiente nessa fase.
+              Com {albumStats.probNova}% de chance de nova, {albumStats.probNova < 20 ? '4 em cada 5' : '3 em cada 5'} figurinhas compradas serão repetidas. Trocar é muito mais eficiente nessa fase.
             </p>
           )}
         </div>

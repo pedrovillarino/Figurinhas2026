@@ -311,7 +311,7 @@ export default function ScanHub({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-semibold text-gray-800">Tirar Foto</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Pagina do album, figurinha individual ou varias juntas</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Página do álbum, figurinha individual ou várias juntas</p>
             </div>
             {!hasScan && (
               <span className="text-[9px] bg-violet-100 text-violet-600 rounded-full px-2 py-1 font-bold shrink-0">PLUS</span>
@@ -329,7 +329,7 @@ export default function ScanHub({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-semibold text-gray-800">Escolher da Galeria</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Selecione uma ou varias fotos de uma vez</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Selecione uma ou várias fotos de uma vez</p>
             </div>
             {!hasScan && (
               <span className="text-[9px] bg-violet-100 text-violet-600 rounded-full px-2 py-1 font-bold shrink-0">PLUS</span>
@@ -342,8 +342,8 @@ export default function ScanHub({
         <div className="grid grid-cols-3 gap-2 mb-6">
           <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
             <div className="text-2xl mb-1.5">📖</div>
-            <p className="text-[10px] font-medium text-gray-600">Pagina inteira</p>
-            <p className="text-[10px] text-gray-500">do album</p>
+            <p className="text-[10px] font-medium text-gray-600">Página inteira</p>
+            <p className="text-[10px] text-gray-500">do álbum</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
             <div className="text-2xl mb-1.5">🃏</div>
@@ -352,7 +352,7 @@ export default function ScanHub({
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
             <div className="text-2xl mb-1.5">🎴</div>
-            <p className="text-[10px] font-medium text-gray-600">Varias juntas</p>
+            <p className="text-[10px] font-medium text-gray-600">Várias juntas</p>
             <p className="text-[10px] text-gray-500">na mesa</p>
           </div>
         </div>
@@ -367,7 +367,7 @@ export default function ScanHub({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-800">Tire uma foto</p>
-                <p className="text-[10px] text-gray-500">da pagina do album ou das figurinhas soltas</p>
+                <p className="text-[10px] text-gray-500">da página do álbum ou das figurinhas soltas</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -385,7 +385,7 @@ export default function ScanHub({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-800">Confirme e salve</p>
-                <p className="text-[10px] text-gray-500">Revise o resultado e salve no seu album com um toque</p>
+                <p className="text-[10px] text-gray-500">Revise o resultado e salve no seu álbum com um toque</p>
               </div>
             </div>
           </div>

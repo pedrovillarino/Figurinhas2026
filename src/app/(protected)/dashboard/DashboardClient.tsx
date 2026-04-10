@@ -60,7 +60,7 @@ function ProgressRing({
   const gradientId = `ring-grad-${size}-${delay}`
 
   return (
-    <svg width={size} height={size} className="-rotate-90">
+    <svg role="img" aria-label="Gráfico de progresso" width={size} height={size} className="-rotate-90">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor={gradient[0]} />
@@ -113,7 +113,7 @@ function MiniDonut({ segments, size = 80 }: { segments: { pct: number; color: st
   let offset = 0
 
   return (
-    <svg width={size} height={size} className="-rotate-90">
+    <svg role="img" aria-label="Gráfico de progresso" width={size} height={size} className="-rotate-90">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f3f4f6" strokeWidth={sw} />
       {segments.map((seg, i) => {
         const dash = (seg.pct / 100) * circ
@@ -278,8 +278,10 @@ export default function DashboardClient({
   return (
     <main className="px-4 pt-6 pb-8">
       {/* ─── Header ─── */}
-      <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Dashboard</h1>
-      <p className="text-xs text-gray-500 mb-6">Estatísticas detalhadas da sua coleção</p>
+      <header className="mb-6">
+        <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Dashboard</h1>
+        <p className="text-xs text-gray-500">Estatísticas detalhadas da sua coleção</p>
+      </header>
 
       {/* ─── Hero Progress ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
@@ -325,7 +327,7 @@ export default function DashboardClient({
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg aria-hidden="true" className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -340,7 +342,7 @@ export default function DashboardClient({
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">
-              <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg aria-hidden="true" className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
             </div>
@@ -355,7 +357,7 @@ export default function DashboardClient({
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center">
-              <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg aria-hidden="true" className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
               </svg>
             </div>
@@ -370,7 +372,7 @@ export default function DashboardClient({
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-              <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg aria-hidden="true" className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
@@ -607,7 +609,7 @@ export default function DashboardClient({
                 </p>
                 <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 mt-1 hover:text-violet-700">
                   Encontrar quem tem suas faltantes
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </Link>
@@ -630,11 +632,11 @@ export default function DashboardClient({
               <div className="flex-1">
                 <p className="text-[11px] text-gray-700 leading-relaxed">
                   Com apenas <strong>{finStats.probNew}%</strong> de chance de figurinha nova, comprar pacotes fica caro.
-                  Trocar e mais eficiente nessa fase do album.
+                  Trocar é mais eficiente nessa fase do álbum.
                 </p>
                 <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 mt-1 hover:text-violet-700">
-                  Ver trocas disponiveis
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  Ver trocas disponíveis
+                  <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </Link>
@@ -669,7 +671,7 @@ export default function DashboardClient({
             className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl hover:from-violet-100 hover:to-fuchsia-100 transition active:scale-[0.98]"
           >
             <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg aria-hidden="true" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
               </svg>
             </div>
@@ -679,7 +681,7 @@ export default function DashboardClient({
                 {stats.totalExtras} repetida{stats.totalExtras > 1 ? 's' : ''} para trocar por faltantes perto de você
               </p>
             </div>
-            <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg aria-hidden="true" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </Link>

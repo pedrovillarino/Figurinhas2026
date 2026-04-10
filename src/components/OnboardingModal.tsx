@@ -8,7 +8,7 @@ const steps = [
   {
     icon: '📖',
     title: 'Bem-vindo ao Figurinhas 2026!',
-    description: 'Gerencie seu album da Copa do Mundo. Marque coladas, faltantes e repetidas com facilidade.',
+    description: 'Gerencie seu álbum da Copa do Mundo. Marque coladas, faltantes e repetidas com facilidade.',
   },
   {
     icon: '👆',

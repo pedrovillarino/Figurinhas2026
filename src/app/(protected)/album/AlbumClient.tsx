@@ -370,7 +370,7 @@ export default function AlbumClient({
   return (
     <main className="px-4 pt-4 pb-4" role="main">
       {/* Header with progress ring */}
-      <div className="flex items-center justify-between mb-5">
+      <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-black tracking-tight text-gray-900">Meu Álbum</h1>
           <p className="text-[11px] text-gray-500 mt-0.5">{stats.owned} de {TOTAL} figurinhas</p>
@@ -396,7 +396,7 @@ export default function AlbumClient({
             {progressPct}%
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Stats row */}
       <div className="flex gap-2 mb-4">
@@ -528,7 +528,7 @@ export default function AlbumClient({
           {activeTab === 'missing' && !search ? (
             <>
               <div className="text-4xl mb-3">🎉</div>
-              <p className="text-sm font-semibold text-gray-700 mb-1">Album completo!</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1">Álbum completo!</p>
               <p className="text-xs text-gray-500">Você já tem todas as figurinhas. Parabéns!</p>
             </>
           ) : activeTab === 'duplicates' && !search ? (
