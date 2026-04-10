@@ -225,6 +225,16 @@ export default function ScanHub({
     setOwnedCount(count || 0)
     setSaving(false)
     setState('success')
+
+    // Notify nearby users about new duplicates (fire & forget)
+    const savedIds = toSave.map((s) => s.sticker_id)
+    if (savedIds.length > 0) {
+      fetch('/api/notify-matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, sticker_ids: savedIds }),
+      }).catch(() => {})
+    }
   }
 
   function reset() {

@@ -133,6 +133,15 @@ export default function AlbumClient({
       [stickerId]: { status: newStatus, quantity: newQuantity },
     }))
     setLoading(null)
+
+    // Notify nearby users in background (fire & forget)
+    if (newStatus === 'duplicate') {
+      fetch('/api/notify-matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, sticker_ids: [stickerId] }),
+      }).catch(() => {}) // silent fail
+    }
   }
 
   const stickerLimit = getStickerLimit(tier)
