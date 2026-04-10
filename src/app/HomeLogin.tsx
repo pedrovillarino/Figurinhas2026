@@ -27,6 +27,18 @@ export default function HomeLogin() {
     }
   }
 
+  async function handleApple() {
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+    }
+  }
+
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -52,6 +64,18 @@ export default function HomeLogin() {
   if (mode === 'buttons') {
     return (
       <div className="space-y-3">
+        {/* Apple */}
+        <button
+          onClick={handleApple}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 bg-white text-[#060608] font-medium text-sm rounded-full px-6 py-3 hover:bg-white/90 transition active:scale-[0.98] disabled:opacity-50"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.33.07 2.26.73 3.03.75.91-.14 1.79-.87 3.06-.93 1.93-.1 3.33.88 4.18 2.3-3.82 2.31-3.18 7.46.73 8.76zM12.03 7.25c-.13-2.17 1.67-4.01 3.72-4.25.27 2.37-2.08 4.26-3.72 4.25z"/>
+          </svg>
+          Continuar com Apple
+        </button>
+
         {/* Google */}
         <button
           onClick={handleGoogle}
@@ -70,7 +94,7 @@ export default function HomeLogin() {
         {/* Email option */}
         <button
           onClick={() => setMode('email')}
-          className="w-full text-sm text-white/30 hover:text-white/50 transition py-2"
+          className="w-full text-sm text-white/55 hover:text-white/75 transition py-2"
         >
           ou entre com email
         </button>
