@@ -4,6 +4,7 @@ import Stripe from 'stripe'
 import { TIER_CONFIG, type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {

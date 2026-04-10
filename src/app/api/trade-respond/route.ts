@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
 import { cookies } from 'next/headers'
 
+export const maxDuration = 30
+
 export const dynamic = 'force-dynamic'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://figurinhas2026.vercel.app'

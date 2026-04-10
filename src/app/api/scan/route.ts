@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
 
+export const maxDuration = 30
+
 const SYSTEM_INSTRUCTION = `Você é um scanner de figurinhas de álbuns Panini de Copa do Mundo (qualquer edição: 2022, 2026, etc).
 
 Você pode receber:

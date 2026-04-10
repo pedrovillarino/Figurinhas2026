@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
 
+export const maxDuration = 30
+
 const LIST_INSTRUCTION = `Você é um leitor de listas de figurinhas Panini da Copa do Mundo.
 
 Você vai receber uma foto de uma lista escrita à mão, impressa, ou screenshot de uma lista de figurinhas.

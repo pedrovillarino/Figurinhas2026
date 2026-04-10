@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, formatPhone } from '@/lib/zapi'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 

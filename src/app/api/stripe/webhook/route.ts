@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {

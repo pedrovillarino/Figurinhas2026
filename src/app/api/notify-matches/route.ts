@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 const APP_URL = 'https://figurinhas2026.vercel.app'
 

@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
 import { cookies } from 'next/headers'
+
+export const maxDuration = 30
 import { randomBytes } from 'crypto'
 
 export const dynamic = 'force-dynamic'
