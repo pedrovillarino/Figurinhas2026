@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
+import Link from 'next/link'
 import PremiumBanner from '@/components/PremiumBanner'
 import ExportModal from '@/components/ExportModal'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
@@ -325,6 +326,25 @@ export default function AlbumClient({
         </div>
       </div>
 
+      {/* Export banner */}
+      <Link
+        href="/export"
+        className="flex items-center gap-3 mb-4 p-3 bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl active:scale-[0.98] transition"
+      >
+        <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-gray-800">Exportar lista</p>
+          <p className="text-[10px] text-gray-400">Envie suas faltantes ou repetidas via WhatsApp, e-mail ou texto</p>
+        </div>
+        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </Link>
+
       {/* Premium banner */}
       {(hasReachedFreeLimit || showLimitBanner) && <PremiumBanner />}
 
@@ -342,15 +362,6 @@ export default function AlbumClient({
             className="w-full bg-white rounded-xl border border-gray-100 pl-9 pr-3 py-2.5 text-sm text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-violet-500/30 focus:border-violet-200 outline-none transition"
           />
         </div>
-        <button
-          onClick={() => setShowExport(true)}
-          className="w-10 h-10 rounded-xl border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-violet-500 hover:border-violet-200 hover:bg-violet-50 transition"
-          title="Exportar lista"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-        </button>
         <button
           onClick={() => setViewMode(viewMode === 'grid' ? 'sections' : 'grid')}
           className={`w-10 h-10 rounded-xl border flex items-center justify-center transition ${
