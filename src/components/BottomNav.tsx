@@ -76,7 +76,9 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`relative flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 ${
+              aria-label={tab.label}
+              aria-current={isActive ? 'page' : undefined}
+              className={`relative flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 ${
                 isActive
                   ? 'text-violet-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -87,7 +89,7 @@ export default function BottomNav() {
                 <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />
               )}
               {tab.icon(isActive)}
-              <span className={`text-[9px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
+              <span className={`text-[10px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
                 {tab.label}
               </span>
             </Link>

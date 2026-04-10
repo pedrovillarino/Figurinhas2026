@@ -238,10 +238,10 @@ export default function DashboardClient({
   const visibleCountries = showAll ? countryData : countryData.slice(0, 8)
 
   return (
-    <div className="px-4 pt-6 pb-8">
+    <main className="px-4 pt-6 pb-8">
       {/* ─── Header ─── */}
       <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Dashboard</h1>
-      <p className="text-xs text-gray-400 mb-6">Estatisticas detalhadas da sua colecao</p>
+      <p className="text-xs text-gray-500 mb-6">Estatisticas detalhadas da sua colecao</p>
 
       {/* ─── Hero Progress ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
@@ -252,7 +252,7 @@ export default function DashboardClient({
               <span className="text-3xl font-black text-gray-900">
                 <AnimatedNumber value={stats.pct} />
               </span>
-              <span className="text-[10px] text-gray-400 -mt-0.5 font-medium">%</span>
+              <span className="text-[10px] text-gray-500 -mt-0.5 font-medium">%</span>
             </div>
           </div>
           <div className="flex-1 space-y-3">
@@ -261,9 +261,9 @@ export default function DashboardClient({
                 <span className="text-2xl font-black text-gray-900">
                   <AnimatedNumber value={stats.owned} />
                 </span>
-                <span className="text-sm text-gray-300 font-medium">/ {TOTAL}</span>
+                <span className="text-sm text-gray-400 font-medium">/ {TOTAL}</span>
               </div>
-              <p className="text-[10px] text-gray-400 mt-0.5">figurinhas coladas</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">figurinhas coladas</p>
             </div>
             <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
               <div
@@ -274,8 +274,8 @@ export default function DashboardClient({
             {stats.pct >= 100 ? (
               <p className="text-xs font-bold text-emerald-600">Álbum completo!</p>
             ) : (
-              <p className="text-[10px] text-gray-400">
-                Faltam <span className="font-bold text-gray-600">{stats.missing}</span> para completar
+              <p className="text-[10px] text-gray-500">
+                Faltam <span className="font-bold text-gray-700">{stats.missing}</span> para completar
               </p>
             )}
           </div>
@@ -291,7 +291,7 @@ export default function DashboardClient({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <span className="text-[10px] text-gray-400 font-medium">Coladas</span>
+            <span className="text-[10px] text-gray-500 font-medium">Coladas</span>
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={stats.owned} /></p>
           <p className="text-[10px] text-emerald-500 font-semibold mt-0.5">
@@ -306,7 +306,7 @@ export default function DashboardClient({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
             </div>
-            <span className="text-[10px] text-gray-400 font-medium">Faltantes</span>
+            <span className="text-[10px] text-gray-500 font-medium">Faltantes</span>
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={stats.missing} /></p>
           <p className="text-[10px] text-orange-400 font-semibold mt-0.5">
@@ -321,7 +321,7 @@ export default function DashboardClient({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
               </svg>
             </div>
-            <span className="text-[10px] text-gray-400 font-medium">Repetidas</span>
+            <span className="text-[10px] text-gray-500 font-medium">Repetidas</span>
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={stats.duplicates} /></p>
           <p className="text-[10px] text-violet-500 font-semibold mt-0.5">
@@ -336,7 +336,7 @@ export default function DashboardClient({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
-            <span className="text-[10px] text-gray-400 font-medium">Eficiencia</span>
+            <span className="text-[10px] text-gray-500 font-medium">Eficiencia</span>
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={dupeEfficiency} />%</p>
           <p className="text-[10px] text-blue-500 font-semibold mt-0.5">
@@ -387,7 +387,7 @@ export default function DashboardClient({
                       <HBar pct={c.pct} color="linear-gradient(90deg, #f59e0b, #fbbf24)" delay={100} />
                     </div>
                     <span className="text-[10px] font-bold text-amber-600 w-8 text-right">{c.pct}%</span>
-                    <span className="text-[9px] text-gray-400">
+                    <span className="text-[10px] text-gray-500">
                       falta {c.total - c.owned}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ export default function DashboardClient({
                   />
                   <span className="text-[11px] text-gray-600 flex-1 truncate">{t.type}</span>
                   <span className="text-[10px] font-bold text-gray-900">{t.owned}/{t.total}</span>
-                  <span className="text-[9px] text-gray-400 w-8 text-right">{t.pct}%</span>
+                  <span className="text-[10px] text-gray-500 w-8 text-right">{t.pct}%</span>
                 </div>
               ))}
             </div>
@@ -440,7 +440,7 @@ export default function DashboardClient({
           </span>
           Progresso por Seleção
         </h2>
-        <p className="text-[10px] text-gray-400 mb-4">Ordenado por conclusão</p>
+        <p className="text-[10px] text-gray-500 mb-4">Ordenado por conclusão</p>
 
         <div className="space-y-3">
           {visibleCountries.map((c, i) => (
@@ -448,7 +448,7 @@ export default function DashboardClient({
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-base leading-none">{getFlag(c.country)}</span>
                 <span className="text-[11px] font-semibold text-gray-700 flex-1 truncate">{c.country}</span>
-                <span className="text-[10px] text-gray-400">{c.owned}/{c.total}</span>
+                <span className="text-[10px] text-gray-500">{c.owned}/{c.total}</span>
                 <span className={`text-[10px] font-bold w-9 text-right ${
                   c.pct === 100 ? 'text-emerald-600' :
                   c.pct >= 80 ? 'text-violet-600' :
@@ -480,7 +480,7 @@ export default function DashboardClient({
             </span>
             Repetidas por Seleção
           </h2>
-          <p className="text-[10px] text-gray-400 mb-4">Onde você tem mais figurinhas extras</p>
+          <p className="text-[10px] text-gray-500 mb-4">Onde você tem mais figurinhas extras</p>
 
           <div className="space-y-2">
             {achievements.mostDupes.filter((c) => c.extras > 0).map((c, i) => {
@@ -488,7 +488,7 @@ export default function DashboardClient({
               const barPct = (c.extras / maxExtras) * 100
               return (
                 <div key={c.country} className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-gray-400 w-4">{i + 1}.</span>
+                  <span className="text-[10px] font-bold text-gray-500 w-4">{i + 1}.</span>
                   <span className="text-base">{getFlag(c.country)}</span>
                   <span className="text-[11px] font-medium text-gray-700 w-24 truncate">{c.country}</span>
                   <div className="flex-1 h-6 bg-gray-50 rounded-lg overflow-hidden relative">
@@ -565,13 +565,13 @@ export default function DashboardClient({
                 className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-medium text-gray-500"
               >
                 {getFlag(c.country)} {c.country}
-                <span className="text-gray-300">({c.total})</span>
+                <span className="text-gray-400">({c.total})</span>
               </span>
             ))}
           </div>
         </div>
       )}
-    </div>
+    </main>
   )
 }
 

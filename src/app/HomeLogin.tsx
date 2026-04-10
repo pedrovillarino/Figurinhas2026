@@ -94,7 +94,7 @@ export default function HomeLogin() {
         {/* Email option */}
         <button
           onClick={() => setMode('email')}
-          className="w-full text-sm text-white/55 hover:text-white/75 transition py-2"
+          className="w-full text-sm text-white/60 hover:text-white/80 transition py-2"
         >
           ou entre com email
         </button>
@@ -110,7 +110,8 @@ export default function HomeLogin() {
         onChange={(e) => setEmail(e.target.value)}
         required
         placeholder="seu@email.com"
-        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 outline-none transition"
+        aria-label="E-mail"
+        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 outline-none transition"
       />
       <input
         type="password"
@@ -119,7 +120,8 @@ export default function HomeLogin() {
         required
         minLength={6}
         placeholder="Senha"
-        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 outline-none transition"
+        aria-label="Senha"
+        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 outline-none transition"
       />
 
       {error && <p className="text-red-400 text-xs text-center">{error}</p>}
@@ -137,14 +139,14 @@ export default function HomeLogin() {
         <button
           type="button"
           onClick={() => { setIsSignUp(!isSignUp); setError(null); setMessage(null) }}
-          className="text-[11px] text-white/30 hover:text-white/50 transition"
+          className="text-[11px] text-white/50 hover:text-white/70 transition"
         >
           {isSignUp ? 'Já tenho conta' : 'Criar conta'}
         </button>
         <button
           type="button"
           onClick={() => setMode('buttons')}
-          className="text-[11px] text-white/30 hover:text-white/50 transition"
+          className="text-[11px] text-white/50 hover:text-white/70 transition"
         >
           Voltar
         </button>

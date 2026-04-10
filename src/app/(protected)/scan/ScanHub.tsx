@@ -264,11 +264,11 @@ export default function ScanHub({
     return (
       <div className="px-4 pt-6 pb-28">
         <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Scanner IA</h1>
-        <p className="text-xs text-gray-400 mb-6">Fotografe suas figurinhas e registre automaticamente</p>
+        <p className="text-xs text-gray-500 mb-6">Fotografe suas figurinhas e registre automaticamente</p>
 
         {/* Hidden inputs */}
-        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
-        <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Tirar foto com câmera" />
+        <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" aria-label="Escolher foto da galeria" />
 
         {/* Hero demo */}
         <div className="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl p-5 mb-5 shadow-lg">
@@ -311,7 +311,7 @@ export default function ScanHub({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-semibold text-gray-800">Tirar Foto</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Pagina do album, figurinha individual ou varias juntas</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Pagina do album, figurinha individual ou varias juntas</p>
             </div>
             {!hasScan && (
               <span className="text-[9px] bg-violet-100 text-violet-600 rounded-full px-2 py-1 font-bold shrink-0">PLUS</span>
@@ -329,7 +329,7 @@ export default function ScanHub({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-semibold text-gray-800">Escolher da Galeria</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Selecione uma ou varias fotos de uma vez</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Selecione uma ou varias fotos de uma vez</p>
             </div>
             {!hasScan && (
               <span className="text-[9px] bg-violet-100 text-violet-600 rounded-full px-2 py-1 font-bold shrink-0">PLUS</span>
@@ -338,22 +338,22 @@ export default function ScanHub({
         </div>
 
         {/* What you can scan */}
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">O que posso escanear</p>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">O que posso escanear</p>
         <div className="grid grid-cols-3 gap-2 mb-6">
           <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
             <div className="text-2xl mb-1.5">📖</div>
             <p className="text-[10px] font-medium text-gray-600">Pagina inteira</p>
-            <p className="text-[9px] text-gray-300">do album</p>
+            <p className="text-[10px] text-gray-500">do album</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
             <div className="text-2xl mb-1.5">🃏</div>
             <p className="text-[10px] font-medium text-gray-600">Uma figurinha</p>
-            <p className="text-[9px] text-gray-300">individual</p>
+            <p className="text-[10px] text-gray-500">individual</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
             <div className="text-2xl mb-1.5">🎴</div>
             <p className="text-[10px] font-medium text-gray-600">Varias juntas</p>
-            <p className="text-[9px] text-gray-300">na mesa</p>
+            <p className="text-[10px] text-gray-500">na mesa</p>
           </div>
         </div>
 
@@ -367,7 +367,7 @@ export default function ScanHub({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-800">Tire uma foto</p>
-                <p className="text-[10px] text-gray-400">da pagina do album ou das figurinhas soltas</p>
+                <p className="text-[10px] text-gray-500">da pagina do album ou das figurinhas soltas</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -376,7 +376,7 @@ export default function ScanHub({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-800">IA identifica tudo</p>
-                <p className="text-[10px] text-gray-400">Reconhece números, jogadores e seleções automaticamente</p>
+                <p className="text-[10px] text-gray-500">Reconhece números, jogadores e seleções automaticamente</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -385,7 +385,7 @@ export default function ScanHub({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-800">Confirme e salve</p>
-                <p className="text-[10px] text-gray-400">Revise o resultado e salve no seu album com um toque</p>
+                <p className="text-[10px] text-gray-500">Revise o resultado e salve no seu album com um toque</p>
               </div>
             </div>
           </div>
@@ -397,24 +397,24 @@ export default function ScanHub({
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Manual</p>
-              <p className="text-2xl font-black text-gray-300">~30min</p>
+              <p className="text-2xl font-black text-gray-400">~30min</p>
               <p className="text-[9px] text-gray-400 mt-1">para registrar 50 figurinhas</p>
             </div>
             <div className="bg-violet-50 rounded-xl p-3 text-center border border-violet-100">
               <p className="text-[10px] font-semibold text-violet-500 uppercase mb-2">Scanner IA</p>
               <p className="text-2xl font-black text-violet-600">~30s</p>
-              <p className="text-[9px] text-violet-400 mt-1">para registrar 50 figurinhas</p>
+              <p className="text-[10px] text-violet-500 mt-1">para registrar 50 figurinhas</p>
             </div>
           </div>
-          <p className="text-[9px] text-gray-400 text-center mt-2">60x mais rapido que marcar uma por uma</p>
+          <p className="text-[10px] text-gray-500 text-center mt-2">60x mais rapido que marcar uma por uma</p>
         </div>
 
         {/* Tips */}
         <div className="flex items-start gap-2.5 px-1">
-          <svg className="w-4 h-4 text-gray-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
           </svg>
-          <p className="text-[11px] text-gray-300 leading-relaxed">
+          <p className="text-[11px] text-gray-500 leading-relaxed">
             Boa iluminação e números visíveis garantem melhor resultado.
           </p>
         </div>
@@ -426,7 +426,7 @@ export default function ScanHub({
               <span className="text-2xl">⚡</span>
             </div>
             <h3 className="text-sm font-bold text-gray-900 text-center mb-1">Desbloqueie o Scanner IA</h3>
-            <p className="text-[10px] text-gray-400 text-center mb-3">
+            <p className="text-[10px] text-gray-500 text-center mb-3">
               Pare de marcar figurinha por figurinha. Escaneie e pronto!
             </p>
             <button
@@ -435,7 +435,7 @@ export default function ScanHub({
             >
               Desbloquear por R$9,90
             </button>
-            <p className="text-[9px] text-gray-300 text-center mt-2">Pagamento unico. Sem assinatura.</p>
+            <p className="text-[10px] text-gray-500 text-center mt-2">Pagamento unico. Sem assinatura.</p>
           </div>
         )}
 
@@ -493,7 +493,7 @@ export default function ScanHub({
         <div className="mt-6 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div className="h-full bg-violet-600 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
         </div>
-        <p className="text-xs text-gray-300 mt-3">{pct}%</p>
+        <p className="text-xs text-gray-500 mt-3">{pct}%</p>
       </div>
     )
   }

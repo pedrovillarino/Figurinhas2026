@@ -285,11 +285,13 @@ export default function AlbumClient({
         <button
           onClick={() => setExpanded(isExpanded ? null : sticker.id)}
           disabled={loading === sticker.id}
+          aria-label={`${sticker.number} ${sticker.player_name || sticker.country}`}
+          aria-expanded={isExpanded}
           className="w-full p-2 active:scale-95 transition-transform"
         >
           <p className="text-xl leading-none">{getFlag(sticker.country)}</p>
           <p className="text-[10px] font-bold text-gray-600 mt-1.5 tracking-tight">{sticker.number}</p>
-          <p className="text-[7px] text-gray-300 truncate leading-tight mt-0.5">
+          <p className="text-[8px] text-gray-500 truncate leading-tight mt-0.5">
             {sticker.player_name || sticker.type}
           </p>
         </button>
@@ -299,6 +301,7 @@ export default function AlbumClient({
           <div className="flex items-center justify-center gap-1 pb-2 px-1">
             <button
               onClick={(e) => handleDecrement(e, sticker)}
+              aria-label={`Remover ${sticker.number}`}
               className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 active:scale-90 transition"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -308,6 +311,7 @@ export default function AlbumClient({
             <span className="text-xs font-bold text-gray-700 w-5 text-center">{qty}</span>
             <button
               onClick={(e) => handleIncrement(e, sticker)}
+              aria-label={`Adicionar ${sticker.number}`}
               className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 hover:bg-violet-200 active:scale-90 transition"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -321,12 +325,12 @@ export default function AlbumClient({
   }
 
   return (
-    <div className="px-4 pt-4 pb-4">
+    <main className="px-4 pt-4 pb-4" role="main">
       {/* Header with progress ring */}
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-black tracking-tight text-gray-900">Meu Álbum</h1>
-          <p className="text-[11px] text-gray-400 mt-0.5">{stats.owned} de {TOTAL} figurinhas</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">{stats.owned} de {TOTAL} figurinhas</p>
         </div>
         <div className="relative w-14 h-14">
           <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
@@ -359,7 +363,7 @@ export default function AlbumClient({
           </div>
           <div>
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.owned}</p>
-            <p className="text-[9px] text-gray-400 mt-0.5">Coladas</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Coladas</p>
           </div>
         </div>
         <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
@@ -368,7 +372,7 @@ export default function AlbumClient({
           </div>
           <div>
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.missing}</p>
-            <p className="text-[9px] text-gray-400 mt-0.5">Faltam</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Faltam</p>
           </div>
         </div>
         <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
@@ -377,7 +381,7 @@ export default function AlbumClient({
           </div>
           <div>
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.duplicates}</p>
-            <p className="text-[9px] text-gray-400 mt-0.5">Repetidas</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Repetidas</p>
           </div>
         </div>
       </div>
@@ -394,7 +398,7 @@ export default function AlbumClient({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-800">Exportar lista</p>
-          <p className="text-[10px] text-gray-400">Envie suas faltantes ou repetidas via WhatsApp, e-mail ou texto</p>
+          <p className="text-[10px] text-gray-500">Envie suas faltantes ou repetidas via WhatsApp, e-mail ou texto</p>
         </div>
         <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -407,7 +411,7 @@ export default function AlbumClient({
       {/* Search + view toggle */}
       <div className="flex gap-2 mb-3">
         <div className="relative flex-1">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -415,15 +419,16 @@ export default function AlbumClient({
             placeholder="Buscar figurinha..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white rounded-xl border border-gray-100 pl-9 pr-3 py-2.5 text-sm text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-violet-500/30 focus:border-violet-200 outline-none transition"
+            aria-label="Buscar figurinha"
+            className="w-full bg-white rounded-xl border border-gray-100 pl-9 pr-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 outline-none transition"
           />
         </div>
         <button
           onClick={() => setViewMode(viewMode === 'grid' ? 'sections' : 'grid')}
-          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition ${
-            viewMode === 'sections' ? 'bg-violet-50 border-violet-200 text-violet-500' : 'bg-white border-gray-100 text-gray-400'
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition focus-visible:ring-2 focus-visible:ring-violet-500 ${
+            viewMode === 'sections' ? 'bg-violet-50 border-violet-200 text-violet-500' : 'bg-white border-gray-100 text-gray-500'
           }`}
-          title={viewMode === 'grid' ? 'Ver por seleção' : 'Ver grade'}
+          aria-label={viewMode === 'grid' ? 'Ver por seleção' : 'Ver grade'}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             {viewMode === 'grid' ? (
@@ -444,11 +449,11 @@ export default function AlbumClient({
             className={`flex-1 py-2 text-[11px] font-semibold rounded-lg transition-all ${
               activeTab === tab.key
                 ? 'bg-white text-gray-800 shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             {tab.label}
-            <span className={`ml-1 ${activeTab === tab.key ? 'text-violet-500' : 'text-gray-300'}`}>
+            <span className={`ml-1 ${activeTab === tab.key ? 'text-violet-500' : 'text-gray-400'}`}>
               {tab.count}
             </span>
           </button>
@@ -461,7 +466,7 @@ export default function AlbumClient({
           <div className="w-12 h-12 mx-auto rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
             <div className="w-2 h-2 rounded-full bg-gray-200" />
           </div>
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-gray-500">
             {search ? 'Nenhuma figurinha encontrada' : 'Nenhuma figurinha nesta categoria'}
           </p>
         </div>
@@ -476,7 +481,7 @@ export default function AlbumClient({
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">{getFlag(country)}</span>
                   <span className="text-xs font-semibold text-gray-700 flex-1">{country}</span>
-                  <span className="text-[10px] text-gray-400">{sec?.owned}/{sec?.total}</span>
+                  <span className="text-[10px] text-gray-500">{sec?.owned}/{sec?.total}</span>
                   <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-violet-500 rounded-full transition-all"
@@ -500,7 +505,7 @@ export default function AlbumClient({
           </div>
           {visibleCount < filtered.length && (
             <div ref={sentinelRef} className="flex justify-center py-6">
-              <div className="flex items-center gap-2 text-xs text-gray-300">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
                 <div className="w-4 h-4 border-2 border-gray-200 border-t-violet-400 rounded-full animate-spin" />
                 {filtered.length - visibleCount} figurinhas restantes
               </div>
@@ -516,6 +521,6 @@ export default function AlbumClient({
         stickers={sortedStickers}
         userMap={userMap}
       />
-    </div>
+    </main>
   )
 }

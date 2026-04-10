@@ -151,11 +151,11 @@ export default function ExportPageClient({
   }
 
   return (
-    <div className="px-4 pt-4 pb-4">
+    <main className="px-4 pt-4 pb-4">
       {/* Header */}
       <div className="mb-5">
         <h1 className="text-xl font-black tracking-tight text-gray-900">Exportar Lista</h1>
-        <p className="text-[11px] text-gray-400 mt-0.5">
+        <p className="text-[11px] text-gray-500 mt-0.5">
           {ownedCount} de {TOTAL} figurinhas coladas
         </p>
       </div>
@@ -168,7 +168,7 @@ export default function ExportPageClient({
           </div>
           <div>
             <p className="text-lg font-bold text-gray-800 leading-none">{missingStickers.length}</p>
-            <p className="text-[9px] text-gray-400 mt-0.5">Faltantes</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Faltantes</p>
           </div>
         </div>
         <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
@@ -179,7 +179,7 @@ export default function ExportPageClient({
             <p className="text-lg font-bold text-gray-800 leading-none">
               {duplicateStickers.length}
             </p>
-            <p className="text-[9px] text-gray-400 mt-0.5">Repetidas</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Repetidas</p>
           </div>
         </div>
       </div>
@@ -258,7 +258,10 @@ export default function ExportPageClient({
         </div>
         <button
           onClick={() => setGroupByCountry(!groupByCountry)}
-          className={`w-11 h-6 rounded-full transition-colors relative ${
+          role="switch"
+          aria-checked={groupByCountry}
+          aria-label="Agrupar por seleção"
+          className={`w-11 h-6 rounded-full transition-colors relative focus-visible:ring-2 focus-visible:ring-violet-500 ${
             groupByCountry ? 'bg-violet-500' : 'bg-gray-300'
           }`}
         >
@@ -331,6 +334,6 @@ export default function ExportPageClient({
           </div>
         </button>
       </div>
-    </div>
+    </main>
   )
 }

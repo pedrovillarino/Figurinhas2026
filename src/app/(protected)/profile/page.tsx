@@ -99,7 +99,7 @@ export default function ProfilePage() {
   const progressPct = stats.total > 0 ? Math.round((stats.owned / stats.total) * 100) : 0
 
   return (
-    <div className="px-4 pt-6">
+    <main className="px-4 pt-6">
       <h1 className="text-2xl font-bold mb-6">Perfil</h1>
 
       {/* User info */}
@@ -132,15 +132,15 @@ export default function ProfilePage() {
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center">
             <p className="text-lg font-bold text-green-600">{stats.owned}</p>
-            <p className="text-[10px] text-gray-500">Coladas</p>
+            <p className="text-[11px] text-gray-600">Coladas</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-red-500">{stats.missing}</p>
-            <p className="text-[10px] text-gray-500">Faltam</p>
+            <p className="text-[11px] text-gray-600">Faltam</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-blue-500">{stats.duplicates}</p>
-            <p className="text-[10px] text-gray-500">Repetidas</p>
+            <p className="text-[11px] text-gray-600">Repetidas</p>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function ProfilePage() {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           WhatsApp / Telefone
         </label>
-        <p className="text-xs text-gray-400 mb-2">
+        <p className="text-xs text-gray-500 mb-2">
           Necessário para trocas via WhatsApp
         </p>
         <div className="flex gap-2">
@@ -183,7 +183,7 @@ export default function ProfilePage() {
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-700">Fale conosco</p>
-          <p className="text-[10px] text-gray-400">contato@figurinhas2026.com.br</p>
+          <p className="text-[11px] text-gray-500">contato@figurinhas2026.com.br</p>
         </div>
         <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -197,6 +197,6 @@ export default function ProfilePage() {
       >
         Sair da Conta
       </button>
-    </div>
+    </main>
   )
 }
