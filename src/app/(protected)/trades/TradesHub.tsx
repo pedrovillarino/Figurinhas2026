@@ -37,6 +37,11 @@ type TradeDetail = {
 // localStorage stores EXCLUDED sticker ids (inverse logic: all missing are watched by default)
 const EXCLUDED_KEY = 'figurinhas_watch_excluded'
 const WATCH_RADIUS_KEY = 'figurinhas_watch_radius'
+const NOTIFY_CHANNEL_KEY = 'figurinhas_notify_channel'
+const NOTIFY_MIN_KEY = 'figurinhas_notify_min_threshold'
+const NOTIFY_PRIORITY_KEY = 'figurinhas_notify_priority'
+
+type NotifyChannel = 'whatsapp' | 'email' | 'both'
 
 function loadExcluded(): number[] {
   if (typeof window === 'undefined') return []
@@ -47,6 +52,17 @@ function loadExcluded(): number[] {
 
 function saveExcluded(ids: number[]) {
   localStorage.setItem(EXCLUDED_KEY, JSON.stringify(ids))
+}
+
+function loadNotifyPrefs(): { channel: NotifyChannel; minThreshold: number; priorityIds: number[] } {
+  if (typeof window === 'undefined') return { channel: 'whatsapp', minThreshold: 1, priorityIds: [] }
+  try {
+    return {
+      channel: (localStorage.getItem(NOTIFY_CHANNEL_KEY) as NotifyChannel) || 'whatsapp',
+      minThreshold: Number(localStorage.getItem(NOTIFY_MIN_KEY) || '1'),
+      priorityIds: JSON.parse(localStorage.getItem(NOTIFY_PRIORITY_KEY) || '[]'),
+    }
+  } catch { return { channel: 'whatsapp', minThreshold: 1, priorityIds: [] } }
 }
 
 export default function TradesHub({
@@ -87,11 +103,24 @@ export default function TradesHub({
   const [phones, setPhones] = useState<Record<string, string | null>>({})
   const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null)
 
-  // Load excluded list from localStorage
+  // Notification preferences
+  const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>('whatsapp')
+  const [notifyMinThreshold, setNotifyMinThreshold] = useState(1)
+  const [notifyPriorityIds, setNotifyPriorityIds] = useState<number[]>([])
+  const [showNotifyConfig, setShowNotifyConfig] = useState(false)
+  const [showPriorityPicker, setShowPriorityPicker] = useState(false)
+  const [prioritySearch, setPrioritySearch] = useState('')
+  const [savingPrefs, setSavingPrefs] = useState(false)
+
+  // Load excluded list + notification prefs from localStorage
   useEffect(() => {
     setExcluded(loadExcluded())
     const savedRadius = localStorage.getItem(WATCH_RADIUS_KEY)
     if (savedRadius) setWatchRadius(Number(savedRadius))
+    const prefs = loadNotifyPrefs()
+    setNotifyChannel(prefs.channel)
+    setNotifyMinThreshold(prefs.minThreshold)
+    setNotifyPriorityIds(prefs.priorityIds)
   }, [])
 
   // ─── Computed ───
@@ -159,6 +188,50 @@ export default function TradesHub({
     setWatchRadius(r)
     localStorage.setItem(WATCH_RADIUS_KEY, String(r))
   }
+
+  // Save notification preferences to localStorage + Supabase
+  async function saveNotifyPrefs(channel: NotifyChannel, min: number, priority: number[], notifyRadius: number) {
+    localStorage.setItem(NOTIFY_CHANNEL_KEY, channel)
+    localStorage.setItem(NOTIFY_MIN_KEY, String(min))
+    localStorage.setItem(NOTIFY_PRIORITY_KEY, JSON.stringify(priority))
+    localStorage.setItem(WATCH_RADIUS_KEY, String(notifyRadius))
+    setSavingPrefs(true)
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          notify_channel: channel,
+          notify_min_threshold: min,
+          notify_priority_stickers: priority,
+          notify_radius_km: notifyRadius,
+        })
+        .eq('id', userId)
+    } catch {
+      // columns might not exist yet, prefs still saved in localStorage
+    }
+    setSavingPrefs(false)
+  }
+
+  function togglePrioritySticker(stickerId: number) {
+    setNotifyPriorityIds((prev) => {
+      const next = prev.includes(stickerId)
+        ? prev.filter((id) => id !== stickerId)
+        : [...prev, stickerId]
+      return next
+    })
+  }
+
+  // Priority sticker search results
+  const filteredPriority = useMemo(() => {
+    if (!prioritySearch.trim()) return missingStickers.slice(0, 50)
+    const q = prioritySearch.toLowerCase()
+    return missingStickers.filter(
+      (s) =>
+        s.number.toLowerCase().includes(q) ||
+        (s.player_name && s.player_name.toLowerCase().includes(q)) ||
+        s.country.toLowerCase().includes(q)
+    ).slice(0, 50)
+  }, [missingStickers, prioritySearch])
 
   function requirePremium(action: () => void) {
     if (isPremium) {
@@ -321,46 +394,242 @@ export default function TradesHub({
         </div>
       </div>
 
-      {/* ─── Watchlist (auto = all missing) ─── */}
+      {/* ─── Notificacoes & Lista de desejos ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🔔</div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm shadow-sm">🔔</div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Lista de desejos</p>
+              <p className="text-sm font-bold text-gray-900">Alertas de figurinhas</p>
               <p className="text-[10px] text-gray-400">
-                Monitorando <span className="font-bold text-amber-600">{watchedCount}</span> de {missingStickers.length} faltantes
+                Seja notificado quando alguem perto tiver figurinhas que voce precisa
               </p>
             </div>
           </div>
         </div>
 
-        <p className="text-[10px] text-gray-400 mb-2">
-          Todas as figurinhas faltantes sao monitoradas automaticamente. Quando voce cola uma no album, ela sai da lista.
+        {/* Summary bar */}
+        <div className="flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2.5 mb-3">
+          <span className="text-sm">📋</span>
+          <div className="flex-1">
+            <p className="text-[11px] font-semibold text-amber-800">
+              Monitorando <span className="text-amber-600">{watchedCount}</span> figurinha{watchedCount !== 1 ? 's' : ''} faltante{watchedCount !== 1 ? 's' : ''}
+            </p>
+            <p className="text-[9px] text-amber-600">
+              {notifyPriorityIds.length > 0 && `${notifyPriorityIds.length} prioritaria${notifyPriorityIds.length > 1 ? 's' : ''} · `}
+              Via {notifyChannel === 'whatsapp' ? 'WhatsApp' : notifyChannel === 'email' ? 'e-mail' : 'WhatsApp + e-mail'} · Raio {watchRadius}km · Min. {notifyMinThreshold} fig.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowNotifyConfig(!showNotifyConfig)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${showNotifyConfig ? 'bg-amber-200' : 'bg-amber-100 hover:bg-amber-200'}`}
+          >
+            <svg className="w-4 h-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
+
+        <p className="text-[10px] text-gray-400 mb-3">
+          Todas as figurinhas faltantes sao monitoradas automaticamente. Quando voce cola uma no album, ela sai da lista. Configure abaixo como e quando quer ser notificado.
         </p>
 
-        {/* Radius */}
-        <div className="mb-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio de busca</p>
-          <div className="flex gap-1.5">
-            {[5, 10, 15, 25, 50].map((r) => (
+        {/* ─── Notification Config Panel ─── */}
+        {showNotifyConfig && (
+          <div className="border border-amber-100 rounded-xl p-3 mb-3 bg-amber-50/30 space-y-4">
+            <p className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Configuracoes de notificacao
+            </p>
+
+            {/* Canal de notificacao */}
+            <div>
+              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Como quer ser notificado?</p>
+              <div className="flex gap-1.5">
+                {([
+                  { key: 'whatsapp' as NotifyChannel, icon: '💬', label: 'WhatsApp' },
+                  { key: 'email' as NotifyChannel, icon: '📧', label: 'E-mail' },
+                  { key: 'both' as NotifyChannel, icon: '📲', label: 'Ambos' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setNotifyChannel(opt.key)}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                      notifyChannel === opt.key
+                        ? 'bg-amber-400 text-white shadow-sm'
+                        : 'bg-white text-gray-400 border border-gray-100 hover:border-amber-200'
+                    }`}
+                  >
+                    <span className="text-xs">{opt.icon}</span> {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Raio de notificacao */}
+            <div>
+              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio maximo para alertas</p>
+              <div className="flex gap-1.5">
+                {[5, 10, 15, 25, 50].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setWatchRadius(r)}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                      watchRadius === r ? 'bg-amber-400 text-white' : 'bg-white text-gray-400 border border-gray-100'
+                    }`}
+                  >
+                    {r} km
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-gray-400 mt-1">Voce so sera notificado quando alguem dentro deste raio tiver suas figurinhas</p>
+            </div>
+
+            {/* Minimo de figurinhas */}
+            <div>
+              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Minimo de figurinhas para notificar</p>
+              <p className="text-[9px] text-gray-400 mb-2">So enviar alerta se a pessoa tiver pelo menos X figurinhas que voce precisa</p>
+              <div className="flex gap-1.5">
+                {[1, 2, 3, 5, 10].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setNotifyMinThreshold(n)}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                      notifyMinThreshold === n
+                        ? 'bg-amber-400 text-white shadow-sm'
+                        : 'bg-white text-gray-400 border border-gray-100 hover:border-amber-200'
+                    }`}
+                  >
+                    {n}+
+                  </button>
+                ))}
+              </div>
+              {notifyMinThreshold > 1 && (
+                <p className="text-[9px] text-amber-600 mt-1.5">
+                  ⚡ Voce so sera notificado quando alguem tiver {notifyMinThreshold}+ figurinhas que voce precisa
+                  {notifyPriorityIds.length > 0 && ' (exceto figurinhas prioritarias, que sempre notificam)'}
+                </p>
+              )}
+            </div>
+
+            {/* Figurinhas prioritarias */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div>
+                  <p className="text-[10px] text-gray-500 font-medium">Figurinhas prioritarias</p>
+                  <p className="text-[9px] text-gray-400">Sempre notificar quando alguem tiver, independente do minimo</p>
+                </div>
+                {notifyPriorityIds.length > 0 && (
+                  <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-bold">
+                    {notifyPriorityIds.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Priority stickers chips */}
+              {notifyPriorityIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {notifyPriorityIds.map((id) => {
+                    const sticker = missingStickers.find((s) => s.id === id)
+                    if (!sticker) return null
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => togglePrioritySticker(id)}
+                        className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-700 rounded-lg px-1.5 py-0.5 text-[9px] font-medium border border-orange-200 hover:bg-orange-200 transition"
+                      >
+                        {getFlag(sticker.country)} {sticker.number}
+                        <svg className="w-2.5 h-2.5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
               <button
-                key={r}
-                onClick={() => updateWatchRadius(r)}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-                  watchRadius === r ? 'bg-amber-400 text-white' : 'bg-gray-50 text-gray-400'
-                }`}
+                onClick={() => setShowPriorityPicker(!showPriorityPicker)}
+                className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 transition"
               >
-                {r} km
+                {showPriorityPicker ? 'Fechar' : '+ Adicionar figurinhas prioritarias'}
               </button>
-            ))}
+
+              {showPriorityPicker && (
+                <div className="mt-2 border border-orange-100 rounded-lg p-2 bg-white">
+                  <div className="relative mb-2">
+                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={prioritySearch}
+                      onChange={(e) => setPrioritySearch(e.target.value)}
+                      placeholder="Buscar figurinha faltante..."
+                      className="w-full bg-gray-50 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-orange-300 outline-none"
+                    />
+                  </div>
+                  <div className="max-h-36 overflow-y-auto space-y-0.5">
+                    {filteredPriority.map((s) => {
+                      const isPriority = notifyPriorityIds.includes(s.id)
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => togglePrioritySticker(s.id)}
+                          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition ${
+                            isPriority ? 'bg-orange-50 border border-orange-200' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 ${
+                            isPriority ? 'bg-orange-400 border-orange-400' : 'border-gray-300'
+                          }`}>
+                            {isPriority && (
+                              <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-sm leading-none">{getFlag(s.country)}</span>
+                          <span className="text-[10px] font-bold text-gray-700">{s.number}</span>
+                          <span className="text-[9px] text-gray-400 truncate flex-1">{s.player_name || s.country}</span>
+                          {isPriority && <span className="text-[8px] text-orange-500 font-bold">⭐</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Save button */}
+            <button
+              onClick={() => {
+                saveNotifyPrefs(notifyChannel, notifyMinThreshold, notifyPriorityIds, watchRadius)
+                setShowNotifyConfig(false)
+              }}
+              disabled={savingPrefs}
+              className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {savingPrefs ? (
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              Salvar configuracoes
+            </button>
           </div>
-        </div>
+        )}
 
         {/* Excluded count + manage */}
         {excluded.length > 0 && (
           <p className="text-[10px] text-gray-400 mb-2">
-            {excluded.length} figurinha{excluded.length > 1 ? 's' : ''} removida{excluded.length > 1 ? 's' : ''} manualmente
+            {excluded.length} figurinha{excluded.length > 1 ? 's' : ''} removida{excluded.length > 1 ? 's' : ''} do monitoramento
           </p>
         )}
 
@@ -634,10 +903,10 @@ export default function TradesHub({
           Como funciona
         </h2>
         <div className="space-y-3">
-          <Step num={1} title="Suas faltantes sao monitoradas" desc="Todas as figurinhas que voce precisa entram automaticamente na lista de desejos" />
-          <Step num={2} title="Encontramos quem tem" desc="Buscamos colecionadores perto de voce que tem o que voce precisa" />
-          <Step num={3} title="Notifique via WhatsApp" desc="Envie uma mensagem direto no WhatsApp da pessoa com a lista de trocas" />
-          <Step num={4} title="Colou? Sai da lista!" desc="Quando voce marca uma figurinha como colada no album, ela sai da lista automaticamente" />
+          <Step num={1} title="Monitoramento automatico" desc="Todas as faltantes sao monitoradas. Defina raio, minimo de figurinhas e prioridades" />
+          <Step num={2} title="Alerta inteligente" desc="Quando alguem perto tiver suas figurinhas, voce recebe um alerta via WhatsApp ou e-mail" />
+          <Step num={3} title="Combine a troca" desc="Veja detalhes de cada colecionador e mande mensagem direto pelo WhatsApp" />
+          <Step num={4} title="Colou? Sai da lista!" desc="Quando marca como colada no album, a figurinha sai do monitoramento automaticamente" />
         </div>
       </div>
 
