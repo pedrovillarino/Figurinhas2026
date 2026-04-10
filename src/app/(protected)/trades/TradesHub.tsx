@@ -109,7 +109,7 @@ export default function TradesHub({
   const [excludeSearch, setExcludeSearch] = useState('')
   const [nearbyCount, setNearbyCount] = useState(initialNearbyCount)
   const [matches, setMatches] = useState<NearbyMatch[]>(
-    [...initialMatches].sort((a, b) => a.distance_km - b.distance_km)
+    [...initialMatches].sort((a, b) => a.distance_km - b.distance_km || b.match_score - a.match_score)
   )
   const [hasLocation, setHasLocation] = useState(initialHasLocation)
   const [requestingLocation, setRequestingLocation] = useState(false)
@@ -345,7 +345,7 @@ export default function TradesHub({
         p_radius_km: radius,
       })
       if (data) {
-        setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km))
+        setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km || b.match_score - a.match_score))
         setNearbyCount(data.length)
       }
     } catch {
