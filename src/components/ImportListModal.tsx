@@ -55,7 +55,6 @@ export default function ImportListModal({
     setMatched([])
     setUnmatched([])
     setWarnings([])
-    setTotal(0)
     setSelected(new Set())
     setErrorMessage('')
     setSavedCount(0)
