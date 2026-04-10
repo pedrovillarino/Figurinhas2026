@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
@@ -36,11 +36,39 @@ export default function AlbumClient({
   const [userMap, setUserMap] = useState(initialMap)
   const [activeTab, setActiveTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [loading, setLoading] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [showExport, setShowExport] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(40)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  // Debounce de busca (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  // Virtualização: renderiza mais cards ao scrollar
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 40)
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
+
+  // Reset visibleCount quando filtro muda
+  useEffect(() => { setVisibleCount(40) }, [activeTab, debouncedSearch])
 
   // Sort numérico natural (ARG-1, ARG-2, ..., ARG-10 em vez de ARG-1, ARG-10, ARG-2)
   const collator = useMemo(() => new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' }), [])
@@ -81,6 +109,12 @@ export default function AlbumClient({
 
   const progressPct = TOTAL > 0 ? Math.round((stats.owned / TOTAL) * 100) : 0
 
+  const matchesSearch = useCallback((s: Sticker, q: string) =>
+    s.number.toLowerCase().includes(q) ||
+    (s.player_name && s.player_name.toLowerCase().includes(q)) ||
+    s.country.toLowerCase().includes(q),
+  [])
+
   const filtered = useMemo(() => {
     let list = sortedStickers
 
@@ -93,18 +127,13 @@ export default function AlbumClient({
       list = list.filter((s) => userMap[s.id]?.status === 'duplicate')
     }
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
-        (s) =>
-          s.number.toLowerCase().includes(q) ||
-          (s.player_name && s.player_name.toLowerCase().includes(q)) ||
-          s.country.toLowerCase().includes(q)
-      )
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
+      list = list.filter((s) => matchesSearch(s, q))
     }
 
     return list
-  }, [sortedStickers, activeTab, search, userMap])
+  }, [sortedStickers, activeTab, debouncedSearch, userMap, matchesSearch])
 
   // Group by country for section view
   const groupedByCountry = useMemo(() => {
@@ -213,20 +242,15 @@ export default function AlbumClient({
 
   // Contadores das tabs — atualizam quando há busca ativa
   const tabCounts = useMemo(() => {
-    if (!search.trim()) {
+    if (!debouncedSearch.trim()) {
       return { all: sortedStickers.length, missing: stats.missing, duplicates: stats.duplicates }
     }
-    const q = search.toLowerCase()
-    const matchesSearch = (s: Sticker) =>
-      s.number.toLowerCase().includes(q) ||
-      (s.player_name && s.player_name.toLowerCase().includes(q)) ||
-      s.country.toLowerCase().includes(q)
-
-    const searched = sortedStickers.filter(matchesSearch)
+    const q = debouncedSearch.toLowerCase()
+    const searched = sortedStickers.filter((s) => matchesSearch(s, q))
     const searchMissing = searched.filter((s) => { const us = userMap[s.id]; return !us || us.status === 'missing' })
     const searchDupes = searched.filter((s) => userMap[s.id]?.status === 'duplicate')
     return { all: searched.length, missing: searchMissing.length, duplicates: searchDupes.length }
-  }, [sortedStickers, search, userMap, stats])
+  }, [sortedStickers, debouncedSearch, userMap, stats, matchesSearch])
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'all', label: 'Todas', count: tabCounts.all },
@@ -448,7 +472,7 @@ export default function AlbumClient({
             const sec = sectionStats[country]
             const pct = sec ? Math.round((sec.owned / sec.total) * 100) : 0
             return (
-              <div key={country}>
+              <div key={country} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">{getFlag(country)}</span>
                   <span className="text-xs font-semibold text-gray-700 flex-1">{country}</span>
@@ -469,10 +493,20 @@ export default function AlbumClient({
           })}
         </div>
       ) : (
-        /* ── GRID VIEW ── */
-        <div className="grid grid-cols-4 gap-1.5">
-          {filtered.map(renderCard)}
-        </div>
+        /* ── GRID VIEW (virtualizado — renderiza em chunks de 40) ── */
+        <>
+          <div className="grid grid-cols-4 gap-1.5">
+            {filtered.slice(0, visibleCount).map(renderCard)}
+          </div>
+          {visibleCount < filtered.length && (
+            <div ref={sentinelRef} className="flex justify-center py-6">
+              <div className="flex items-center gap-2 text-xs text-gray-300">
+                <div className="w-4 h-4 border-2 border-gray-200 border-t-violet-400 rounded-full animate-spin" />
+                {filtered.length - visibleCount} figurinhas restantes
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Export Modal */}
