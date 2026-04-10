@@ -62,14 +62,17 @@ export default function ProfilePage() {
       .select('status')
       .eq('user_id', user.id)
 
-    const total = totalStickers || 638
+    const total = totalStickers || 670
     let owned = 0, duplicates = 0
     userStickers?.forEach((us) => {
       if (us.status === 'owned') owned++
-      if (us.status === 'duplicate') duplicates++
+      if (us.status === 'duplicate') {
+        owned++ // duplicata também conta como colada
+        duplicates++
+      }
     })
 
-    setStats({ owned, missing: total - owned - duplicates, duplicates, total })
+    setStats({ owned, missing: total - owned, duplicates, total })
   }
 
   async function savePhone() {

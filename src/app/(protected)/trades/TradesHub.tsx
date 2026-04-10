@@ -314,7 +314,7 @@ export default function TradesHub({
       },
       () => {
         setRequestingLocation(false)
-        alert('Nao foi possivel obter sua localizacao. Verifique as permissoes do navegador.')
+        alert('Não foi possível obter sua localização. Verifique as permissões do navegador.')
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
@@ -407,7 +407,7 @@ export default function TradesHub({
     <div className="px-4 pt-6 pb-28">
       {/* ─── Header ─── */}
       <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Trocas</h1>
-      <p className="text-xs text-gray-400 mb-5">Encontre colecionadores perto de voce e economize</p>
+      <p className="text-xs text-gray-400 mb-5">Encontre colecionadores perto de você e economize</p>
 
       {/* ─── Savings Hero ─── */}
       <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 mb-4 shadow-lg">
@@ -451,7 +451,7 @@ export default function TradesHub({
             <div>
               <p className="text-sm font-bold text-gray-900">Alertas de figurinhas</p>
               <p className="text-[10px] text-gray-400">
-                Seja notificado quando alguem perto tiver figurinhas que voce precisa
+                Seja notificado quando alguém perto tiver figurinhas que você precisa
               </p>
             </div>
           </div>
@@ -481,7 +481,7 @@ export default function TradesHub({
         </div>
 
         <p className="text-[10px] text-gray-400 mb-3">
-          Todas as figurinhas faltantes sao monitoradas automaticamente. Quando voce cola uma no album, ela sai da lista. Configure abaixo como e quando quer ser notificado.
+          Todas as figurinhas faltantes são monitoradas automaticamente. Quando você cola uma no álbum, ela sai da lista. Configure abaixo como e quando quer ser notificado.
         </p>
 
         {/* ─── Notification Config Panel ─── */}
@@ -492,7 +492,7 @@ export default function TradesHub({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              Configuracoes de notificacao
+              Configurações de notificação
             </p>
 
             {/* Canal de notificacao */}
@@ -521,7 +521,7 @@ export default function TradesHub({
 
             {/* Raio de notificacao */}
             <div>
-              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio maximo para alertas</p>
+              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio máximo para alertas</p>
               <div className="flex gap-1.5">
                 {[5, 10, 15, 25, 50].map((r) => (
                   <button
@@ -535,13 +535,13 @@ export default function TradesHub({
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-gray-400 mt-1">Voce so sera notificado quando alguem dentro deste raio tiver suas figurinhas</p>
+              <p className="text-[9px] text-gray-400 mt-1">Você só será notificado quando alguém dentro deste raio tiver suas figurinhas</p>
             </div>
 
             {/* Minimo de figurinhas */}
             <div>
-              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Minimo de figurinhas para notificar</p>
-              <p className="text-[9px] text-gray-400 mb-2">So enviar alerta se a pessoa tiver pelo menos X figurinhas que voce precisa</p>
+              <p className="text-[10px] text-gray-500 font-medium mb-1.5">Mínimo de figurinhas para notificar</p>
+              <p className="text-[9px] text-gray-400 mb-2">Só enviar alerta se a pessoa tiver pelo menos X figurinhas que você precisa</p>
               <div className="flex gap-1.5">
                 {[1, 2, 3, 5, 10].map((n) => (
                   <button
@@ -559,7 +559,7 @@ export default function TradesHub({
               </div>
               {notifyMinThreshold > 1 && (
                 <p className="text-[9px] text-amber-600 mt-1.5">
-                  ⚡ Voce so sera notificado quando alguem tiver {notifyMinThreshold}+ figurinhas que voce precisa
+                  ⚡ Você só será notificado quando alguém tiver {notifyMinThreshold}+ figurinhas que você precisa
                   {notifyPriorityIds.length > 0 && ' (exceto figurinhas prioritarias, que sempre notificam)'}
                 </p>
               )}
@@ -570,7 +570,7 @@ export default function TradesHub({
               <div className="flex items-center justify-between mb-1.5">
                 <div>
                   <p className="text-[10px] text-gray-500 font-medium">Figurinhas prioritarias</p>
-                  <p className="text-[9px] text-gray-400">Sempre notificar quando alguem tiver, independente do minimo</p>
+                  <p className="text-[9px] text-gray-400">Sempre notificar quando alguém tiver, independente do mínimo</p>
                 </div>
                 {notifyPriorityIds.length > 0 && (
                   <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-bold">
@@ -670,7 +670,7 @@ export default function TradesHub({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}
-              Salvar configuracoes
+              Salvar configurações
             </button>
           </div>
         )}
@@ -692,7 +692,7 @@ export default function TradesHub({
         {/* Exclude manager */}
         {showExcludeManager && (
           <div className="border-t border-gray-100 pt-3 mt-3">
-            <p className="text-[10px] text-gray-500 mb-2">Desmarque as que voce <span className="font-bold">nao</span> quer monitorar:</p>
+            <p className="text-[10px] text-gray-500 mb-2">Desmarque as que você <span className="font-bold">não</span> quer monitorar:</p>
             <div className="relative mb-3">
               <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -750,7 +750,7 @@ export default function TradesHub({
             </svg>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-gray-900">Colecionadores perto de voce</p>
+            <p className="text-sm font-bold text-gray-900">Colecionadores perto de você</p>
             <p className="text-[10px] text-gray-400">Raio de {radius} km</p>
           </div>
           {hasLocation && (
@@ -784,7 +784,7 @@ export default function TradesHub({
             {requestingLocation ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Obtendo localizacao...
+                Obtendo localização...
               </>
             ) : (
               <>
@@ -792,7 +792,7 @@ export default function TradesHub({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
-                Ativar localizacao para ver trocas
+                Ativar localização para ver trocas
               </>
             )}
           </button>
@@ -809,7 +809,7 @@ export default function TradesHub({
                   {nearbyCount} pessoa{nearbyCount > 1 ? 's' : ''} encontrada{nearbyCount > 1 ? 's' : ''}!
                 </p>
                 <p className="text-[10px] text-emerald-600">
-                  {nearbyStickersAvailable} figurinha{nearbyStickersAvailable > 1 ? 's' : ''} disponive{nearbyStickersAvailable > 1 ? 'is' : 'l'} que voce precisa
+                  {nearbyStickersAvailable} figurinha{nearbyStickersAvailable > 1 ? 's' : ''} disponive{nearbyStickersAvailable > 1 ? 'is' : 'l'} que você precisa
                 </p>
               </div>
             </div>
@@ -841,7 +841,7 @@ export default function TradesHub({
                         <div className="flex gap-1.5 flex-wrap">
                           {match.they_have > 0 && (
                             <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5 text-[9px] font-medium">
-                              Tem {match.they_have} que voce precisa
+                              Tem {match.they_have} que você precisa
                             </span>
                           )}
                           {match.i_have > 0 && (
@@ -893,7 +893,7 @@ export default function TradesHub({
                             )}
                             {matchDetails.filter((d) => d.direction === 'i_have').length > 0 && (
                               <div className="mt-2">
-                                <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider mb-1.5">Voce tem pra dar</p>
+                                <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider mb-1.5">Você tem pra dar</p>
                                 <div className="flex flex-wrap gap-1">
                                   {matchDetails.filter((d) => d.direction === 'i_have').map((d) => (
                                     <span key={d.sticker_id} className="bg-blue-50 text-blue-800 rounded-lg px-1.5 py-0.5 text-[10px] font-medium">
@@ -952,10 +952,10 @@ export default function TradesHub({
           Como funciona
         </h2>
         <div className="space-y-3">
-          <Step num={1} title="Monitoramento automatico" desc="Todas as faltantes sao monitoradas. Defina raio, minimo de figurinhas e prioridades" />
-          <Step num={2} title="Alerta inteligente" desc="Quando alguem perto tiver suas figurinhas, voce recebe um alerta via WhatsApp ou e-mail" />
+          <Step num={1} title="Monitoramento automático" desc="Todas as faltantes são monitoradas. Defina raio, mínimo de figurinhas e prioridades" />
+          <Step num={2} title="Alerta inteligente" desc="Quando alguém perto tiver suas figurinhas, você recebe um alerta via WhatsApp ou e-mail" />
           <Step num={3} title="Combine a troca" desc="Veja detalhes de cada colecionador e mande mensagem direto pelo WhatsApp" />
-          <Step num={4} title="Colou? Sai da lista!" desc="Quando marca como colada no album, a figurinha sai do monitoramento automaticamente" />
+          <Step num={4} title="Colou? Sai da lista!" desc="Quando marca como colada no álbum, a figurinha sai do monitoramento automaticamente" />
         </div>
       </div>
 
@@ -987,7 +987,7 @@ export default function TradesHub({
           {/* Progress bar */}
           <div className="mb-3">
             <div className="flex justify-between items-baseline mb-1">
-              <p className="text-[10px] font-semibold text-gray-600">Progresso do album</p>
+              <p className="text-[10px] font-semibold text-gray-600">Progresso do álbum</p>
               <p className="text-[10px] text-gray-400">{albumStats.owned}/{albumStats.total}</p>
             </div>
             <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -1041,7 +1041,7 @@ export default function TradesHub({
               <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs">🎯</span>
-                  <span className="text-[10px] text-gray-400">Cenario ideal (100% troca)</span>
+                  <span className="text-[10px] text-gray-400">Cenário ideal (100% troca)</span>
                 </div>
                 <span className="text-xs font-bold text-gray-400">R${albumStats.idealCost}</span>
               </div>

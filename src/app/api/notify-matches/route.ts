@@ -137,10 +137,10 @@ export async function POST(req: NextRequest) {
       if (neededStickers.length === 0) continue
 
       const distStr = dist < 1 ? 'menos de 1km' : `${Math.round(dist)}km`
-      const firstName = userProfile.display_name?.split(' ')[0] || 'Alguem'
+      const firstName = userProfile.display_name?.split(' ')[0] || 'Alguém'
       const stickerList = neededStickers.slice(0, 10).map((s) => s.isPriority ? `⭐${s.number}` : s.number).join(', ')
       const extra = neededStickers.length > 10 ? ` e mais ${neededStickers.length - 10}` : ''
-      const priorityNote = hasPriority ? '\n⭐ Inclui figurinhas prioritarias!\n' : ''
+      const priorityNote = hasPriority ? '\n⭐ Inclui figurinhas prioritárias!\n' : ''
 
       const msg = `🔔 *Alerta de figurinhas!*\n\n` +
         `${firstName} (a ${distStr} de voce) tem ${neededStickers.length} figurinha${neededStickers.length > 1 ? 's' : ''} que voce precisa:\n\n` +

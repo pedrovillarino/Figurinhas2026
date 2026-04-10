@@ -42,7 +42,14 @@ export default function AlbumClient({
   const [showExport, setShowExport] = useState(false)
   const supabase = createClient()
 
-  const TOTAL = stickers.length || 670
+  // Sort numérico natural (ARG-1, ARG-2, ..., ARG-10 em vez de ARG-1, ARG-10, ARG-2)
+  const collator = useMemo(() => new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' }), [])
+  const sortedStickers = useMemo(
+    () => [...stickers].sort((a, b) => collator.compare(a.number, b.number)),
+    [stickers, collator]
+  )
+
+  const TOTAL = sortedStickers.length || 670
 
   const stats = useMemo(() => {
     let owned = 0, duplicates = 0, totalDupeQty = 0
@@ -60,7 +67,7 @@ export default function AlbumClient({
   // Section stats
   const sectionStats = useMemo(() => {
     const sections: Record<string, { total: number; owned: number }> = {}
-    stickers.forEach((s) => {
+    sortedStickers.forEach((s) => {
       const key = s.country
       if (!sections[key]) sections[key] = { total: 0, owned: 0 }
       sections[key].total++
@@ -70,12 +77,12 @@ export default function AlbumClient({
       }
     })
     return sections
-  }, [stickers, userMap])
+  }, [sortedStickers, userMap])
 
   const progressPct = TOTAL > 0 ? Math.round((stats.owned / TOTAL) * 100) : 0
 
   const filtered = useMemo(() => {
-    let list = stickers
+    let list = sortedStickers
 
     if (activeTab === 'missing') {
       list = list.filter((s) => {
@@ -97,7 +104,7 @@ export default function AlbumClient({
     }
 
     return list
-  }, [stickers, activeTab, search, userMap])
+  }, [sortedStickers, activeTab, search, userMap])
 
   // Group by country for section view
   const groupedByCountry = useMemo(() => {
@@ -204,10 +211,27 @@ export default function AlbumClient({
     return us.quantity || 1
   }
 
+  // Contadores das tabs — atualizam quando há busca ativa
+  const tabCounts = useMemo(() => {
+    if (!search.trim()) {
+      return { all: sortedStickers.length, missing: stats.missing, duplicates: stats.duplicates }
+    }
+    const q = search.toLowerCase()
+    const matchesSearch = (s: Sticker) =>
+      s.number.toLowerCase().includes(q) ||
+      (s.player_name && s.player_name.toLowerCase().includes(q)) ||
+      s.country.toLowerCase().includes(q)
+
+    const searched = sortedStickers.filter(matchesSearch)
+    const searchMissing = searched.filter((s) => { const us = userMap[s.id]; return !us || us.status === 'missing' })
+    const searchDupes = searched.filter((s) => userMap[s.id]?.status === 'duplicate')
+    return { all: searched.length, missing: searchMissing.length, duplicates: searchDupes.length }
+  }, [sortedStickers, search, userMap, stats])
+
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'all', label: 'Todas', count: stickers.length },
-    { key: 'missing', label: 'Faltam', count: stats.missing },
-    { key: 'duplicates', label: 'Repetidas', count: stats.duplicates },
+    { key: 'all', label: 'Todas', count: tabCounts.all },
+    { key: 'missing', label: 'Faltam', count: tabCounts.missing },
+    { key: 'duplicates', label: 'Repetidas', count: tabCounts.duplicates },
   ]
 
   function renderCard(sticker: Sticker) {
@@ -455,7 +479,7 @@ export default function AlbumClient({
       <ExportModal
         isOpen={showExport}
         onClose={() => setShowExport(false)}
-        stickers={stickers}
+        stickers={sortedStickers}
         userMap={userMap}
       />
     </div>

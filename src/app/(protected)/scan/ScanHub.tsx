@@ -288,7 +288,7 @@ export default function ScanHub({
             </div>
             <div className="bg-white/15 rounded-xl p-3 text-center backdrop-blur-sm">
               <p className="text-xl font-black text-white">99%</p>
-              <p className="text-[9px] text-violet-200">precisao</p>
+              <p className="text-[9px] text-violet-200">precisão</p>
             </div>
             <div className="bg-white/15 rounded-xl p-3 text-center backdrop-blur-sm">
               <p className="text-xl font-black text-white">50+</p>
@@ -376,7 +376,7 @@ export default function ScanHub({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-800">IA identifica tudo</p>
-                <p className="text-[10px] text-gray-400">Reconhece numeros, jogadores e selecoes automaticamente</p>
+                <p className="text-[10px] text-gray-400">Reconhece números, jogadores e seleções automaticamente</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -415,7 +415,7 @@ export default function ScanHub({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
           </svg>
           <p className="text-[11px] text-gray-300 leading-relaxed">
-            Boa iluminacao e numeros visiveis garantem melhor resultado.
+            Boa iluminação e números visíveis garantem melhor resultado.
           </p>
         </div>
 

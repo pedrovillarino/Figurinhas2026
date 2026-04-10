@@ -272,7 +272,7 @@ export default function DashboardClient({
               />
             </div>
             {stats.pct >= 100 ? (
-              <p className="text-xs font-bold text-emerald-600">Album completo!</p>
+              <p className="text-xs font-bold text-emerald-600">Álbum completo!</p>
             ) : (
               <p className="text-[10px] text-gray-400">
                 Faltam <span className="font-bold text-gray-600">{stats.missing}</span> para completar
@@ -295,7 +295,7 @@ export default function DashboardClient({
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={stats.owned} /></p>
           <p className="text-[10px] text-emerald-500 font-semibold mt-0.5">
-            {stats.pct}% do album
+            {stats.pct}% do álbum
           </p>
         </div>
 
@@ -438,9 +438,9 @@ export default function DashboardClient({
           <span className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center text-sm">
             🌍
           </span>
-          Progresso por Selecao
+          Progresso por Seleção
         </h2>
-        <p className="text-[10px] text-gray-400 mb-4">Ordenado por conclusao</p>
+        <p className="text-[10px] text-gray-400 mb-4">Ordenado por conclusão</p>
 
         <div className="space-y-3">
           {visibleCountries.map((c, i) => (
@@ -478,9 +478,9 @@ export default function DashboardClient({
             <span className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center text-sm">
               🔄
             </span>
-            Repetidas por Selecao
+            Repetidas por Seleção
           </h2>
-          <p className="text-[10px] text-gray-400 mb-4">Onde voce tem mais figurinhas extras</p>
+          <p className="text-[10px] text-gray-400 mb-4">Onde você tem mais figurinhas extras</p>
 
           <div className="space-y-2">
             {achievements.mostDupes.filter((c) => c.extras > 0).map((c, i) => {
@@ -520,7 +520,7 @@ export default function DashboardClient({
         <div className="space-y-3">
           <InsightRow
             icon="📦"
-            text={`Voce ja colecionou ${stats.owned + stats.totalExtras} figurinhas no total (incluindo repetidas)`}
+            text={`Você já colecionou ${stats.owned + stats.totalExtras} figurinhas no total (incluindo repetidas)`}
           />
           {stats.totalExtras > 0 && (
             <InsightRow
@@ -543,7 +543,7 @@ export default function DashboardClient({
           {stats.pct > 0 && stats.pct < 100 && (
             <InsightRow
               icon="🚀"
-              text={`Ao ritmo atual, voce precisa de mais ${stats.missing} figurinha${stats.missing > 1 ? 's' : ''} para completar o album`}
+              text={`Ao ritmo atual, você precisa de mais ${stats.missing} figurinha${stats.missing > 1 ? 's' : ''} para completar o álbum`}
             />
           )}
         </div>

@@ -245,7 +245,7 @@ export default function ExportPageClient({
       </div>
 
       {!hasSelection && (
-        <p className="text-center text-xs text-orange-500 mb-4 font-medium">Selecione pelo menos uma opcao acima</p>
+        <p className="text-center text-xs text-orange-500 mb-4 font-medium">Selecione pelo menos uma opção acima</p>
       )}
 
       {/* Group toggle */}
