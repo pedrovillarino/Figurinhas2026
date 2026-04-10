@@ -8,6 +8,7 @@ import PremiumBanner from '@/components/PremiumBanner'
 import ExportModal from '@/components/ExportModal'
 import UndoToast from '@/components/UndoToast'
 import OnboardingModal from '@/components/OnboardingModal'
+import ImportListModal from '@/components/ImportListModal'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
 
 type Sticker = {
@@ -43,6 +44,7 @@ export default function AlbumClient({
   const [expanded, setExpanded] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [showExport, setShowExport] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [visibleCount, setVisibleCount] = useState(40)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const [undoAction, setUndoAction] = useState<{ stickerId: number; prevStatus: string; prevQty: number; message: string } | null>(null)
@@ -446,6 +448,25 @@ export default function AlbumClient({
         </svg>
       </Link>
 
+      {/* Import banner */}
+      <button
+        onClick={() => setShowImport(true)}
+        className="flex items-center gap-3 mb-4 w-full p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl active:scale-[0.98] transition text-left"
+      >
+        <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-gray-800">Importar lista</p>
+          <p className="text-[10px] text-gray-500">Tire foto ou cole sua lista de figurinhas coladas ou faltantes</p>
+        </div>
+        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </button>
+
       {/* Premium banner - only shows if there's still a tier limit */}
       {showLimitBanner && <PremiumBanner />}
 
@@ -603,6 +624,16 @@ export default function AlbumClient({
           onDismiss={() => setUndoAction(null)}
         />
       )}
+
+      {/* Import Modal */}
+      <ImportListModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        userId={userId}
+        onImportComplete={(updates) => {
+          setUserMap((prev) => ({ ...prev, ...updates }))
+        }}
+      />
 
       {/* Onboarding */}
       <OnboardingModal />
