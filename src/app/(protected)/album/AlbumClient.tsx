@@ -145,7 +145,6 @@ export default function AlbumClient({
   }
 
   const stickerLimit = getStickerLimit(tier)
-  const hasReachedFreeLimit = stats.owned >= stickerLimit
   const [showLimitBanner, setShowLimitBanner] = useState(false)
 
   function handleIncrement(e: React.MouseEvent, sticker: Sticker) {

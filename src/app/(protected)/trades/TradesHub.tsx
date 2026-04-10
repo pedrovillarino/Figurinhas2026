@@ -134,8 +134,6 @@ export default function TradesHub({
 
   // Watchlist = all missing MINUS excluded (auto-synced: collected stickers disappear automatically)
   const watchedIds = useMemo(() => {
-    const missingIds = new Set(missingStickers.map((s) => s.id))
-    // Clean excluded: remove ids that are no longer missing (already collected)
     return missingStickers.filter((s) => !excluded.includes(s.id)).map((s) => s.id)
   }, [missingStickers, excluded])
 
@@ -182,11 +180,6 @@ export default function TradesHub({
       saveExcluded(next)
       return next
     })
-  }
-
-  function updateWatchRadius(r: number) {
-    setWatchRadius(r)
-    localStorage.setItem(WATCH_RADIUS_KEY, String(r))
   }
 
   // Save notification preferences to localStorage + Supabase
