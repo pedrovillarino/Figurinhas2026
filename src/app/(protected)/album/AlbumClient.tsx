@@ -6,6 +6,8 @@ import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
 import PremiumBanner from '@/components/PremiumBanner'
 import ExportModal from '@/components/ExportModal'
+import UndoToast from '@/components/UndoToast'
+import OnboardingModal from '@/components/OnboardingModal'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
 
 type Sticker = {
@@ -42,6 +44,8 @@ export default function AlbumClient({
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [showExport, setShowExport] = useState(false)
   const [visibleCount, setVisibleCount] = useState(40)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  const [undoAction, setUndoAction] = useState<{ stickerId: number; prevStatus: string; prevQty: number; message: string } | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -145,17 +149,28 @@ export default function AlbumClient({
     return groups
   }, [filtered])
 
-  async function updateSticker(stickerId: number, newStatus: string, newQuantity: number) {
+  function toggleSection(country: string) {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(country)) next.delete(country)
+      else next.add(country)
+      return next
+    })
+  }
+
+  async function updateSticker(stickerId: number, newStatus: string, newQuantity: number, stickerNumber?: string) {
     setLoading(stickerId)
     const current = userMap[stickerId]
+    const prevStatus = current?.status || 'missing'
+    const prevQty = current?.quantity || 0
 
-    if (!current) {
-      await supabase.from('user_stickers').insert({
+    if (!current || current.status === 'missing') {
+      await supabase.from('user_stickers').upsert({
         user_id: userId,
         sticker_id: stickerId,
         status: newStatus,
         quantity: newQuantity,
-      })
+      }, { onConflict: 'user_id,sticker_id' })
     } else {
       await supabase
         .from('user_stickers')
@@ -170,6 +185,11 @@ export default function AlbumClient({
     }))
     setLoading(null)
 
+    // Show undo toast
+    const label = stickerNumber || `#${stickerId}`
+    const statusLabel = newStatus === 'owned' ? 'colada' : newStatus === 'duplicate' ? `repetida (x${newQuantity})` : 'removida'
+    setUndoAction({ stickerId, prevStatus, prevQty, message: `${label} marcada como ${statusLabel}` })
+
     // Notify nearby users in background (fire & forget)
     if (newStatus === 'duplicate') {
       fetch('/api/notify-matches', {
@@ -178,6 +198,31 @@ export default function AlbumClient({
         body: JSON.stringify({ user_id: userId, sticker_ids: [stickerId] }),
       }).catch(() => {}) // silent fail
     }
+  }
+
+  async function handleUndo() {
+    if (!undoAction) return
+    const { stickerId, prevStatus, prevQty } = undoAction
+    setUndoAction(null)
+    setLoading(stickerId)
+
+    if (prevStatus === 'missing') {
+      await supabase.from('user_stickers')
+        .update({ status: 'missing', quantity: 0, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('sticker_id', stickerId)
+    } else {
+      await supabase.from('user_stickers')
+        .update({ status: prevStatus, quantity: prevQty, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('sticker_id', stickerId)
+    }
+
+    setUserMap((prev) => ({
+      ...prev,
+      [stickerId]: { status: prevStatus, quantity: prevQty },
+    }))
+    setLoading(null)
   }
 
   const stickerLimit = getStickerLimit(tier)
@@ -195,16 +240,13 @@ export default function AlbumClient({
     }
 
     if (!current) {
-      // missing → owned (qty 1)
-      updateSticker(sticker.id, 'owned', 1)
+      updateSticker(sticker.id, 'owned', 1, sticker.number)
     } else if (current.status === 'missing') {
-      updateSticker(sticker.id, 'owned', 1)
+      updateSticker(sticker.id, 'owned', 1, sticker.number)
     } else if (current.status === 'owned') {
-      // owned → duplicate (qty 2)
-      updateSticker(sticker.id, 'duplicate', 2)
+      updateSticker(sticker.id, 'duplicate', 2, sticker.number)
     } else {
-      // duplicate → increment quantity
-      updateSticker(sticker.id, 'duplicate', current.quantity + 1)
+      updateSticker(sticker.id, 'duplicate', current.quantity + 1, sticker.number)
     }
   }
 
@@ -214,12 +256,11 @@ export default function AlbumClient({
     if (!current || current.status === 'missing') return
 
     if (current.status === 'duplicate' && current.quantity > 2) {
-      updateSticker(sticker.id, 'duplicate', current.quantity - 1)
+      updateSticker(sticker.id, 'duplicate', current.quantity - 1, sticker.number)
     } else if (current.status === 'duplicate' && current.quantity === 2) {
-      updateSticker(sticker.id, 'owned', 1)
+      updateSticker(sticker.id, 'owned', 1, sticker.number)
     } else {
-      // owned (qty 1) → missing
-      updateSticker(sticker.id, 'missing', 0)
+      updateSticker(sticker.id, 'missing', 0, sticker.number)
     }
   }
 
@@ -463,36 +504,68 @@ export default function AlbumClient({
       {/* Content */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-12 h-12 mx-auto rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
-            <div className="w-2 h-2 rounded-full bg-gray-200" />
-          </div>
-          <p className="text-sm text-gray-500">
-            {search ? 'Nenhuma figurinha encontrada' : 'Nenhuma figurinha nesta categoria'}
-          </p>
+          {activeTab === 'missing' && !search ? (
+            <>
+              <div className="text-4xl mb-3">🎉</div>
+              <p className="text-sm font-semibold text-gray-700 mb-1">Album completo!</p>
+              <p className="text-xs text-gray-500">Voce ja tem todas as figurinhas. Parabens!</p>
+            </>
+          ) : activeTab === 'duplicates' && !search ? (
+            <>
+              <div className="text-4xl mb-3">📦</div>
+              <p className="text-sm font-semibold text-gray-700 mb-1">Nenhuma repetida ainda</p>
+              <p className="text-xs text-gray-500">Quando tiver figurinhas extras, elas aparecem aqui para trocar.</p>
+            </>
+          ) : search ? (
+            <>
+              <div className="text-4xl mb-3">🔍</div>
+              <p className="text-sm font-semibold text-gray-700 mb-1">Nenhum resultado para &ldquo;{search}&rdquo;</p>
+              <p className="text-xs text-gray-500">Tente buscar por numero, jogador ou selecao.</p>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl mb-3">📖</div>
+              <p className="text-sm font-semibold text-gray-700 mb-1">Nenhuma figurinha</p>
+              <p className="text-xs text-gray-500">Comece marcando suas figurinhas coladas!</p>
+            </>
+          )}
         </div>
       ) : viewMode === 'sections' ? (
-        /* ── SECTION VIEW ── */
-        <div className="space-y-4">
+        /* ── SECTION VIEW com Accordion ── */
+        <div className="space-y-2">
           {Object.entries(groupedByCountry).map(([country, countryStickers]) => {
             const sec = sectionStats[country]
             const pct = sec ? Math.round((sec.owned / sec.total) * 100) : 0
+            const isCollapsed = collapsedSections.has(country)
             return (
-              <div key={country} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}>
-                <div className="flex items-center gap-2 mb-2">
+              <div key={country}>
+                <button
+                  onClick={() => toggleSection(country)}
+                  aria-expanded={!isCollapsed}
+                  className="w-full flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition active:scale-[0.99]"
+                >
                   <span className="text-lg">{getFlag(country)}</span>
-                  <span className="text-xs font-semibold text-gray-700 flex-1">{country}</span>
+                  <span className="text-xs font-semibold text-gray-700 flex-1 text-left">{country}</span>
                   <span className="text-[10px] text-gray-500">{sec?.owned}/{sec?.total}</span>
-                  <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-violet-500 rounded-full transition-all"
+                      className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-violet-500'}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[10px] font-bold text-gray-500 w-8 text-right">{pct}%</span>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {countryStickers.map(renderCard)}
-                </div>
+                  <span className={`text-[10px] font-bold w-8 text-right ${pct === 100 ? 'text-emerald-600' : 'text-gray-500'}`}>{pct}%</span>
+                  <svg
+                    className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+                {!isCollapsed && (
+                  <div className="grid grid-cols-4 gap-1.5 mt-1.5 mb-1" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}>
+                    {countryStickers.map(renderCard)}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -521,6 +594,18 @@ export default function AlbumClient({
         stickers={sortedStickers}
         userMap={userMap}
       />
+
+      {/* Undo Toast */}
+      {undoAction && (
+        <UndoToast
+          message={undoAction.message}
+          onUndo={handleUndo}
+          onDismiss={() => setUndoAction(null)}
+        />
+      )}
+
+      {/* Onboarding */}
+      <OnboardingModal />
     </main>
   )
 }

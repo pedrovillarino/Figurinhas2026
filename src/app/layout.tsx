@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -73,6 +74,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${geistSans.variable} font-sans antialiased bg-gray-50 text-gray-900`}>
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
