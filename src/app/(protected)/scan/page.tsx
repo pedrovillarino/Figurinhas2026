@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import ScanClient from './ScanClient'
-import ScanPaywall from './ScanPaywall'
-import { canScan, type Tier } from '@/lib/tiers'
+import ScanHub from './ScanHub'
+import { type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +18,5 @@ export default async function ScanPage() {
 
   const tier = (profile?.tier || 'free') as Tier
 
-  if (!canScan(tier)) {
-    return <ScanPaywall currentTier={tier} />
-  }
-
-  return <ScanClient userId={user.id} totalStickers={count || 670} />
+  return <ScanHub userId={user.id} totalStickers={count || 670} tier={tier} />
 }
