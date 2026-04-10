@@ -49,7 +49,7 @@ export default async function Home() {
             </span>
           </h1>
 
-          <p className="text-[13px] text-white/30 mt-2 text-center leading-relaxed max-w-xs animate-fade-up-delay">
+          <p className="text-[13px] text-white/55 mt-2 text-center leading-relaxed max-w-xs animate-fade-up-delay">
             Gerencie, escaneie e troque figurinhas com quem está perto.
           </p>
 
@@ -69,8 +69,8 @@ export default async function Home() {
                 </div>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-white/60">Controle total</p>
-                <p className="text-[10px] text-white/20">Coladas, faltam e repetidas</p>
+                <p className="text-[12px] font-medium text-white/80">Controle total</p>
+                <p className="text-[10px] text-white/50">Coladas, faltam e repetidas</p>
               </div>
             </div>
 
@@ -81,8 +81,8 @@ export default async function Home() {
                 </div>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-white/60">Scan com IA</p>
-                <p className="text-[10px] text-white/20">Tire foto, registre automaticamente</p>
+                <p className="text-[12px] font-medium text-white/80">Scan com IA</p>
+                <p className="text-[10px] text-white/50">Tire foto, registre automaticamente</p>
               </div>
             </div>
 
@@ -94,8 +94,8 @@ export default async function Home() {
                 </div>
               </div>
               <div>
-                <p className="text-[12px] font-medium text-white/60">Trocas inteligentes</p>
-                <p className="text-[10px] text-white/20">Encontre quem tem o que você precisa</p>
+                <p className="text-[12px] font-medium text-white/80">Trocas inteligentes</p>
+                <p className="text-[10px] text-white/50">Encontre quem tem o que você precisa</p>
               </div>
             </div>
           </div>

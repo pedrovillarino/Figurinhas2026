@@ -36,6 +36,7 @@ cp .env.local.example .env.local
    - `supabase/migration-002-trades.sql` — funcoes de trade matching
    - `supabase/migration-003-premium.sql` — colunas premium
 3. Configure Google OAuth no Supabase Dashboard > Auth > Providers
+4. Configure Apple Sign-In (ver seção abaixo)
 
 ### 4. Seed de figurinhas
 
@@ -62,7 +63,30 @@ npx vercel
 
 Adicione as variaveis de ambiente no dashboard da Vercel (Settings > Environment Variables).
 
-### 7. Google Gemini
+### 7. Apple Sign-In
+
+Para ativar o login com Apple, é necessário:
+
+**Apple Developer Account**
+1. Acesse [developer.apple.com](https://developer.apple.com)
+2. Crie um **App ID** em Certificates > Identifiers, com "Sign in with Apple" ativado
+3. Crie um **Service ID** (ex: `com.figurinhas.web`) — esse será o Client ID
+4. No Service ID, ative "Sign in with Apple" e configure:
+   - Domain: seu domínio (ex: `figurinhas.vercel.app`)
+   - Return URL: a callback URL do Supabase (ver abaixo)
+5. Crie uma **Key** em Keys, com "Sign in with Apple" ativado — faça download do `.p8`
+6. Anote: **Team ID** (canto superior direito), **Key ID** e o conteúdo do `.p8`
+
+**Supabase Dashboard**
+1. Acesse Authentication > Providers > Apple
+2. Ative o provider e preencha:
+   - `Client ID (Service ID)`: o Service ID criado (ex: `com.figurinhas.web`)
+   - `Team ID`: ID do time Apple Developer
+   - `Key ID`: ID da chave gerada
+   - `Private Key`: conteúdo do arquivo `.p8`
+3. Copie a **Callback URL** gerada pelo Supabase e adicione no Service ID da Apple (passo 4 acima)
+
+### 8. Google Gemini
 
 1. Acesse [aistudio.google.com](https://aistudio.google.com)
 2. Crie uma API Key para o projeto
