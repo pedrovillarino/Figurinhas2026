@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { getFlag } from '@/lib/countries'
+import Link from 'next/link'
 
 type Sticker = {
   id: number
@@ -223,6 +224,44 @@ export default function DashboardClient({
     if (totalCollected === 0) return 0
     return Math.round((stats.owned / totalCollected) * 100)
   }, [stats])
+
+  // ─── Financial & Probability Stats ───
+  const PACK_SIZE = 5
+  const STICKER_PRICE = 1.50
+  const PACK_PRICE = PACK_SIZE * STICKER_PRICE
+
+  const finStats = useMemo(() => {
+    const N = TOTAL
+    const missing = stats.missing
+    const k = stats.owned
+
+    if (N === 0 || missing === 0) {
+      return { costAlone: 0, costWithTrades: 0, savings: 0, savingsPct: 0, probNew: 0, packsNeeded: 0 }
+    }
+
+    // Harmonic number for Coupon Collector
+    function harmonic(n: number): number {
+      let h = 0
+      for (let i = 1; i <= n; i++) h += 1 / i
+      return h
+    }
+
+    const probNew = Math.round((missing / N) * 100)
+    const expectedFigs = N * harmonic(missing)
+    const expectedPacks = expectedFigs / PACK_SIZE
+    const costAlone = Math.round(expectedPacks * PACK_PRICE)
+
+    // Optimized cost with trading
+    const tradeEff = Math.min(0.7, stats.totalExtras > 0 ? (stats.totalExtras / missing) * 0.8 : 0.3)
+    const costWithTrades = Math.round(missing * (1 - tradeEff) * STICKER_PRICE + (missing * tradeEff * STICKER_PRICE * 0.15))
+    const savings = costAlone - costWithTrades
+    const savingsPct = costAlone > 0 ? Math.round((savings / costAlone) * 100) : 0
+
+    const packsAlone = Math.round(expectedPacks)
+    const packsWithTrades = Math.round(costWithTrades / PACK_PRICE)
+
+    return { costAlone, costWithTrades, savings, savingsPct, probNew, packsNeeded: packsAlone - packsWithTrades }
+  }, [TOTAL, stats])
 
   // Colors for country bars based on completion
   function barColor(pct: number): string {
@@ -511,42 +550,141 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* ─── Insights Card ─── */}
-      <div className="bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl p-5 shadow-lg mb-4">
-        <h2 className="text-sm font-bold text-white/90 mb-4 flex items-center gap-2">
-          <span className="text-base">💡</span>
-          Insights da sua Colecao
+      {/* ─── Insights & Financeiro ─── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+        <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-sm">📊</span>
+          Raio-X da sua colecao
         </h2>
-        <div className="space-y-3">
-          <InsightRow
-            icon="📦"
-            text={`Você já colecionou ${stats.owned + stats.totalExtras} figurinhas no total (incluindo repetidas)`}
-          />
-          {stats.totalExtras > 0 && (
-            <InsightRow
-              icon="♻️"
-              text={`Tem ${stats.totalExtras} figurinha${stats.totalExtras > 1 ? 's' : ''} disponive${stats.totalExtras > 1 ? 'is' : 'l'} para troca`}
-            />
+
+        {/* Financial overview */}
+        {stats.missing > 0 && (
+          <div className="bg-gradient-to-br from-gray-50 to-blue-50/50 rounded-xl p-3.5 mb-3">
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="text-center">
+                <p className="text-lg font-black text-red-500">R${finStats.costAlone}</p>
+                <p className="text-[9px] text-gray-500 mt-0.5">comprando sozinho</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-black text-emerald-600">R${finStats.costWithTrades}</p>
+                <p className="text-[9px] text-gray-500 mt-0.5">trocando repetidas</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-black text-blue-600">{finStats.probNew}%</p>
+                <p className="text-[9px] text-gray-500 mt-0.5">chance de nova</p>
+              </div>
+            </div>
+
+            {/* Savings bar */}
+            {finStats.savings > 0 && (
+              <div className="bg-white/80 rounded-lg p-2.5">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[10px] font-semibold text-gray-600">Economia com trocas</span>
+                  <span className="text-[11px] font-black text-emerald-600">R${finStats.savings}</span>
+                </div>
+                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full transition-all duration-1000"
+                    style={{ width: `${finStats.savingsPct}%` }}
+                  />
+                </div>
+                <p className="text-[8px] text-gray-400 mt-1">
+                  {finStats.savingsPct}% mais barato — ~{finStats.packsNeeded} pacotes a menos
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Smart insights */}
+        <div className="space-y-2">
+          {stats.totalExtras > 0 && stats.missing > 0 && (
+            <div className="flex items-start gap-2.5 p-2.5 bg-amber-50/70 rounded-lg">
+              <span className="text-sm mt-0.5">🔄</span>
+              <div className="flex-1">
+                <p className="text-[11px] text-gray-700 leading-relaxed">
+                  Suas <strong>{stats.totalExtras} repetida{stats.totalExtras > 1 ? 's' : ''}</strong> podem cobrir
+                  {' '}<strong>{Math.min(stats.totalExtras, stats.missing)}</strong> das {stats.missing} faltantes por troca direta.
+                </p>
+                <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 mt-1 hover:text-violet-700">
+                  Encontrar quem tem suas faltantes
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           )}
+
+          {stats.totalExtras === 0 && stats.missing > 0 && stats.owned > 0 && (
+            <div className="flex items-start gap-2.5 p-2.5 bg-blue-50/70 rounded-lg">
+              <span className="text-sm mt-0.5">💡</span>
+              <p className="text-[11px] text-gray-700 leading-relaxed">
+                Voce ainda nao tem repetidas para trocar. Ao comprar pacotes, fique de olho — cada repetida vira moeda de troca para conseguir as faltantes mais barato.
+              </p>
+            </div>
+          )}
+
+          {finStats.probNew < 30 && stats.missing > 0 && (
+            <div className="flex items-start gap-2.5 p-2.5 bg-orange-50/70 rounded-lg">
+              <span className="text-sm mt-0.5">⚠️</span>
+              <div className="flex-1">
+                <p className="text-[11px] text-gray-700 leading-relaxed">
+                  Com apenas <strong>{finStats.probNew}%</strong> de chance de figurinha nova, comprar pacotes fica caro.
+                  Trocar e mais eficiente nessa fase do album.
+                </p>
+                <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 mt-1 hover:text-violet-700">
+                  Ver trocas disponiveis
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {achievements.complete.length > 0 && (
-            <InsightRow
-              icon="⭐"
-              text={`${achievements.complete.length} selec${achievements.complete.length > 1 ? 'oes completas' : 'ao completa'} — parabens!`}
-            />
+            <div className="flex items-start gap-2.5 p-2.5 bg-emerald-50/70 rounded-lg">
+              <span className="text-sm mt-0.5">⭐</span>
+              <p className="text-[11px] text-gray-700 leading-relaxed">
+                <strong>{achievements.complete.length}</strong> selec{achievements.complete.length > 1 ? 'oes completas' : 'ao completa'} — parabens!
+                {achievements.almostComplete.length > 0 && ` Mais ${achievements.almostComplete.length} perto de completar.`}
+              </p>
+            </div>
           )}
-          {achievements.notStarted.length > 0 && (
-            <InsightRow
-              icon="🎯"
-              text={`${achievements.notStarted.length} selec${achievements.notStarted.length > 1 ? 'oes' : 'ao'} ainda sem nenhuma figurinha`}
-            />
-          )}
-          {stats.pct > 0 && stats.pct < 100 && (
-            <InsightRow
-              icon="🚀"
-              text={`Ao ritmo atual, você precisa de mais ${stats.missing} figurinha${stats.missing > 1 ? 's' : ''} para completar o álbum`}
-            />
-          )}
+
+          <div className="flex items-start gap-2.5 p-2.5 bg-violet-50/50 rounded-lg">
+            <span className="text-sm mt-0.5">📦</span>
+            <p className="text-[11px] text-gray-700 leading-relaxed">
+              {stats.owned + stats.totalExtras} figurinhas colecionadas no total. Taxa de aproveitamento: <strong>{dupeEfficiency}%</strong>
+              {dupeEfficiency < 70 && ' — muitas repetidas, hora de trocar!'}
+              {dupeEfficiency >= 90 && ' — excelente aproveitamento!'}
+            </p>
+          </div>
         </div>
+
+        {/* CTA to trades */}
+        {stats.missing > 0 && stats.totalExtras > 0 && (
+          <Link
+            href="/trades"
+            className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl hover:from-violet-100 hover:to-fuchsia-100 transition active:scale-[0.98]"
+          >
+            <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-800">Trocar figurinhas</p>
+              <p className="text-[10px] text-gray-500">
+                {stats.totalExtras} repetida{stats.totalExtras > 1 ? 's' : ''} para trocar por faltantes perto de voce
+              </p>
+            </div>
+            <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </Link>
+        )}
       </div>
 
       {/* ─── Selecoes nao iniciadas ─── */}
@@ -575,12 +713,3 @@ export default function DashboardClient({
   )
 }
 
-// ─── Sub-component ───
-function InsightRow({ icon, text }: { icon: string; text: string }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="text-sm mt-0.5">{icon}</span>
-      <p className="text-xs text-white/90 leading-relaxed">{text}</p>
-    </div>
-  )
-}

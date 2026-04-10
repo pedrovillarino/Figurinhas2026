@@ -409,37 +409,82 @@ export default function TradesHub({
       <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Trocas</h1>
       <p className="text-xs text-gray-400 mb-5">Encontre colecionadores perto de você e economize</p>
 
-      {/* ─── Savings Hero ─── */}
-      <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 mb-4 shadow-lg">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="text-xs text-emerald-100 font-medium mb-1">Economia potencial com trocas</p>
-            <p className="text-3xl font-black text-white">
-              R${potentialSavings.toFixed(0)}
-              <span className="text-sm font-medium text-emerald-200">,00</span>
-            </p>
+      {/* ─── Por que trocar? ─── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+        {/* Header com economia */}
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-emerald-100 font-medium">Por que trocar vale a pena</p>
+            {albumStats && albumStats.savingsVsAlone > 0 && (
+              <span className="text-[10px] font-bold text-emerald-900 bg-emerald-200 rounded-full px-2 py-0.5">
+                -{albumStats.savingsOptPercent}% custo
+              </span>
+            )}
           </div>
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-            </svg>
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-black text-white">
+              R${albumStats ? albumStats.savingsVsAlone : potentialSavings.toFixed(0)}
+            </p>
+            <p className="text-sm text-emerald-200">de economia estimada</p>
           </div>
         </div>
-        <div className="flex gap-4">
-          <div>
-            <p className="text-xl font-bold text-white">{totalExtras}</p>
-            <p className="text-[10px] text-emerald-200">para trocar</p>
+
+        {/* Comparativo visual */}
+        <div className="p-4">
+          {albumStats && (
+            <div className="space-y-2.5 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs">😰</span>
+                <div className="flex-1">
+                  <div className="flex justify-between text-[10px] mb-0.5">
+                    <span className="text-gray-500">Comprando sozinho</span>
+                    <span className="font-bold text-red-500">R${albumStats.expectedCost}</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-red-400 rounded-full" style={{ width: '100%' }} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs">🚀</span>
+                <div className="flex-1">
+                  <div className="flex justify-between text-[10px] mb-0.5">
+                    <span className="text-gray-500 font-semibold">Trocando com o app</span>
+                    <span className="font-bold text-emerald-600">R${albumStats.optimizedCost}</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
+                      style={{ width: `${albumStats.expectedCost > 0 ? Math.max(5, (albumStats.optimizedCost / albumStats.expectedCost) * 100) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stats row */}
+          <div className="flex gap-2">
+            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 text-center">
+              <p className="text-lg font-black text-gray-800">{totalExtras}</p>
+              <p className="text-[9px] text-gray-500">repetidas para trocar</p>
+            </div>
+            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 text-center">
+              <p className="text-lg font-black text-gray-800">{missingStickers.length}</p>
+              <p className="text-[9px] text-gray-500">faltantes</p>
+            </div>
+            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 text-center">
+              <p className="text-lg font-black text-gray-800">{albumStats ? albumStats.probNova : Math.round((missingStickers.length / stickers.length) * 100)}%</p>
+              <p className="text-[9px] text-gray-500">chance de nova</p>
+            </div>
           </div>
-          <div className="w-px bg-white/20" />
-          <div>
-            <p className="text-xl font-bold text-white">{missingStickers.length}</p>
-            <p className="text-[10px] text-emerald-200">faltantes</p>
-          </div>
-          <div className="w-px bg-white/20" />
-          <div>
-            <p className="text-xl font-bold text-white">R${missingCost.toFixed(0)}</p>
-            <p className="text-[10px] text-emerald-200">custo sem trocar</p>
-          </div>
+
+          {/* Contextual message */}
+          {albumStats && albumStats.probNova < 40 && (
+            <p className="text-[10px] text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mt-2.5 leading-relaxed">
+              Com {albumStats.probNova}% de chance de nova, {albumStats.probNova < 20 ? '4 em cada 5' : '3 em cada 5'} figurinhas compradas serao repetidas. Trocar e muito mais eficiente nessa fase.
+            </p>
+          )}
         </div>
       </div>
 
