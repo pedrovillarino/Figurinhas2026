@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState } from 'react'
 
 type Sticker = {
   id: number

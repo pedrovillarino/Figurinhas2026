@@ -30,6 +30,7 @@ export default function ProfilePage() {
   useEffect(() => {
     loadProfile()
     loadStats()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function loadProfile() {
