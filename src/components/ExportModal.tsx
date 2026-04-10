@@ -29,6 +29,7 @@ export default function ExportModal({
 }) {
   const [exportType, setExportType] = useState<ExportType>('missing')
   const [groupByCountry, setGroupByCountry] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   if (!isOpen) return null
 
@@ -110,8 +111,6 @@ export default function ExportModal({
       })
     }
   }
-
-  const [copied, setCopied] = useState(false)
 
   const totalDuplicateExtras = duplicateStickers.reduce((acc, s) => {
     const qty = userMap[s.id]?.quantity || 0

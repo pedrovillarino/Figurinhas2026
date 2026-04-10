@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 
 type Sticker = {
   id: number
@@ -59,7 +59,7 @@ export default function ExportPageClient({
 
   const selectedStickers = exportType === 'missing' ? missingStickers : duplicateStickers
 
-  function formatStickerList(stickerList: Sticker[], type: ExportType): string {
+  const formatStickerList = useCallback((stickerList: Sticker[], type: ExportType): string => {
     const title = type === 'missing'
       ? `Figurinhas Faltantes (${stickerList.length})`
       : `Figurinhas Repetidas (${stickerList.length})`
@@ -104,7 +104,7 @@ export default function ExportPageClient({
     lines.push('Enviado via Figurinhas Copa 2026')
 
     return lines.join('\n')
-  }
+  }, [groupByCountry, userMap])
 
   function handleExport(channel: ExportChannel) {
     const text = formatStickerList(selectedStickers, exportType)
@@ -130,7 +130,7 @@ export default function ExportPageClient({
 
   const formattedText = useMemo(
     () => formatStickerList(selectedStickers, exportType),
-    [selectedStickers, exportType, groupByCountry]
+    [selectedStickers, exportType, formatStickerList]
   )
 
   return (
