@@ -279,7 +279,7 @@ export default function DashboardClient({
     <main className="px-4 pt-6 pb-8">
       {/* ─── Header ─── */}
       <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Dashboard</h1>
-      <p className="text-xs text-gray-500 mb-6">Estatisticas detalhadas da sua colecao</p>
+      <p className="text-xs text-gray-500 mb-6">Estatísticas detalhadas da sua coleção</p>
 
       {/* ─── Hero Progress ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
@@ -374,7 +374,7 @@ export default function DashboardClient({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
-            <span className="text-[10px] text-gray-500 font-medium">Eficiencia</span>
+            <span className="text-[10px] text-gray-500 font-medium">Eficiência</span>
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={dupeEfficiency} />%</p>
           <p className="text-[10px] text-blue-500 font-semibold mt-0.5">
@@ -396,7 +396,7 @@ export default function DashboardClient({
           {achievements.complete.length > 0 && (
             <div className="mb-3">
               <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider mb-2">
-                Selecoes completas ({achievements.complete.length})
+                Seleções completas ({achievements.complete.length})
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {achievements.complete.map((c) => (
@@ -470,7 +470,7 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* ─── Progresso por Selecao ─── */}
+      {/* ─── Progresso por Seleção ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
         <h2 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
           <span className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center text-sm">
@@ -553,7 +553,7 @@ export default function DashboardClient({
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
         <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
           <span className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-sm">📊</span>
-          Raio-X da sua colecao
+          Raio-X da sua coleção
         </h2>
 
         {/* Financial overview */}
@@ -619,7 +619,7 @@ export default function DashboardClient({
             <div className="flex items-start gap-2.5 p-2.5 bg-blue-50/70 rounded-lg">
               <span className="text-sm mt-0.5">💡</span>
               <p className="text-[11px] text-gray-700 leading-relaxed">
-                Voce ainda nao tem repetidas para trocar. Ao comprar pacotes, fique de olho — cada repetida vira moeda de troca para conseguir as faltantes mais barato.
+                Você ainda não tem repetidas para trocar. Ao comprar pacotes, fique de olho — cada repetida vira moeda de troca para conseguir as faltantes mais barato.
               </p>
             </div>
           )}
@@ -676,7 +676,7 @@ export default function DashboardClient({
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-gray-800">Trocar figurinhas</p>
               <p className="text-[10px] text-gray-500">
-                {stats.totalExtras} repetida{stats.totalExtras > 1 ? 's' : ''} para trocar por faltantes perto de voce
+                {stats.totalExtras} repetida{stats.totalExtras > 1 ? 's' : ''} para trocar por faltantes perto de você
               </p>
             </div>
             <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -686,14 +686,14 @@ export default function DashboardClient({
         )}
       </div>
 
-      {/* ─── Selecoes nao iniciadas ─── */}
+      {/* ─── Seleções não iniciadas ─── */}
       {achievements.notStarted.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
           <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
             <span className="w-6 h-6 rounded-lg bg-gray-50 flex items-center justify-center text-sm">
               🔍
             </span>
-            Selecoes nao iniciadas ({achievements.notStarted.length})
+            Seleções não iniciadas ({achievements.notStarted.length})
           </h2>
           <div className="flex flex-wrap gap-1.5">
             {achievements.notStarted.map((c) => (

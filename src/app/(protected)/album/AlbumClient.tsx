@@ -487,7 +487,7 @@ export default function AlbumClient({
         </div>
         <button
           onClick={() => setViewMode(viewMode === 'grid' ? 'sections' : 'grid')}
-          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition focus-visible:ring-2 focus-visible:ring-violet-500 ${
+          className={`w-11 h-11 rounded-xl border flex items-center justify-center transition focus-visible:ring-2 focus-visible:ring-violet-500 ${
             viewMode === 'sections' ? 'bg-violet-50 border-violet-200 text-violet-500' : 'bg-white border-gray-100 text-gray-500'
           }`}
           aria-label={viewMode === 'grid' ? 'Ver por seleção' : 'Ver grade'}
@@ -508,7 +508,7 @@ export default function AlbumClient({
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 text-[11px] font-semibold rounded-lg transition-all ${
+            className={`flex-1 min-h-[44px] py-2 text-[11px] font-semibold rounded-lg transition-all ${
               activeTab === tab.key
                 ? 'bg-white text-gray-800 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
@@ -529,7 +529,7 @@ export default function AlbumClient({
             <>
               <div className="text-4xl mb-3">🎉</div>
               <p className="text-sm font-semibold text-gray-700 mb-1">Album completo!</p>
-              <p className="text-xs text-gray-500">Voce ja tem todas as figurinhas. Parabens!</p>
+              <p className="text-xs text-gray-500">Você já tem todas as figurinhas. Parabéns!</p>
             </>
           ) : activeTab === 'duplicates' && !search ? (
             <>
@@ -541,7 +541,7 @@ export default function AlbumClient({
             <>
               <div className="text-4xl mb-3">🔍</div>
               <p className="text-sm font-semibold text-gray-700 mb-1">Nenhum resultado para &ldquo;{search}&rdquo;</p>
-              <p className="text-xs text-gray-500">Tente buscar por numero, jogador ou selecao.</p>
+              <p className="text-xs text-gray-500">Tente buscar por número, jogador ou seleção.</p>
             </>
           ) : (
             <>
@@ -583,7 +583,7 @@ export default function AlbumClient({
                   </svg>
                 </button>
                 {!isCollapsed && (
-                  <div className="grid grid-cols-4 gap-1.5 mt-1.5 mb-1" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 mt-1.5 mb-1" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}>
                     {countryStickers.map(renderCard)}
                   </div>
                 )}
@@ -594,7 +594,7 @@ export default function AlbumClient({
       ) : (
         /* ── GRID VIEW (virtualizado — renderiza em chunks de 40) ── */
         <>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
             {filtered.slice(0, visibleCount).map(renderCard)}
           </div>
           {visibleCount < filtered.length && (

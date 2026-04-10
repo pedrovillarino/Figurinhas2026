@@ -7,8 +7,10 @@ export default function ProtectedLayout({
 }) {
   return (
     <div className="min-h-screen pb-20">
-      {children}
-      <BottomNav />
+      <div id="main-content">{children}</div>
+      <footer>
+        <BottomNav />
+      </footer>
     </div>
   )
 }

@@ -228,7 +228,7 @@ export default function ExportModal({
 
           {/* Group toggle */}
           <div className="flex items-center justify-between mb-5 bg-gray-50 rounded-xl px-4 py-3">
-            <span className="text-sm text-gray-600">Agrupar por selecao</span>
+            <span className="text-sm text-gray-600">Agrupar por seleção</span>
             <button
               onClick={() => setGroupByCountry(!groupByCountry)}
               className={`w-10 h-6 rounded-full transition-colors relative ${

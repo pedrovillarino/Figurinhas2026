@@ -406,7 +406,7 @@ export default function ScanHub({
               <p className="text-[10px] text-violet-500 mt-1">para registrar 50 figurinhas</p>
             </div>
           </div>
-          <p className="text-[10px] text-gray-500 text-center mt-2">60x mais rapido que marcar uma por uma</p>
+          <p className="text-[10px] text-gray-500 text-center mt-2">60x mais rápido que marcar uma por uma</p>
         </div>
 
         {/* Tips */}
@@ -593,7 +593,7 @@ export default function ScanHub({
           {savedCount} nova{savedCount !== 1 ? 's' : ''} figurinha{savedCount !== 1 ? 's' : ''} registrada{savedCount !== 1 ? 's' : ''}!
         </p>
         <p className="text-gray-500 mt-2">
-          Colecao: {ownedCount}/{totalStickers} ({progressPct}%)
+          Coleção: {ownedCount}/{totalStickers} ({progressPct}%)
         </p>
         <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-3">
           <div className="bg-violet-600 h-2.5 rounded-full transition-all" style={{ width: `${progressPct}%` }} />

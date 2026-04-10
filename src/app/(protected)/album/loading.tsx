@@ -45,7 +45,7 @@ export default function AlbumLoading() {
       </div>
 
       {/* Grid skeleton */}
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
         {Array.from({ length: 20 }).map((_, i) => (
           <div key={i} className="rounded-xl border border-gray-100 bg-white p-2">
             <div className="h-3 w-10 bg-gray-100 rounded mx-auto mb-1.5" />

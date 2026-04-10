@@ -18,12 +18,12 @@ const steps = [
   {
     icon: '📸',
     title: 'Escaneie com IA',
-    description: 'Tire uma foto da pagina do album e a IA identifica todas as figurinhas automaticamente. Muito mais rapido!',
+    description: 'Tire uma foto da página do álbum e a IA identifica todas as figurinhas automaticamente. Muito mais rápido!',
   },
   {
     icon: '🔄',
     title: 'Encontre trocas',
-    description: 'Na aba Trocas, veja quem perto de voce tem as figurinhas que voce precisa. Troque repetidas e complete mais rapido!',
+    description: 'Na aba Trocas, veja quem perto de você tem as figurinhas que você precisa. Troque repetidas e complete mais rápido!',
   },
 ]
 
