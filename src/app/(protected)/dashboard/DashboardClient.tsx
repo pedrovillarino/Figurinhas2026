@@ -233,7 +233,6 @@ export default function DashboardClient({
   const finStats = useMemo(() => {
     const N = TOTAL
     const missing = stats.missing
-    const k = stats.owned
 
     if (N === 0 || missing === 0) {
       return { costAlone: 0, costWithTrades: 0, savings: 0, savingsPct: 0, probNew: 0, packsNeeded: 0 }

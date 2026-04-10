@@ -153,7 +153,6 @@ export default function TradesHub({
   const PACK_SIZE = 5
   const PACK_PRICE = PACK_SIZE * STICKER_PRICE // R$7,50 por pacote
   const potentialSavings = totalExtras * STICKER_PRICE
-  const missingCost = missingStickers.length * STICKER_PRICE
 
   // ─── Probabilidade & Custo (Problema do Colecionador de Cupons) ───
   const albumStats = useMemo(() => {
