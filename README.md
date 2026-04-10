@@ -35,6 +35,7 @@ cp .env.local.example .env.local
    - `supabase/migration-001.sql` — ajustes no perfil
    - `supabase/migration-002-trades.sql` — funcoes de trade matching
    - `supabase/migration-003-premium.sql` — colunas premium
+   - `supabase/migration-004-whatsapp-consent.sql` — consentimento WhatsApp e filtro de trocas
 3. Configure Google OAuth no Supabase Dashboard > Auth > Providers
 4. Configure Apple Sign-In (ver seção abaixo)
 
@@ -86,7 +87,25 @@ Para ativar o login com Apple, é necessário:
    - `Private Key`: conteúdo do arquivo `.p8`
 3. Copie a **Callback URL** gerada pelo Supabase e adicione no Service ID da Apple (passo 4 acima)
 
-### 8. Google Gemini
+### 8. Consentimento WhatsApp (migration-004)
+
+A `migration-004-whatsapp-consent.sql` adiciona suporte ao consentimento de compartilhamento de WhatsApp para trocas.
+
+**O que ela faz:**
+- Adiciona coluna `whatsapp_consent BOOLEAN DEFAULT true` na tabela `profiles`
+- Atualiza a função `get_trade_matches` para retornar apenas usuários que consentiram (`whatsapp_consent = true`)
+
+**Como rodar:**
+1. Acesse o Supabase Dashboard > SQL Editor
+2. Abra o arquivo `supabase/migration-004-whatsapp-consent.sql`
+3. Cole o conteúdo e clique em **Run**
+
+**Comportamento após a migration:**
+- Novos usuários premium preenchem celular e marcam (ou desmarcam) o consentimento na tela pós-pagamento
+- Usuários que desmarcarem o consentimento **não aparecem** nas buscas de troca de outros usuários
+- Usuários existentes têm `whatsapp_consent = true` por padrão (não precisam refazer o processo)
+
+### 9. Google Gemini
 
 1. Acesse [aistudio.google.com](https://aistudio.google.com)
 2. Crie uma API Key para o projeto
