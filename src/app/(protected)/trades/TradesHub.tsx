@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { canTrade, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
+import TradeRequestsBanner from '@/components/TradeRequestsBanner'
 
 type Sticker = {
   id: number
@@ -24,6 +25,19 @@ type NearbyMatch = {
   they_have: number
   i_have: number
   match_score: number
+}
+
+type PendingRequest = {
+  id: string
+  requester_id: string
+  requester_name: string | null
+  requester_avatar: string | null
+  they_have: number
+  i_have: number
+  match_score: number
+  distance_km: number | null
+  message: string | null
+  created_at: string
 }
 
 type TradeDetail = {
@@ -73,6 +87,7 @@ export default function TradesHub({
   hasLocation: initialHasLocation,
   nearbyCount: initialNearbyCount,
   nearbyMatches: initialMatches,
+  pendingRequests: initialPendingRequests,
 }: {
   userId: string
   tier: Tier
@@ -81,6 +96,7 @@ export default function TradesHub({
   hasLocation: boolean
   nearbyCount: number
   nearbyMatches: NearbyMatch[]
+  pendingRequests: PendingRequest[]
 }) {
   const supabase = createClient()
   const isPremium = canTrade(tier)
@@ -100,8 +116,8 @@ export default function TradesHub({
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null)
   const [radius, setRadius] = useState(50)
   const [loadingMatches, setLoadingMatches] = useState(false)
-  const [phones, setPhones] = useState<Record<string, string | null>>({})
-  const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null)
+  const [requestingTrade, setRequestingTrade] = useState<string | null>(null)
+  const [requestedTrades, setRequestedTrades] = useState<Set<string>>(new Set())
 
   // Notification preferences
   const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>('whatsapp')
@@ -360,41 +376,51 @@ export default function TradesHub({
     })
   }
 
-  // Fetch phone number for a matched user and open WhatsApp directly
-  async function notifyViaWhatsApp(match: NearbyMatch) {
-    setSendingWhatsApp(match.user_id)
+  // Send trade request (approval flow instead of direct WhatsApp)
+  async function requestTrade(match: NearbyMatch) {
+    setRequestingTrade(match.user_id)
 
-    // Get phone if not cached
-    let phone = phones[match.user_id]
-    if (phone === undefined) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('phone')
-        .eq('id', match.user_id)
-        .single()
-      phone = data?.phone || null
-      setPhones((prev) => ({ ...prev, [match.user_id]: phone }))
+    try {
+      const res = await fetch('/api/trade-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_user_id: match.user_id,
+          they_have: match.they_have,
+          i_have: match.i_have,
+          match_score: match.match_score,
+        }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setRequestedTrades((prev) => new Set([...prev, match.user_id]))
+      } else {
+        // Already requested or other error
+        if (res.status === 409) {
+          setRequestedTrades((prev) => new Set([...prev, match.user_id]))
+        }
+        alert(data.error || 'Erro ao solicitar troca.')
+      }
+    } catch {
+      alert('Erro de conexão. Tente novamente.')
     }
 
-    const matchStickers = details[match.user_id] || []
-    const theyHave = matchStickers.filter((s) => s.direction === 'they_have').slice(0, 10).map((s) => s.number)
-    const iHave = matchStickers.filter((s) => s.direction === 'i_have').slice(0, 10).map((s) => s.number)
+    setRequestingTrade(null)
+  }
 
-    let msg = 'Oi! Vi no app Figurinhas Copa 2026 que a gente pode trocar figurinhas!\n\n'
-    if (iHave.length > 0) msg += 'Tenho repetidas pra te dar:\n' + iHave.join(', ') + '\n\n'
-    if (theyHave.length > 0) msg += 'Preciso dessas suas:\n' + theyHave.join(', ') + '\n\n'
-    msg += 'Bora trocar?\n\nhttps://figurinhas2026.vercel.app'
+  // Respond to a received trade request (approve/reject)
+  async function handleRespondToRequest(requestId: string, action: 'approve' | 'reject') {
+    const res = await fetch('/api/trade-respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_id: requestId, action }),
+    })
 
-    if (phone) {
-      // Clean phone: remove spaces, dashes, etc. Keep + and digits
-      const cleanPhone = phone.replace(/[^+\d]/g, '')
-      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank')
-    } else {
-      // No phone saved — open generic WhatsApp share
-      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+    if (!res.ok) {
+      const data = await res.json()
+      alert(data.error || 'Erro ao responder.')
     }
-
-    setSendingWhatsApp(null)
   }
 
   function getInitials(name: string | null): string {
@@ -858,13 +884,20 @@ export default function TradesHub({
               </div>
             </div>
 
+            {/* Pending trade requests received */}
+            <TradeRequestsBanner
+              requests={initialPendingRequests}
+              onRespond={handleRespondToRequest}
+            />
+
             {/* Match cards */}
             <div className="space-y-2">
               {matches.map((match) => {
                 const isExpanded = expandedId === match.user_id
                 const matchDetails = details[match.user_id]
                 const isLoadingDetail = loadingDetails === match.user_id
-                const isSending = sendingWhatsApp === match.user_id
+                const isSending = requestingTrade === match.user_id
+                const alreadyRequested = requestedTrades.has(match.user_id)
 
                 return (
                   <div key={match.user_id} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
@@ -947,21 +980,30 @@ export default function TradesHub({
                                 </div>
                               </div>
                             )}
-                            {/* WhatsApp button — direct to user's phone */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); notifyViaWhatsApp(match) }}
-                              disabled={isSending}
-                              className="mt-3 w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20BD5A] text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
-                            >
-                              {isSending ? (
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              ) : (
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                            {/* Trade request button */}
+                            {alreadyRequested ? (
+                              <div className="mt-3 w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-500 rounded-xl py-2.5 text-xs font-semibold">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                              )}
-                              Notificar via WhatsApp
-                            </button>
+                                Solicitação enviada — aguardando aprovação
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); requestTrade(match) }}
+                                disabled={isSending}
+                                className="mt-3 w-full flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
+                              >
+                                {isSending ? (
+                                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                  </svg>
+                                )}
+                                Solicitar troca
+                              </button>
+                            )}
                           </>
                         ) : null}
                       </div>
@@ -998,7 +1040,7 @@ export default function TradesHub({
         <div className="space-y-3">
           <Step num={1} title="Monitoramento automático" desc="Todas as faltantes são monitoradas. Defina raio, mínimo de figurinhas e prioridades" />
           <Step num={2} title="Alerta inteligente" desc="Quando alguém perto tiver suas figurinhas, você recebe um alerta via WhatsApp ou e-mail" />
-          <Step num={3} title="Combine a troca" desc="Veja detalhes de cada colecionador e mande mensagem direto pelo WhatsApp" />
+          <Step num={3} title="Solicite com aprovação" desc="Envie uma solicitação de troca. O outro usuário aprova e os contatos são compartilhados" />
           <Step num={4} title="Colou? Sai da lista!" desc="Quando marca como colada no álbum, a figurinha sai do monitoramento automaticamente" />
         </div>
       </div>
@@ -1129,11 +1171,11 @@ export default function TradesHub({
           <div className="text-center mb-3"><span className="text-3xl">🔓</span></div>
           <h3 className="text-sm font-bold text-gray-900 text-center mb-1">Desbloqueie Trocas</h3>
           <p className="text-[10px] text-gray-400 text-center mb-3">
-            Veja detalhes, notifique via WhatsApp e troque figurinhas com quem está perto
+            Veja detalhes, solicite trocas e conecte-se com colecionadores perto de você
           </p>
           <div className="flex flex-col gap-1 mb-3 px-4">
             <FeatureCheck text="Ver detalhes de cada colecionador" />
-            <FeatureCheck text="Notificar direto no WhatsApp da pessoa" />
+            <FeatureCheck text="Solicitar troca com aprovação segura" />
             <FeatureCheck text="Monitoramento automático das faltantes" />
             <FeatureCheck text="Scanner IA ilimitado" />
           </div>

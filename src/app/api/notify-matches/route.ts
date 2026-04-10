@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       const msg = `🔔 *Alerta de figurinhas!*\n\n` +
         `${firstName} (a ${distStr} de voce) tem ${neededStickers.length} figurinha${neededStickers.length > 1 ? 's' : ''} que voce precisa:\n\n` +
         `📋 ${stickerList}${extra}\n${priorityNote}\n` +
-        `Abra o app para ver detalhes e combinar a troca:\n${APP_URL}/trades`
+        `Abra o app para solicitar a troca (com aprovação segura):\n${APP_URL}/trades`
 
       const channel = prefs.notify_channel || 'whatsapp'
 

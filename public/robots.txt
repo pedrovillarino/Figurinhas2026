@@ -8,5 +8,6 @@ Disallow: /trades
 Disallow: /scan
 Disallow: /export
 Disallow: /profile
+Disallow: /trade-approve
 
 Sitemap: https://figurinhas2026.vercel.app/sitemap.xml

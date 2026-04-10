@@ -58,6 +58,31 @@ export default async function TradesPage() {
     }
   }
 
+  // Load pending trade requests for this user
+  let pendingRequests: Array<{
+    id: string
+    requester_id: string
+    requester_name: string | null
+    requester_avatar: string | null
+    they_have: number
+    i_have: number
+    match_score: number
+    distance_km: number | null
+    message: string | null
+    created_at: string
+  }> = []
+
+  try {
+    const { data } = await supabase.rpc('get_pending_trade_requests', {
+      p_user_id: user.id,
+    })
+    if (data) {
+      pendingRequests = data as typeof pendingRequests
+    }
+  } catch {
+    // RPC might not exist yet
+  }
+
   return (
     <TradesHub
       userId={user.id}
@@ -67,6 +92,7 @@ export default async function TradesPage() {
       hasLocation={hasLocation}
       nearbyCount={nearbyCount}
       nearbyMatches={nearbyMatches}
+      pendingRequests={pendingRequests}
     />
   )
 }

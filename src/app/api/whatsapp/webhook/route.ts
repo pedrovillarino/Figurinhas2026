@@ -25,7 +25,7 @@ const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album W
 Given a user message in Portuguese, return ONLY valid JSON:
 
 {
-  "intent": "status|missing|duplicates|help|unknown",
+  "intent": "status|missing|duplicates|trades|help|unknown",
   "confidence": 0.95,
   "response_hint": "brief note about what the user wants"
 }
@@ -34,11 +34,13 @@ Intent definitions:
 - status: user wants their collection progress/stats
 - missing: user wants list of stickers they still need
 - duplicates: user wants list of sticker duplicates to trade
+- trades: user wants to see pending trade requests or trade status ("trocas", "aceitar", "pendentes", "solicitações")
 - help: user wants to know what the bot can do
 - unknown: anything else (greetings map to help)
 
 Be generous: "oi" → help, "quanto tenho" → status,
-"quais me faltam" → missing, "o que tenho repetido" → duplicates.`
+"quais me faltam" → missing, "o que tenho repetido" → duplicates,
+"trocas pendentes" → trades, "aceitar troca" → trades.`
 
 // ─── Sticker scan prompt (same as /api/scan) ───
 const SCAN_INSTRUCTION = `Você é um scanner de figurinhas de álbuns Panini de Copa do Mundo (qualquer edição: 2022, 2026, etc).
@@ -454,6 +456,52 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        case 'trades': {
+          // Show pending trade requests
+          const supabaseAdmin = getAdmin()
+          const { data: pending } = await supabaseAdmin
+            .from('trade_requests')
+            .select('id, requester_id, they_have, i_have, distance_km, token, created_at')
+            .eq('target_id', user.id)
+            .eq('status', 'pending')
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .limit(5)
+
+          if (!pending || pending.length === 0) {
+            await sendText(
+              phone,
+              `📋 Nenhuma solicitação de troca pendente.\n\nAbra o app para encontrar trocas:\n${APP_URL}/trades`
+            )
+          } else {
+            // Get requester names
+            const requesterIds = pending.map((p) => p.requester_id)
+            const { data: profiles } = await supabaseAdmin
+              .from('profiles')
+              .select('id, display_name')
+              .in('id', requesterIds)
+
+            const nameMap = new Map((profiles || []).map((p) => [p.id, p.display_name || 'Usuário']))
+
+            let msg = `🔔 *${pending.length} solicitação(ões) de troca pendente(s):*\n\n`
+
+            for (const req of pending) {
+              const name = nameMap.get(req.requester_id) || 'Usuário'
+              const distStr = req.distance_km != null ? `${Math.round(req.distance_km)}km` : '?'
+              const total = (req.they_have || 0) + (req.i_have || 0)
+              const approveUrl = `${APP_URL}/trade-approve?token=${req.token}&action=approve`
+
+              msg += `👤 *${name}* (${distStr})\n`
+              msg += `   ${total} figurinhas para trocar\n`
+              msg += `   ✅ Aceitar: ${approveUrl}\n\n`
+            }
+
+            msg += `Ou abra o app: ${APP_URL}/trades`
+            await sendText(phone, msg)
+          }
+          break
+        }
+
         case 'help':
         default: {
           await sendText(
@@ -462,6 +510,7 @@ export async function POST(req: NextRequest) {
               `📊 *status* — seu progresso\n` +
               `🔍 *faltando* — o que falta\n` +
               `🔁 *repetidas* — pra trocar\n` +
+              `🔔 *trocas* — ver solicitações pendentes\n` +
               `📸 Mande uma *foto* pra eu escanear!\n\n` +
               `Acesse o app: ${APP_URL}`
           )
