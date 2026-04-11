@@ -42,7 +42,7 @@ export default function AlbumClient({
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [loading, setLoading] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [viewMode, setViewMode] = useState<ViewMode>('sections')
   const [showExport, setShowExport] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [visibleCount, setVisibleCount] = useState(40)
