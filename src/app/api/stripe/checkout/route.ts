@@ -22,11 +22,11 @@ function getAdmin() {
 
 const TIER_PRODUCTS: Record<string, { name: string; description: string }> = {
   plus: {
-    name: 'Álbum da Copa — Plus',
+    name: 'Complete Aí — Plus',
     description: 'Scanner IA + figurinhas ilimitadas',
   },
   premium: {
-    name: 'Álbum da Copa — Premium',
+    name: 'Complete Aí — Premium',
     description: 'Scanner IA + trocas + figurinhas ilimitadas',
   },
 }

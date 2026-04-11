@@ -267,8 +267,8 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
             htmlFor="camera-input"
             className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
           >
-            <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="w-12 h-12 rounded-xl bg-brand-light flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
               </svg>
@@ -360,7 +360,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
           </button>
           <button
             onClick={handleAnalyze}
-            className="flex-1 bg-violet-600 text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-violet-700 transition"
+            className="flex-1 bg-brand text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-brand-dark transition"
           >
             Analisar
           </button>
@@ -377,7 +377,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         <p className="text-lg font-semibold text-gray-700">Analisando suas figurinhas...</p>
         <p className="text-sm text-gray-400 mt-2">Isso pode levar alguns segundos</p>
         <div className="mt-6 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <div className="h-full bg-violet-600 rounded-full animate-pulse" style={{ width: '70%' }} />
+          <div className="h-full bg-brand rounded-full animate-pulse" style={{ width: '70%' }} />
         </div>
       </div>
     )
@@ -395,7 +395,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         </p>
         <div className="mt-6 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-violet-600 rounded-full transition-all duration-300"
+            className="h-full bg-brand rounded-full transition-all duration-300"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -412,7 +412,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         <p className="text-lg font-semibold text-gray-700 text-center">{errorMsg}</p>
         <button
           onClick={reset}
-          className="mt-6 bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-violet-700 transition"
+          className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition"
         >
           Tentar Novamente
         </button>
@@ -443,7 +443,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
             <p className="text-sm">Nenhuma figurinha reconhecida. Tente outra foto.</p>
             <button
               onClick={reset}
-              className="mt-4 bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-medium"
+              className="mt-4 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium"
             >
               Tentar Novamente
             </button>
@@ -496,7 +496,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
               <button
                 onClick={handleSave}
                 disabled={selectedCount === 0 || saving}
-                className="flex-1 bg-violet-600 text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-violet-700 transition disabled:opacity-50"
+                className="flex-1 bg-brand text-white rounded-xl px-4 py-3 text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50"
               >
                 {saving ? 'Salvando...' : `Salvar ${selectedCount} figurinha${selectedCount !== 1 ? 's' : ''}`}
               </button>
@@ -520,14 +520,14 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         </p>
         <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-3">
           <div
-            className="bg-violet-600 h-2.5 rounded-full transition-all"
+            className="bg-brand h-2.5 rounded-full transition-all"
             style={{ width: `${progressPct}%` }}
           />
         </div>
         <div className="flex gap-3 mt-8">
           <button
             onClick={reset}
-            className="bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-violet-700 transition"
+            className="bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition"
           >
             Escanear Mais
           </button>

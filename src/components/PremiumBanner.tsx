@@ -23,7 +23,7 @@ export default function PremiumBanner() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-2xl p-4 mb-4">
+    <div className="bg-gradient-to-r from-brand-light to-gold-light border border-brand/20 rounded-2xl p-4 mb-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
           <span className="text-lg">⭐</span>

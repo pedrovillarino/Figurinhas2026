@@ -78,15 +78,15 @@ export default function BottomNav() {
               href={tab.href}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1.5 rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 py-1.5 rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
                 isActive
-                  ? 'text-violet-600'
+                  ? 'text-brand'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {/* Active indicator dot */}
               {isActive && (
-                <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />
+                <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand" />
               )}
               {tab.icon(isActive)}
               <span className={`text-[10px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>

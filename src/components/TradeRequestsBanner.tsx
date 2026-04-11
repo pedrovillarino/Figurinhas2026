@@ -97,7 +97,7 @@ export default function TradeRequestsBanner({
               <div key={req.id} className="bg-white rounded-xl p-3 border border-amber-100">
                 {/* User info row */}
                 <div className="flex items-center gap-2.5 mb-2">
-                  <div className="w-8 h-8 bg-violet-100 rounded-full flex items-center justify-center text-violet-600 font-bold text-[10px] shrink-0">
+                  <div className="w-8 h-8 bg-brand-light rounded-full flex items-center justify-center text-brand font-bold text-[10px] shrink-0">
                     {getInitials(req.requester_name)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -123,9 +123,9 @@ export default function TradeRequestsBanner({
                     <p className="text-sm font-bold text-blue-700">{req.i_have}</p>
                     <p className="text-[8px] text-blue-600">quer de você</p>
                   </div>
-                  <div className="flex-1 bg-violet-50 rounded-lg px-2 py-1.5 text-center">
-                    <p className="text-sm font-bold text-violet-700">{totalTrade}</p>
-                    <p className="text-[8px] text-violet-600">total</p>
+                  <div className="flex-1 bg-brand-light rounded-lg px-2 py-1.5 text-center">
+                    <p className="text-sm font-bold text-brand-dark">{totalTrade}</p>
+                    <p className="text-[8px] text-brand">total</p>
                   </div>
                 </div>
 

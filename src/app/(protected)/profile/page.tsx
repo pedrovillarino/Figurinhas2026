@@ -105,7 +105,7 @@ export default function ProfilePage() {
       {/* User info */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-violet-100 rounded-full flex items-center justify-center text-violet-600 text-xl font-bold">
+          <div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center text-brand text-xl font-bold">
             {profile?.display_name?.[0]?.toUpperCase() || '?'}
           </div>
           <div>
@@ -122,7 +122,7 @@ export default function ProfilePage() {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-violet-600 h-2 rounded-full transition-all"
+              className="bg-brand h-2 rounded-full transition-all"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -159,12 +159,12 @@ export default function ProfilePage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+55 11 99999-9999"
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
           />
           <button
             onClick={savePhone}
             disabled={saving}
-            className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700 transition disabled:opacity-50"
+            className="bg-brand text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50"
           >
             {saving ? '...' : saved ? 'Salvo!' : 'Salvar'}
           </button>
@@ -173,7 +173,7 @@ export default function ProfilePage() {
 
       {/* Contact */}
       <a
-        href="mailto:contato@figurinhas2026.com.br"
+        href="mailto:contato@completeai.com.br"
         className="flex items-center gap-3 w-full bg-white rounded-xl px-4 py-3.5 shadow-sm mb-4"
       >
         <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -183,7 +183,7 @@ export default function ProfilePage() {
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-700">Fale conosco</p>
-          <p className="text-[11px] text-gray-500">contato@figurinhas2026.com.br</p>
+          <p className="text-[11px] text-gray-500">contato@completeai.com.br</p>
         </div>
         <svg aria-hidden="true" className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />

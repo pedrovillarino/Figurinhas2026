@@ -338,10 +338,10 @@ export default function ImportListModal({
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => cameraInputRef.current?.click()}
-                  className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-violet-300 hover:bg-violet-50/50 transition-all active:scale-[0.98]"
+                  className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-brand/40 hover:bg-brand-light/50 transition-all active:scale-[0.98]"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="w-12 h-12 rounded-xl bg-brand-light flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
                     </svg>
@@ -419,7 +419,7 @@ export default function ImportListModal({
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder={`Exemplo:\nBRA: 1, 3, 5, 12\nARG: 2, 7, 14\nFWC-1, FWC-3\n\nou simplesmente:\nBRA-1, BRA-3, ARG-2`}
-                className="w-full h-40 bg-gray-50 rounded-xl border border-gray-200 p-3 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 outline-none transition resize-none"
+                className="w-full h-40 bg-gray-50 rounded-xl border border-gray-200 p-3 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-brand/30 focus:border-brand/30 outline-none transition resize-none"
                 autoFocus
               />
               <div className="flex items-center justify-between mt-3">
@@ -429,7 +429,7 @@ export default function ImportListModal({
                 <button
                   onClick={analyzeText}
                   disabled={!textInput.trim()}
-                  className="px-6 py-2.5 bg-violet-500 hover:bg-violet-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
+                  className="px-6 py-2.5 bg-brand hover:bg-brand-dark disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
                 >
                   Analisar
                 </button>
@@ -457,7 +457,7 @@ export default function ImportListModal({
                 </button>
                 <button
                   onClick={analyzeImage}
-                  className="flex-1 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
+                  className="flex-1 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl font-semibold text-sm transition active:scale-[0.98]"
                 >
                   Analisar lista
                 </button>
@@ -468,7 +468,7 @@ export default function ImportListModal({
           {/* ── STEP: Loading ── */}
           {step === 'loading' && (
             <div className="text-center py-12">
-              <div className="w-12 h-12 border-4 border-gray-200 border-t-violet-500 rounded-full animate-spin mx-auto mb-4" />
+              <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4" />
               <p className="text-sm font-semibold text-gray-700">Lendo sua lista...</p>
               <p className="text-xs text-gray-500 mt-1">Identificando figurinhas e cruzando com o banco</p>
             </div>
@@ -487,9 +487,9 @@ export default function ImportListModal({
                   <p className="text-lg font-bold text-orange-600">{unmatched.length}</p>
                   <p className="text-[10px] text-orange-500">Não encontradas</p>
                 </div>
-                <div className="flex-1 bg-violet-50 rounded-xl p-3 text-center">
-                  <p className="text-lg font-bold text-violet-600">{selected.size}</p>
-                  <p className="text-[10px] text-violet-500">Selecionadas</p>
+                <div className="flex-1 bg-brand-light rounded-xl p-3 text-center">
+                  <p className="text-lg font-bold text-brand">{selected.size}</p>
+                  <p className="text-[10px] text-brand">Selecionadas</p>
                 </div>
               </div>
 
@@ -509,10 +509,10 @@ export default function ImportListModal({
               {matched.length > 0 && (
                 <button
                   onClick={toggleAll}
-                  className="flex items-center gap-2 mb-3 text-xs font-medium text-violet-600 hover:text-violet-700 transition"
+                  className="flex items-center gap-2 mb-3 text-xs font-medium text-brand hover:text-brand-dark transition"
                 >
                   <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                    selected.size === matched.length ? 'border-violet-500 bg-violet-500' : 'border-gray-300 bg-white'
+                    selected.size === matched.length ? 'border-brand bg-brand' : 'border-gray-300 bg-white'
                   }`}>
                     {selected.size === matched.length && (
                       <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -581,7 +581,7 @@ export default function ImportListModal({
           {/* ── STEP: Saving ── */}
           {step === 'saving' && (
             <div className="text-center py-12">
-              <div className="w-12 h-12 border-4 border-gray-200 border-t-violet-500 rounded-full animate-spin mx-auto mb-4" />
+              <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4" />
               <p className="text-sm font-semibold text-gray-700">Salvando figurinhas...</p>
             </div>
           )}
@@ -607,7 +607,7 @@ export default function ImportListModal({
                 </button>
                 <button
                   onClick={handleClose}
-                  className="flex-1 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold text-sm transition"
+                  className="flex-1 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl font-semibold text-sm transition"
                 >
                   Fechar
                 </button>
@@ -623,7 +623,7 @@ export default function ImportListModal({
               <p className="text-xs text-gray-500 mb-6">{errorMessage}</p>
               <button
                 onClick={() => setStep('choose-input')}
-                className="px-6 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold text-sm transition"
+                className="px-6 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl font-semibold text-sm transition"
               >
                 Tentar novamente
               </button>

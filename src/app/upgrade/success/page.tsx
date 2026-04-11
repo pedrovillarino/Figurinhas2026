@@ -92,7 +92,7 @@ export default function UpgradeSuccessPage() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+55 11 99999-9999"
               required
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition"
             />
           </div>
 
@@ -107,8 +107,8 @@ export default function UpgradeSuccessPage() {
               />
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                 consent
-                  ? 'bg-violet-600 border-violet-600'
-                  : 'bg-white border-gray-300 group-hover:border-violet-400'
+                  ? 'bg-brand border-brand'
+                  : 'bg-white border-gray-300 group-hover:border-brand'
               }`}>
                 {consent && (
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

@@ -273,7 +273,7 @@ export default function AlbumClient({
     if (us.status === 'owned')
       return 'bg-white border-gray-200 shadow-sm'
     if (us.status === 'duplicate')
-      return 'bg-white border-violet-200 shadow-sm'
+      return 'bg-white border-brand/30 shadow-sm'
     return 'bg-white border-gray-200'
   }
 
@@ -312,7 +312,7 @@ export default function AlbumClient({
       >
         {/* Quantity badge */}
         {qty > 1 && (
-          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-violet-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm z-10">
+          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-brand rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm z-10">
             {qty}
           </span>
         )}
@@ -355,7 +355,7 @@ export default function AlbumClient({
             <button
               onClick={(e) => handleIncrement(e, sticker)}
               aria-label={`Adicionar ${sticker.number}`}
-              className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 hover:bg-violet-200 active:scale-90 transition"
+              className="w-6 h-6 rounded-lg bg-brand-light flex items-center justify-center text-brand hover:bg-brand-light active:scale-90 transition"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" d="M12 5v14m-7-7h14" />
@@ -387,8 +387,8 @@ export default function AlbumClient({
             />
             <defs>
               <linearGradient id="progress-gradient" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" />
-                <stop offset="100%" stopColor="#d946ef" />
+                <stop offset="0%" stopColor="#00C896" />
+                <stop offset="100%" stopColor="#00A67D" />
               </linearGradient>
             </defs>
           </svg>
@@ -419,8 +419,8 @@ export default function AlbumClient({
           </div>
         </div>
         <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
-          <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
-            <div className="w-2 h-2 rounded-full bg-violet-500" />
+          <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-brand" />
           </div>
           <div>
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.duplicates}</p>
@@ -432,9 +432,9 @@ export default function AlbumClient({
       {/* Export banner */}
       <Link
         href="/export"
-        className="flex items-center gap-3 mb-4 p-3 bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl active:scale-[0.98] transition"
+        className="flex items-center gap-3 mb-4 p-3 bg-gradient-to-r from-brand-light to-gold-light border border-brand/20 rounded-xl active:scale-[0.98] transition"
       >
-        <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
           <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
@@ -482,13 +482,13 @@ export default function AlbumClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Buscar figurinha"
-            className="w-full bg-white rounded-xl border border-gray-100 pl-9 pr-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-200 outline-none transition"
+            className="w-full bg-white rounded-xl border border-gray-100 pl-9 pr-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-brand/30 focus:border-brand/30 outline-none transition"
           />
         </div>
         <button
           onClick={() => setViewMode(viewMode === 'grid' ? 'sections' : 'grid')}
-          className={`w-11 h-11 rounded-xl border flex items-center justify-center transition focus-visible:ring-2 focus-visible:ring-violet-500 ${
-            viewMode === 'sections' ? 'bg-violet-50 border-violet-200 text-violet-500' : 'bg-white border-gray-100 text-gray-500'
+          className={`w-11 h-11 rounded-xl border flex items-center justify-center transition focus-visible:ring-2 focus-visible:ring-brand ${
+            viewMode === 'sections' ? 'bg-brand-light border-brand/30 text-brand' : 'bg-white border-gray-100 text-gray-500'
           }`}
           aria-label={viewMode === 'grid' ? 'Ver por seleção' : 'Ver grade'}
         >
@@ -515,7 +515,7 @@ export default function AlbumClient({
             }`}
           >
             {tab.label}
-            <span className={`ml-1 ${activeTab === tab.key ? 'text-violet-500' : 'text-gray-400'}`}>
+            <span className={`ml-1 ${activeTab === tab.key ? 'text-brand' : 'text-gray-400'}`}>
               {tab.count}
             </span>
           </button>
@@ -570,7 +570,7 @@ export default function AlbumClient({
                   <span className="text-[10px] text-gray-500">{sec?.owned}/{sec?.total}</span>
                   <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-violet-500'}`}
+                      className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-brand'}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -600,7 +600,7 @@ export default function AlbumClient({
           {visibleCount < filtered.length && (
             <div ref={sentinelRef} className="flex justify-center py-6">
               <div className="flex items-center gap-2 text-xs text-gray-500">
-                <div className="w-4 h-4 border-2 border-gray-200 border-t-violet-400 rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-gray-200 border-t-brand rounded-full animate-spin" />
                 {filtered.length - visibleCount} figurinhas restantes
               </div>
             </div>

@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from 'react'
 
-const ONBOARDING_KEY = 'figurinhas_onboarding_v1'
+const ONBOARDING_KEY = 'completeai_onboarding_v1'
 
 const steps = [
   {
     icon: '📖',
-    title: 'Bem-vindo ao Figurinhas 2026!',
+    title: 'Bem-vindo ao Complete Aí!',
     description: 'Gerencie seu álbum da Copa do Mundo. Marque coladas, faltantes e repetidas com facilidade.',
   },
   {
     icon: '👆',
     title: 'Toque para marcar',
-    description: 'Toque em uma figurinha para expandir. Use + e - para ajustar a quantidade. Repetidas ficam com borda roxa.',
+    description: 'Toque em uma figurinha para expandir. Use + e - para ajustar a quantidade. Repetidas ficam com borda verde.',
   },
   {
     icon: '📸',
@@ -65,7 +65,7 @@ export default function OnboardingModal() {
             <div
               key={i}
               className={`h-1 rounded-full transition-all duration-300 ${
-                i === step ? 'w-6 bg-violet-500' : 'w-1.5 bg-gray-200'
+                i === step ? 'w-6 bg-brand' : 'w-1.5 bg-gray-200'
               }`}
             />
           ))}
@@ -90,7 +90,7 @@ export default function OnboardingModal() {
           )}
           <button
             onClick={handleNext}
-            className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 transition active:scale-[0.98]"
+            className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98]"
           >
             {isLast ? 'Comecar!' : 'Proximo'}
           </button>

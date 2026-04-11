@@ -16,7 +16,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-[#060608] text-white overflow-hidden relative">
       {/* Ambient light */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-violet-500/8 rounded-full blur-[150px]" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand/8 rounded-full blur-[150px]" />
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
@@ -28,7 +28,7 @@ export default async function Home() {
         <main className="flex-1 flex flex-col items-center px-6 pt-4 pb-8 overflow-y-auto">
           {/* Album cover */}
           <div className="animate-fade-up mb-6 relative">
-            <div className="absolute inset-0 bg-violet-500/20 blur-[60px] rounded-full scale-75" />
+            <div className="absolute inset-0 bg-brand/20 blur-[60px] rounded-full scale-75" />
             <div className="relative w-36 h-auto drop-shadow-2xl">
               <Image
                 src="/album-cover.jpg"
@@ -44,7 +44,7 @@ export default async function Home() {
           {/* Copy */}
           <h1 className="text-2xl font-black tracking-tight text-center leading-tight animate-fade-up-delay">
             Seu álbum,{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-dark">
               do seu jeito.
             </span>
           </h1>
@@ -61,11 +61,11 @@ export default async function Home() {
           {/* Features */}
           <div className="mt-10 w-full max-w-xs space-y-2.5 animate-fade-up-delay-3">
             <div className="group flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
                 <div className="flex gap-[2px]">
-                  <div className="w-1 h-4 rounded-sm bg-violet-400/60 group-hover:h-2.5 transition-all duration-500" />
-                  <div className="w-1 h-2.5 rounded-sm bg-violet-400/40 group-hover:h-4 transition-all duration-500 delay-75" />
-                  <div className="w-1 h-3 rounded-sm bg-violet-400/50 group-hover:h-2 transition-all duration-500 delay-150" />
+                  <div className="w-1 h-4 rounded-sm bg-brand/60 group-hover:h-2.5 transition-all duration-500" />
+                  <div className="w-1 h-2.5 rounded-sm bg-brand/40 group-hover:h-4 transition-all duration-500 delay-75" />
+                  <div className="w-1 h-3 rounded-sm bg-brand/50 group-hover:h-2 transition-all duration-500 delay-150" />
                 </div>
               </div>
               <div>

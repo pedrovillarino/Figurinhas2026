@@ -146,7 +146,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
           {!showCoupon ? (
             <button
               onClick={() => setShowCoupon(true)}
-              className="w-full text-xs text-violet-600 hover:text-violet-700 font-medium transition"
+              className="w-full text-xs text-brand hover:text-brand-dark font-medium transition"
             >
               Tem código de desconto?
             </button>
@@ -161,7 +161,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
                     setCouponStatus(null)
                   }}
                   placeholder="Digite o código"
-                  className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs uppercase tracking-wider focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
+                  className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs uppercase tracking-wider focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
                 />
                 <button
                   onClick={() => validateCoupon(showPlus ? 'plus' : 'premium')}
@@ -225,11 +225,11 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
 
           {/* Premium tier */}
           {showPremium && (
-            <div className="border-2 border-violet-200 bg-violet-50/30 rounded-2xl p-4">
+            <div className="border-2 border-brand/30 bg-brand-light/30 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-bold text-gray-800">Premium</span>
-                  <span className="text-[9px] bg-violet-500 text-white rounded-full px-1.5 py-0.5 font-bold">MELHOR</span>
+                  <span className="text-[9px] bg-gold text-navy rounded-full px-1.5 py-0.5 font-bold">MELHOR</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {premiumDiscountedPrice && (
@@ -248,7 +248,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
               <button
                 onClick={() => handleUpgrade('premium')}
                 disabled={loading !== null}
-                className="w-full bg-violet-600 text-white rounded-xl py-2.5 text-xs font-semibold hover:bg-violet-700 transition-all active:scale-[0.98] disabled:opacity-50"
+                className="w-full bg-brand text-white rounded-xl py-2.5 text-xs font-semibold hover:bg-brand-dark transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {loading === 'premium' ? (
                   <span className="flex items-center justify-center gap-2">

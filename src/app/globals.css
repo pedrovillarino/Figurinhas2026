@@ -8,7 +8,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid #7C3AED;
+    outline: 2px solid #00C896;
     outline-offset: 2px;
   }
 
@@ -16,8 +16,8 @@
   textarea:focus-visible,
   select:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
-    border-color: #a78bfa;
+    box-shadow: 0 0 0 2px rgba(0, 200, 150, 0.3);
+    border-color: #00C896;
   }
 }
 

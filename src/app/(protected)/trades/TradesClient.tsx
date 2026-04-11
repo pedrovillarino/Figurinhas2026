@@ -326,7 +326,7 @@ export default function TradesClient({ userId }: { userId: string }) {
                 className="w-full px-4 py-3.5 flex items-center gap-3 text-left"
               >
                 {/* Avatar */}
-                <div className="w-11 h-11 bg-violet-100 rounded-full flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">
+                <div className="w-11 h-11 bg-brand-light rounded-full flex items-center justify-center text-brand font-bold text-sm shrink-0">
                   {getInitials(match.display_name)}
                 </div>
 

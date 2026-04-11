@@ -59,7 +59,7 @@ function TradeApproveContent() {
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6 text-center">
         {status === 'loading' && (
           <>
-            <div className="w-12 h-12 border-4 border-gray-200 border-t-violet-500 rounded-full animate-spin mx-auto mb-4" />
+            <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4" />
             <p className="text-sm text-gray-600">
               {action === 'approve' ? 'Aprovando troca...' : 'Processando...'}
             </p>
@@ -80,7 +80,7 @@ function TradeApproveContent() {
             </p>
             <a
               href="/trades"
-              className="inline-block w-full py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold text-sm transition"
+              className="inline-block w-full py-3 bg-brand hover:bg-brand-dark text-white rounded-xl font-semibold text-sm transition"
             >
               Abrir o app
             </a>
@@ -108,7 +108,7 @@ function TradeApproveContent() {
             <p className="text-sm text-gray-500 mb-6">{message}</p>
             <a
               href="/trades"
-              className="inline-block w-full py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold text-sm transition"
+              className="inline-block w-full py-3 bg-brand hover:bg-brand-dark text-white rounded-xl font-semibold text-sm transition"
             >
               Abrir o app
             </a>
@@ -122,7 +122,7 @@ function TradeApproveContent() {
             <p className="text-sm text-gray-500 mb-6">{message}</p>
             <a
               href="/trades"
-              className="inline-block w-full py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-semibold text-sm transition"
+              className="inline-block w-full py-3 bg-brand hover:bg-brand-dark text-white rounded-xl font-semibold text-sm transition"
             >
               Ir para o app
             </a>
@@ -137,7 +137,7 @@ export default function TradeApprovePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     }>
       <TradeApproveContent />

@@ -8,7 +8,7 @@ export const maxDuration = 30
 
 export const dynamic = 'force-dynamic'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://figurinhas2026.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
 
 function getAdmin() {
   return createClient(

@@ -39,7 +39,7 @@ function ProgressRing({
   pct,
   size = 140,
   strokeWidth = 10,
-  gradient = ['#8b5cf6', '#d946ef'],
+  gradient = ['#00C896', '#00A67D'],
   delay = 0,
 }: {
   pct: number
@@ -265,13 +265,13 @@ export default function DashboardClient({
   // Colors for country bars based on completion
   function barColor(pct: number): string {
     if (pct === 100) return 'linear-gradient(90deg, #10b981, #34d399)'
-    if (pct >= 80) return 'linear-gradient(90deg, #8b5cf6, #a78bfa)'
+    if (pct >= 80) return 'linear-gradient(90deg, #00C896, #00A67D)'
     if (pct >= 50) return 'linear-gradient(90deg, #3b82f6, #60a5fa)'
     if (pct >= 20) return 'linear-gradient(90deg, #f59e0b, #fbbf24)'
     return 'linear-gradient(90deg, #ef4444, #f87171)'
   }
 
-  const typeColors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899']
+  const typeColors = ['#00C896', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899']
 
   const visibleCountries = showAll ? countryData : countryData.slice(0, 8)
 
@@ -307,7 +307,7 @@ export default function DashboardClient({
             </div>
             <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-1000"
+                className="h-full rounded-full bg-gradient-to-r from-brand to-brand-dark transition-all duration-1000"
                 style={{ width: `${stats.pct}%` }}
               />
             </div>
@@ -356,15 +356,15 @@ export default function DashboardClient({
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center">
-              <svg aria-hidden="true" className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-8 h-8 rounded-xl bg-brand-light flex items-center justify-center">
+              <svg aria-hidden="true" className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
               </svg>
             </div>
             <span className="text-[10px] text-gray-500 font-medium">Repetidas</span>
           </div>
           <p className="text-2xl font-black text-gray-900"><AnimatedNumber value={stats.duplicates} /></p>
-          <p className="text-[10px] text-violet-500 font-semibold mt-0.5">
+          <p className="text-[10px] text-brand font-semibold mt-0.5">
             {stats.totalExtras} figurinhas extras
           </p>
         </div>
@@ -442,7 +442,7 @@ export default function DashboardClient({
       {typeData.length > 1 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
           <h2 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-violet-50 flex items-center justify-center text-sm">
+            <span className="w-6 h-6 rounded-lg bg-brand-light flex items-center justify-center text-sm">
               📊
             </span>
             Por Tipo de Figurinha
@@ -491,7 +491,7 @@ export default function DashboardClient({
                 <span className="text-[10px] text-gray-500">{c.owned}/{c.total}</span>
                 <span className={`text-[10px] font-bold w-9 text-right ${
                   c.pct === 100 ? 'text-emerald-600' :
-                  c.pct >= 80 ? 'text-violet-600' :
+                  c.pct >= 80 ? 'text-brand' :
                   c.pct >= 50 ? 'text-blue-600' :
                   'text-gray-500'
                 }`}>{c.pct}%</span>
@@ -504,7 +504,7 @@ export default function DashboardClient({
         {countryData.length > 8 && (
           <button
             onClick={() => setShowAll(!showAll)}
-            className="w-full mt-4 py-2.5 text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-xl transition active:scale-[0.98]"
+            className="w-full mt-4 py-2.5 text-xs font-semibold text-brand bg-brand-light hover:bg-brand-light rounded-xl transition active:scale-[0.98]"
           >
             {showAll ? 'Ver menos' : `Ver todas (${countryData.length})`}
           </button>
@@ -607,7 +607,7 @@ export default function DashboardClient({
                   Suas <strong>{stats.totalExtras} repetida{stats.totalExtras > 1 ? 's' : ''}</strong> podem cobrir
                   {' '}<strong>{Math.min(stats.totalExtras, stats.missing)}</strong> das {stats.missing} faltantes por troca direta.
                 </p>
-                <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 mt-1 hover:text-violet-700">
+                <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand mt-1 hover:text-brand-dark">
                   Encontrar quem tem suas faltantes
                   <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -634,7 +634,7 @@ export default function DashboardClient({
                   Com apenas <strong>{finStats.probNew}%</strong> de chance de figurinha nova, comprar pacotes fica caro.
                   Trocar é mais eficiente nessa fase do álbum.
                 </p>
-                <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 mt-1 hover:text-violet-700">
+                <Link href="/trades" className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand mt-1 hover:text-brand-dark">
                   Ver trocas disponíveis
                   <svg aria-hidden="true" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -654,7 +654,7 @@ export default function DashboardClient({
             </div>
           )}
 
-          <div className="flex items-start gap-2.5 p-2.5 bg-violet-50/50 rounded-lg">
+          <div className="flex items-start gap-2.5 p-2.5 bg-brand-light/50 rounded-lg">
             <span className="text-sm mt-0.5">📦</span>
             <p className="text-[11px] text-gray-700 leading-relaxed">
               {stats.owned + stats.totalExtras} figurinhas colecionadas no total. Taxa de aproveitamento: <strong>{dupeEfficiency}%</strong>
@@ -668,9 +668,9 @@ export default function DashboardClient({
         {stats.missing > 0 && stats.totalExtras > 0 && (
           <Link
             href="/trades"
-            className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl hover:from-violet-100 hover:to-fuchsia-100 transition active:scale-[0.98]"
+            className="flex items-center gap-3 mt-3 p-3 bg-gradient-to-r from-brand-light to-gold-light border border-brand/20 rounded-xl hover:from-brand-light/80 hover:to-gold-light/80 transition active:scale-[0.98]"
           >
-            <div className="w-9 h-9 rounded-lg bg-violet-500 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
               <svg aria-hidden="true" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
               </svg>

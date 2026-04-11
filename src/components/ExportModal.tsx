@@ -15,7 +15,7 @@ type UserStickerInfo = { status: string; quantity: number }
 
 type ExportChannel = 'whatsapp' | 'email' | 'clipboard'
 
-const SITE_URL = 'https://figurinhas2026.vercel.app'
+const SITE_URL = 'https://www.completeai.com.br'
 
 export default function ExportModal({
   isOpen,
@@ -106,7 +106,7 @@ export default function ExportModal({
     }
 
     parts.push('---')
-    parts.push('Controle suas figurinhas da Copa 2026 de graca!')
+    parts.push('Complete Aí — gerencie seu álbum da Copa 2026 de graça!')
     parts.push('Marque coladas, faltantes e repetidas, exporte e troque.')
     parts.push(SITE_URL)
 
@@ -195,13 +195,13 @@ export default function ExportModal({
               onClick={() => setExportDuplicates(!exportDuplicates)}
               className={`flex-1 py-3 px-3 rounded-xl border-2 transition-all ${
                 exportDuplicates
-                  ? 'border-violet-400 bg-violet-50'
+                  ? 'border-brand bg-brand-light'
                   : 'border-gray-100 bg-white'
               }`}
             >
               <div className="flex items-center gap-2">
                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                  exportDuplicates ? 'border-violet-500 bg-violet-500' : 'border-gray-200 bg-white'
+                  exportDuplicates ? 'border-brand bg-brand' : 'border-gray-200 bg-white'
                 }`}>
                   {exportDuplicates && (
                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -209,11 +209,11 @@ export default function ExportModal({
                     </svg>
                   )}
                 </div>
-                <span className={`text-sm font-semibold ${exportDuplicates ? 'text-violet-700' : 'text-gray-500'}`}>
+                <span className={`text-sm font-semibold ${exportDuplicates ? 'text-brand-dark' : 'text-gray-500'}`}>
                   Repetidas
                 </span>
               </div>
-              <p className={`text-xl font-bold mt-1 ${exportDuplicates ? 'text-violet-500' : 'text-gray-300'}`}>
+              <p className={`text-xl font-bold mt-1 ${exportDuplicates ? 'text-brand' : 'text-gray-300'}`}>
                 {duplicateStickers.length}
                 {totalDuplicateExtras > 0 && (
                   <span className="text-xs font-normal ml-1">({totalDuplicateExtras} extras)</span>
@@ -232,7 +232,7 @@ export default function ExportModal({
             <button
               onClick={() => setGroupByCountry(!groupByCountry)}
               className={`w-10 h-6 rounded-full transition-colors relative ${
-                groupByCountry ? 'bg-violet-500' : 'bg-gray-300'
+                groupByCountry ? 'bg-brand' : 'bg-gray-300'
               }`}
             >
               <div

@@ -22,7 +22,7 @@ export default function ProfileError({
       </p>
       <button
         onClick={reset}
-        className="bg-violet-600 text-white rounded-xl px-6 py-3 text-sm font-semibold hover:bg-violet-700 transition active:scale-[0.98]"
+        className="bg-brand text-white rounded-xl px-6 py-3 text-sm font-semibold hover:bg-brand-dark transition active:scale-[0.98]"
       >
         Tentar novamente
       </button>

@@ -32,14 +32,14 @@ export default function UndoToast({ message, onUndo, onDismiss, duration = 4000 
         <p className="text-sm text-white flex-1 truncate">{message}</p>
         <button
           onClick={onUndo}
-          className="text-sm font-bold text-violet-400 hover:text-violet-300 transition shrink-0"
+          className="text-sm font-bold text-brand hover:text-brand-light transition shrink-0"
         >
           Desfazer
         </button>
         {/* Progress bar */}
         <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-gray-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-violet-500 rounded-full transition-all duration-100"
+            className="h-full bg-brand rounded-full transition-all duration-100"
             style={{ width: `${progress}%` }}
           />
         </div>

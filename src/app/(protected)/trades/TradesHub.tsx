@@ -49,11 +49,11 @@ type TradeDetail = {
 }
 
 // localStorage stores EXCLUDED sticker ids (inverse logic: all missing are watched by default)
-const EXCLUDED_KEY = 'figurinhas_watch_excluded'
-const WATCH_RADIUS_KEY = 'figurinhas_watch_radius'
-const NOTIFY_CHANNEL_KEY = 'figurinhas_notify_channel'
-const NOTIFY_MIN_KEY = 'figurinhas_notify_min_threshold'
-const NOTIFY_PRIORITY_KEY = 'figurinhas_notify_priority'
+const EXCLUDED_KEY = 'completeai_watch_excluded'
+const WATCH_RADIUS_KEY = 'completeai_watch_radius'
+const NOTIFY_CHANNEL_KEY = 'completeai_notify_channel'
+const NOTIFY_MIN_KEY = 'completeai_notify_min_threshold'
+const NOTIFY_PRIORITY_KEY = 'completeai_notify_priority'
 
 type NotifyChannel = 'whatsapp' | 'email' | 'both'
 
@@ -756,7 +756,7 @@ export default function TradesHub({
 
         <button
           onClick={() => setShowExcludeManager(!showExcludeManager)}
-          className="text-[10px] font-semibold text-violet-500 hover:text-violet-600 transition"
+          className="text-[10px] font-semibold text-brand hover:text-brand-dark transition"
         >
           {showExcludeManager ? 'Fechar gerenciamento' : 'Gerenciar lista (remover/adicionar figurinhas)'}
         </button>
@@ -774,7 +774,7 @@ export default function TradesHub({
                 value={excludeSearch}
                 onChange={(e) => setExcludeSearch(e.target.value)}
                 placeholder="Buscar figurinha..."
-                className="w-full bg-gray-50 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-violet-300 outline-none"
+                className="w-full bg-gray-50 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-700 placeholder-gray-300 focus:ring-1 focus:ring-brand/30 outline-none"
               />
             </div>
 
@@ -815,8 +815,8 @@ export default function TradesHub({
       {/* ─── Nearby People ─── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-            <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center">
+            <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
             </svg>
@@ -826,7 +826,7 @@ export default function TradesHub({
             <p className="text-[10px] text-gray-400">Raio de {radius} km</p>
           </div>
           {hasLocation && (
-            <button onClick={loadMatchesFromServer} className="text-[10px] text-violet-500 font-semibold">
+            <button onClick={loadMatchesFromServer} className="text-[10px] text-brand font-semibold">
               Atualizar
             </button>
           )}
@@ -839,7 +839,7 @@ export default function TradesHub({
               key={r}
               onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}
               className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-                radius === r ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                radius === r ? 'bg-brand-light0 text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
               }`}
             >
               {r} km
@@ -870,7 +870,7 @@ export default function TradesHub({
           </button>
         ) : loadingMatches ? (
           <div className="flex justify-center py-4">
-            <div className="w-6 h-6 border-2 border-gray-200 border-t-violet-500 rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-gray-200 border-t-brand rounded-full animate-spin" />
           </div>
         ) : nearbyCount > 0 ? (
           <div>
@@ -907,7 +907,7 @@ export default function TradesHub({
                       onClick={() => toggleExpand(match.user_id)}
                       className="w-full px-3 py-3 flex items-center gap-3 text-left"
                     >
-                      <div className="w-9 h-9 bg-violet-100 rounded-full flex items-center justify-center text-violet-600 font-bold text-xs shrink-0">
+                      <div className="w-9 h-9 bg-brand-light rounded-full flex items-center justify-center text-brand font-bold text-xs shrink-0">
                         {getInitials(match.display_name)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -932,7 +932,7 @@ export default function TradesHub({
                       </div>
 
                       {!isPremium ? (
-                        <span className="text-[9px] bg-violet-100 text-violet-600 rounded-full px-2 py-1 font-bold shrink-0">
+                        <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-1 font-bold shrink-0">
                           PREMIUM
                         </span>
                       ) : (
@@ -994,7 +994,7 @@ export default function TradesHub({
                               <button
                                 onClick={(e) => { e.stopPropagation(); requestTrade(match) }}
                                 disabled={isSending}
-                                className="mt-3 w-full flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
+                                className="mt-3 w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
                               >
                                 {isSending ? (
                                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1018,7 +1018,7 @@ export default function TradesHub({
             {!isPremium && (
               <button
                 onClick={() => setShowPaywall(true)}
-                className="w-full mt-3 py-3 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition active:scale-[0.98]"
+                className="w-full mt-3 py-3 bg-brand text-white rounded-xl text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
               >
                 Desbloquear trocas — ver detalhes e notificar
               </button>
@@ -1169,7 +1169,7 @@ export default function TradesHub({
 
       {/* ─── Premium CTA ─── */}
       {!isPremium && (
-        <div className="bg-white rounded-2xl border-2 border-violet-200 p-4">
+        <div className="bg-white rounded-2xl border-2 border-brand/30 p-4">
           <div className="text-center mb-3"><span className="text-3xl">🔓</span></div>
           <h3 className="text-sm font-bold text-gray-900 text-center mb-1">Desbloqueie Trocas</h3>
           <p className="text-[10px] text-gray-400 text-center mb-3">
@@ -1183,7 +1183,7 @@ export default function TradesHub({
           </div>
           <button
             onClick={() => setShowPaywall(true)}
-            className="w-full bg-violet-600 text-white rounded-xl py-3 text-sm font-bold hover:bg-violet-700 transition active:scale-[0.98]"
+            className="w-full bg-brand text-white rounded-xl py-3 text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
           >
             Desbloquear por R$19,90
           </button>
@@ -1202,8 +1202,8 @@ export default function TradesHub({
 function Step({ num, title, desc }: { num: number; title: string; desc: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-7 h-7 rounded-full bg-violet-50 flex items-center justify-center shrink-0">
-        <span className="text-[10px] font-black text-violet-500">{num}</span>
+      <div className="w-7 h-7 rounded-full bg-brand-light flex items-center justify-center shrink-0">
+        <span className="text-[10px] font-black text-brand">{num}</span>
       </div>
       <div>
         <p className="text-xs font-semibold text-gray-800">{title}</p>

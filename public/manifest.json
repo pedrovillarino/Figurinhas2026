@@ -1,11 +1,11 @@
 {
-  "name": "Figurinhas Copa 2026",
-  "short_name": "Figurinhas",
-  "description": "Gerencie seu álbum de figurinhas da Copa do Mundo FIFA 2026",
+  "name": "Complete Aí — Álbum da Copa 2026",
+  "short_name": "Complete Aí",
+  "description": "Use IA para organizar e completar seu álbum mais fácil. Escaneie figurinhas e encontre trocas perto de você.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F9FAFB",
-  "theme_color": "#7C3AED",
+  "theme_color": "#00C896",
   "orientation": "portrait",
   "icons": [
     {

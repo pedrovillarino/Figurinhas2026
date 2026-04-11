@@ -118,7 +118,7 @@ export default function HomeLogin() {
         required
         placeholder="seu@email.com"
         aria-label="E-mail"
-        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 outline-none transition"
+        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:ring-2 focus:ring-brand/50 focus:border-brand/50 outline-none transition"
       />
       <input
         type="password"
@@ -128,7 +128,7 @@ export default function HomeLogin() {
         minLength={6}
         placeholder="Senha"
         aria-label="Senha"
-        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 outline-none transition"
+        className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:ring-2 focus:ring-brand/50 focus:border-brand/50 outline-none transition"
       />
 
       {error && <p className="text-red-400 text-xs text-center">{error}</p>}
