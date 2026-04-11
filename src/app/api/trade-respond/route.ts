@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
+import { sendPushToUser } from '@/lib/push'
+import { sendEmail, tradeApprovedEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
 
 export const maxDuration = 30
@@ -169,6 +171,27 @@ export async function POST(req: NextRequest) {
           console.error('Error notifying target:', err)
         })
       }
+
+      // Email notification to requester
+      const totalTrade = tradeReq.they_have + tradeReq.i_have
+      if (requesterProfile?.email) {
+        const contact = targetPhone ? `wa.me/${targetPhone}` : targetProfile?.email || ''
+        const html = tradeApprovedEmailHtml(targetName, contact, totalTrade, APP_URL)
+        await sendEmail(requesterProfile.email, `🎉 ${targetName} aceitou sua troca!`, html).catch(() => {})
+      }
+      // Email notification to target (self)
+      if (targetProfile?.email) {
+        const contact = requesterPhone ? `wa.me/${requesterPhone}` : requesterProfile?.email || ''
+        const html = tradeApprovedEmailHtml(requesterName, contact, totalTrade, APP_URL)
+        await sendEmail(targetProfile.email, `✅ Troca aprovada com ${requesterName}!`, html).catch(() => {})
+      }
+
+      // Push notification to requester: trade approved!
+      await sendPushToUser(tradeReq.requester_id, {
+        title: '🎉 Troca aprovada!',
+        body: `${targetName} aceitou sua troca! Abra o app para ver o contato.`,
+        url: '/trades',
+      }).catch(() => {})
 
       return NextResponse.json({
         ok: true,

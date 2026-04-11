@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
+import { sendPushToUser } from '@/lib/push'
+import { sendEmail, tradeRequestEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
 
 export const maxDuration = 30
@@ -161,6 +163,30 @@ export async function POST(req: NextRequest) {
         console.error('WhatsApp notification error:', err)
       })
     }
+
+    // 8. Send email notification to target user
+    const targetEmail = targetProfile.email
+    if (targetEmail && (channel === 'email' || channel === 'both' || !phone)) {
+      const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
+      const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
+      const html = tradeRequestEmailHtml(
+        requesterName, distStr, totalTrade,
+        they_have || 0, i_have || 0,
+        approveUrl, rejectUrl, APP_URL
+      )
+      await sendEmail(targetEmail, `🔔 ${requesterName} quer trocar figurinhas com você!`, html).catch((err: unknown) => {
+        console.error('Email notification error:', err)
+      })
+    }
+
+    // 9. Send push notification to target user
+    await sendPushToUser(target_user_id, {
+      title: '🔔 Solicitação de troca!',
+      body: `${requesterName} (a ${distStr}) quer trocar ${totalTrade} figurinhas com você!`,
+      url: '/trades',
+    }).catch((err: unknown) => {
+      console.error('Push notification error:', err)
+    })
 
     return NextResponse.json({
       ok: true,

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 const tabs = [
   {
@@ -35,6 +36,7 @@ const tabs = [
   {
     href: '/trades',
     label: 'Trocas',
+    badge: true,
     icon: (active: boolean) => (
       <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -54,6 +56,23 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/trade-requests-count')
+      .then(r => r.json())
+      .then(d => setPendingCount(d.count || 0))
+      .catch(() => {})
+
+    // Poll every 30s
+    const interval = setInterval(() => {
+      fetch('/api/trade-requests-count')
+        .then(r => r.json())
+        .then(d => setPendingCount(d.count || 0))
+        .catch(() => {})
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
@@ -63,6 +82,7 @@ export default function BottomNav() {
       <div className="relative flex justify-around items-center h-14 max-w-lg mx-auto px-1">
         {tabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href)
+          const showBadge = 'badge' in tab && tab.badge && pendingCount > 0
           return (
             <Link
               key={tab.href}
@@ -79,7 +99,14 @@ export default function BottomNav() {
               {isActive && (
                 <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand" />
               )}
-              {tab.icon(isActive)}
+              <div className="relative">
+                {tab.icon(isActive)}
+                {showBadge && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-red-500 rounded-full flex items-center justify-center text-white text-[9px] font-bold shadow-sm">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[10px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
                 {tab.label}
               </span>

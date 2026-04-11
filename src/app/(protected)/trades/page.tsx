@@ -98,6 +98,44 @@ export default async function TradesPage() {
     // Table might not exist yet
   }
 
+  // Load recently approved trades where this user is the target (so they see the contact)
+  let approvedTrades: Array<{
+    requestId: string
+    requesterName: string
+    contact: string | null
+  }> = []
+  try {
+    const { data: approved } = await supabase
+      .from('trade_requests')
+      .select('id, requester_id, responded_at')
+      .eq('target_id', user.id)
+      .eq('status', 'approved')
+      .order('responded_at', { ascending: false })
+      .limit(5)
+
+    if (approved && approved.length > 0) {
+      const requesterIds = approved.map(a => a.requester_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, phone, email')
+        .in('id', requesterIds)
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+
+      approvedTrades = approved.map(a => {
+        const p = profileMap.get(a.requester_id)
+        const phone = p?.phone?.replace(/\D/g, '')
+        return {
+          requestId: a.id,
+          requesterName: p?.display_name || 'Usuário',
+          contact: phone ? `wa.me/${phone}` : p?.email || null,
+        }
+      })
+    }
+  } catch {
+    // Table might not exist yet
+  }
+
   return (
     <TradesHub
       userId={user.id}
@@ -109,6 +147,7 @@ export default async function TradesPage() {
       nearbyMatches={nearbyMatches}
       pendingRequests={pendingRequests}
       sentRequestUserIds={sentRequestUserIds}
+      approvedTrades={approvedTrades}
     />
   )
 }

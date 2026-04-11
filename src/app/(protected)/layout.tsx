@@ -1,6 +1,7 @@
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import InstallBanner from '@/components/InstallBanner'
+import PushPermission from '@/components/PushPermission'
 
 export default function ProtectedLayout({
   children,
@@ -12,6 +13,7 @@ export default function ProtectedLayout({
       <AppHeader />
       <div id="main-content">{children}</div>
       <InstallBanner />
+      <PushPermission />
       <footer>
         <BottomNav />
       </footer>

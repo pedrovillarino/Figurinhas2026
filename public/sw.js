@@ -1,8 +1,7 @@
-const CACHE_NAME = 'figurinhas-v1'
+const CACHE_NAME = 'figurinhas-v2'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/album-cover.jpg',
 ]
 
 // Install: cache static assets
@@ -63,5 +62,57 @@ self.addEventListener('fetch', (event) => {
         return response
       })
       .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+  )
+})
+
+// ── Push Notifications ──
+self.addEventListener('push', (event) => {
+  if (!event.data) return
+
+  try {
+    const data = event.data.json()
+    const options = {
+      body: data.body || '',
+      icon: data.icon || '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [200, 100, 200],
+      data: { url: data.url || '/trades' },
+      actions: [
+        { action: 'open', title: 'Abrir' },
+      ],
+    }
+
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'Complete Aí', options)
+    )
+  } catch {
+    // Fallback for plain text
+    event.waitUntil(
+      self.registration.showNotification('Complete Aí', {
+        body: event.data.text(),
+        icon: '/icon-192.png',
+      })
+    )
+  }
+})
+
+// Click on notification → open the app
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  const url = event.notification.data?.url || '/trades'
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // If app is already open, focus it
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      // Otherwise open new window
+      return self.clients.openWindow(url)
+    })
   )
 })

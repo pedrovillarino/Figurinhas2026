@@ -89,6 +89,7 @@ export default function TradesHub({
   nearbyMatches: initialMatches,
   pendingRequests: initialPendingRequests,
   sentRequestUserIds = [],
+  approvedTrades: initialApprovedTrades = [],
 }: {
   userId: string
   tier: Tier
@@ -99,6 +100,7 @@ export default function TradesHub({
   nearbyMatches: NearbyMatch[]
   pendingRequests: PendingRequest[]
   sentRequestUserIds?: string[]
+  approvedTrades?: Array<{ requestId: string; requesterName: string; contact: string | null }>
 }) {
   const supabase = createClient()
   const isPremium = canTrade(tier)
@@ -414,17 +416,20 @@ export default function TradesHub({
   }
 
   // Respond to a received trade request (approve/reject)
-  async function handleRespondToRequest(requestId: string, action: 'approve' | 'reject') {
+  async function handleRespondToRequest(requestId: string, action: 'approve' | 'reject'): Promise<{ requester_name?: string; requester_contact?: string } | null> {
     const res = await fetch('/api/trade-respond', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ request_id: requestId, action }),
     })
 
+    const data = await res.json()
     if (!res.ok) {
-      const data = await res.json()
       alert(data.error || 'Erro ao responder.')
+      return null
     }
+
+    return data
   }
 
   function getInitials(name: string | null): string {
@@ -892,6 +897,7 @@ export default function TradesHub({
             <TradeRequestsBanner
               requests={initialPendingRequests}
               onRespond={handleRespondToRequest}
+              initialApprovedTrades={initialApprovedTrades}
             />
 
             {/* Match cards */}
