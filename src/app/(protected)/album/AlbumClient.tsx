@@ -46,7 +46,7 @@ export default function AlbumClient({
   const [showExport, setShowExport] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [visibleCount, setVisibleCount] = useState(40)
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set())
   const [undoAction, setUndoAction] = useState<{ stickerId: number; prevStatus: string; prevQty: number; message: string } | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
@@ -152,7 +152,7 @@ export default function AlbumClient({
   }, [filtered])
 
   function toggleSection(country: string) {
-    setCollapsedSections((prev) => {
+    setOpenSections((prev) => {
       const next = new Set(prev)
       if (next.has(country)) next.delete(country)
       else next.add(country)
@@ -557,7 +557,7 @@ export default function AlbumClient({
           {Object.entries(groupedByCountry).map(([country, countryStickers]) => {
             const sec = sectionStats[country]
             const pct = sec ? Math.round((sec.owned / sec.total) * 100) : 0
-            const isCollapsed = collapsedSections.has(country)
+            const isCollapsed = !openSections.has(country)
             return (
               <div key={country}>
                 <button
