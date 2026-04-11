@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 const ONBOARDING_KEY = 'completeai_onboarding_v1'
 
@@ -50,6 +51,8 @@ export default function OnboardingModal() {
       handleClose()
     }
   }
+
+  useBodyScrollLock(show)
 
   if (!show) return null
 

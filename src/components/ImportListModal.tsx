@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 type ImportMode = 'coladas' | 'faltantes'
 type InputMethod = null | 'camera' | 'text'
@@ -41,6 +42,8 @@ export default function ImportListModal({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+
+  useBodyScrollLock(isOpen)
 
   if (!isOpen) return null
 
@@ -242,13 +245,16 @@ export default function ImportListModal({
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-white rounded-t-3xl shadow-2xl animate-slide-up max-h-[90vh] flex flex-col">
+      <div
+        className="relative w-full max-w-lg bg-white rounded-t-3xl shadow-2xl animate-slide-up max-h-[90vh] flex flex-col"
+        onTouchMove={(e) => e.stopPropagation()}
+      >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
-        <div className="px-5 pb-8 overflow-y-auto flex-1">
+        <div className="px-5 pb-8 overflow-y-auto overscroll-contain flex-1">
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
