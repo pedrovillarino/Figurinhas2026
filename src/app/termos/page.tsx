@@ -21,7 +21,7 @@ function P({ children }: { children: React.ReactNode }) {
 }
 
 function SubSection({ id, children }: { id: string; children: React.ReactNode }) {
-  return <div className="space-y-2 pl-4 border-l-2 border-gray-100">{children}</div>
+  return <div id={id} className="space-y-2 pl-4 border-l-2 border-gray-100">{children}</div>
 }
 
 function UL({ children }: { children: React.ReactNode }) {
