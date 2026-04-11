@@ -1,4 +1,5 @@
 import BottomNav from '@/components/BottomNav'
+import AppHeader from '@/components/AppHeader'
 
 export default function ProtectedLayout({
   children,
@@ -7,6 +8,7 @@ export default function ProtectedLayout({
 }) {
   return (
     <div className="min-h-screen pb-20">
+      <AppHeader />
       <div id="main-content">{children}</div>
       <footer>
         <BottomNav />
