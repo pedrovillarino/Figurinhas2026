@@ -1,4 +1,4 @@
-# Figurinhas Copa 2026
+# Complete Aí — Álbum da Copa 2026
 User-agent: *
 Allow: /
 Disallow: /api/
@@ -10,4 +10,4 @@ Disallow: /export
 Disallow: /profile
 Disallow: /trade-approve
 
-Sitemap: https://figurinhas2026.vercel.app/sitemap.xml
+Sitemap: https://www.completeai.com.br/sitemap.xml
