@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 const ONBOARDING_KEY = 'completeai_onboarding_v2'
 
@@ -131,6 +132,8 @@ export default function OnboardingModal() {
       handleClose()
     }
   }
+
+  useBodyScrollLock(show)
 
   if (!show) return null
 

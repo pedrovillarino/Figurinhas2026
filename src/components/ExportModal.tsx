@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 type Sticker = {
   id: number
@@ -32,6 +33,8 @@ export default function ExportModal({
   const [exportDuplicates, setExportDuplicates] = useState(false)
   const [groupByCountry, setGroupByCountry] = useState(true)
   const [copied, setCopied] = useState(false)
+
+  useBodyScrollLock(isOpen)
 
   if (!isOpen) return null
 
