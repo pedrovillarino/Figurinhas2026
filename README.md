@@ -1,6 +1,6 @@
 # Figurinhas Copa 2026
 
-PWA para gerenciar seu album de figurinhas da Copa do Mundo 2026. Rastreie suas figurinhas, escaneie com IA e encontre pessoas para trocar.
+PWA para gerenciar seu album de figurinhas da Copa 2026. Rastreie suas figurinhas, escaneie com IA e encontre pessoas para trocar.
 
 ## Stack
 
