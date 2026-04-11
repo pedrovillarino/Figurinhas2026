@@ -2,6 +2,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import HomeLogin from "./HomeLogin";
+import { LogoFull } from "@/components/Logo";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,17 +24,7 @@ export default async function Home() {
         <div className="relative z-10 flex flex-col items-center max-w-md mx-auto">
           {/* Logo */}
           <div className="animate-fade-up mb-1">
-            <div className="flex items-center gap-2">
-              <LogoMark />
-              <div>
-                <h1 className="text-xl font-black tracking-tight leading-none">
-                  Complete<span className="text-brand"> Aí</span>
-                </h1>
-                <p className="text-[9px] text-gray-400 font-medium tracking-wide uppercase">
-                  Álbum da Copa 2026
-                </p>
-              </div>
-            </div>
+            <LogoFull size={40} />
           </div>
 
           {/* Album cover + glow */}
@@ -180,22 +171,6 @@ export default async function Home() {
 
 /* ── Sub-components ── */
 
-function LogoMark() {
-  return (
-    <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center p-1 shadow-sm shadow-brand/20">
-      <div className="grid grid-cols-2 gap-[2px] w-full h-full">
-        {/* 3 filled stickers */}
-        <div className="bg-white/90 rounded-[2px]" />
-        <div className="bg-white/90 rounded-[2px]" />
-        <div className="bg-white/90 rounded-[2px]" />
-        {/* 1 missing with + */}
-        <div className="border border-dashed border-white/60 rounded-[2px] flex items-center justify-center">
-          <span className="text-white text-[6px] font-bold leading-none">+</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ValueProp({
   icon,
