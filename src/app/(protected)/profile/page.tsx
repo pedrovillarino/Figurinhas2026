@@ -23,6 +23,8 @@ export default function ProfilePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [phone, setPhone] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [stats, setStats] = useState<Stats>({ owned: 0, missing: 0, duplicates: 0, total: 638 })
@@ -46,6 +48,8 @@ export default function ProfilePage() {
     if (data) {
       setProfile(data)
       setPhone(data.phone || '')
+      setDisplayName(data.display_name || '')
+      setEmail(data.email || user.email || '')
     }
   }
 
@@ -82,7 +86,12 @@ export default function ProfilePage() {
 
     await supabase
       .from('profiles')
-      .update({ phone, last_active: new Date().toISOString() })
+      .update({
+        display_name: displayName || null,
+        email: email || null,
+        phone,
+        last_active: new Date().toISOString(),
+      })
       .eq('id', user.id)
 
     setSaving(false)
@@ -145,30 +154,61 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Phone */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          WhatsApp / Telefone
-        </label>
-        <p className="text-xs text-gray-500 mb-2">
-          Necessário para trocas via WhatsApp
-        </p>
-        <div className="flex gap-2">
+      {/* Editable fields */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-4">
+        {/* Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nome
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Seu nome"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            E-mail
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
+          />
+        </div>
+
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            WhatsApp / Telefone
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Necessário para trocas via WhatsApp
+          </p>
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+55 11 99999-9999"
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
           />
-          <button
-            onClick={savePhone}
-            disabled={saving}
-            className="bg-brand text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50"
-          >
-            {saving ? '...' : saved ? 'Salvo!' : 'Salvar'}
-          </button>
         </div>
+
+        {/* Save button */}
+        <button
+          onClick={savePhone}
+          disabled={saving}
+          className="w-full bg-brand text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50"
+        >
+          {saving ? '...' : saved ? 'Salvo!' : 'Salvar alterações'}
+        </button>
       </div>
 
       {/* Contact */}
