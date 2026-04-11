@@ -83,6 +83,21 @@ export default async function TradesPage() {
     // RPC might not exist yet
   }
 
+  // Load trade requests SENT by this user (still pending) so button stays disabled
+  let sentRequestUserIds: string[] = []
+  try {
+    const { data: sentRequests } = await supabase
+      .from('trade_requests')
+      .select('target_id')
+      .eq('requester_id', user.id)
+      .eq('status', 'pending')
+    if (sentRequests) {
+      sentRequestUserIds = sentRequests.map((r) => r.target_id)
+    }
+  } catch {
+    // Table might not exist yet
+  }
+
   return (
     <TradesHub
       userId={user.id}
@@ -93,6 +108,7 @@ export default async function TradesPage() {
       nearbyCount={nearbyCount}
       nearbyMatches={nearbyMatches}
       pendingRequests={pendingRequests}
+      sentRequestUserIds={sentRequestUserIds}
     />
   )
 }

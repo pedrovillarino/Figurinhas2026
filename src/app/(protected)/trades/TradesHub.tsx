@@ -88,6 +88,7 @@ export default function TradesHub({
   nearbyCount: initialNearbyCount,
   nearbyMatches: initialMatches,
   pendingRequests: initialPendingRequests,
+  sentRequestUserIds = [],
 }: {
   userId: string
   tier: Tier
@@ -97,6 +98,7 @@ export default function TradesHub({
   nearbyCount: number
   nearbyMatches: NearbyMatch[]
   pendingRequests: PendingRequest[]
+  sentRequestUserIds?: string[]
 }) {
   const supabase = createClient()
   const isPremium = canTrade(tier)
@@ -119,7 +121,7 @@ export default function TradesHub({
   const [radius, setRadius] = useState(50)
   const [loadingMatches, setLoadingMatches] = useState(false)
   const [requestingTrade, setRequestingTrade] = useState<string | null>(null)
-  const [requestedTrades, setRequestedTrades] = useState<Set<string>>(new Set())
+  const [requestedTrades, setRequestedTrades] = useState<Set<string>>(new Set(sentRequestUserIds))
 
   // Notification preferences
   const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>('whatsapp')
