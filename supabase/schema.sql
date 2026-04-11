@@ -1,5 +1,5 @@
 -- =============================================================
--- Álbum de Figurinhas Copa do Mundo FIFA 2026
+-- Álbum de Figurinhas Copa 2026
 -- Schema para Supabase - Rodar no SQL Editor
 -- =============================================================
 

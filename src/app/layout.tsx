@@ -35,7 +35,7 @@ export const metadata: Metadata = {
         url: "/album-cover.jpg",
         width: 1200,
         height: 630,
-        alt: "Complete Aí — Álbum de Figurinhas Copa do Mundo FIFA 2026",
+        alt: "Complete Aí — Álbum de Figurinhas Copa 2026",
       },
     ],
   },

@@ -1,8 +1,7 @@
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import HomeLogin from "./HomeLogin";
-import { LogoFull } from "@/components/Logo";
+import { LogoFull, LogoMark } from "@/components/Logo";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,18 +26,11 @@ export default async function Home() {
             <LogoFull size={40} />
           </div>
 
-          {/* Album cover + glow */}
+          {/* Logo icon + glow */}
           <div className="animate-fade-up-delay relative my-5">
             <div className="absolute inset-0 bg-brand/15 blur-[50px] rounded-full scale-90" />
-            <div className="relative w-32 h-auto animate-float">
-              <Image
-                src="/album-cover.jpg"
-                alt="Álbum Copa do Mundo 2026"
-                width={128}
-                height={174}
-                priority
-                className="rounded-lg shadow-xl shadow-brand/10"
-              />
+            <div className="relative animate-float">
+              <LogoMark size={120} />
             </div>
           </div>
 
@@ -157,13 +149,21 @@ export default async function Home() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="px-6 py-6 border-t border-gray-100 text-center">
+      <footer className="px-6 py-6 border-t border-gray-100 text-center space-y-2">
         <p className="text-[10px] text-gray-300">
           Complete Aí — Álbum da Copa 2026
         </p>
-        <p className="text-[10px] text-gray-300 mt-0.5">
+        <p className="text-[10px] text-gray-300">
           contato@completeai.com.br
         </p>
+        <p className="text-[9px] text-gray-300/70 max-w-xs mx-auto leading-relaxed">
+          Este app não é afiliado, endossado ou patrocinado pela FIFA, Panini, Topps, Fanatics ou qualquer organização oficial.
+        </p>
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <a href="/termos" className="text-[9px] text-gray-400 hover:text-brand transition">Termos de Serviço</a>
+          <span className="text-gray-200">·</span>
+          <a href="/privacidade" className="text-[9px] text-gray-400 hover:text-brand transition">Privacidade</a>
+        </div>
       </footer>
     </div>
   );
