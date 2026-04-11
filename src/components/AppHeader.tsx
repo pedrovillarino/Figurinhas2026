@@ -1,4 +1,4 @@
-import { LogoMark } from './Logo'
+import { LogoFull } from './Logo'
 
 export default function AppHeader() {
   return (
@@ -6,11 +6,8 @@ export default function AppHeader() {
       {/* Glass background — alta transparência */}
       <div className="absolute inset-0 bg-white/40 backdrop-blur-2xl" />
 
-      <div className="relative flex items-center gap-2 px-4 h-11 max-w-lg mx-auto">
-        <LogoMark size={22} />
-        <span className="text-[11px] font-semibold tracking-wide text-navy/50 uppercase">
-          Copa do Mundo 2026
-        </span>
+      <div className="relative flex items-center px-4 h-12 max-w-lg mx-auto">
+        <LogoFull size={28} showSubtitle={true} />
       </div>
     </header>
   )
