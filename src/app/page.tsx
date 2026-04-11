@@ -75,7 +75,7 @@ export default async function Home() {
               </div>
             }
             title="Scanner com IA"
-            description="Tire uma foto da página do álbum e registre 50+ figurinhas em segundos."
+            description="Escaneie e registre figurinhas automaticamente."
             badge="Exclusivo"
           />
 
