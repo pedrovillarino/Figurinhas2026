@@ -14,92 +14,236 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060608] text-white overflow-hidden relative">
-      {/* Ambient light */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand/8 rounded-full blur-[150px]" />
+    <div className="min-h-screen bg-white text-navy overflow-hidden">
+      {/* ── Hero Section ── */}
+      <section className="relative px-6 pt-10 pb-8">
+        {/* Subtle gradient bg */}
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-light/60 via-white to-white" />
 
-      {/* Content */}
-      <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="px-6 pt-5 pb-2 animate-fade-up">
-        </header>
+        <div className="relative z-10 flex flex-col items-center max-w-md mx-auto">
+          {/* Logo */}
+          <div className="animate-fade-up mb-1">
+            <div className="flex items-center gap-2">
+              <LogoMark />
+              <div>
+                <h1 className="text-xl font-black tracking-tight leading-none">
+                  Complete<span className="text-brand"> Aí</span>
+                </h1>
+                <p className="text-[9px] text-gray-400 font-medium tracking-wide uppercase">
+                  Álbum da Copa 2026
+                </p>
+              </div>
+            </div>
+          </div>
 
-        {/* Hero */}
-        <main className="flex-1 flex flex-col items-center px-6 pt-4 pb-8 overflow-y-auto">
-          {/* Album cover */}
-          <div className="animate-fade-up mb-6 relative">
-            <div className="absolute inset-0 bg-brand/20 blur-[60px] rounded-full scale-75" />
-            <div className="relative w-36 h-auto drop-shadow-2xl">
+          {/* Album cover + glow */}
+          <div className="animate-fade-up-delay relative my-5">
+            <div className="absolute inset-0 bg-brand/15 blur-[50px] rounded-full scale-90" />
+            <div className="relative w-32 h-auto animate-float">
               <Image
                 src="/album-cover.jpg"
                 alt="Álbum Copa do Mundo 2026"
-                width={144}
-                height={195}
+                width={128}
+                height={174}
                 priority
-                className="rounded-lg shadow-2xl shadow-black/50"
+                className="rounded-lg shadow-xl shadow-brand/10"
               />
             </div>
           </div>
 
-          {/* Copy */}
-          <h1 className="text-2xl font-black tracking-tight text-center leading-tight animate-fade-up-delay">
-            Seu álbum,{' '}
+          {/* Headline */}
+          <h2 className="text-[22px] font-black text-center leading-tight animate-fade-up-delay tracking-tight">
+            Escaneie. Troque.{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-dark">
-              do seu jeito.
+              Complete.
             </span>
-          </h1>
+          </h2>
 
-          <p className="text-[13px] text-white/55 mt-2 text-center leading-relaxed max-w-xs animate-fade-up-delay">
-            Gerencie, escaneie e troque figurinhas com quem está perto.
+          <p className="text-sm text-gray-500 mt-2 text-center leading-relaxed max-w-[280px] animate-fade-up-delay">
+            O único app que escaneia suas figurinhas com IA e encontra trocas perto de você.
           </p>
 
-          {/* Login inline */}
+          {/* CTA */}
           <div className="mt-6 w-full max-w-xs animate-fade-up-delay-2">
             <HomeLogin />
           </div>
+        </div>
+      </section>
 
-          {/* Features */}
-          <div className="mt-10 w-full max-w-xs space-y-2.5 animate-fade-up-delay-3">
-            <div className="group flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
-                <div className="flex gap-[2px]">
-                  <div className="w-1 h-4 rounded-sm bg-brand/60 group-hover:h-2.5 transition-all duration-500" />
-                  <div className="w-1 h-2.5 rounded-sm bg-brand/40 group-hover:h-4 transition-all duration-500 delay-75" />
-                  <div className="w-1 h-3 rounded-sm bg-brand/50 group-hover:h-2 transition-all duration-500 delay-150" />
-                </div>
+      {/* ── Value Props ── */}
+      <section className="px-6 py-8 max-w-md mx-auto">
+        <div className="space-y-4 animate-fade-up-delay-3">
+          {/* Scanner IA */}
+          <ValueProp
+            icon={
+              <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               </div>
-              <div>
-                <p className="text-[12px] font-medium text-white/80">Controle total</p>
-                <p className="text-[10px] text-white/50">Coladas, faltam e repetidas</p>
-              </div>
-            </div>
+            }
+            title="Scanner com IA"
+            description="Tire uma foto da página do álbum e registre 50+ figurinhas em segundos."
+            badge="Exclusivo"
+          />
 
-            <div className="group flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                <div className="w-4 h-4 rounded border border-cyan-400/40 relative overflow-hidden">
-                  <div className="absolute left-0 right-0 h-[1px] bg-cyan-400/70 group-hover:animate-[scan_1.5s_ease-in-out_infinite] top-0" />
-                </div>
+          {/* Trocas */}
+          <ValueProp
+            icon={
+              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
               </div>
-              <div>
-                <p className="text-[12px] font-medium text-white/80">Scan com IA</p>
-                <p className="text-[10px] text-white/50">Tire foto, registre automaticamente</p>
-              </div>
-            </div>
+            }
+            title="Trocas perto de você"
+            description="Encontre colecionadores na sua região que têm o que você precisa."
+            badge="Geolocalização"
+          />
 
-            <div className="group flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                <div className="flex items-center gap-[2px]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400/50 group-hover:-translate-x-0.5 transition-transform duration-300" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400/30 group-hover:translate-x-0.5 transition-transform duration-300" />
-                </div>
+          {/* Controle */}
+          <ValueProp
+            icon={
+              <div className="w-10 h-10 rounded-xl bg-navy/5 flex items-center justify-center">
+                <svg className="w-5 h-5 text-navy/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
               </div>
-              <div>
-                <p className="text-[12px] font-medium text-white/80">Trocas inteligentes</p>
-                <p className="text-[10px] text-white/50">Encontre quem tem o que você precisa</p>
-              </div>
-            </div>
+            }
+            title="Controle total do álbum"
+            description="Coladas, faltantes e repetidas — tudo organizado num só lugar."
+          />
+        </div>
+      </section>
+
+      {/* ── Social Proof ── */}
+      <section className="px-6 py-6 bg-gray-50/80">
+        <div className="max-w-md mx-auto">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <StatBlock value="980" label="figurinhas" />
+            <StatBlock value="1s" label="por scan" />
+            <StatBlock value="50km" label="de alcance" />
           </div>
-        </main>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className="px-6 py-10 max-w-md mx-auto">
+        <h3 className="text-base font-bold text-center text-navy mb-6">
+          Como funciona
+        </h3>
+        <div className="flex flex-col gap-5">
+          <Step
+            number="1"
+            title="Crie sua conta"
+            description="Login rápido com Google ou Apple."
+          />
+          <Step
+            number="2"
+            title="Escaneie suas figurinhas"
+            description="Tire uma foto — a IA registra tudo automaticamente."
+          />
+          <Step
+            number="3"
+            title="Encontre trocas"
+            description="Veja quem perto de você tem as figurinhas que faltam."
+          />
+        </div>
+      </section>
+
+      {/* ── Bottom CTA ── */}
+      <section className="px-6 pt-6 pb-10 bg-gradient-to-b from-white to-brand-light/40">
+        <div className="max-w-xs mx-auto text-center">
+          <p className="text-lg font-bold text-navy mb-1">
+            Comece agora — é grátis
+          </p>
+          <p className="text-xs text-gray-400 mb-5">
+            Escaneie sua primeira figurinha em 30 segundos.
+          </p>
+          <HomeLogin />
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="px-6 py-6 border-t border-gray-100 text-center">
+        <p className="text-[10px] text-gray-300">
+          Complete Aí — Álbum da Copa 2026
+        </p>
+        <p className="text-[10px] text-gray-300 mt-0.5">
+          contato@completeai.com.br
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+/* ── Sub-components ── */
+
+function LogoMark() {
+  return (
+    <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center p-1 shadow-sm shadow-brand/20">
+      <div className="grid grid-cols-2 gap-[2px] w-full h-full">
+        {/* 3 filled stickers */}
+        <div className="bg-white/90 rounded-[2px]" />
+        <div className="bg-white/90 rounded-[2px]" />
+        <div className="bg-white/90 rounded-[2px]" />
+        {/* 1 missing with + */}
+        <div className="border border-dashed border-white/60 rounded-[2px] flex items-center justify-center">
+          <span className="text-white text-[6px] font-bold leading-none">+</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ValueProp({
+  icon,
+  title,
+  description,
+  badge,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  badge?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white border border-gray-100 shadow-sm">
+      {icon}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="text-sm font-bold text-navy">{title}</p>
+          {badge && (
+            <span className="text-[8px] bg-brand-light text-brand-dark font-bold rounded-full px-1.5 py-0.5 uppercase tracking-wide">
+              {badge}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function StatBlock({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="py-3">
+      <p className="text-xl font-black text-brand">{value}</p>
+      <p className="text-[10px] text-gray-400 font-medium">{label}</p>
+    </div>
+  );
+}
+
+function Step({ number, title, description }: { number: string; title: string; description: string }) {
+  return (
+    <div className="flex items-start gap-3.5">
+      <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <span className="text-xs font-bold text-brand">{number}</span>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-navy">{title}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
       </div>
     </div>
   );
