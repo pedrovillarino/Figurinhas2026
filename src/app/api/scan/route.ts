@@ -116,8 +116,8 @@ export async function POST(request: Request) {
 
       const isFree = userTier === 'free'
       const errorMsg = isFree
-        ? 'Você usou seus 5 scans gratuitos! Desbloqueie o plano Plus para continuar escaneando. 📸'
-        : `Você usou todos os seus ${usageData.limit} scans. Compre um pacote extra para continuar! 📸`
+        ? 'Você usou seus 5 scans gratuitos! Cada scan detecta várias figurinhas — desbloqueie o Plus para continuar. 📸'
+        : `Você usou todos os seus ${usageData.limit} scans. Cada scan lê várias figurinhas — compre um pacote extra para continuar! 📸`
 
       return NextResponse.json(
         {

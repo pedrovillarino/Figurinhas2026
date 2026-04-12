@@ -94,6 +94,8 @@ export default function ScanHub({
 
     const accumulated: MatchedSticker[] = []
     const accWarnings: string[] = []
+    let processedCount = 0
+    let hitLimit = false
 
     for (let i = 0; i < files.length; i++) {
       setBatchIndex(i + 1)
@@ -108,16 +110,49 @@ export default function ScanHub({
           body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
         })
 
+        const data = await res.json()
+
         if (res.ok) {
-          const data: ScanResponse = await res.json()
-          accumulated.push(...data.matched)
-          accWarnings.push(...data.warnings)
+          const scanData = data as ScanResponse
+          accumulated.push(...scanData.matched)
+          accWarnings.push(...scanData.warnings)
+          processedCount++
+
+          // Update scan usage from response
+          if (scanData.scanUsage) {
+            setScansRemaining(scanData.scanUsage.remaining)
+            setScansLimit(scanData.scanUsage.limit || 200)
+          }
+        } else if (res.status === 429 && (data.needsUpgrade || data.needsPack)) {
+          // Scan limit hit mid-batch — stop and show what we have
+          hitLimit = true
+          if (data.scanUsage) {
+            setScansRemaining(0)
+            setScansLimit(data.scanUsage.limit || 200)
+          }
+          setNeedsUpgrade(!!data.needsUpgrade)
+          setNeedsPack(!!data.needsPack)
+
+          const remaining = files.length - i
+          accWarnings.push(`Limite de scans atingido — ${remaining} foto${remaining !== 1 ? 's' : ''} não processada${remaining !== 1 ? 's' : ''}`)
+          break
+        } else {
+          // Other API error — note it but continue with next image
+          accWarnings.push(`Foto ${i + 1}: ${data.error || 'Erro ao processar'}`)
         }
       } catch {
-        // skip failed
+        accWarnings.push(`Foto ${i + 1}: Falha na conexão`)
       }
     }
 
+    // If no stickers found at all and we hit a limit, go to error screen
+    if (accumulated.length === 0 && hitLimit) {
+      setErrorMsg('Limite de scans atingido antes de processar suas fotos.')
+      setState('error')
+      return
+    }
+
+    // If nothing found at all (no limit issue), show empty results
     const deduped = accumulated.filter(
       (s, idx, arr) => arr.findLastIndex((x) => x.sticker_id === s.sticker_id) === idx
     )
@@ -212,12 +247,12 @@ export default function ScanHub({
         .single()
 
       if (existing) {
-        if (existing.status === 'owned') {
+        if (existing.status === 'owned' || existing.status === 'duplicate') {
+          // Already owned — increment quantity and mark as duplicate
           await supabase.from('user_stickers')
-            .update({ status: 'duplicate', quantity: existing.quantity + 1, updated_at: new Date().toISOString() })
+            .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + 1, updated_at: new Date().toISOString() })
             .eq('id', existing.id)
-        }
-        if (existing.status === 'missing') {
+        } else if (existing.status === 'missing') {
           await supabase.from('user_stickers')
             .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() })
             .eq('id', existing.id)
@@ -303,11 +338,11 @@ export default function ScanHub({
           <h1 className="text-2xl font-black tracking-tight text-gray-900">Scanner IA</h1>
           {scansRemaining !== null && (
             <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2.5 py-1">
-              {scansRemaining}/{scansLimit} scans hoje
+              {scansRemaining} scans restantes
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 mb-6">Fotografe suas figurinhas e registre automaticamente</p>
+        <p className="text-xs text-gray-500 mb-6">Cada foto detecta várias figurinhas de uma vez</p>
 
         {/* Hidden inputs */}
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Tirar foto com câmera" />
@@ -363,7 +398,7 @@ export default function ScanHub({
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
           <span className="text-sm">✨</span>
           <p className="text-[10px] text-gray-500 flex-1">
-            Boa iluminação + números visíveis = scan perfeito. <span className="text-brand font-medium">A IA identifica tudo em segundos.</span>
+            1 foto = várias figurinhas detectadas. <span className="text-brand font-medium">Junte o máximo na mesa pra aproveitar cada scan!</span>
           </p>
         </div>
 
