@@ -429,43 +429,27 @@ export default function AlbumClient({
         </div>
       </div>
 
-      {/* Export banner */}
-      <Link
-        href="/export"
-        className="flex items-center gap-3 mb-4 p-3 bg-gradient-to-r from-brand-light to-gold-light border border-brand/20 rounded-xl active:scale-[0.98] transition"
-      >
-        <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
-          <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      {/* Export & Import — compact row */}
+      <div className="flex gap-2 mb-4">
+        <Link
+          href="/export"
+          className="flex-1 flex items-center gap-2 px-3 py-2 bg-brand-light/60 border border-brand/15 rounded-lg active:scale-[0.98] transition"
+        >
+          <svg className="w-4 h-4 text-brand flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-800">Exportar lista</p>
-          <p className="text-[10px] text-gray-500">Envie suas faltantes ou repetidas via WhatsApp, e-mail ou texto</p>
-        </div>
-        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-        </svg>
-      </Link>
-
-      {/* Import banner */}
-      <button
-        onClick={() => setShowImport(true)}
-        className="flex items-center gap-3 mb-4 w-full p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl active:scale-[0.98] transition text-left"
-      >
-        <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-          <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <span className="text-xs font-semibold text-gray-700">Exportar</span>
+        </Link>
+        <button
+          onClick={() => setShowImport(true)}
+          className="flex-1 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg active:scale-[0.98] transition"
+        >
+          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
           </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-800">Importar lista</p>
-          <p className="text-[10px] text-gray-500">Tire foto ou cole sua lista de figurinhas coladas ou faltantes</p>
-        </div>
-        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-        </svg>
-      </button>
+          <span className="text-xs font-semibold text-gray-700">Importar</span>
+        </button>
+      </div>
 
       {/* Premium banner - only shows if there's still a tier limit */}
       {showLimitBanner && <PremiumBanner />}

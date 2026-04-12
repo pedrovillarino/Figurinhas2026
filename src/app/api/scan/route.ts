@@ -6,33 +6,16 @@ import { cookies } from 'next/headers'
 
 export const maxDuration = 30
 
-const SYSTEM_INSTRUCTION = `Você é um scanner de figurinhas de álbuns Panini de Copa do Mundo (qualquer edição: 2022, 2026, etc).
-
-Você pode receber:
-1. Uma foto de uma PÁGINA INTEIRA do álbum — identifique todos os slots visíveis.
-2. Uma foto de uma FIGURINHA INDIVIDUAL (solta, fora do álbum) — identifique o número, jogador e país.
+const SYSTEM_INSTRUCTION = `Scanner de figurinhas Panini Copa do Mundo. Identifique números de figurinhas na foto.
 
 REGRAS:
-- "filled": figurinha colada ou figurinha individual fotografada.
-- "empty": espaço vazio no álbum.
-- Confiança < 0.7 se incerto.
-- "unreadable": descreva slots ilegíveis.
-- scan_confidence: qualidade geral da imagem.
-- Ignore decorações. Países em Português.
-- Para figurinha individual: retorne apenas 1 item no array stickers com status "filled".
-- Use o número EXATO impresso na figurinha (ex: FWC-1, QAT-1, BRA-10, ARG-12).
-- NÃO invente números. Leia o que está impresso.
+- "filled": figurinha colada ou individual. "empty": slot vazio.
+- Use número EXATO impresso (ex: FWC-1, BRA-10, ARG-12). NÃO invente.
+- confidence < 0.7 se incerto. Países em Português.
+- Se não é página de álbum: {"error":"not_album_page","message":"descrição"}
 
-Retorne APENAS JSON válido neste formato:
-{
-  "pages_detected": 1,
-  "scan_confidence": 0.9,
-  "stickers": [
-    {"number": "BRA-1", "player_name": "Neymar", "country": "Brasil", "status": "filled", "confidence": 0.95}
-  ],
-  "unreadable": [],
-  "warnings": []
-}`
+Retorne APENAS JSON:
+{"scan_confidence":0.9,"stickers":[{"number":"BRA-1","player_name":"Neymar","country":"Brasil","status":"filled","confidence":0.95}],"unreadable":[],"warnings":[]}`
 
 export async function POST(request: Request) {
   try {
@@ -79,7 +62,7 @@ export async function POST(request: Request) {
     // 4. Call Gemini
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: SYSTEM_INSTRUCTION,
     })
 
@@ -183,14 +166,20 @@ export async function POST(request: Request) {
     }
 
     if (unmatched.length > 0) {
-      warnings.push(`${unmatched.length} figurinha(s) não encontrada(s) no álbum: ${unmatched.join(', ')}`)
+      warnings.push(`${unmatched.length} figurinha(s) detectada(s) mas não encontrada(s) no banco de dados: ${unmatched.join(', ')}. Pode ser número lido incorretamente pela IA.`)
+    }
+
+    // Add per-sticker low confidence warnings
+    const lowConfStickers = parsed.stickers.filter((s: { confidence?: number; number: string }) => s.confidence && s.confidence < 0.7)
+    if (lowConfStickers.length > 0) {
+      warnings.push(`Leitura incerta: ${lowConfStickers.map((s: { number: string }) => s.number).join(', ')}. Verifique se estão corretas.`)
     }
 
     return NextResponse.json({
       matched,
       unmatched,
       warnings,
-      confidence: parsed.confidence || 'medium',
+      confidence: parsed.scan_confidence || parsed.confidence || 'medium',
     })
   } catch (err) {
     console.error('Scan error:', err)

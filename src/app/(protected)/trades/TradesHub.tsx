@@ -443,83 +443,242 @@ export default function TradesHub({
       <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Trocas</h1>
       <p className="text-xs text-gray-400 mb-5">Encontre colecionadores perto de você e economize</p>
 
-      {/* ─── Por que trocar? ─── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-        {/* Header com economia */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-emerald-100 font-medium">Por que trocar vale a pena</p>
-            {albumStats && albumStats.savingsVsAlone > 0 && (
-              <span className="text-[10px] font-bold text-emerald-900 bg-emerald-200 rounded-full px-2 py-0.5">
-                -{albumStats.savingsOptPercent}% custo
-              </span>
+      {/* ─── Quick stats ─── */}
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 bg-white rounded-xl border border-gray-100 p-2.5 text-center">
+          <p className="text-lg font-black text-gray-800">{totalExtras}</p>
+          <p className="text-[9px] text-gray-500">repetidas</p>
+        </div>
+        <div className="flex-1 bg-white rounded-xl border border-gray-100 p-2.5 text-center">
+          <p className="text-lg font-black text-gray-800">{missingStickers.length}</p>
+          <p className="text-[9px] text-gray-500">faltantes</p>
+        </div>
+        <div className="flex-1 bg-white rounded-xl border border-gray-100 p-2.5 text-center">
+          <p className="text-lg font-black text-emerald-600">R${albumStats ? albumStats.savingsVsAlone : potentialSavings.toFixed(0)}</p>
+          <p className="text-[9px] text-gray-500">economia c/ troca</p>
+        </div>
+      </div>
+
+      {/* ─── Nearby People (FIRST!) ─── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center">
+            <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-gray-900">Colecionadores perto de você</p>
+            <p className="text-[10px] text-gray-400">Raio de {radius} km</p>
+          </div>
+          {hasLocation && (
+            <button onClick={loadMatchesFromServer} className="text-[10px] text-brand font-semibold">
+              Atualizar
+            </button>
+          )}
+        </div>
+
+        {/* Radius selector */}
+        <div className="flex gap-1.5 mb-4">
+          {[5, 10, 15, 25, 50].map((r) => (
+            <button
+              key={r}
+              onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                radius === r ? 'bg-brand-light0 text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+              }`}
+            >
+              {r} km
+            </button>
+          ))}
+        </div>
+
+        {!hasLocation ? (
+          <button
+            onClick={requestLocation}
+            disabled={requestingLocation}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition active:scale-[0.98] disabled:opacity-50"
+          >
+            {requestingLocation ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Obtendo localização...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                Ativar localização para ver trocas
+              </>
+            )}
+          </button>
+        ) : loadingMatches ? (
+          <div className="flex justify-center py-4">
+            <div className="w-6 h-6 border-2 border-gray-200 border-t-brand rounded-full animate-spin" />
+          </div>
+        ) : nearbyCount > 0 ? (
+          <div>
+            <div className="flex items-center gap-2 mb-3 bg-emerald-50 rounded-xl px-3 py-2.5">
+              <span className="text-lg">🎉</span>
+              <div>
+                <p className="text-xs font-bold text-emerald-800">
+                  {nearbyCount} pessoa{nearbyCount > 1 ? 's' : ''} encontrada{nearbyCount > 1 ? 's' : ''}!
+                </p>
+                <p className="text-[10px] text-emerald-600">
+                  {nearbyStickersAvailable} figurinha{nearbyStickersAvailable > 1 ? 's' : ''} disponive{nearbyStickersAvailable > 1 ? 'is' : 'l'} que você precisa
+                </p>
+              </div>
+            </div>
+
+            {/* Pending trade requests received */}
+            <TradeRequestsBanner
+              requests={initialPendingRequests}
+              onRespond={handleRespondToRequest}
+              initialApprovedTrades={initialApprovedTrades}
+            />
+
+            {/* Match cards */}
+            <div className="space-y-2">
+              {matches.map((match) => {
+                const isExpanded = expandedId === match.user_id
+                const matchDetails = details[match.user_id]
+                const isLoadingDetail = loadingDetails === match.user_id
+                const isSending = requestingTrade === match.user_id
+                const alreadyRequested = requestedTrades.has(match.user_id)
+
+                return (
+                  <div key={match.user_id} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                    <button
+                      onClick={() => toggleExpand(match.user_id)}
+                      className="w-full px-3 py-3 flex items-center gap-3 text-left"
+                    >
+                      <div className="w-9 h-9 bg-brand-light rounded-full flex items-center justify-center text-brand font-bold text-xs shrink-0">
+                        {getInitials(match.display_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold text-gray-800 truncate">
+                            {match.display_name?.split(' ')[0] || 'Usuário'}
+                          </span>
+                          <span className="text-[9px] text-gray-400">{match.distance_km} km</span>
+                        </div>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {match.they_have > 0 && (
+                            <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5 text-[9px] font-medium">
+                              Tem {match.they_have} que você precisa
+                            </span>
+                          )}
+                          {match.i_have > 0 && (
+                            <span className="inline-flex items-center gap-0.5 bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 text-[9px] font-medium">
+                              Precisa de {match.i_have} suas
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {!isPremium ? (
+                        <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-1 font-bold shrink-0">
+                          PREMIUM
+                        </span>
+                      ) : (
+                        <svg
+                          className={`w-4 h-4 text-gray-300 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                        </svg>
+                      )}
+                    </button>
+
+                    {/* Premium: expanded details */}
+                    {isPremium && isExpanded && (
+                      <div className="px-3 pb-3 border-t border-gray-100">
+                        {isLoadingDetail ? (
+                          <div className="flex justify-center py-3">
+                            <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
+                          </div>
+                        ) : matchDetails ? (
+                          <>
+                            {matchDetails.filter((d) => d.direction === 'they_have').length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider mb-1.5">Tem pra te dar</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {matchDetails.filter((d) => d.direction === 'they_have').map((d) => (
+                                    <span key={d.sticker_id} className={`rounded-lg px-1.5 py-0.5 text-[10px] font-medium ${
+                                      watchedIds.includes(d.sticker_id)
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                        : 'bg-emerald-50 text-emerald-800'
+                                    }`}>
+                                      {watchedIds.includes(d.sticker_id) && '🔔 '}{d.number}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {matchDetails.filter((d) => d.direction === 'i_have').length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider mb-1.5">Você tem pra dar</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {matchDetails.filter((d) => d.direction === 'i_have').map((d) => (
+                                    <span key={d.sticker_id} className="bg-blue-50 text-blue-800 rounded-lg px-1.5 py-0.5 text-[10px] font-medium">
+                                      {d.number}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {/* Trade request button */}
+                            {alreadyRequested ? (
+                              <div className="mt-3 w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-500 rounded-xl py-2.5 text-xs font-semibold">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Solicitação enviada — aguardando aprovação
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); requestTrade(match) }}
+                                disabled={isSending}
+                                className="mt-3 w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
+                              >
+                                {isSending ? (
+                                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                  </svg>
+                                )}
+                                Solicitar troca
+                              </button>
+                            )}
+                          </>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {!isPremium && (
+              <button
+                onClick={() => setShowPaywall(true)}
+                className="w-full mt-3 py-3 bg-brand text-white rounded-xl text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
+              >
+                Desbloquear trocas — ver detalhes e notificar
+              </button>
             )}
           </div>
-          <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-black text-white">
-              R${albumStats ? albumStats.savingsVsAlone : potentialSavings.toFixed(0)}
-            </p>
-            <p className="text-sm text-emerald-200">de economia estimada</p>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-2xl mb-2">🔍</p>
+            <p className="text-xs text-gray-500 font-medium">Ninguém encontrado em {radius} km</p>
+            <p className="text-[10px] text-gray-400 mt-1">Tente aumentar o raio de busca</p>
           </div>
-        </div>
-
-        {/* Comparativo visual */}
-        <div className="p-4">
-          {albumStats && (
-            <div className="space-y-2.5 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs">😰</span>
-                <div className="flex-1">
-                  <div className="flex justify-between text-[10px] mb-0.5">
-                    <span className="text-gray-500">Comprando sozinho</span>
-                    <span className="font-bold text-red-500">R${albumStats.expectedCost}</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-400 rounded-full" style={{ width: '100%' }} />
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs">🚀</span>
-                <div className="flex-1">
-                  <div className="flex justify-between text-[10px] mb-0.5">
-                    <span className="text-gray-500 font-semibold">Trocando com o app</span>
-                    <span className="font-bold text-emerald-600">R${albumStats.optimizedCost}</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
-                      style={{ width: `${albumStats.expectedCost > 0 ? Math.max(5, (albumStats.optimizedCost / albumStats.expectedCost) * 100) : 0}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Stats row */}
-          <div className="flex gap-2">
-            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 text-center">
-              <p className="text-lg font-black text-gray-800">{totalExtras}</p>
-              <p className="text-[9px] text-gray-500">repetidas para trocar</p>
-            </div>
-            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 text-center">
-              <p className="text-lg font-black text-gray-800">{missingStickers.length}</p>
-              <p className="text-[9px] text-gray-500">faltantes</p>
-            </div>
-            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 text-center">
-              <p className="text-lg font-black text-gray-800">{albumStats ? albumStats.probNova : Math.round((missingStickers.length / stickers.length) * 100)}%</p>
-              <p className="text-[9px] text-gray-500">chance de nova</p>
-            </div>
-          </div>
-
-          {/* Contextual message */}
-          {albumStats && albumStats.probNova < 40 && (
-            <p className="text-[10px] text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mt-2.5 leading-relaxed">
-              Com {albumStats.probNova}% de chance de nova, {albumStats.probNova < 20 ? '4 em cada 5' : '3 em cada 5'} figurinhas compradas serão repetidas. Trocar é muito mais eficiente nessa fase.
-            </p>
-          )}
-        </div>
+        )}
       </div>
 
       {/* ─── Notificacoes & Lista de desejos ─── */}
@@ -815,228 +974,6 @@ export default function TradesHub({
                 <p className="text-center text-[10px] text-gray-400 py-4">Nenhuma figurinha encontrada</p>
               )}
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* ─── Nearby People ─── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center">
-            <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-gray-900">Colecionadores perto de você</p>
-            <p className="text-[10px] text-gray-400">Raio de {radius} km</p>
-          </div>
-          {hasLocation && (
-            <button onClick={loadMatchesFromServer} className="text-[10px] text-brand font-semibold">
-              Atualizar
-            </button>
-          )}
-        </div>
-
-        {/* Radius selector */}
-        <div className="flex gap-1.5 mb-4">
-          {[5, 10, 15, 25, 50].map((r) => (
-            <button
-              key={r}
-              onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}
-              className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-                radius === r ? 'bg-brand-light0 text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
-              }`}
-            >
-              {r} km
-            </button>
-          ))}
-        </div>
-
-        {!hasLocation ? (
-          <button
-            onClick={requestLocation}
-            disabled={requestingLocation}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition active:scale-[0.98] disabled:opacity-50"
-          >
-            {requestingLocation ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Obtendo localização...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                </svg>
-                Ativar localização para ver trocas
-              </>
-            )}
-          </button>
-        ) : loadingMatches ? (
-          <div className="flex justify-center py-4">
-            <div className="w-6 h-6 border-2 border-gray-200 border-t-brand rounded-full animate-spin" />
-          </div>
-        ) : nearbyCount > 0 ? (
-          <div>
-            <div className="flex items-center gap-2 mb-3 bg-emerald-50 rounded-xl px-3 py-2.5">
-              <span className="text-lg">🎉</span>
-              <div>
-                <p className="text-xs font-bold text-emerald-800">
-                  {nearbyCount} pessoa{nearbyCount > 1 ? 's' : ''} encontrada{nearbyCount > 1 ? 's' : ''}!
-                </p>
-                <p className="text-[10px] text-emerald-600">
-                  {nearbyStickersAvailable} figurinha{nearbyStickersAvailable > 1 ? 's' : ''} disponive{nearbyStickersAvailable > 1 ? 'is' : 'l'} que você precisa
-                </p>
-              </div>
-            </div>
-
-            {/* Pending trade requests received */}
-            <TradeRequestsBanner
-              requests={initialPendingRequests}
-              onRespond={handleRespondToRequest}
-              initialApprovedTrades={initialApprovedTrades}
-            />
-
-            {/* Match cards */}
-            <div className="space-y-2">
-              {matches.map((match) => {
-                const isExpanded = expandedId === match.user_id
-                const matchDetails = details[match.user_id]
-                const isLoadingDetail = loadingDetails === match.user_id
-                const isSending = requestingTrade === match.user_id
-                const alreadyRequested = requestedTrades.has(match.user_id)
-
-                return (
-                  <div key={match.user_id} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
-                    <button
-                      onClick={() => toggleExpand(match.user_id)}
-                      className="w-full px-3 py-3 flex items-center gap-3 text-left"
-                    >
-                      <div className="w-9 h-9 bg-brand-light rounded-full flex items-center justify-center text-brand font-bold text-xs shrink-0">
-                        {getInitials(match.display_name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-semibold text-gray-800 truncate">
-                            {match.display_name?.split(' ')[0] || 'Usuário'}
-                          </span>
-                          <span className="text-[9px] text-gray-400">{match.distance_km} km</span>
-                        </div>
-                        <div className="flex gap-1.5 flex-wrap">
-                          {match.they_have > 0 && (
-                            <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-700 rounded px-1.5 py-0.5 text-[9px] font-medium">
-                              Tem {match.they_have} que você precisa
-                            </span>
-                          )}
-                          {match.i_have > 0 && (
-                            <span className="inline-flex items-center gap-0.5 bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 text-[9px] font-medium">
-                              Precisa de {match.i_have} suas
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {!isPremium ? (
-                        <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-1 font-bold shrink-0">
-                          PREMIUM
-                        </span>
-                      ) : (
-                        <svg
-                          className={`w-4 h-4 text-gray-300 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                        </svg>
-                      )}
-                    </button>
-
-                    {/* Premium: expanded details */}
-                    {isPremium && isExpanded && (
-                      <div className="px-3 pb-3 border-t border-gray-100">
-                        {isLoadingDetail ? (
-                          <div className="flex justify-center py-3">
-                            <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
-                          </div>
-                        ) : matchDetails ? (
-                          <>
-                            {matchDetails.filter((d) => d.direction === 'they_have').length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider mb-1.5">Tem pra te dar</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {matchDetails.filter((d) => d.direction === 'they_have').map((d) => (
-                                    <span key={d.sticker_id} className={`rounded-lg px-1.5 py-0.5 text-[10px] font-medium ${
-                                      watchedIds.includes(d.sticker_id)
-                                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                        : 'bg-emerald-50 text-emerald-800'
-                                    }`}>
-                                      {watchedIds.includes(d.sticker_id) && '🔔 '}{d.number}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {matchDetails.filter((d) => d.direction === 'i_have').length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider mb-1.5">Você tem pra dar</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {matchDetails.filter((d) => d.direction === 'i_have').map((d) => (
-                                    <span key={d.sticker_id} className="bg-blue-50 text-blue-800 rounded-lg px-1.5 py-0.5 text-[10px] font-medium">
-                                      {d.number}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {/* Trade request button */}
-                            {alreadyRequested ? (
-                              <div className="mt-3 w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-500 rounded-xl py-2.5 text-xs font-semibold">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Solicitação enviada — aguardando aprovação
-                              </div>
-                            ) : (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); requestTrade(match) }}
-                                disabled={isSending}
-                                className="mt-3 w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-xl py-2.5 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
-                              >
-                                {isSending ? (
-                                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                                  </svg>
-                                )}
-                                Solicitar troca
-                              </button>
-                            )}
-                          </>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {!isPremium && (
-              <button
-                onClick={() => setShowPaywall(true)}
-                className="w-full mt-3 py-3 bg-brand text-white rounded-xl text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
-              >
-                Desbloquear trocas — ver detalhes e notificar
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-2xl mb-2">🔍</p>
-            <p className="text-xs text-gray-500 font-medium">Ninguém encontrado em {radius} km</p>
-            <p className="text-[10px] text-gray-400 mt-1">Tente aumentar o raio de busca</p>
           </div>
         )}
       </div>

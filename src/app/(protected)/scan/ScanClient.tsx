@@ -36,7 +36,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
-  function compressImage(dataUrl: string, maxWidth = 1200): Promise<string> {
+  function compressImage(dataUrl: string, maxWidth = 800): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
@@ -46,7 +46,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         canvas.height = img.height * ratio
         const ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.7))
+        resolve(canvas.toDataURL('image/jpeg', 0.6))
       }
       img.src = dataUrl
     })
@@ -346,6 +346,17 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
             Sua foto não é armazenada. Apenas identificamos as figurinhas e descartamos a imagem.
           </p>
         </div>
+
+        {/* Legal disclaimer */}
+        <div className="mt-4 bg-amber-50/60 border border-amber-100 rounded-xl px-3 py-2.5">
+          <div className="flex items-start gap-2">
+            <span className="text-xs mt-0.5">⚠️</span>
+            <p className="text-[10px] text-amber-700 leading-relaxed">
+              <span className="font-semibold">Importante:</span> utilize o scan apenas para fotografar figurinhas, páginas do álbum ou envelopes de figurinhas.
+              Não envie fotos de documentos pessoais, rostos ou qualquer conteúdo sensível. As imagens são descartadas após a análise.
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -416,10 +427,21 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
 
   // ── ERROR ──
   if (state === 'error') {
+    const isTimeout = errorMsg.includes('demorou')
+    const isQuota = errorMsg.includes('Limite')
+    const isQuality = errorMsg.includes('nítida') || errorMsg.includes('qualidade')
     return (
       <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="text-5xl mb-4">😕</div>
+        <div className="text-5xl mb-4">{isTimeout ? '⏱️' : isQuota ? '🚫' : isQuality ? '📷' : '😕'}</div>
         <p className="text-lg font-semibold text-gray-700 text-center">{errorMsg}</p>
+        <div className="mt-4 bg-gray-50 rounded-xl p-3 max-w-xs">
+          <p className="text-[11px] text-gray-500 leading-relaxed text-center">
+            {isTimeout && 'Dica: use fotos menores ou com menos figurinhas por vez.'}
+            {isQuota && 'Aguarde 1 minuto e tente novamente.'}
+            {isQuality && 'Dica: boa iluminação e números bem visíveis ajudam a IA.'}
+            {!isTimeout && !isQuota && !isQuality && 'Se o problema persistir, tente outra foto ou entre em contato.'}
+          </p>
+        </div>
         <button
           onClick={reset}
           className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition"
@@ -439,10 +461,33 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
           {scanResult.matched.length} encontrada(s). Desmarque as incorretas.
         </p>
 
-        {scanResult.warnings.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-            {scanResult.warnings.map((w, i) => (
-              <p key={i} className="text-xs text-amber-700">{w}</p>
+        {/* Unmatched stickers (clear error) */}
+        {scanResult.unmatched.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-sm">❌</span>
+              <p className="text-xs font-semibold text-red-700">
+                {scanResult.unmatched.length} não encontrada{scanResult.unmatched.length > 1 ? 's' : ''} no banco
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {scanResult.unmatched.map((num, i) => (
+                <span key={i} className="bg-red-100 text-red-600 rounded px-1.5 py-0.5 text-[10px] font-medium">{num}</span>
+              ))}
+            </div>
+            <p className="text-[10px] text-red-500 mt-1.5">Possível erro de leitura da IA. Verifique os números manualmente.</p>
+          </div>
+        )}
+
+        {/* Other warnings */}
+        {scanResult.warnings.filter(w => !w.includes('não encontrada')).length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-sm">⚠️</span>
+              <p className="text-xs font-semibold text-amber-700">Avisos</p>
+            </div>
+            {scanResult.warnings.filter(w => !w.includes('não encontrada')).map((w, i) => (
+              <p key={i} className="text-[11px] text-amber-600 leading-relaxed">{w}</p>
             ))}
           </div>
         )}
