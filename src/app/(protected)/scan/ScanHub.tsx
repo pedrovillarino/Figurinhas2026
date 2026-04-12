@@ -270,174 +270,87 @@ export default function ScanHub({
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Tirar foto com câmera" />
         <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" aria-label="Escolher foto da galeria" />
 
-        {/* Hero demo */}
-        <div className="bg-gradient-to-br from-brand to-brand-dark rounded-2xl p-5 mb-5 shadow-lg">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-              <span className="text-4xl">📸</span>
-            </div>
-            <div>
-              <p className="text-lg font-black text-white">Escanear e pronto!</p>
-              <p className="text-xs text-brand-light">A IA identifica cada figurinha automaticamente</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-white/15 rounded-xl p-3 text-center backdrop-blur-sm">
-              <p className="text-xl font-black text-white">1s</p>
-              <p className="text-[9px] text-brand-light">por figurinha</p>
-            </div>
-            <div className="bg-white/15 rounded-xl p-3 text-center backdrop-blur-sm">
-              <p className="text-xl font-black text-white">99%</p>
-              <p className="text-[9px] text-brand-light">precisão</p>
-            </div>
-            <div className="bg-white/15 rounded-xl p-3 text-center backdrop-blur-sm">
-              <p className="text-xl font-black text-white">50+</p>
-              <p className="text-[9px] text-brand-light">por foto</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="space-y-3 mb-6">
+        {/* ── Main actions (FIRST) ── */}
+        <div className="flex gap-2.5 mb-5">
           <button
             onClick={triggerCamera}
-            className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 hover:bg-gray-50 transition active:scale-[0.98]"
+            className="flex-1 flex flex-col items-center gap-2 bg-brand text-white rounded-2xl py-5 px-3 cursor-pointer hover:bg-brand-dark transition active:scale-[0.98] shadow-sm"
           >
-            <div className="w-12 h-12 rounded-xl bg-brand-light flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-              </svg>
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-semibold text-gray-800">Tirar Foto</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Página do álbum, figurinha individual ou várias juntas</p>
-            </div>
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+            </svg>
+            <span className="text-sm font-bold">Tirar Foto</span>
             {!hasScan && (
-              <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-1 font-bold shrink-0">PLUS</span>
+              <span className="text-[9px] bg-white/20 rounded-full px-2 py-0.5 font-bold">PLUS</span>
             )}
           </button>
 
           <button
             onClick={triggerGallery}
-            className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 hover:bg-gray-50 transition active:scale-[0.98]"
+            className="flex-1 flex flex-col items-center gap-2 bg-white border-2 border-gray-100 text-gray-700 rounded-2xl py-5 px-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
           >
-            <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-              </svg>
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-semibold text-gray-800">Escolher da Galeria</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Selecione uma ou várias fotos de uma vez</p>
-            </div>
+            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+            </svg>
+            <span className="text-sm font-bold">Galeria</span>
             {!hasScan && (
-              <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-1 font-bold shrink-0">PLUS</span>
+              <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-0.5 font-bold">PLUS</span>
             )}
           </button>
         </div>
 
-        {/* What you can scan */}
-        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">O que posso escanear</p>
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-            <div className="text-2xl mb-1.5">📖</div>
-            <p className="text-[10px] font-medium text-gray-600">Página inteira</p>
-            <p className="text-[10px] text-gray-500">do álbum</p>
-          </div>
-          <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-            <div className="text-2xl mb-1.5">🃏</div>
-            <p className="text-[10px] font-medium text-gray-600">Uma figurinha</p>
-            <p className="text-[10px] text-gray-500">individual</p>
-          </div>
-          <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-            <div className="text-2xl mb-1.5">🎴</div>
-            <p className="text-[10px] font-medium text-gray-600">Várias juntas</p>
-            <p className="text-[10px] text-gray-500">na mesa</p>
-          </div>
-        </div>
-
-        {/* How it works */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">Como funciona</h2>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-brand-light flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-black text-brand">1</span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-800">Tire uma foto</p>
-                <p className="text-[10px] text-gray-500">da página do álbum ou das figurinhas soltas</p>
-              </div>
+        {/* ── What you can scan ── */}
+        <div className="mb-5">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">O que posso escanear</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
+              <div className="text-2xl mb-1">📖</div>
+              <p className="text-[10px] font-semibold text-gray-700">Página</p>
+              <p className="text-[9px] text-gray-400">do álbum aberto</p>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-brand-light flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-black text-brand">2</span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-800">IA identifica tudo</p>
-                <p className="text-[10px] text-gray-500">Reconhece números, jogadores e seleções automaticamente</p>
-              </div>
+            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
+              <div className="text-2xl mb-1">⚽</div>
+              <p className="text-[10px] font-semibold text-gray-700">Figurinha</p>
+              <p className="text-[9px] text-gray-400">solta na mão</p>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-brand-light flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-black text-brand">3</span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-800">Confirme e salve</p>
-                <p className="text-[10px] text-gray-500">Revise o resultado e salve no seu álbum com um toque</p>
-              </div>
+            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
+              <div className="text-2xl mb-1">🃏</div>
+              <p className="text-[10px] font-semibold text-gray-700">Várias</p>
+              <p className="text-[9px] text-gray-400">espalhadas na mesa</p>
             </div>
           </div>
         </div>
 
-        {/* Comparison: manual vs scan */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">Manual vs Scanner IA</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Manual</p>
-              <p className="text-2xl font-black text-gray-400">~30min</p>
-              <p className="text-[9px] text-gray-400 mt-1">para registrar 50 figurinhas</p>
-            </div>
-            <div className="bg-brand-light rounded-xl p-3 text-center border border-brand/20">
-              <p className="text-[10px] font-semibold text-brand uppercase mb-2">Scanner IA</p>
-              <p className="text-2xl font-black text-brand">~30s</p>
-              <p className="text-[10px] text-brand mt-1">para registrar 50 figurinhas</p>
-            </div>
-          </div>
-          <p className="text-[10px] text-gray-500 text-center mt-2">60x mais rápido que marcar uma por uma</p>
-        </div>
-
-        {/* Tips */}
-        <div className="flex items-start gap-2.5 px-1">
-          <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-          </svg>
-          <p className="text-[11px] text-gray-500 leading-relaxed">
-            Boa iluminação e números visíveis garantem melhor resultado.
+        {/* ── Subtle selling banner ── */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
+          <span className="text-sm">✨</span>
+          <p className="text-[10px] text-gray-500 flex-1">
+            Boa iluminação + números visíveis = scan perfeito. <span className="text-brand font-medium">A IA identifica tudo em segundos.</span>
           </p>
         </div>
 
-        {/* Upgrade CTA for non-plus */}
+        {/* Upgrade CTA for non-plus — compact */}
         {!hasScan && (
-          <div className="mt-6 bg-white rounded-2xl border-2 border-brand/30 p-4">
-            <div className="text-center mb-2">
-              <span className="text-2xl">⚡</span>
+          <div className="bg-white rounded-xl border border-brand/20 p-3 mb-4 flex items-center gap-3">
+            <span className="text-xl">⚡</span>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-gray-900">Desbloqueie o Scanner IA</p>
+              <p className="text-[10px] text-gray-500">Escaneie e pronto — R$9,90 único</p>
             </div>
-            <h3 className="text-sm font-bold text-gray-900 text-center mb-1">Desbloqueie o Scanner IA</h3>
-            <p className="text-[10px] text-gray-500 text-center mb-3">
-              Pare de marcar figurinha por figurinha. Escaneie e pronto!
-            </p>
             <button
               onClick={() => setShowPaywall(true)}
-              className="w-full bg-brand text-white rounded-xl py-3 text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
+              className="bg-brand text-white rounded-lg px-3 py-1.5 text-[10px] font-bold hover:bg-brand-dark transition active:scale-[0.98]"
             >
-              Desbloquear por R$9,90
+              Desbloquear
             </button>
-            <p className="text-[10px] text-gray-500 text-center mt-2">Pagamento unico. Sem assinatura.</p>
           </div>
         )}
+
+        {/* ── Disclaimer + privacy ── */}
+        <p className="text-[9px] text-gray-300 px-1 leading-relaxed">
+          Suas fotos não são armazenadas — descartadas após análise. Fotografe apenas figurinhas, páginas do álbum ou envelopes.
+        </p>
 
         {/* Paywall Modal */}
         {showPaywall && (
