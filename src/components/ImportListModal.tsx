@@ -254,7 +254,7 @@ export default function ImportListModal({
           <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
-        <div className="px-5 pb-8 overflow-y-auto overscroll-contain flex-1">
+        <div className="px-5 pb-24 overflow-y-auto overscroll-contain flex-1">
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
