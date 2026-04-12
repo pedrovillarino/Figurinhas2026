@@ -6,61 +6,38 @@ import { cookies } from 'next/headers'
 
 export const maxDuration = 60
 
-// All valid country codes in our database
-const VALID_CODES = [
-  'FIFA', 'QAT', 'ECU', 'SEN', 'NED', 'ENG', 'IRN', 'USA', 'WAL',
-  'ARG', 'KSA', 'MEX', 'POL', 'FRA', 'AUS', 'DEN', 'TUN', 'ESP',
-  'CRC', 'GER', 'JPN', 'BEL', 'CAN', 'MAR', 'CRO', 'BRA', 'SRB',
-  'SUI', 'CMR', 'POR', 'GHA', 'URU', 'KOR',
-]
+const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup Qatar 2022 sticker scanner.
+Analyze photos of stickers (album pages, loose stickers, or stickers on a table).
 
-const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup sticker album scanner. Your job is to read sticker numbers from photos.
+For EACH sticker visible, extract:
+1. "player_name": The player or item name printed on the sticker (e.g., "NEYMAR JR", "CASEMIRO", "LIONEL MESSI"). For badges/emblems, use "Emblem" or "Team Photo".
+2. "country_code": The 3-letter country code visible on the sticker (e.g., "BRA", "ARG", "FRA", "POR", "GER", "ENG"). Look for it near the flag.
+3. "status": "filled" if it's an actual sticker (pasted or loose). "empty" if it's just an empty album slot.
+4. "confidence": 0.0 to 1.0 — how sure you are about the identification.
 
-STICKER NUMBER FORMAT:
-Numbers in this album follow the pattern: CODE-NUMBER
-Where CODE is one of: ${VALID_CODES.join(', ')}
-And NUMBER is 1 to 20 (or up to 30 for FIFA).
-
-Examples: FIFA-1, BRA-10, ARG-12, GER-5, QAT-1, USA-20, FRA-15
-
-WHAT YOU MIGHT SEE IN PHOTOS:
-- Album pages with sticker slots (some filled, some empty)
-- Individual loose stickers
-- Multiple stickers spread on a table
-- The number is usually printed small on the sticker or on the album slot
-
-HOW TO READ NUMBERS:
-1. Look for the printed number on each sticker or slot
-2. The number might appear as "BRA 1", "BRA-1", "BRA1", or just "1" near a country section
-3. ALWAYS output in the format CODE-NUMBER with a hyphen (e.g., "BRA-1", not "BRA 1")
-4. If you only see a bare number (like "1" or "15"), determine the country from context (page header, flag, team name visible) and prepend the code
-5. If you cannot determine the country for a bare number, skip it
-
-STATUS RULES:
-- "filled" = sticker is pasted in the album OR it's a loose/individual sticker
-- "empty" = the slot is empty, showing only the placeholder/outline
-
-CONFIDENCE:
-- Set confidence to 0.9+ only if you can clearly read the number
-- Set confidence below 0.7 if the number is partially obscured or you're guessing
-- Set scan_confidence based on overall photo quality
-
-OUTPUT FORMAT (return ONLY this JSON, no other text):
+Return ONLY valid JSON in this format:
 {
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Player Name", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"player_name": "Neymar Jr", "country_code": "BRA", "status": "filled", "confidence": 0.95},
+    {"player_name": "Lionel Messi", "country_code": "ARG", "status": "filled", "confidence": 0.90}
   ],
-  "unreadable": [],
   "warnings": []
 }
 
-If the image is NOT a sticker/album photo:
-{"error": "not_album_page", "message": "description of what you see instead"}
-
-CRITICAL: Read EVERY sticker visible. Do not skip any. Output the country name in Portuguese.`
+RULES:
+- Read the name EXACTLY as printed on the sticker
+- Read the country code EXACTLY as shown (BRA, ARG, FRA, POR, GER, ENG, ESP, etc.)
+- For team photo stickers (group photo), use player_name "Team Photo"
+- For emblem/badge stickers (team crest), use player_name "Emblem"
+- For special stickers (trophy, mascot, stadium), describe what it is
+- ALWAYS read ALL stickers visible in the photo — do not skip any
+- If the image is not sticker-related: {"error": "not_album_page", "message": "description"}
+- Country names in Portuguese for the country field (Brasil, Argentina, França, etc.)`
 
 export async function POST(request: Request) {
+  const startTime = Date.now()
+
   try {
     // 1. Validate auth
     const cookieStore = cookies()
@@ -93,6 +70,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nenhuma imagem recebida. Tente novamente.' }, { status: 400 })
     }
 
+    console.log(`[scan] Image: ${(image.length * 0.75 / 1024).toFixed(0)}KB, mime: ${mimeType}`)
+
     // 3. Check Gemini API key
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey || apiKey === 'your-gemini-api-key-here') {
@@ -102,44 +81,63 @@ export async function POST(request: Request) {
       )
     }
 
-    // 4. Load ALL stickers from DB upfront for flexible matching
+    // 4. Load ALL stickers from DB for name-based matching
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    const { data: allDbStickers } = await supabaseAdmin
+    const { data: allDbStickers, error: dbError } = await supabaseAdmin
       .from('stickers')
       .select('id, number, player_name, country, section, type')
 
+    if (dbError) {
+      console.error('[scan] DB error:', dbError.message)
+    }
+
     if (!allDbStickers || allDbStickers.length === 0) {
-      console.error('No stickers found in database!')
       return NextResponse.json(
         { error: 'Dados de figurinhas não encontrados. Contate o suporte.' },
         { status: 500 }
       )
     }
 
-    // Build multiple lookup maps for flexible matching
-    const exactMap = new Map(allDbStickers.map((s) => [s.number.toUpperCase(), s]))
-    // Map by just the numeric part per country: "BRA" -> { "1": sticker, "2": sticker, ... }
-    const countryNumMap = new Map<string, Map<string, typeof allDbStickers[0]>>()
+    console.log(`[scan] Loaded ${allDbStickers.length} stickers from DB`)
+
+    // Build lookup maps
+    // Map: normalized_name -> sticker (per country code)
+    // e.g., "BRA" -> { "neymar jr" -> {id, number, ...}, "casemiro" -> {...} }
+    const nameByCountry = new Map<string, Map<string, typeof allDbStickers[0]>>()
+    // Also a flat name map for fallback (ignoring country)
+    const nameFlat = new Map<string, typeof allDbStickers[0]>()
+
     for (const s of allDbStickers) {
-      const [code, num] = s.number.split('-')
-      if (!countryNumMap.has(code)) countryNumMap.set(code, new Map())
-      countryNumMap.get(code)!.set(num, s)
+      const code = s.number.split('-')[0] // "BRA", "ARG", etc.
+      const normName = normalizeName(s.player_name)
+
+      if (!nameByCountry.has(code)) nameByCountry.set(code, new Map())
+      nameByCountry.get(code)!.set(normName, s)
+
+      // Flat map — only if not ambiguous (same name in multiple countries is rare for players)
+      if (!nameFlat.has(normName)) {
+        nameFlat.set(normName, s)
+      }
     }
 
     // 5. Call Gemini
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       systemInstruction: SYSTEM_INSTRUCTION,
       generationConfig: {
-        temperature: 0.1, // Low temperature for precise reading
+        temperature: 0.1,
+        responseMimeType: 'application/json',
       },
     })
+
+    console.log('[scan] Calling Gemini...')
+    const geminiStart = Date.now()
 
     const result = await model.generateContent([
       {
@@ -148,56 +146,62 @@ export async function POST(request: Request) {
           data: image,
         },
       },
-      { text: 'Read all sticker numbers visible in this photo. Return the JSON inventory.' },
+      { text: 'Identify all stickers in this photo. Return player names and country codes as JSON.' },
     ])
 
+    const geminiMs = Date.now() - geminiStart
     const responseText = result.response.text()
-    console.log('Gemini raw response (first 800 chars):', responseText.substring(0, 800))
+    console.log(`[scan] Gemini: ${geminiMs}ms, ${responseText.length} chars`)
+    console.log('[scan] Response:', responseText.substring(0, 1200))
 
-    // 6. Parse Gemini response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      console.error('No JSON in Gemini response:', responseText.substring(0, 300))
-      return NextResponse.json(
-        { error: 'Não conseguimos analisar a imagem. Tente uma foto mais nítida, com boa iluminação. 📷' },
-        { status: 422 }
-      )
-    }
-
-    let parsed
+    // 6. Parse response
+    let parsed: Record<string, unknown> | null = null
     try {
-      parsed = JSON.parse(jsonMatch[0])
-    } catch (parseErr) {
-      console.error('JSON parse failed:', jsonMatch[0].substring(0, 300))
+      parsed = JSON.parse(responseText)
+    } catch {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        try { parsed = JSON.parse(jsonMatch[0]) } catch {}
+      }
+    }
+
+    if (!parsed) {
+      console.error('[scan] JSON parse failed:', responseText.substring(0, 300))
       return NextResponse.json(
-        { error: 'Erro ao processar a análise. Tente tirar a foto novamente.' },
+        { error: 'Não conseguimos analisar a imagem. Tente uma foto mais nítida. 📷' },
         { status: 422 }
       )
     }
 
-    // Check for Gemini error response
     if (parsed.error) {
       const msg = parsed.error === 'not_album_page'
-        ? 'Essa foto não parece ser de figurinhas. Tente fotografar uma página do álbum ou figurinhas soltas.'
-        : parsed.message || 'Não conseguimos identificar figurinhas nessa foto.'
-      console.log('Gemini classified as error:', parsed.error, parsed.message)
+        ? 'Essa foto não parece ser de figurinhas. Tente fotografar figurinhas do álbum.'
+        : (parsed.message as string) || 'Não conseguimos identificar figurinhas.'
       return NextResponse.json({ error: msg }, { status: 422 })
     }
 
-    if (!parsed.stickers || !Array.isArray(parsed.stickers)) {
-      console.error('No stickers array. Keys:', Object.keys(parsed))
+    const stickersArr = parsed.stickers as Array<{
+      player_name?: string
+      country_code?: string
+      country?: string
+      number?: string
+      status?: string
+      confidence?: number
+    }> | undefined
+
+    if (!stickersArr || !Array.isArray(stickersArr) || stickersArr.length === 0) {
       return NextResponse.json(
-        { error: 'Não encontramos figurinhas nessa foto. Tente chegar mais perto e com melhor iluminação.' },
+        { error: 'Não encontramos figurinhas nessa foto. Tente chegar mais perto.' },
         { status: 422 }
       )
     }
 
-    console.log(`Gemini detected ${parsed.stickers.length} stickers:`,
-      parsed.stickers.map((s: { number: string; status: string }) => `${s.number}(${s.status})`).join(', ')
+    console.log(`[scan] Gemini found ${stickersArr.length} stickers:`,
+      stickersArr.map((s) => `${s.player_name}(${s.country_code || s.country || '?'})`).join(', ')
     )
 
-    // 7. Normalize and match detected stickers
-    const warnings: string[] = [...(parsed.warnings || [])]
+    // 7. Match by player name + country
+    const warnings: string[] = [...((parsed.warnings as string[]) || [])]
     const matched: Array<{
       sticker_id: number
       number: string
@@ -206,14 +210,58 @@ export async function POST(request: Request) {
       status: string
     }> = []
     const unmatched: string[] = []
+    const seenIds = new Set<number>()
 
-    for (const detected of parsed.stickers) {
-      const raw = String(detected.number || '').trim()
-      if (!raw) continue
+    for (const detected of stickersArr) {
+      const playerName = detected.player_name || ''
+      const countryCode = (detected.country_code || detected.country || '').toUpperCase().trim()
+      const normPlayer = normalizeName(playerName)
 
-      const dbSticker = findSticker(raw, exactMap, countryNumMap)
+      if (!normPlayer || normPlayer.length < 2) continue
 
-      if (dbSticker) {
+      let dbSticker = null
+
+      // Strategy 1: Match by name within the country
+      if (countryCode) {
+        // Try exact country code
+        const countryMap = nameByCountry.get(countryCode)
+        if (countryMap) {
+          dbSticker = countryMap.get(normPlayer) || null
+          // Try partial match (first/last name)
+          if (!dbSticker) {
+            dbSticker = fuzzyNameMatch(normPlayer, countryMap)
+          }
+        }
+        // Try country name → code mapping
+        if (!dbSticker) {
+          const mappedCode = COUNTRY_TO_CODE[countryCode] || COUNTRY_TO_CODE[normalizeName(countryCode)]
+          if (mappedCode) {
+            const mappedMap = nameByCountry.get(mappedCode)
+            if (mappedMap) {
+              dbSticker = mappedMap.get(normPlayer) || fuzzyNameMatch(normPlayer, mappedMap)
+            }
+          }
+        }
+      }
+
+      // Strategy 2: Flat name match (ignore country)
+      if (!dbSticker) {
+        dbSticker = nameFlat.get(normPlayer) || null
+      }
+
+      // Strategy 3: Fuzzy match across all countries
+      if (!dbSticker) {
+        for (const [, countryMap] of nameByCountry) {
+          const found = fuzzyNameMatch(normPlayer, countryMap)
+          if (found) {
+            dbSticker = found
+            break
+          }
+        }
+      }
+
+      if (dbSticker && !seenIds.has(dbSticker.id)) {
+        seenIds.add(dbSticker.id)
         matched.push({
           sticker_id: dbSticker.id,
           number: dbSticker.number,
@@ -221,48 +269,50 @@ export async function POST(request: Request) {
           country: dbSticker.country,
           status: detected.status || 'filled',
         })
-      } else {
-        unmatched.push(raw)
-        console.log(`Unmatched sticker: "${raw}" (normalized attempts failed)`)
+        console.log(`[scan] ✓ "${playerName}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name}`)
+      } else if (!dbSticker) {
+        unmatched.push(`${playerName} (${countryCode})`)
+        console.log(`[scan] ✗ "${playerName}" (${countryCode}) → no match`)
       }
     }
 
-    console.log(`Matching result: ${matched.length} matched, ${unmatched.length} unmatched`)
+    console.log(`[scan] Result: ${matched.length} matched, ${unmatched.length} unmatched`)
 
     if (unmatched.length > 0 && matched.length > 0) {
-      warnings.push(`${unmatched.length} figurinha(s) não reconhecida(s): ${unmatched.slice(0, 5).join(', ')}${unmatched.length > 5 ? '...' : ''}`)
+      warnings.push(`${unmatched.length} figurinha(s) não encontrada(s) no álbum: ${unmatched.slice(0, 3).join(', ')}${unmatched.length > 3 ? '...' : ''}`)
     }
 
-    if (matched.length === 0 && parsed.stickers.length > 0) {
-      // Gemini saw stickers but none matched the DB — likely format mismatch
-      console.error('Zero matches! Gemini numbers:', parsed.stickers.map((s: { number: string }) => s.number))
-      warnings.push('A IA detectou figurinhas mas não conseguiu associar aos números do álbum. Tente uma foto mais nítida dos números.')
+    if (matched.length === 0 && stickersArr.length > 0) {
+      console.error('[scan] ZERO matches! Names:', stickersArr.map((s) => s.player_name))
+      warnings.push('Nenhuma figurinha pôde ser associada ao álbum. Verifique se as figurinhas são da Copa 2022.')
     }
 
-    // Check confidence
-    if (parsed.scan_confidence && parsed.scan_confidence < 0.5) {
-      warnings.push('Qualidade da foto baixa. Confira os resultados com atenção.')
-    }
-    if (parsed.unreadable && parsed.unreadable.length > 0) {
-      warnings.push(`${parsed.unreadable.length} figurinha(s) ilegível(is) na foto.`)
+    const scanConf = parsed.scan_confidence as number | undefined
+    if (scanConf && scanConf < 0.5) {
+      warnings.push('Qualidade da foto baixa. Confira os resultados.')
     }
 
-    // Per-sticker low confidence
-    const lowConf = parsed.stickers.filter((s: { confidence?: number }) => s.confidence && s.confidence < 0.7)
-    if (lowConf.length > 0) {
-      warnings.push(`Leitura incerta em ${lowConf.length} figurinha(s). Verifique se estão corretas.`)
-    }
+    const totalMs = Date.now() - startTime
 
     return NextResponse.json({
       matched,
       unmatched,
       warnings,
-      confidence: parsed.scan_confidence || parsed.confidence || 'medium',
+      confidence: scanConf || 'high',
+      _debug: {
+        geminiDetected: stickersArr.length,
+        matched: matched.length,
+        unmatched: unmatched.length,
+        geminiMs,
+        totalMs,
+      },
     })
   } catch (err) {
-    console.error('Scan error:', err)
+    const totalMs = Date.now() - startTime
+    console.error(`[scan] Error after ${totalMs}ms:`, err)
 
     const errMsg = err instanceof Error ? err.message : String(err)
+
     let message = 'Algo deu errado no scan. Tente novamente.'
     let status = 500
 
@@ -270,121 +320,111 @@ export async function POST(request: Request) {
       message = 'Muitos scans seguidos! Espere um minutinho e tente de novo. ☕'
       status = 429
     } else if (errMsg.includes('timeout') || errMsg.includes('DEADLINE_EXCEEDED')) {
-      message = 'O scan demorou demais. Tente uma foto com melhor iluminação e mais perto das figurinhas. 📷'
+      message = 'O scan demorou demais. Tente uma foto com melhor iluminação. 📷'
     } else if (errMsg.includes('403') || errMsg.includes('PERMISSION_DENIED')) {
-      message = 'Serviço de scan temporariamente indisponível. Tente novamente mais tarde.'
+      message = 'Serviço de scan temporariamente indisponível. Tente mais tarde.'
       status = 503
     } else if (errMsg.includes('404') || errMsg.includes('not found')) {
-      message = 'Serviço de scan em manutenção. Tente novamente em alguns minutos.'
+      message = 'Serviço de scan em manutenção. Tente em alguns minutos.'
       status = 503
     } else if (errMsg.includes('500') || errMsg.includes('INTERNAL')) {
-      message = 'O serviço de scan está instável. Tente novamente em instantes.'
+      message = 'O serviço de scan está instável. Tente em instantes.'
     }
 
-    return NextResponse.json({ error: message }, { status })
+    return NextResponse.json({ error: message, _debug: { errorMsg: errMsg, totalMs } }, { status })
   }
 }
 
-/**
- * Try to find a sticker in the database using multiple matching strategies.
- * Handles variations like: "BRA-1", "BRA 1", "BRA1", "bra-1", "1" (bare number)
- */
-function findSticker(
-  raw: string,
-  exactMap: Map<string, { id: number; number: string; player_name: string; country: string; section: string; type: string }>,
-  countryNumMap: Map<string, Map<string, { id: number; number: string; player_name: string; country: string; section: string; type: string }>>,
+// ── Matching helpers ──
+
+/** Normalize a name for comparison: lowercase, remove accents, trim */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[^a-z0-9\s]/g, '')     // remove special chars
+    .replace(/\s+/g, ' ')            // collapse spaces
+    .trim()
+}
+
+/** Try fuzzy matching: last name, first name, contains */
+function fuzzyNameMatch(
+  normTarget: string,
+  nameMap: Map<string, { id: number; number: string; player_name: string; country: string; section: string; type: string }>,
 ) {
-  const upper = raw.toUpperCase().trim()
+  const targetParts = normTarget.split(' ')
+  const targetLast = targetParts[targetParts.length - 1]
+  const targetFirst = targetParts[0]
 
-  // Strategy 1: Exact match (e.g., "BRA-1")
-  const exact = exactMap.get(upper)
-  if (exact) return exact
+  let bestMatch: { id: number; number: string; player_name: string; country: string; section: string; type: string } | null = null
+  let bestScore = 0
 
-  // Strategy 2: Normalize separators — "BRA 1", "BRA  1", "BRA.1" → "BRA-1"
-  const normalized = upper
-    .replace(/\s+/g, '-')    // spaces → hyphen
-    .replace(/\.+/g, '-')    // dots → hyphen
-    .replace(/_+/g, '-')     // underscores → hyphen
-    .replace(/-+/g, '-')     // multiple hyphens → single
-  const fromNormalized = exactMap.get(normalized)
-  if (fromNormalized) return fromNormalized
+  for (const [dbNorm, sticker] of nameMap) {
+    if (sticker.type !== 'player') continue // Skip badges/special for fuzzy
 
-  // Strategy 3: No separator — "BRA1" → "BRA-1"
-  const noSepMatch = upper.match(/^([A-Z]{2,5})(\d+)$/)
-  if (noSepMatch) {
-    const withHyphen = `${noSepMatch[1]}-${noSepMatch[2]}`
-    const found = exactMap.get(withHyphen)
-    if (found) return found
-  }
+    const dbParts = dbNorm.split(' ')
+    const dbLast = dbParts[dbParts.length - 1]
+    const dbFirst = dbParts[0]
 
-  // Strategy 4: Has a clear CODE-NUMBER pattern but code might be wrong/partial
-  const parts = normalized.split('-')
-  if (parts.length === 2) {
-    const [code, num] = parts
-    // Try exact code first
-    const countryMap = countryNumMap.get(code)
-    if (countryMap) {
-      const found = countryMap.get(num)
-      if (found) return found
+    // Exact last name match (most common: "Messi" matches "Lionel Messi")
+    if (targetLast === dbLast && targetLast.length >= 3) {
+      if (bestScore < 3) { bestMatch = sticker; bestScore = 3 }
     }
-    // Try common code aliases
-    const aliases: Record<string, string> = {
-      'FWC': 'FIFA', 'WORLD': 'FIFA', 'WC': 'FIFA',
-      'BRASIL': 'BRA', 'BRAZIL': 'BRA',
-      'ARGENTINA': 'ARG',
-      'GERMANY': 'GER', 'ALEMANHA': 'GER', 'DEU': 'GER',
-      'FRANCE': 'FRA', 'FRANCA': 'FRA', 'FRANÇA': 'FRA',
-      'ENGLAND': 'ENG', 'INGLATERRA': 'ENG',
-      'SPAIN': 'ESP', 'ESPANHA': 'ESP',
-      'PORTUGAL': 'POR',
-      'NETHERLANDS': 'NED', 'HOLANDA': 'NED', 'HOLLAND': 'NED',
-      'JAPAN': 'JPN', 'JAPAO': 'JPN', 'JAPÃO': 'JPN',
-      'KOREA': 'KOR', 'COREIA': 'KOR',
-      'MOROCCO': 'MAR', 'MARROCOS': 'MAR',
-      'CROATIA': 'CRO', 'CROACIA': 'CRO', 'CROÁCIA': 'CRO',
-      'BELGIUM': 'BEL', 'BELGICA': 'BEL', 'BÉLGICA': 'BEL',
-      'CANADA': 'CAN', 'CANADÁ': 'CAN',
-      'MEXICO': 'MEX', 'MÉXICO': 'MEX',
-      'URUGUAY': 'URU', 'URUGUAI': 'URU',
-      'SWITZERLAND': 'SUI', 'SUICA': 'SUI', 'SUÍÇA': 'SUI',
-      'CAMEROON': 'CMR', 'CAMAROES': 'CMR', 'CAMARÕES': 'CMR',
-      'DENMARK': 'DEN', 'DINAMARCA': 'DEN',
-      'TUNISIA': 'TUN', 'TUNISIA': 'TUN', 'TUNÍSIA': 'TUN',
-      'IRAN': 'IRN', 'IRÃ': 'IRN',
-      'SERBIA': 'SRB', 'SERVIA': 'SRB', 'SÉRVIA': 'SRB',
-      'GHANA': 'GHA', 'GANA': 'GHA',
-      'QATAR': 'QAT', 'CATAR': 'QAT',
-      'ECUADOR': 'ECU', 'EQUADOR': 'ECU',
-      'SENEGAL': 'SEN',
-      'WALES': 'WAL', 'GALES': 'WAL',
-      'AUSTRALIA': 'AUS', 'AUSTRÁLIA': 'AUS',
-      'POLAND': 'POL', 'POLONIA': 'POL', 'POLÔNIA': 'POL',
-      'COSTARICA': 'CRC', 'COSTA RICA': 'CRC',
-      'SAUDI': 'KSA', 'SAUDITA': 'KSA', 'ARABIA': 'KSA',
+
+    // Target contains DB name or vice versa
+    if (normTarget.includes(dbNorm) || dbNorm.includes(normTarget)) {
+      if (bestScore < 4) { bestMatch = sticker; bestScore = 4 }
     }
-    const aliasCode = aliases[code]
-    if (aliasCode) {
-      const aliasMap = countryNumMap.get(aliasCode)
-      if (aliasMap) {
-        const found = aliasMap.get(num)
-        if (found) return found
-      }
+
+    // First name match + similar length (for single-name players like "Neymar", "Casemiro")
+    if (targetFirst === dbFirst && targetFirst.length >= 4) {
+      if (bestScore < 2) { bestMatch = sticker; bestScore = 2 }
+    }
+
+    // Last name of target matches first name of DB (e.g., "Neymar Jr" → last="jr", first="neymar")
+    if (targetFirst === dbNorm || dbFirst === normTarget) {
+      if (bestScore < 3) { bestMatch = sticker; bestScore = 3 }
     }
   }
 
-  // Strategy 5: Bare number — "1", "15" — can't determine country without context
-  // We skip these since they're ambiguous (every country has number 1-20)
-  // But if there's only ONE sticker with that number across all countries, use it
-  if (/^\d+$/.test(upper)) {
-    const num = upper
-    const candidates: typeof exactMap extends Map<string, infer V> ? V[] : never[] = []
-    for (const [, cMap] of countryNumMap) {
-      const found = cMap.get(num)
-      if (found) candidates.push(found)
-    }
-    if (candidates.length === 1) return candidates[0]
-    // Can't disambiguate — skip
-  }
+  return bestMatch
+}
 
-  return null
+/** Map country names/codes to our DB codes */
+const COUNTRY_TO_CODE: Record<string, string> = {
+  'brasil': 'BRA', 'brazil': 'BRA', 'bra': 'BRA',
+  'argentina': 'ARG', 'arg': 'ARG',
+  'franca': 'FRA', 'france': 'FRA', 'fra': 'FRA',
+  'portugal': 'POR', 'por': 'POR',
+  'alemanha': 'GER', 'germany': 'GER', 'ger': 'GER',
+  'inglaterra': 'ENG', 'england': 'ENG', 'eng': 'ENG',
+  'espanha': 'ESP', 'spain': 'ESP', 'esp': 'ESP',
+  'holanda': 'NED', 'netherlands': 'NED', 'ned': 'NED',
+  'japao': 'JPN', 'japan': 'JPN', 'jpn': 'JPN',
+  'coreia': 'KOR', 'korea': 'KOR', 'kor': 'KOR',
+  'marrocos': 'MAR', 'morocco': 'MAR', 'mar': 'MAR',
+  'croacia': 'CRO', 'croatia': 'CRO', 'cro': 'CRO',
+  'belgica': 'BEL', 'belgium': 'BEL', 'bel': 'BEL',
+  'canada': 'CAN', 'can': 'CAN',
+  'mexico': 'MEX', 'mex': 'MEX',
+  'uruguai': 'URU', 'uruguay': 'URU', 'uru': 'URU',
+  'suica': 'SUI', 'switzerland': 'SUI', 'sui': 'SUI',
+  'camaroes': 'CMR', 'cameroon': 'CMR', 'cmr': 'CMR',
+  'dinamarca': 'DEN', 'denmark': 'DEN', 'den': 'DEN',
+  'tunisia': 'TUN', 'tun': 'TUN',
+  'ira': 'IRN', 'iran': 'IRN', 'irn': 'IRN',
+  'servia': 'SRB', 'serbia': 'SRB', 'srb': 'SRB',
+  'gana': 'GHA', 'ghana': 'GHA', 'gha': 'GHA',
+  'catar': 'QAT', 'qatar': 'QAT', 'qat': 'QAT',
+  'equador': 'ECU', 'ecuador': 'ECU', 'ecu': 'ECU',
+  'senegal': 'SEN', 'sen': 'SEN',
+  'gales': 'WAL', 'wales': 'WAL', 'wal': 'WAL',
+  'australia': 'AUS', 'aus': 'AUS',
+  'polonia': 'POL', 'poland': 'POL', 'pol': 'POL',
+  'costa rica': 'CRC', 'costarica': 'CRC', 'crc': 'CRC',
+  'arabia saudita': 'KSA', 'saudi arabia': 'KSA', 'ksa': 'KSA',
+  'eua': 'USA', 'usa': 'USA',
+  'fifa': 'FIFA',
 }
