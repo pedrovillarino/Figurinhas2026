@@ -57,7 +57,7 @@ export default function ScanHub({
     }
   }
 
-  function compressImage(dataUrl: string, maxWidth = 1200): Promise<string> {
+  function compressImage(dataUrl: string, maxWidth = 1600): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
@@ -67,7 +67,8 @@ export default function ScanHub({
         canvas.height = img.height * ratio
         const ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.7))
+        // Quality 0.85 — high enough to read small sticker numbers
+        resolve(canvas.toDataURL('image/jpeg', 0.85))
       }
       img.src = dataUrl
     })
