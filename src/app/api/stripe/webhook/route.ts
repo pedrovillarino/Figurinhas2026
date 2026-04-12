@@ -37,6 +37,21 @@ async function upgradeTier(userId: string, tier: string, customerId: string | nu
   return true
 }
 
+async function addScanCredits(userId: string, credits: number) {
+  const supabase = getAdminClient()
+  const { data, error } = await supabase.rpc('add_scan_credits', {
+    p_user_id: userId,
+    p_credits: credits,
+  })
+
+  if (error) {
+    console.error('Error adding scan credits:', error)
+    return false
+  }
+  console.log(`User ${userId} added ${credits} scan credits:`, data)
+  return true
+}
+
 async function recordDiscountRedemption(metadata: Record<string, string>, userId: string) {
   const codeId = metadata.discount_code_id
   const percentOff = parseInt(metadata.percent_off || '0', 10)
@@ -95,12 +110,18 @@ export async function POST(req: NextRequest) {
 
     if (session.payment_status === 'paid') {
       const userId = session.metadata?.user_id
-      const tier = session.metadata?.tier || 'premium'
+      const type = session.metadata?.type
 
-      if (userId) {
+      if (userId && type === 'scan_pack') {
+        // Scan pack purchase — add credits
+        const credits = parseInt(session.metadata?.credits || '100', 10)
+        const ok = await addScanCredits(userId, credits)
+        if (!ok) return NextResponse.json({ error: 'Credits update failed' }, { status: 500 })
+      } else if (userId) {
+        // Tier upgrade
+        const tier = session.metadata?.tier || 'premium'
         const ok = await upgradeTier(userId, tier, session.customer as string)
         if (!ok) return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
-        // Record discount redemption if applicable
         if (session.metadata) {
           await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
         }
@@ -108,15 +129,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Handle Pix (async payment confirmation)
+  // Handle Boleto/Pix (async payment confirmation)
   if (event.type === 'checkout.session.async_payment_succeeded') {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.metadata?.user_id
-    const tier = session.metadata?.tier || 'premium'
+    const type = session.metadata?.type
 
-    if (userId) {
+    if (userId && type === 'scan_pack') {
+      const credits = parseInt(session.metadata?.credits || '100', 10)
+      await addScanCredits(userId, credits)
+    } else if (userId) {
+      const tier = session.metadata?.tier || 'premium'
       await upgradeTier(userId, tier, session.customer as string)
-      if (session.metadata && userId) {
+      if (session.metadata) {
         await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
       }
     }

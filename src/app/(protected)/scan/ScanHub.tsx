@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
-import { canScan, type Tier } from '@/lib/tiers'
+import type { Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
@@ -22,6 +22,8 @@ type ScanResponse = {
   warnings: string[]
   confidence: string
   scanUsage?: { remaining: number; limit: number }
+  needsUpgrade?: boolean
+  needsPack?: boolean
 }
 
 export default function ScanHub({
@@ -33,7 +35,6 @@ export default function ScanHub({
   totalStickers: number
   tier: Tier
 }) {
-  const hasScan = canScan(tier)
   const [showPaywall, setShowPaywall] = useState(false)
   const [state, setState] = useState<ScanState>('idle')
   const [imageData, setImageData] = useState<string | null>(null)
@@ -47,17 +48,18 @@ export default function ScanHub({
   const [batchIndex, setBatchIndex] = useState(0)
   const [batchTotal, setBatchTotal] = useState(0)
   const [scansRemaining, setScansRemaining] = useState<number | null>(null)
-  const [scansLimit, setScansLimit] = useState<number>(20)
+  const [scansLimit, setScansLimit] = useState<number>(200)
+  const [needsUpgrade, setNeedsUpgrade] = useState(false)
+  const [needsPack, setNeedsPack] = useState(false)
+  const [buyingPack, setBuyingPack] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
   function requireScan(action: () => void) {
-    if (hasScan) {
-      action()
-    } else {
-      setShowPaywall(true)
-    }
+    // All tiers can scan now (free gets 5 scans)
+    // Limit is enforced server-side
+    action()
   }
 
   function compressImage(dataUrl: string, maxWidth = 1600): Promise<string> {
@@ -165,8 +167,10 @@ export default function ScanHub({
         setErrorMsg(data.error || 'Erro ao processar scan')
         if (data.scanUsage) {
           setScansRemaining(0)
-          setScansLimit(data.scanUsage.limit || 20)
+          setScansLimit(data.scanUsage.limit || 200)
         }
+        setNeedsUpgrade(!!data.needsUpgrade)
+        setNeedsPack(!!data.needsPack)
         setState('error')
         return
       }
@@ -262,6 +266,25 @@ export default function ScanHub({
     if (galleryInputRef.current) galleryInputRef.current.value = ''
   }
 
+  async function handleBuyPack() {
+    setBuyingPack(true)
+    try {
+      const res = await fetch('/api/stripe/scan-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || 'Erro ao iniciar compra')
+      }
+    } catch {
+      alert('Erro ao conectar com o servidor')
+    }
+    setBuyingPack(false)
+  }
+
   function triggerCamera() {
     requireScan(() => fileInputRef.current?.click())
   }
@@ -301,9 +324,6 @@ export default function ScanHub({
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
             </svg>
             <span className="text-sm font-bold">Tirar Foto</span>
-            {!hasScan && (
-              <span className="text-[9px] bg-white/20 rounded-full px-2 py-0.5 font-bold">PLUS</span>
-            )}
           </button>
 
           <button
@@ -314,9 +334,6 @@ export default function ScanHub({
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
             </svg>
             <span className="text-sm font-bold">Galeria</span>
-            {!hasScan && (
-              <span className="text-[9px] bg-brand-light text-brand rounded-full px-2 py-0.5 font-bold">PLUS</span>
-            )}
           </button>
         </div>
 
@@ -349,23 +366,6 @@ export default function ScanHub({
             Boa iluminação + números visíveis = scan perfeito. <span className="text-brand font-medium">A IA identifica tudo em segundos.</span>
           </p>
         </div>
-
-        {/* Upgrade CTA for non-plus — compact */}
-        {!hasScan && (
-          <div className="bg-white rounded-xl border border-brand/20 p-3 mb-4 flex items-center gap-3">
-            <span className="text-xl">⚡</span>
-            <div className="flex-1">
-              <p className="text-xs font-bold text-gray-900">Desbloqueie o Scanner IA</p>
-              <p className="text-[10px] text-gray-500">Escaneie e pronto — R$9,90 único</p>
-            </div>
-            <button
-              onClick={() => setShowPaywall(true)}
-              className="bg-brand text-white rounded-lg px-3 py-1.5 text-[10px] font-bold hover:bg-brand-dark transition active:scale-[0.98]"
-            >
-              Desbloquear
-            </button>
-          </div>
-        )}
 
         {/* ── Disclaimer + privacy ── */}
         <p className="text-[9px] text-gray-300 px-1 leading-relaxed">
@@ -433,24 +433,43 @@ export default function ScanHub({
 
   // ── ERROR ──
   if (state === 'error') {
-    const isDailyLimit = errorMsg.includes('limite de') || errorMsg.includes('Amanhã libera')
-    const isRateLimit = !isDailyLimit && (errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho'))
+    const isScanLimit = needsUpgrade || needsPack
+    const isRateLimit = !isScanLimit && (errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho'))
     const isTimeout = errorMsg.includes('demorou') || errorMsg.includes('iluminação')
-    const emoji = isDailyLimit ? '📊' : isRateLimit ? '⏳' : isTimeout ? '📷' : '😕'
+    const emoji = isScanLimit ? '📊' : isRateLimit ? '⏳' : isTimeout ? '📷' : '😕'
 
     return (
       <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-5xl mb-4">{emoji}</div>
         <p className="text-base font-semibold text-gray-700 text-center leading-relaxed max-w-xs">{errorMsg}</p>
-        {isDailyLimit && (
+        {isScanLimit && (
           <p className="text-xs text-gray-400 mt-3 text-center max-w-xs">
             💡 Dica: fotografe várias figurinhas juntas para aproveitar melhor cada scan!
           </p>
         )}
-        <button onClick={reset} className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition">
-          {isDailyLimit ? 'Voltar' : isRateLimit ? 'Tentar de Novo' : 'Tirar Outra Foto'}
-        </button>
-        {isDailyLimit && (
+
+        {needsUpgrade ? (
+          <button
+            onClick={() => setShowPaywall(true)}
+            className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition"
+          >
+            Desbloquear Scanner
+          </button>
+        ) : needsPack ? (
+          <button
+            onClick={handleBuyPack}
+            disabled={buyingPack}
+            className="mt-6 bg-gold text-navy rounded-xl px-6 py-3 text-sm font-bold hover:bg-gold/90 transition disabled:opacity-50"
+          >
+            {buyingPack ? 'Redirecionando...' : 'Comprar +100 scans por R$4,90'}
+          </button>
+        ) : (
+          <button onClick={reset} className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition">
+            {isRateLimit ? 'Tentar de Novo' : 'Tirar Outra Foto'}
+          </button>
+        )}
+
+        {isScanLimit && (
           <a href="/album" className="mt-3 text-sm text-brand font-medium hover:underline">
             Marcar manualmente no álbum →
           </a>

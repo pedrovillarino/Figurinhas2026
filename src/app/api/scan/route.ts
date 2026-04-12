@@ -3,11 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
+import { getScanLimit, type Tier } from '@/lib/tiers'
 
 export const maxDuration = 60
-
-// Daily scan limit per user (protects API costs)
-const DAILY_SCAN_LIMIT = 20
 
 // All valid country codes in our database
 const VALID_CODES = [
@@ -87,35 +85,53 @@ export async function POST(request: Request) {
 
     console.log(`[scan] Image: ${(image.length * 0.75 / 1024).toFixed(0)}KB, mime: ${mimeType}`)
 
-    // 3. Check daily scan limit
+    // 3. Check scan limit (total per account, based on tier + purchased credits)
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
+    // Get user tier
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('tier')
+      .eq('id', user.id)
+      .single()
+
+    const userTier = (profile?.tier || 'free') as Tier
+    const tierScanLimit = getScanLimit(userTier)
+
     const { data: usageData, error: usageError } = await supabaseAdmin
       .rpc('increment_scan_usage', {
         p_user_id: user.id,
-        p_daily_limit: DAILY_SCAN_LIMIT,
+        p_daily_limit: tierScanLimit,
       })
 
     if (usageError) {
       console.error('[scan] Usage check error:', usageError.message)
       // Don't block on usage tracking errors — just log and continue
     } else if (usageData && !usageData.allowed) {
-      console.log(`[scan] User ${user.id} hit daily limit: ${usageData.current}/${usageData.limit}`)
+      console.log(`[scan] User ${user.id} hit scan limit: ${usageData.current}/${usageData.limit} (tier=${userTier})`)
+
+      const isFree = userTier === 'free'
+      const errorMsg = isFree
+        ? 'Você usou seus 5 scans gratuitos! Desbloqueie o plano Plus para continuar escaneando. 📸'
+        : `Você usou todos os seus ${usageData.limit} scans. Compre um pacote extra para continuar! 📸`
+
       return NextResponse.json(
         {
-          error: `Você atingiu o limite de ${DAILY_SCAN_LIMIT} scans por dia. Amanhã libera de novo! 💪`,
+          error: errorMsg,
           scanUsage: usageData,
+          needsUpgrade: isFree,
+          needsPack: !isFree,
         },
         { status: 429 }
       )
     }
 
     const scansRemaining = usageData?.remaining ?? null
-    console.log(`[scan] User scans today: ${usageData?.current ?? '?'}/${DAILY_SCAN_LIMIT}`)
+    console.log(`[scan] User scans: ${usageData?.current ?? '?'}/${usageData?.limit ?? tierScanLimit} (tier=${userTier})`)
 
     // 4. Check Gemini API key
     const apiKey = process.env.GEMINI_API_KEY
@@ -372,7 +388,7 @@ export async function POST(request: Request) {
       warnings,
       confidence: scanConf || 'high',
       scanUsage: scansRemaining !== null
-        ? { remaining: scansRemaining, limit: DAILY_SCAN_LIMIT }
+        ? { remaining: scansRemaining, limit: usageData?.limit ?? tierScanLimit }
         : undefined,
       _debug: {
         geminiDetected: stickersArr.length,
