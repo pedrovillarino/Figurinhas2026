@@ -236,7 +236,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
     return (
       <div className="px-4 pt-6">
         <h1 className="text-xl font-black tracking-tight text-gray-900 mb-1">Scan</h1>
-        <p className="text-[13px] text-gray-400 mb-6">
+        <p className="text-[13px] text-gray-400 mb-4">
           Fotografe ou escolha da galeria para registrar automaticamente.
         </p>
 
@@ -261,25 +261,23 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
           id="gallery-input"
         />
 
-        {/* Buttons */}
-        <div className="space-y-3">
+        {/* Action buttons — FIRST */}
+        <div className="space-y-2.5 mb-5">
           <label
             htmlFor="camera-input"
-            className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
+            className="group flex items-center gap-4 w-full bg-brand text-white rounded-2xl p-4 cursor-pointer hover:bg-brand-dark transition active:scale-[0.98] shadow-sm"
           >
-            <div className="w-12 h-12 rounded-xl bg-brand-light flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
               </svg>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Tirar Foto</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                Página do álbum, figurinha individual ou várias juntas
-              </p>
+              <p className="text-sm font-bold">Tirar Foto</p>
+              <p className="text-[11px] text-white/70 mt-0.5">Abra a câmera e fotografe</p>
             </div>
-            <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </label>
@@ -288,16 +286,14 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
             htmlFor="gallery-input"
             className="group flex items-center gap-4 w-full bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
           >
-            <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
               <svg className="w-6 h-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
               </svg>
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-800">Escolher da Galeria</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                Selecione uma ou várias fotos de uma vez
-              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Uma ou várias fotos de uma vez</p>
             </div>
             <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -305,55 +301,59 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
           </label>
         </div>
 
-        {/* What you can scan */}
-        <div className="mt-8">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">O que posso escanear</p>
+        {/* Engaging banner — compact & appealing */}
+        <div className="bg-gradient-to-r from-brand-light to-gold-light border border-brand/15 rounded-xl px-3 py-2.5 mb-5 flex items-center gap-2.5">
+          <span className="text-xl">✨</span>
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-gray-800">A IA faz o trabalho por você</p>
+            <p className="text-[10px] text-gray-500">Boa iluminação + números visíveis = scan perfeito</p>
+          </div>
+        </div>
+
+        {/* What you can scan — better icons */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">O que posso escanear</p>
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-              <div className="text-2xl mb-1.5">📖</div>
-              <p className="text-[10px] font-medium text-gray-600">Página inteira</p>
-              <p className="text-[9px] text-gray-300">do álbum</p>
+            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
+              <div className="w-10 h-10 mx-auto mb-1.5 bg-blue-50 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+              </div>
+              <p className="text-[10px] font-medium text-gray-600">Página do álbum</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-              <div className="text-2xl mb-1.5">🃏</div>
-              <p className="text-[10px] font-medium text-gray-600">Uma figurinha</p>
-              <p className="text-[9px] text-gray-300">individual</p>
+            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
+              <div className="w-10 h-10 mx-auto mb-1.5 bg-emerald-50 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
+              <p className="text-[10px] font-medium text-gray-600">Figurinha solta</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-              <div className="text-2xl mb-1.5">🎴</div>
-              <p className="text-[10px] font-medium text-gray-600">Várias juntas</p>
-              <p className="text-[9px] text-gray-300">na mesa</p>
+            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
+              <div className="w-10 h-10 mx-auto mb-1.5 bg-amber-50 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
+                </svg>
+              </div>
+              <p className="text-[10px] font-medium text-gray-600">Várias na mesa</p>
             </div>
           </div>
         </div>
 
-        {/* Tips */}
-        <div className="mt-6 flex items-start gap-2.5 px-1">
-          <svg className="w-4 h-4 text-gray-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-          </svg>
-          <p className="text-[11px] text-gray-300 leading-relaxed">
-            Boa iluminação e números visíveis. A IA identifica automaticamente cada figurinha.
-          </p>
-        </div>
-
-        {/* Privacy notice */}
-        <div className="mt-3 flex items-start gap-2.5 px-1">
-          <svg className="w-4 h-4 text-gray-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-          </svg>
-          <p className="text-[11px] text-gray-300 leading-relaxed">
-            Sua foto não é armazenada. Apenas identificamos as figurinhas e descartamos a imagem.
-          </p>
-        </div>
-
-        {/* Legal disclaimer */}
-        <div className="mt-4 bg-amber-50/60 border border-amber-100 rounded-xl px-3 py-2.5">
-          <div className="flex items-start gap-2">
-            <span className="text-xs mt-0.5">⚠️</span>
+        {/* Privacy + disclaimer compact */}
+        <div className="mt-5 space-y-2">
+          <div className="flex items-start gap-2 px-1">
+            <svg className="w-3.5 h-3.5 text-gray-300 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+            <p className="text-[10px] text-gray-300 leading-relaxed">
+              Suas fotos não são armazenadas. Descartadas após a análise.
+            </p>
+          </div>
+          <div className="bg-amber-50/60 border border-amber-100 rounded-lg px-3 py-2">
             <p className="text-[10px] text-amber-700 leading-relaxed">
-              <span className="font-semibold">Importante:</span> utilize o scan apenas para fotografar figurinhas, páginas do álbum ou envelopes de figurinhas.
-              Não envie fotos de documentos pessoais, rostos ou qualquer conteúdo sensível. As imagens são descartadas após a análise.
+              <span className="font-semibold">Importante:</span> fotografe apenas figurinhas, páginas do álbum ou envelopes. Não envie documentos pessoais, rostos ou conteúdo sensível. As imagens são descartadas após a análise.
             </p>
           </div>
         </div>

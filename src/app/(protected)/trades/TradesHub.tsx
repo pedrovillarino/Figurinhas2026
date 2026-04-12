@@ -55,7 +55,7 @@ const NOTIFY_CHANNEL_KEY = 'completeai_notify_channel'
 const NOTIFY_MIN_KEY = 'completeai_notify_min_threshold'
 const NOTIFY_PRIORITY_KEY = 'completeai_notify_priority'
 
-type NotifyChannel = 'whatsapp' | 'email' | 'both'
+type NotifyChannel = 'whatsapp' | 'email' | 'both' | 'none'
 
 function loadExcluded(): number[] {
   if (typeof window === 'undefined') return []
@@ -481,7 +481,7 @@ export default function TradesHub({
 
         {/* Radius selector */}
         <div className="flex gap-1.5 mb-4">
-          {[5, 10, 15, 25, 50].map((r) => (
+          {[2.5, 5, 10, 15, 25, 50].map((r) => (
             <button
               key={r}
               onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}
@@ -704,7 +704,7 @@ export default function TradesHub({
             </p>
             <p className="text-[9px] text-amber-600">
               {notifyPriorityIds.length > 0 && `${notifyPriorityIds.length} prioritária${notifyPriorityIds.length > 1 ? 's' : ''} · `}
-              Via {notifyChannel === 'whatsapp' ? 'WhatsApp' : notifyChannel === 'email' ? 'e-mail' : 'WhatsApp + e-mail'} · Raio {watchRadius}km · Min. {notifyMinThreshold} fig.
+              {notifyChannel === 'none' ? 'Notificações desativadas' : `Via ${notifyChannel === 'whatsapp' ? 'WhatsApp' : notifyChannel === 'email' ? 'e-mail' : 'WhatsApp + e-mail'} · Raio ${watchRadius}km · Min. ${notifyMinThreshold} fig.`}
             </p>
           </div>
           <button
@@ -741,6 +741,7 @@ export default function TradesHub({
                   { key: 'whatsapp' as NotifyChannel, icon: '💬', label: 'WhatsApp' },
                   { key: 'email' as NotifyChannel, icon: '📧', label: 'E-mail' },
                   { key: 'both' as NotifyChannel, icon: '📲', label: 'Ambos' },
+                  { key: 'none' as NotifyChannel, icon: '🔕', label: 'Nenhum' },
                 ]).map((opt) => (
                   <button
                     key={opt.key}
@@ -761,7 +762,7 @@ export default function TradesHub({
             <div>
               <p className="text-[10px] text-gray-500 font-medium mb-1.5">Raio máximo para alertas</p>
               <div className="flex gap-1.5">
-                {[5, 10, 15, 25, 50].map((r) => (
+                {[2.5, 5, 10, 15, 25, 50].map((r) => (
                   <button
                     key={r}
                     onClick={() => setWatchRadius(r)}
