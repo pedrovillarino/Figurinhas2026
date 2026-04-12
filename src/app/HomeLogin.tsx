@@ -117,7 +117,7 @@ function PasswordStrengthMeter({ password }: { password: string }) {
 // ─── componente principal ─────────────────────────────────────────────────────
 
 export default function HomeLogin() {
-  const [mode, setMode] = useState<'buttons' | 'email'>('buttons')
+  const [mode, setMode] = useState<'buttons' | 'email' | 'forgot'>('buttons')
   const [isSignUp, setIsSignUp] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -178,6 +178,40 @@ export default function HomeLogin() {
     if (error) { setError(error.message); setLoading(false) }
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setMessage(null)
+    if (!email) {
+      setError('Informe seu e-mail para redefinir a senha.')
+      return
+    }
+    setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+    if (error) {
+      setError(error.message)
+    } else {
+      setMessage('Link de redefinição enviado! Verifique seu e-mail.')
+    }
+    setLoading(false)
+  }
+
+  function friendlyError(msg: string): string {
+    if (msg.includes('Invalid login credentials'))
+      return 'E-mail ou senha incorretos. Se você criou a conta pelo Google, entre pelo botão Google. Ou use "Esqueci minha senha" para criar uma.'
+    if (msg.includes('Email not confirmed'))
+      return 'Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada.'
+    if (msg.includes('User already registered'))
+      return 'Este e-mail já está cadastrado. Tente fazer login, entrar pelo Google ou use "Esqueci minha senha".'
+    if (msg.includes('Signups not allowed'))
+      return 'Cadastro temporariamente indisponível. Tente pelo Google.'
+    if (msg.includes('provider'))
+      return 'Esta conta usa login pelo Google. Use o botão "Começar com Google".'
+    return msg
+  }
+
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -201,7 +235,7 @@ export default function HomeLogin() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      if (error) setError(error.message)
+      if (error) setError(friendlyError(error.message))
       else if (data.session) {
         router.push('/album')
         router.refresh()
@@ -210,7 +244,7 @@ export default function HomeLogin() {
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
+      if (error) setError(friendlyError(error.message))
       else { router.push('/album'); router.refresh() }
     }
     setLoading(false)
@@ -241,6 +275,50 @@ export default function HomeLogin() {
           ou entre com email
         </button>
       </div>
+    )
+  }
+
+  // ── tela esqueci senha ──────────────────────────────────────────────────────
+  if (mode === 'forgot') {
+    return (
+      <form onSubmit={handleForgotPassword} className="space-y-3">
+        <div className="text-center mb-2">
+          <p className="text-sm font-semibold text-gray-800">Redefinir senha</p>
+          <p className="text-[11px] text-gray-400 mt-1">
+            Informe seu e-mail e enviaremos um link para criar uma nova senha.
+          </p>
+        </div>
+
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          placeholder="seu@email.com"
+          aria-label="E-mail"
+          autoComplete="email"
+          className={inputClass()}
+        />
+
+        {error   && <p className="text-red-500 text-xs text-center">{error}</p>}
+        {message && <p className="text-brand   text-xs text-center">{message}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-brand text-white font-semibold text-sm rounded-full px-6 py-3 hover:bg-brand-dark transition active:scale-[0.98] disabled:opacity-50 shadow-sm shadow-brand/20"
+        >
+          {loading ? '...' : 'Enviar link'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setError(null); setMessage(null); setMode('email') }}
+          className="w-full text-[11px] text-gray-400 hover:text-gray-600 transition py-1"
+        >
+          Voltar para login
+        </button>
+      </form>
     )
   }
 
@@ -347,7 +425,7 @@ export default function HomeLogin() {
         {loading ? '...' : isSignUp ? 'Criar conta' : 'Entrar'}
       </button>
 
-      {/* Alternar modo + Voltar */}
+      {/* Esqueci senha + Alternar modo + Voltar */}
       <div className="flex items-center justify-between pt-1">
         <button
           type="button"
@@ -356,13 +434,24 @@ export default function HomeLogin() {
         >
           {isSignUp ? 'Já tenho conta' : 'Criar conta'}
         </button>
-        <button
-          type="button"
-          onClick={() => setMode('buttons')}
-          className="text-[11px] text-gray-400 hover:text-gray-600 transition"
-        >
-          Voltar
-        </button>
+        <div className="flex items-center gap-3">
+          {!isSignUp && (
+            <button
+              type="button"
+              onClick={() => { setError(null); setMessage(null); setMode('forgot') }}
+              className="text-[11px] text-brand hover:text-brand-dark transition font-medium"
+            >
+              Esqueci a senha
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setMode('buttons')}
+            className="text-[11px] text-gray-400 hover:text-gray-600 transition"
+          >
+            Voltar
+          </button>
+        </div>
       </div>
     </form>
   )
