@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -134,6 +134,18 @@ export default function HomeLogin() {
   const supabase = createClient()
   const strength = usePasswordStrength(password)
 
+  // Reset loading when user returns from OAuth (e.g. cancelled Google popup)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        // Small delay to let the redirect happen if auth succeeded
+        setTimeout(() => setLoading(false), 1000)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
+
   function validate() {
     const errors: Record<string, string> = {}
     if (isSignUp) {
@@ -161,12 +173,27 @@ export default function HomeLogin() {
   }
 
   async function handleGoogle() {
+    setError(null)
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) { setError(error.message); setLoading(false) }
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { prompt: 'select_account' },
+        },
+      })
+      if (error) {
+        setError('Não foi possível conectar ao Google. Tente novamente.')
+        setLoading(false)
+      }
+      // If no error, browser will redirect — keep loading=true
+      // But set a timeout to unblock in case redirect doesn't happen
+      setTimeout(() => setLoading(false), 5000)
+    } catch {
+      setError('Erro ao conectar. Verifique sua internet e tente novamente.')
+      setLoading(false)
+    }
   }
 
   async function handleApple() {

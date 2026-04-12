@@ -413,12 +413,16 @@ export default function ScanHub({
 
   // ── ERROR ──
   if (state === 'error') {
+    const isRateLimit = errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho')
+    const isTimeout = errorMsg.includes('demorou') || errorMsg.includes('iluminação')
+    const emoji = isRateLimit ? '⏳' : isTimeout ? '📷' : '😕'
+
     return (
       <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="text-5xl mb-4">😕</div>
-        <p className="text-lg font-semibold text-gray-700 text-center">{errorMsg}</p>
+        <div className="text-5xl mb-4">{emoji}</div>
+        <p className="text-base font-semibold text-gray-700 text-center leading-relaxed max-w-xs">{errorMsg}</p>
         <button onClick={reset} className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition">
-          Tentar Novamente
+          {isRateLimit ? 'Tentar de Novo' : 'Tirar Outra Foto'}
         </button>
       </div>
     )

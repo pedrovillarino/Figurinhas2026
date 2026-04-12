@@ -6,16 +6,34 @@ import { cookies } from 'next/headers'
 
 export const maxDuration = 30
 
-const SYSTEM_INSTRUCTION = `Scanner de figurinhas Panini Copa do Mundo. Identifique números de figurinhas na foto.
+const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup 2026 sticker album scanner.
+Analyze the photo of an album page, individual stickers, or multiple stickers on a table.
 
-REGRAS:
-- "filled": figurinha colada ou individual. "empty": slot vazio.
-- Use número EXATO impresso (ex: FWC-1, BRA-10, ARG-12). NÃO invente.
-- confidence < 0.7 se incerto. Países em Português.
-- Se não é página de álbum: {"error":"not_album_page","message":"descrição"}
+For each sticker visible, determine:
+- The sticker number EXACTLY as printed (e.g. "FWC-1", "BRA-10", "ARG-12")
+- The player name if readable
+- The country/team name in Portuguese
+- Whether it is "filled" (sticker is pasted in album or is a loose sticker) or "empty" (empty slot showing placeholder)
+- Your confidence for that specific sticker (0.0 to 1.0)
 
-Retorne APENAS JSON:
-{"scan_confidence":0.9,"stickers":[{"number":"BRA-1","player_name":"Neymar","country":"Brasil","status":"filled","confidence":0.95}],"unreadable":[],"warnings":[]}`
+Return ONLY valid JSON in this exact format:
+{
+  "scan_confidence": 0.9,
+  "stickers": [
+    {"number": "BRA-1", "player_name": "Neymar Jr.", "country": "Brasil", "status": "filled", "confidence": 0.95}
+  ],
+  "unreadable": ["position descriptions of slots you cannot read"],
+  "warnings": []
+}
+
+CRITICAL RULES:
+- Read the EXACT number printed on each sticker or slot. Do NOT guess or invent numbers.
+- Sticker numbers follow patterns like: FWC-1, BRA-10, ARG-12, GER-5, etc (COUNTRY_CODE-NUMBER)
+- If you see a loose sticker (not in album), it is always "filled"
+- If the image is blurry or not related to stickers: {"error": "not_album_page", "message": "description"}
+- Set confidence below 0.7 for any number you're not sure about
+- Country names must be in Portuguese (Brasil, Alemanha, Argentina, França, etc)
+- Look carefully at ALL stickers in the image, don't miss any`
 
 export async function POST(request: Request) {
   try {
@@ -62,7 +80,7 @@ export async function POST(request: Request) {
     // 4. Call Gemini
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       systemInstruction: SYSTEM_INSTRUCTION,
     })
 
@@ -185,18 +203,24 @@ export async function POST(request: Request) {
     console.error('Scan error:', err)
 
     const errMsg = err instanceof Error ? err.message : ''
-    let message = 'Erro ao processar scan. Tente novamente.'
+    let message = 'Algo deu errado no scan. Tente novamente.'
+    let status = 500
 
-    if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('Too Many Requests')) {
-      message = 'Limite de uso da API atingido. Aguarde 1 minuto e tente novamente.'
-    } else if (errMsg.includes('timeout')) {
-      message = 'Scan demorou muito. Tente uma foto com mais luz.'
+    if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('Too Many Requests') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+      message = 'Muitos scans ao mesmo tempo! Espere um minutinho e tente de novo. ☕'
+      status = 429
+    } else if (errMsg.includes('timeout') || errMsg.includes('DEADLINE_EXCEEDED')) {
+      message = 'O scan demorou demais. Tente uma foto com melhor iluminação e mais perto das figurinhas. 📷'
     } else if (errMsg.includes('403') || errMsg.includes('PERMISSION_DENIED')) {
-      message = 'API key sem permissão. Verifique a configuração da GEMINI_API_KEY.'
-    } else if (errMsg.includes('404')) {
-      message = 'Modelo de IA indisponível. Tente novamente em instantes.'
+      message = 'Serviço de scan temporariamente indisponível. Tente novamente mais tarde.'
+      status = 503
+    } else if (errMsg.includes('404') || errMsg.includes('not found')) {
+      message = 'Serviço de scan em manutenção. Tente novamente em alguns minutos.'
+      status = 503
+    } else if (errMsg.includes('500') || errMsg.includes('INTERNAL')) {
+      message = 'O serviço de scan está instável. Tente novamente em instantes.'
     }
 
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status })
   }
 }

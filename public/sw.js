@@ -1,4 +1,4 @@
-const CACHE_NAME = 'figurinhas-v6'
+const CACHE_NAME = 'figurinhas-v7'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
