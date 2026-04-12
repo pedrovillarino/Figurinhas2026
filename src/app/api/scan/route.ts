@@ -6,6 +6,9 @@ import { cookies } from 'next/headers'
 
 export const maxDuration = 60
 
+// Daily scan limit per user (protects API costs)
+const DAILY_SCAN_LIMIT = 20
+
 // All valid country codes in our database
 const VALID_CODES = [
   'FIFA', 'QAT', 'ECU', 'SEN', 'NED', 'ENG', 'IRN', 'USA', 'WAL',
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faça login para usar o scanner.' }, { status: 401 })
     }
 
-    // 2. Parse request
+    // 2. Parse request (do this early so we have body ready)
     const body = await request.json()
     const { image, mimeType } = body as { image: string; mimeType: string }
 
@@ -84,7 +87,37 @@ export async function POST(request: Request) {
 
     console.log(`[scan] Image: ${(image.length * 0.75 / 1024).toFixed(0)}KB, mime: ${mimeType}`)
 
-    // 3. Check Gemini API key
+    // 3. Check daily scan limit
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+
+    const { data: usageData, error: usageError } = await supabaseAdmin
+      .rpc('increment_scan_usage', {
+        p_user_id: user.id,
+        p_daily_limit: DAILY_SCAN_LIMIT,
+      })
+
+    if (usageError) {
+      console.error('[scan] Usage check error:', usageError.message)
+      // Don't block on usage tracking errors — just log and continue
+    } else if (usageData && !usageData.allowed) {
+      console.log(`[scan] User ${user.id} hit daily limit: ${usageData.current}/${usageData.limit}`)
+      return NextResponse.json(
+        {
+          error: `Você atingiu o limite de ${DAILY_SCAN_LIMIT} scans por dia. Amanhã libera de novo! 💪`,
+          scanUsage: usageData,
+        },
+        { status: 429 }
+      )
+    }
+
+    const scansRemaining = usageData?.remaining ?? null
+    console.log(`[scan] User scans today: ${usageData?.current ?? '?'}/${DAILY_SCAN_LIMIT}`)
+
+    // 4. Check Gemini API key
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey || apiKey === 'your-gemini-api-key-here') {
       return NextResponse.json(
@@ -93,13 +126,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 4. Load ALL stickers from DB for name-based matching
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
-
+    // 5. Load ALL stickers from DB for name-based matching
     const { data: allDbStickers, error: dbError } = await supabaseAdmin
       .from('stickers')
       .select('id, number, player_name, country, section, type')
@@ -137,7 +164,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Call Gemini — try primary model, fallback to lite if it fails
+    // 6. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
     const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
     const geminiPayload = [
@@ -344,12 +371,16 @@ export async function POST(request: Request) {
       unmatched,
       warnings,
       confidence: scanConf || 'high',
+      scanUsage: scansRemaining !== null
+        ? { remaining: scansRemaining, limit: DAILY_SCAN_LIMIT }
+        : undefined,
       _debug: {
         geminiDetected: stickersArr.length,
         matched: matched.length,
         unmatched: unmatched.length,
         geminiMs,
         totalMs,
+        model: usedModel,
       },
     })
   } catch (err) {

@@ -21,6 +21,7 @@ type ScanResponse = {
   unmatched: string[]
   warnings: string[]
   confidence: string
+  scanUsage?: { remaining: number; limit: number }
 }
 
 export default function ScanHub({
@@ -45,6 +46,8 @@ export default function ScanHub({
   const [saving, setSaving] = useState(false)
   const [batchIndex, setBatchIndex] = useState(0)
   const [batchTotal, setBatchTotal] = useState(0)
+  const [scansRemaining, setScansRemaining] = useState<number | null>(null)
+  const [scansLimit, setScansLimit] = useState<number>(20)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -160,8 +163,17 @@ export default function ScanHub({
 
       if (!res.ok) {
         setErrorMsg(data.error || 'Erro ao processar scan')
+        if (data.scanUsage) {
+          setScansRemaining(0)
+          setScansLimit(data.scanUsage.limit || 20)
+        }
         setState('error')
         return
+      }
+
+      if (data.scanUsage) {
+        setScansRemaining(data.scanUsage.remaining)
+        setScansLimit(data.scanUsage.limit || 20)
       }
 
       setScanResult(data)
@@ -264,7 +276,14 @@ export default function ScanHub({
   if (state === 'idle') {
     return (
       <div className="px-4 pt-6 pb-28">
-        <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Scanner IA</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-black tracking-tight text-gray-900">Scanner IA</h1>
+          {scansRemaining !== null && (
+            <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2.5 py-1">
+              {scansRemaining}/{scansLimit} scans hoje
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-500 mb-6">Fotografe suas figurinhas e registre automaticamente</p>
 
         {/* Hidden inputs */}
@@ -414,17 +433,28 @@ export default function ScanHub({
 
   // ── ERROR ──
   if (state === 'error') {
-    const isRateLimit = errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho')
+    const isDailyLimit = errorMsg.includes('limite de') || errorMsg.includes('Amanhã libera')
+    const isRateLimit = !isDailyLimit && (errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho'))
     const isTimeout = errorMsg.includes('demorou') || errorMsg.includes('iluminação')
-    const emoji = isRateLimit ? '⏳' : isTimeout ? '📷' : '😕'
+    const emoji = isDailyLimit ? '📊' : isRateLimit ? '⏳' : isTimeout ? '📷' : '😕'
 
     return (
       <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-5xl mb-4">{emoji}</div>
         <p className="text-base font-semibold text-gray-700 text-center leading-relaxed max-w-xs">{errorMsg}</p>
+        {isDailyLimit && (
+          <p className="text-xs text-gray-400 mt-3 text-center max-w-xs">
+            💡 Dica: fotografe várias figurinhas juntas para aproveitar melhor cada scan!
+          </p>
+        )}
         <button onClick={reset} className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition">
-          {isRateLimit ? 'Tentar de Novo' : 'Tirar Outra Foto'}
+          {isDailyLimit ? 'Voltar' : isRateLimit ? 'Tentar de Novo' : 'Tirar Outra Foto'}
         </button>
+        {isDailyLimit && (
+          <a href="/album" className="mt-3 text-sm text-brand font-medium hover:underline">
+            Marcar manualmente no álbum →
+          </a>
+        )}
       </div>
     )
   }
@@ -434,9 +464,16 @@ export default function ScanHub({
     return (
       <div className="px-4 pt-6">
         <h1 className="text-2xl font-bold mb-1">Figurinhas Detectadas</h1>
-        <p className="text-gray-500 text-sm mb-4">
-          {scanResult.matched.length} encontrada(s). Desmarque as incorretas.
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-gray-500 text-sm">
+            {scanResult.matched.length} encontrada(s). Desmarque as incorretas.
+          </p>
+          {scansRemaining !== null && (
+            <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+              {scansRemaining} restantes
+            </span>
+          )}
+        </div>
 
         {scanResult.warnings.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
