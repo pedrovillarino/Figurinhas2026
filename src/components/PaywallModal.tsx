@@ -270,6 +270,9 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
         <p className="text-[10px] text-gray-300 text-center">
           Pagamento único via Stripe. Aceita cartão e boleto.
         </p>
+        <p className="text-[9px] text-gray-300 text-center mt-1">
+          Serviço válido até 31/12/2026 (Copa do Mundo FIFA 2026).
+        </p>
       </div>
     </div>
   )

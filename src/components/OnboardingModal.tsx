@@ -51,10 +51,34 @@ export default function OnboardingModal() {
   const supabase = createClient()
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    async function checkOnboarding() {
+      // First check localStorage (fast)
       const seen = localStorage.getItem(ONBOARDING_KEY)
-      if (!seen) setShow(true)
+      if (seen) return
+
+      // Then check database — maybe user already completed on another device
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('tos_accepted_at, date_of_birth')
+            .eq('id', user.id)
+            .single()
+
+          if (profile?.tos_accepted_at && profile?.date_of_birth) {
+            // Already completed on another device — save locally and skip
+            localStorage.setItem(ONBOARDING_KEY, 'true')
+            return
+          }
+        }
+      } catch {
+        // If DB check fails, show onboarding anyway
+      }
+
+      setShow(true)
     }
+    checkOnboarding()
   }, [])
 
   function calculateAge(day: number, month: number, year: number): number {
@@ -248,7 +272,7 @@ export default function OnboardingModal() {
                 Coletamos nome, e-mail e data de nascimento. Para o recurso de trocas, coletamos
                 localização aproximada e telefone (opcional). Fotos do scanner são processadas e
                 descartadas imediatamente, sem armazenamento. Este app não é afiliado à FIFA, Panini
-                ou qualquer organização oficial.
+                ou qualquer organização oficial. O serviço é válido até 31/12/2026.
               </p>
             </div>
 

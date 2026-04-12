@@ -75,7 +75,17 @@ export default function TradeRequestsBanner({
     <div className="space-y-3 mb-4">
       {/* Approved trades — show contact to click */}
       {approvedTrades.map((trade) => (
-        <div key={trade.requestId} className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl p-4">
+        <div key={trade.requestId} className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl p-4 relative">
+          {/* Close button */}
+          <button
+            onClick={() => setApprovedTrades((prev) => prev.filter((t) => t.requestId !== trade.requestId))}
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/80 border border-emerald-200 flex items-center justify-center hover:bg-white transition"
+            aria-label="Fechar"
+          >
+            <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -84,12 +94,14 @@ export default function TradeRequestsBanner({
             </div>
             <div>
               <p className="text-sm font-bold text-emerald-900">Troca aprovada!</p>
-              <p className="text-[10px] text-emerald-700">Combinhe a troca com {trade.requesterName}</p>
+              <p className="text-[10px] text-emerald-700">Combine a troca com {trade.requesterName}</p>
             </div>
           </div>
           {trade.contact ? (
             <a
-              href={trade.contact.startsWith('wa.me/') ? `https://${trade.contact}` : `mailto:${trade.contact}`}
+              href={trade.contact.startsWith('wa.me/')
+                ? `https://api.whatsapp.com/send?phone=${trade.contact.replace('wa.me/', '')}&text=${encodeURIComponent(`Oi! Vi no Complete Aí que temos figurinhas pra trocar. Vamos combinar? ⚽`)}`
+                : `mailto:${trade.contact}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition active:scale-[0.98]"

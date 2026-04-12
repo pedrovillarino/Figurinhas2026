@@ -99,6 +99,14 @@ export default function TermosPage() {
             disponível de forma ininterrupta, livre de erros ou que os resultados do escaneamento
             por IA serão 100% precisos.
           </P>
+          <SubSection id="3.1">
+            <P>
+              <strong>Vigência:</strong> O Complete Aí é um serviço temporário vinculado à Copa do Mundo FIFA 2026.
+              A prestação do serviço está prevista até <strong>31 de dezembro de 2026</strong>, podendo ser
+              encerrada antes ou estendida a critério exclusivo do Complete Aí, mediante aviso prévio aos usuários.
+              Após o encerramento, os dados do usuário serão mantidos por 90 dias e então excluídos.
+            </P>
+          </SubSection>
         </Section>
 
         {/* 4. Planos e Preços */}
