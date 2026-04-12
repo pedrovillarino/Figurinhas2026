@@ -6,34 +6,46 @@ import { cookies } from 'next/headers'
 
 export const maxDuration = 60
 
+// All valid country codes in our database
+const VALID_CODES = [
+  'FIFA', 'QAT', 'ECU', 'SEN', 'NED', 'ENG', 'IRN', 'USA', 'WAL',
+  'ARG', 'KSA', 'MEX', 'POL', 'FRA', 'AUS', 'DEN', 'TUN', 'ESP',
+  'CRC', 'GER', 'JPN', 'BEL', 'CAN', 'MAR', 'CRO', 'BRA', 'SRB',
+  'SUI', 'CMR', 'POR', 'GHA', 'URU', 'KOR',
+]
+
 const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup Qatar 2022 sticker scanner.
-Analyze photos of stickers (album pages, loose stickers, or stickers on a table).
+Analyze photos of stickers — this could be:
+- FRONT of stickers (showing player photo, name, country flag)
+- BACK of stickers (showing a sticker number like "BRA 10", "FRA 19", "ARG 20")
+- Album pages with slots (some filled, some empty)
+- Multiple stickers on a table
 
 For EACH sticker visible, extract:
-1. "player_name": The player or item name printed on the sticker (e.g., "NEYMAR JR", "CASEMIRO", "LIONEL MESSI"). For badges/emblems, use "Emblem" or "Team Photo".
-2. "country_code": The 3-letter country code visible on the sticker (e.g., "BRA", "ARG", "FRA", "POR", "GER", "ENG"). Look for it near the flag.
-3. "status": "filled" if it's an actual sticker (pasted or loose). "empty" if it's just an empty album slot.
-4. "confidence": 0.0 to 1.0 — how sure you are about the identification.
+1. "player_name": The player name if visible (e.g., "NEYMAR JR", "CASEMIRO", "LIONEL MESSI"). For badges, use "Emblem" or "Team Photo". If only the back is visible and no name is shown, use "".
+2. "country_code": The 3-letter code (e.g., "BRA", "ARG", "FRA"). Look for it on the sticker front near the flag, or on the back.
+3. "sticker_number": If you can see a sticker code/number like "BRA 10", "FRA 19", "FIFA 3" — include it here in the format CODE-NUMBER (with a hyphen). Valid codes are: ${VALID_CODES.join(', ')}. If no sticker number is visible, use "".
+4. "status": "filled" if it's an actual sticker. "empty" if it's an empty album slot.
+5. "confidence": 0.0 to 1.0.
 
-Return ONLY valid JSON in this format:
+Return ONLY valid JSON:
 {
   "scan_confidence": 0.9,
   "stickers": [
-    {"player_name": "Neymar Jr", "country_code": "BRA", "status": "filled", "confidence": 0.95},
-    {"player_name": "Lionel Messi", "country_code": "ARG", "status": "filled", "confidence": 0.90}
+    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95},
+    {"player_name": "Lionel Messi", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.90}
   ],
   "warnings": []
 }
 
 RULES:
-- Read the name EXACTLY as printed on the sticker
-- Read the country code EXACTLY as shown (BRA, ARG, FRA, POR, GER, ENG, ESP, etc.)
-- For team photo stickers (group photo), use player_name "Team Photo"
-- For emblem/badge stickers (team crest), use player_name "Emblem"
-- For special stickers (trophy, mascot, stadium), describe what it is
-- ALWAYS read ALL stickers visible in the photo — do not skip any
-- If the image is not sticker-related: {"error": "not_album_page", "message": "description"}
-- Country names in Portuguese for the country field (Brasil, Argentina, França, etc.)`
+- Read ALL stickers visible — do not skip any
+- If you see the BACK of stickers, the number is the most important field
+- If you see the FRONT, the player name and country code are most important
+- For the sticker_number, ALWAYS use a hyphen between code and number (e.g., "BRA-10" not "BRA 10")
+- For team photos, use player_name "Team Photo"
+- For emblems/badges, use player_name "Emblem"
+- If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
 
 export async function POST(request: Request) {
   const startTime = Date.now()
@@ -106,20 +118,20 @@ export async function POST(request: Request) {
     console.log(`[scan] Loaded ${allDbStickers.length} stickers from DB`)
 
     // Build lookup maps
-    // Map: normalized_name -> sticker (per country code)
-    // e.g., "BRA" -> { "neymar jr" -> {id, number, ...}, "casemiro" -> {...} }
+    // 1. Exact number map: "BRA-10" -> sticker
+    const numberMap = new Map(allDbStickers.map((s) => [s.number.toUpperCase(), s]))
+    // 2. Name by country: "BRA" -> { "neymar jr" -> sticker }
     const nameByCountry = new Map<string, Map<string, typeof allDbStickers[0]>>()
-    // Also a flat name map for fallback (ignoring country)
+    // 3. Flat name map for fallback
     const nameFlat = new Map<string, typeof allDbStickers[0]>()
 
     for (const s of allDbStickers) {
-      const code = s.number.split('-')[0] // "BRA", "ARG", etc.
+      const code = s.number.split('-')[0]
       const normName = normalizeName(s.player_name)
 
       if (!nameByCountry.has(code)) nameByCountry.set(code, new Map())
       nameByCountry.get(code)!.set(normName, s)
 
-      // Flat map — only if not ambiguous (same name in multiple countries is rare for players)
       if (!nameFlat.has(normName)) {
         nameFlat.set(normName, s)
       }
@@ -146,7 +158,7 @@ export async function POST(request: Request) {
           data: image,
         },
       },
-      { text: 'Identify all stickers in this photo. Return player names and country codes as JSON.' },
+      { text: 'Identify all stickers in this photo. Read player names, country codes, and sticker numbers (if visible on the back). Return JSON.' },
     ])
 
     const geminiMs = Date.now() - geminiStart
@@ -184,6 +196,7 @@ export async function POST(request: Request) {
       player_name?: string
       country_code?: string
       country?: string
+      sticker_number?: string
       number?: string
       status?: string
       confidence?: number
@@ -215,50 +228,52 @@ export async function POST(request: Request) {
     for (const detected of stickersArr) {
       const playerName = detected.player_name || ''
       const countryCode = (detected.country_code || detected.country || '').toUpperCase().trim()
+      const stickerNumber = (detected.sticker_number || detected.number || '').toUpperCase().trim()
       const normPlayer = normalizeName(playerName)
-
-      if (!normPlayer || normPlayer.length < 2) continue
 
       let dbSticker = null
 
-      // Strategy 1: Match by name within the country
-      if (countryCode) {
-        // Try exact country code
-        const countryMap = nameByCountry.get(countryCode)
-        if (countryMap) {
-          dbSticker = countryMap.get(normPlayer) || null
-          // Try partial match (first/last name)
-          if (!dbSticker) {
-            dbSticker = fuzzyNameMatch(normPlayer, countryMap)
+      // ── Priority 1: Match by sticker number (e.g., back of sticker shows "BRA-10") ──
+      if (stickerNumber) {
+        dbSticker = findByNumber(stickerNumber, numberMap)
+      }
+
+      // ── Priority 2: Match by player name + country ──
+      if (!dbSticker && normPlayer && normPlayer.length >= 2) {
+        if (countryCode) {
+          // Try exact country code
+          const countryMap = nameByCountry.get(countryCode)
+          if (countryMap) {
+            dbSticker = countryMap.get(normPlayer) || fuzzyNameMatch(normPlayer, countryMap)
           }
-        }
-        // Try country name → code mapping
-        if (!dbSticker) {
-          const mappedCode = COUNTRY_TO_CODE[countryCode] || COUNTRY_TO_CODE[normalizeName(countryCode)]
-          if (mappedCode) {
-            const mappedMap = nameByCountry.get(mappedCode)
-            if (mappedMap) {
-              dbSticker = mappedMap.get(normPlayer) || fuzzyNameMatch(normPlayer, mappedMap)
+          // Try country name → code mapping
+          if (!dbSticker) {
+            const mappedCode = COUNTRY_TO_CODE[countryCode] || COUNTRY_TO_CODE[normalizeName(countryCode)]
+            if (mappedCode) {
+              const mappedMap = nameByCountry.get(mappedCode)
+              if (mappedMap) {
+                dbSticker = mappedMap.get(normPlayer) || fuzzyNameMatch(normPlayer, mappedMap)
+              }
             }
           }
         }
-      }
 
-      // Strategy 2: Flat name match (ignore country)
-      if (!dbSticker) {
-        dbSticker = nameFlat.get(normPlayer) || null
-      }
+        // Flat name match (ignore country)
+        if (!dbSticker) {
+          dbSticker = nameFlat.get(normPlayer) || null
+        }
 
-      // Strategy 3: Fuzzy match across all countries
-      if (!dbSticker) {
-        for (const [, countryMap] of nameByCountry) {
-          const found = fuzzyNameMatch(normPlayer, countryMap)
-          if (found) {
-            dbSticker = found
-            break
+        // Fuzzy match across all countries
+        if (!dbSticker) {
+          for (const [, countryMap] of nameByCountry) {
+            const found = fuzzyNameMatch(normPlayer, countryMap)
+            if (found) { dbSticker = found; break }
           }
         }
       }
+
+      // Skip if we have nothing to match on
+      if (!dbSticker && !normPlayer && !stickerNumber) continue
 
       if (dbSticker && !seenIds.has(dbSticker.id)) {
         seenIds.add(dbSticker.id)
@@ -269,9 +284,9 @@ export async function POST(request: Request) {
           country: dbSticker.country,
           status: detected.status || 'filled',
         })
-        console.log(`[scan] ✓ "${playerName}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name}`)
+        console.log(`[scan] ✓ "${playerName || stickerNumber}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name}`)
       } else if (!dbSticker) {
-        unmatched.push(`${playerName} (${countryCode})`)
+        unmatched.push(playerName ? `${playerName} (${countryCode})` : stickerNumber)
         console.log(`[scan] ✗ "${playerName}" (${countryCode}) → no match`)
       }
     }
@@ -336,6 +351,32 @@ export async function POST(request: Request) {
 }
 
 // ── Matching helpers ──
+
+type DbSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
+
+/** Try to match by sticker number (from back of sticker). Handles "BRA-10", "BRA 10", "BRA10" */
+function findByNumber(raw: string, numberMap: Map<string, DbSticker>): DbSticker | null {
+  const upper = raw.toUpperCase().trim()
+
+  // Exact: "BRA-10"
+  const exact = numberMap.get(upper)
+  if (exact) return exact
+
+  // Normalize separators: "BRA 10" → "BRA-10"
+  const normalized = upper.replace(/\s+/g, '-').replace(/\.+/g, '-').replace(/_+/g, '-').replace(/-+/g, '-')
+  const norm = numberMap.get(normalized)
+  if (norm) return norm
+
+  // No separator: "BRA10" → "BRA-10"
+  const noSep = upper.match(/^([A-Z]{2,5})(\d+)$/)
+  if (noSep) {
+    const withHyphen = `${noSep[1]}-${noSep[2]}`
+    const found = numberMap.get(withHyphen)
+    if (found) return found
+  }
+
+  return null
+}
 
 /** Normalize a name for comparison: lowercase, remove accents, trim */
 function normalizeName(name: string): string {
