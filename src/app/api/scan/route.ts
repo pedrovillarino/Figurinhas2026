@@ -137,21 +137,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Call Gemini
+    // 5. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_INSTRUCTION,
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-      },
-    })
-
-    console.log('[scan] Calling Gemini...')
-    const geminiStart = Date.now()
-
-    const result = await model.generateContent([
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
+    const geminiPayload = [
       {
         inlineData: {
           mimeType,
@@ -159,12 +148,53 @@ export async function POST(request: Request) {
         },
       },
       { text: 'Identify all stickers in this photo. Read player names, country codes, and sticker numbers (if visible on the back). Return JSON.' },
-    ])
+    ]
 
-    const geminiMs = Date.now() - geminiStart
-    const responseText = result.response.text()
-    console.log(`[scan] Gemini: ${geminiMs}ms, ${responseText.length} chars`)
-    console.log('[scan] Response:', responseText.substring(0, 1200))
+    let responseText = ''
+    let geminiMs = 0
+    let usedModel = ''
+
+    for (const modelName of MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_INSTRUCTION,
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        })
+
+        console.log(`[scan] Trying ${modelName}...`)
+        const geminiStart = Date.now()
+
+        const result = await model.generateContent(geminiPayload)
+        geminiMs = Date.now() - geminiStart
+        responseText = result.response.text()
+        usedModel = modelName
+        console.log(`[scan] ${modelName}: ${geminiMs}ms, ${responseText.length} chars`)
+        console.log('[scan] Response:', responseText.substring(0, 1200))
+        break // Success — don't try next model
+      } catch (modelErr) {
+        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+        console.error(`[scan] ${modelName} failed:`, msg.substring(0, 200))
+
+        // If rate limited or model not found, try next model
+        if (msg.includes('429') || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated') || msg.includes('quota')) {
+          console.log(`[scan] Falling back to next model...`)
+          continue
+        }
+        // For other errors, rethrow
+        throw modelErr
+      }
+    }
+
+    if (!responseText) {
+      return NextResponse.json(
+        { error: 'Todos os serviços de scan estão ocupados. Tente novamente em 1 minuto. ☕' },
+        { status: 429 }
+      )
+    }
 
     // 6. Parse response
     let parsed: Record<string, unknown> | null = null
