@@ -5,6 +5,7 @@ import { sendText, formatPhone } from '@/lib/zapi'
 import { sendPushToUser } from '@/lib/push'
 import { sendEmail, tradeApprovedEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
+import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
 
 export const maxDuration = 30
 
@@ -30,6 +31,9 @@ function getAdmin() {
  * Body: { request_id?: string, token?: string, action: 'approve' | 'reject' }
  */
 export async function POST(req: NextRequest) {
+  const rlResponse = await checkRateLimit(getIp(req), tradeLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     const { request_id, token, action } = await req.json()
 

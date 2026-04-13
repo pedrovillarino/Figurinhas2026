@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
+import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 
 export const maxDuration = 30
 
@@ -29,7 +30,10 @@ Retorne APENAS JSON válido:
 Se não for uma lista:
 {"error": "not_a_list", "message": "Descrição do problema"}`
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rlResponse = await checkRateLimit(getIp(request), scanLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     // 1. Auth
     const cookieStore = cookies()

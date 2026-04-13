@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { checkRateLimit, getIp, generalLimiter } from '@/lib/ratelimit'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const rlResponse = await checkRateLimit(getIp(req), generalLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     const cookieStore = cookies()
     const supabase = createServerClient(

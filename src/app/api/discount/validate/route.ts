@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getIp, generalLimiter } from '@/lib/ratelimit'
 
 export const maxDuration = 30
 
@@ -12,6 +13,9 @@ function getAdminClient() {
 }
 
 export async function POST(req: NextRequest) {
+  const rlResponse = await checkRateLimit(getIp(req), generalLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     // Verify user is authenticated
     const supabase = await createServerClient()
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Look up the code
     const { data: discount, error: lookupError } = await admin
       .from('discount_codes')
-      .select('*')
+      .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active')
       .eq('code', code)
       .eq('active', true)
       .single()

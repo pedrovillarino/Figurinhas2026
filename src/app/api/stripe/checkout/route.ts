@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
       const { data: discount } = await admin
         .from('discount_codes')
-        .select('*')
+        .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active')
         .eq('code', discountCode)
         .eq('active', true)
         .single()

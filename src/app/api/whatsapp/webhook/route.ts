@@ -570,7 +570,7 @@ export async function POST(req: NextRequest) {
         const supabaseAdmin = getAdmin()
         const { data: allPending } = await supabaseAdmin
           .from('pending_scans')
-          .select('*')
+          .select('id, user_id, scan_data, expires_at, created_at')
           .eq('user_id', user.id)
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true })

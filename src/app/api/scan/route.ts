@@ -220,10 +220,8 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey)
     const MODELS = [
       'gemini-2.5-flash',           // principal — melhor qualidade estável
-      'gemini-3-flash-preview',     // fallback 1 — rápido, preview
-      'gemini-3.1-flash-lite-preview', // fallback 2 — ultra rápido, preview
-      'gemini-2.5-flash-lite',      // fallback 3 — estável, leve
-      'gemini-2.0-flash-001',       // fallback 4 — legado
+      'gemini-2.5-flash-lite',      // fallback 1 — estável, leve
+      'gemini-2.0-flash-001',       // fallback 2 — legado, sempre disponível
     ]
     const geminiPayload = [
       {
@@ -245,7 +243,8 @@ export async function POST(request: NextRequest) {
       msg.includes('deprecated') || msg.includes('503') || msg.includes('UNAVAILABLE') ||
       msg.includes('500') || msg.includes('INTERNAL')
 
-    for (const modelName of MODELS) {
+    for (let i = 0; i < MODELS.length; i++) {
+      const modelName = MODELS[i]
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
@@ -270,8 +269,14 @@ export async function POST(request: NextRequest) {
       } catch (modelErr) {
         const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
         console.error(`[scan] ${modelName} failed:`, msg.substring(0, 200))
-        if (isRetryable(msg)) continue
-        throw modelErr
+        if (isRetryable(msg) && i < MODELS.length - 1) {
+          // Exponential backoff: 500ms, 1500ms before next model
+          const backoffMs = 500 * Math.pow(3, i)
+          console.log(`[scan] Backing off ${backoffMs}ms before next model...`)
+          await new Promise((r) => setTimeout(r, backoffMs))
+          continue
+        }
+        if (!isRetryable(msg)) throw modelErr
       }
     }
 

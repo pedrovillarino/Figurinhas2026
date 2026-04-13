@@ -32,34 +32,16 @@ export default async function TradesPage() {
     userStickersMap[us.sticker_id] = { status: us.status, quantity: us.quantity }
   })
 
-  // Try to get nearby match count if user has location
-  let nearbyCount = 0
-  let nearbyMatches: Array<{
+  // Run all trade-related queries in parallel
+  type NearbyMatch = {
     user_id: string
     display_name: string | null
     distance_km: number
     they_have: number
     i_have: number
     match_score: number
-  }> = []
-
-  if (hasLocation) {
-    try {
-      const { data } = await supabase.rpc('get_trade_matches', {
-        p_user_id: user.id,
-        p_radius_km: 50,
-      })
-      if (data) {
-        nearbyCount = data.length
-        nearbyMatches = (data as typeof nearbyMatches).slice(0, 5)
-      }
-    } catch {
-      // RPC might not exist yet, that's ok
-    }
   }
-
-  // Load pending trade requests for this user
-  let pendingRequests: Array<{
+  type PendingRequest = {
     id: string
     requester_id: string
     requester_name: string | null
@@ -70,70 +52,47 @@ export default async function TradesPage() {
     distance_km: number | null
     message: string | null
     created_at: string
-  }> = []
+  }
 
-  try {
-    const { data } = await supabase.rpc('get_pending_trade_requests', {
-      p_user_id: user.id,
+  const [matchesResult, pendingResult, sentResult, approvedResult] = await Promise.all([
+    // Nearby matches (only if has location)
+    hasLocation
+      ? supabase.rpc('get_trade_matches', { p_user_id: user.id, p_radius_km: 50 }).catch(() => ({ data: null }))
+      : Promise.resolve({ data: null }),
+    // Pending trade requests
+    supabase.rpc('get_pending_trade_requests', { p_user_id: user.id }).catch(() => ({ data: null })),
+    // Sent requests (still pending)
+    supabase.from('trade_requests').select('target_id').eq('requester_id', user.id).eq('status', 'pending').then(r => r).catch(() => ({ data: null })),
+    // Recently approved trades
+    supabase.from('trade_requests').select('id, requester_id, responded_at').eq('target_id', user.id).eq('status', 'approved').order('responded_at', { ascending: false }).limit(5).then(r => r).catch(() => ({ data: null })),
+  ])
+
+  const nearbyMatches = ((matchesResult.data || []) as NearbyMatch[]).slice(0, 5)
+  const nearbyCount = (matchesResult.data || []).length
+  const pendingRequests = (pendingResult.data || []) as PendingRequest[]
+  const sentRequestUserIds = (sentResult.data || []).map((r: { target_id: string }) => r.target_id)
+
+  // Build approved trades with requester profiles
+  let approvedTrades: Array<{ requestId: string; requesterName: string; contact: string | null }> = []
+  const approved = approvedResult.data as Array<{ id: string; requester_id: string; responded_at: string }> | null
+  if (approved && approved.length > 0) {
+    const requesterIds = approved.map(a => a.requester_id)
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, phone, email')
+      .in('id', requesterIds)
+
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+
+    approvedTrades = approved.map(a => {
+      const p = profileMap.get(a.requester_id)
+      const phone = p?.phone?.replace(/\D/g, '')
+      return {
+        requestId: a.id,
+        requesterName: p?.display_name || 'Usuário',
+        contact: phone ? `wa.me/${phone}` : p?.email || null,
+      }
     })
-    if (data) {
-      pendingRequests = data as typeof pendingRequests
-    }
-  } catch {
-    // RPC might not exist yet
-  }
-
-  // Load trade requests SENT by this user (still pending) so button stays disabled
-  let sentRequestUserIds: string[] = []
-  try {
-    const { data: sentRequests } = await supabase
-      .from('trade_requests')
-      .select('target_id')
-      .eq('requester_id', user.id)
-      .eq('status', 'pending')
-    if (sentRequests) {
-      sentRequestUserIds = sentRequests.map((r) => r.target_id)
-    }
-  } catch {
-    // Table might not exist yet
-  }
-
-  // Load recently approved trades where this user is the target (so they see the contact)
-  let approvedTrades: Array<{
-    requestId: string
-    requesterName: string
-    contact: string | null
-  }> = []
-  try {
-    const { data: approved } = await supabase
-      .from('trade_requests')
-      .select('id, requester_id, responded_at')
-      .eq('target_id', user.id)
-      .eq('status', 'approved')
-      .order('responded_at', { ascending: false })
-      .limit(5)
-
-    if (approved && approved.length > 0) {
-      const requesterIds = approved.map(a => a.requester_id)
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, phone, email')
-        .in('id', requesterIds)
-
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
-
-      approvedTrades = approved.map(a => {
-        const p = profileMap.get(a.requester_id)
-        const phone = p?.phone?.replace(/\D/g, '')
-        return {
-          requestId: a.id,
-          requesterName: p?.display_name || 'Usuário',
-          contact: phone ? `wa.me/${phone}` : p?.email || null,
-        }
-      })
-    }
-  } catch {
-    // Table might not exist yet
   }
 
   return (

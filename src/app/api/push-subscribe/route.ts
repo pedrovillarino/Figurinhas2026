@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { checkRateLimit, getIp, generalLimiter } from '@/lib/ratelimit'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  const rlResponse = await checkRateLimit(getIp(req), generalLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     const { subscription } = await req.json()
 

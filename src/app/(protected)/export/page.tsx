@@ -17,8 +17,8 @@ export default async function ExportPage() {
   if (!user) redirect('/login')
 
   const [{ data: stickers }, { data: userStickers }] = await Promise.all([
-    supabase.from('stickers').select('*').order('number'),
-    supabase.from('user_stickers').select('*').eq('user_id', user.id),
+    supabase.from('stickers').select('id, number, player_name, country, section, type').order('number'),
+    supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
   ])
 
   const userStickersMap: Record<number, { status: string; quantity: number }> = {}

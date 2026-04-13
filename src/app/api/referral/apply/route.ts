@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { checkRateLimit, getIp, generalLimiter } from '@/lib/ratelimit'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rlResponse = await checkRateLimit(getIp(request), generalLimiter)
+  if (rlResponse) return rlResponse
   try {
     // 1. Auth — get current user
     const cookieStore = cookies()
