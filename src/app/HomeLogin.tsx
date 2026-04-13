@@ -313,9 +313,9 @@ export default function HomeLogin() {
 
         <button
           onClick={() => setMode('email')}
-          className="w-full text-xs text-gray-400 hover:text-gray-600 transition py-1.5 font-medium"
+          className="w-full text-xs text-gray-500 hover:text-brand transition py-1.5 font-medium underline underline-offset-2 decoration-gray-300 hover:decoration-brand"
         >
-          ou entre com email
+          ou entre com e-mail
         </button>
       </div>
     )

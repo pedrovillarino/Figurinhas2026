@@ -140,10 +140,10 @@ export default async function Home() {
       <section className="px-6 pt-6 pb-10 bg-gradient-to-b from-white to-brand-light/40">
         <div className="max-w-xs mx-auto text-center">
           <p className="text-lg font-bold text-navy mb-1">
-            Comece agora — é grátis
+            Falta pouco pra completar
           </p>
           <p className="text-xs text-gray-400 mb-5">
-            Escaneie sua primeira figurinha em 30 segundos.
+            Crie sua conta grátis e escaneie a primeira figurinha em 30 segundos.
           </p>
           <HomeLogin />
         </div>

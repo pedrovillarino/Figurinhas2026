@@ -95,6 +95,12 @@ export default function RootLayout({
               url: "https://www.completeai.com.br",
               applicationCategory: "UtilityApplication",
               operatingSystem: "Web",
+              offers: [
+                { "@type": "Offer", name: "Free", price: "0", priceCurrency: "BRL" },
+                { "@type": "Offer", name: "Estreante", price: "9.90", priceCurrency: "BRL" },
+                { "@type": "Offer", name: "Colecionador", price: "19.90", priceCurrency: "BRL" },
+                { "@type": "Offer", name: "Copa Completa", price: "29.90", priceCurrency: "BRL" },
+              ],
             }),
           }}
         />
