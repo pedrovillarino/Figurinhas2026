@@ -276,7 +276,7 @@ export default function DashboardClient({
   const visibleCountries = showAll ? countryData : countryData.slice(0, 8)
 
   return (
-    <main className="px-4 pt-6 pb-8">
+    <main className="px-4 pt-6 pb-28">
       {/* ─── Header ─── */}
       <header className="mb-6">
         <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-1">Dashboard</h1>

@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
           `   • ${tradeReq.they_have} que você precisa\n` +
           `   • ${tradeReq.i_have} que você tem pra dar\n\n` +
           `📞 *Contato:*\n${contactLine}\n\n` +
-          `Combinem a troca e bom colecionamento! ⚽`
+          `Boa troca e boas figurinhas! ⚽`
 
         await sendText(requesterPhone, msgToRequester).catch((err: unknown) => {
           console.error('Error notifying requester:', err)
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         const msgToTarget =
           `✅ Troca aprovada com *${requesterName}*!\n\n` +
           `📞 *Contato dele(a):*\n${contactLine}\n\n` +
-          `Combinem a troca e bom colecionamento! ⚽`
+          `Boa troca e boas figurinhas! ⚽`
 
         await sendText(targetPhone, msgToTarget).catch((err: unknown) => {
           console.error('Error notifying target:', err)

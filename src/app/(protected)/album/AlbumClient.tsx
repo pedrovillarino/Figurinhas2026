@@ -368,7 +368,7 @@ export default function AlbumClient({
   }
 
   return (
-    <main className="px-4 pt-4 pb-4" role="main">
+    <main className="px-4 pt-4 pb-28" role="main">
       {/* Header with progress ring */}
       <header className="flex items-center justify-between mb-5">
         <div>

@@ -130,6 +130,27 @@ export async function POST(req: NextRequest) {
       // If they have priority stickers, always notify. Otherwise check threshold.
       if (!hasPriority && theyNeed.length < minThreshold) continue
 
+      // Dedup: skip if there's already a pending/approved trade request between these users
+      // or if any trade request was created in the last 24 hours
+      const { data: recentTrade } = await supabase
+        .from('trade_requests')
+        .select('id')
+        .or(`and(requester_id.eq.${user_id},target_id.eq.${nearby.id}),and(requester_id.eq.${nearby.id},target_id.eq.${user_id})`)
+        .in('status', ['pending', 'approved'])
+        .limit(1)
+
+      if (recentTrade && recentTrade.length > 0) continue
+
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: recentAnyTrade } = await supabase
+        .from('trade_requests')
+        .select('id')
+        .or(`and(requester_id.eq.${user_id},target_id.eq.${nearby.id}),and(requester_id.eq.${nearby.id},target_id.eq.${user_id})`)
+        .gte('created_at', twentyFourHoursAgo)
+        .limit(1)
+
+      if (recentAnyTrade && recentAnyTrade.length > 0) continue
+
       // Get sticker numbers for the message
       const neededStickers = stickerDetails
         .filter((s) => theyNeed.includes(s.id))

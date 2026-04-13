@@ -151,7 +151,7 @@ export default function ExportPageClient({
   }
 
   return (
-    <main className="px-4 pt-4 pb-4">
+    <main className="px-4 pt-4 pb-28">
       {/* Header */}
       <div className="mb-5">
         <h1 className="text-xl font-black tracking-tight text-gray-900">Exportar Lista</h1>

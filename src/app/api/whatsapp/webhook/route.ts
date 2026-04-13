@@ -633,15 +633,15 @@ export async function POST(req: NextRequest) {
       // Fast keyword matching before calling Gemini
       let intent: string
 
-      if (/^(status|progresso|quanto|meu album|meu álbum)/.test(lower)) {
+      if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
         intent = 'status'
-      } else if (/^(falt|missing|preciso|necessito)/.test(lower)) {
+      } else if (/(falt|missing|preciso|necessito|que me falta|o que falta|quais faltam)/.test(lower)) {
         intent = 'missing'
-      } else if (/^(repet|duplic|sobr|troc?ar|pra troc)/.test(lower)) {
+      } else if (/(repet|duplic|sobr|troc?ar|pra troc|minhas repetidas|minhas figurinhas repetidas)/.test(lower)) {
         intent = 'duplicates'
-      } else if (/^(troca|pendente|solicita|aceitar)/.test(lower)) {
+      } else if (/(troca|pendente|solicita|aceitar|minhas trocas|ver trocas)/.test(lower)) {
         intent = 'trades'
-      } else if (/^(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como)\b/.test(lower)) {
+      } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como)\b/.test(lower)) {
         intent = 'help'
       } else {
         // Fallback to Gemini for ambiguous messages
