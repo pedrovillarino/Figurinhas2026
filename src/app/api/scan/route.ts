@@ -186,7 +186,7 @@ export async function POST(request: Request) {
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-001', 'gemini-2.5-flash-lite']
+    const MODELS = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
     const geminiPayload = [
       {
         inlineData: {

@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     // Scan with Gemini — try models with retry on rate limit
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash-001', 'gemini-2.5-flash-lite']
+    const models = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
     let responseText = ''
 
     const isRateLimit = (msg: string) =>
