@@ -67,6 +67,47 @@ async function addTradeCredits(userId: string, credits: number) {
   return true
 }
 
+async function grantReferralUpgradeReward(userId: string) {
+  const supabase = getAdminClient()
+
+  // Check if user was referred by someone
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('referred_by')
+    .eq('id', userId)
+    .single()
+
+  if (!profile?.referred_by) return
+
+  const referrerId = profile.referred_by
+
+  // Check if upgrade reward already granted for this pair
+  const { data: existing } = await supabase
+    .from('referral_rewards')
+    .select('id')
+    .eq('referrer_id', referrerId)
+    .eq('referred_id', userId)
+    .eq('reward_type', 'upgrade')
+    .maybeSingle()
+
+  if (existing) return // Already rewarded
+
+  // Grant +5 trade credits and +10 scan credits to referrer
+  await addTradeCredits(referrerId, 5)
+  await addScanCredits(referrerId, 10)
+
+  // Record the reward
+  await supabase.from('referral_rewards').insert({
+    referrer_id: referrerId,
+    referred_id: userId,
+    reward_type: 'upgrade',
+    trade_credits: 5,
+    scan_credits: 10,
+  })
+
+  console.log(`Referral upgrade reward: referrer ${referrerId} got +5 trades +10 scans from ${userId}`)
+}
+
 async function recordDiscountRedemption(metadata: Record<string, string>, userId: string) {
   const codeId = metadata.discount_code_id
   const percentOff = parseInt(metadata.percent_off || '0', 10)
@@ -145,6 +186,8 @@ export async function POST(req: NextRequest) {
         if (session.metadata) {
           await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
         }
+        // Grant referral upgrade reward if applicable
+        await grantReferralUpgradeReward(userId)
       }
     }
   }
@@ -167,6 +210,8 @@ export async function POST(req: NextRequest) {
       if (session.metadata) {
         await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
       }
+      // Grant referral upgrade reward if applicable
+      await grantReferralUpgradeReward(userId)
     }
   }
 

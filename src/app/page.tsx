@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import HomeLogin from "./HomeLogin";
@@ -48,7 +49,7 @@ export default async function Home() {
 
           {/* CTA */}
           <div className="mt-6 w-full max-w-xs animate-fade-up-delay-2">
-            <HomeLogin />
+            <Suspense><HomeLogin /></Suspense>
           </div>
         </div>
       </section>

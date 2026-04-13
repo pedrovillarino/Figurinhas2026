@@ -56,7 +56,12 @@ export async function GET(request: Request) {
             .single()
 
           if (profile && !profile.referral_code) {
-            const referralCode = user.id.replace(/-/g, '').substring(0, 6).toUpperCase()
+            // Generate a random 6-char alphanumeric code
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+            let referralCode = ''
+            for (let i = 0; i < 6; i++) {
+              referralCode += chars[Math.floor(Math.random() * chars.length)]
+            }
             await supabaseAdmin
               .from('profiles')
               .update({ referral_code: referralCode })
