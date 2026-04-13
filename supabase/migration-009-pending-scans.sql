@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS pending_scans (
   phone text NOT NULL,
   scan_data jsonb NOT NULL, -- array of {sticker_id, number, player_name, status}
   created_at timestamptz DEFAULT now(),
-  expires_at timestamptz DEFAULT now() + interval '5 minutes'
+  expires_at timestamptz DEFAULT now() + interval '1 hour'
 );
 
 -- Auto-cleanup: index for fast lookup by phone
