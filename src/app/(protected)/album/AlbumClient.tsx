@@ -73,8 +73,14 @@ export default function AlbumClient({
     return () => observer.disconnect()
   }, [])
 
-  // Reset visibleCount quando filtro muda
-  useEffect(() => { setVisibleCount(40) }, [activeTab, debouncedSearch])
+  // Reset visibleCount e abre seções quando filtro muda
+  useEffect(() => {
+    setVisibleCount(40)
+    // Ao filtrar por Faltam/Repetidas, abre todas as seções que têm resultados
+    if (activeTab !== 'all') {
+      setOpenSections(new Set(Object.keys(groupedByCountry)))
+    }
+  }, [activeTab, debouncedSearch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sort numérico natural (ARG-1, ARG-2, ..., ARG-10 em vez de ARG-1, ARG-10, ARG-2)
   const collator = useMemo(() => new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' }), [])
@@ -546,6 +552,8 @@ export default function AlbumClient({
             const sec = sectionStats[country]
             const pct = sec ? Math.round((sec.owned / sec.total) * 100) : 0
             const isCollapsed = !openSections.has(country)
+            const filteredCount = countryStickers.length
+            const showProgress = activeTab === 'all'
             return (
               <div key={country}>
                 <button
@@ -555,14 +563,24 @@ export default function AlbumClient({
                 >
                   <span className="text-lg">{getFlag(country)}</span>
                   <span className="text-xs font-semibold text-gray-700 flex-1 text-left">{country}</span>
-                  <span className="text-[10px] text-gray-500">{sec?.owned}/{sec?.total}</span>
-                  <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-brand'}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className={`text-[10px] font-bold w-8 text-right ${pct === 100 ? 'text-emerald-600' : 'text-gray-500'}`}>{pct}%</span>
+                  {showProgress ? (
+                    <>
+                      <span className="text-[10px] text-gray-500">{sec?.owned}/{sec?.total}</span>
+                      <div className="w-14 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-brand'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className={`text-[10px] font-bold w-8 text-right ${pct === 100 ? 'text-emerald-600' : 'text-gray-500'}`}>{pct}%</span>
+                    </>
+                  ) : (
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      activeTab === 'missing' ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'
+                    }`}>
+                      {filteredCount}
+                    </span>
+                  )}
                   <svg
                     className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
