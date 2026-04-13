@@ -551,29 +551,36 @@ export async function POST(req: NextRequest) {
       // ─── Check for pending scan confirmation ───
       if (/^(sim|s|yes|y|confirma|ok)$/i.test(lower.trim())) {
         const supabaseAdmin = getAdmin()
-        const { data: pending } = await supabaseAdmin
+        const { data: allPending } = await supabaseAdmin
           .from('pending_scans')
           .select('*')
           .eq('user_id', user.id)
           .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
+          .order('created_at', { ascending: true })
 
-        if (pending) {
-          // Save stickers
-          const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string }>
+        if (allPending && allPending.length > 0) {
+          // Merge all pending scans into one list, dedup by sticker_id
+          const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string }>()
+          for (const pending of allPending) {
+            const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string }>
+            for (const s of scanData) {
+              allStickers.set(s.sticker_id, s)
+            }
+          }
+          const mergedStickers = Array.from(allStickers.values())
+
+          // Check existing
           const { data: existing } = await supabaseAdmin
             .from('user_stickers')
             .select('sticker_id, status, quantity')
             .eq('user_id', user.id)
-            .in('sticker_id', scanData.map((s) => s.sticker_id))
+            .in('sticker_id', mergedStickers.map((s) => s.sticker_id))
 
           const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
           let saved = 0
           const savedLines: string[] = []
 
-          for (const sticker of scanData) {
+          for (const sticker of mergedStickers) {
             const ex = existingMap.get(sticker.sticker_id)
             const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
 
@@ -592,8 +599,8 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Delete pending scan
-          await supabaseAdmin.from('pending_scans').delete().eq('id', pending.id)
+          // Delete all pending scans
+          await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
 
           // Get updated stats
           const stats = await getUserStats(user.id)
@@ -610,17 +617,15 @@ export async function POST(req: NextRequest) {
 
       if (/^(n[aã]o|n|cancelar|cancel)$/i.test(lower.trim())) {
         const supabaseAdmin = getAdmin()
-        const { data: pending } = await supabaseAdmin
+        const { data: allPending } = await supabaseAdmin
           .from('pending_scans')
           .select('id')
           .eq('user_id', user.id)
           .gt('expires_at', new Date().toISOString())
-          .limit(1)
-          .single()
 
-        if (pending) {
-          await supabaseAdmin.from('pending_scans').delete().eq('id', pending.id)
-          await sendText(phone, '❌ Scan cancelado. Mande outra foto para tentar novamente! 📸')
+        if (allPending && allPending.length > 0) {
+          await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
+          await sendText(phone, `❌ ${allPending.length} scan(s) cancelado(s). Mande outra foto para tentar novamente! 📸`)
           return NextResponse.json({ ok: true })
         }
       }
