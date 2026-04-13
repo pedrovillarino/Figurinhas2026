@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { TIER_CONFIG, TIER_ORDER, tierIndex, type Tier } from '@/lib/tiers'
 
 type PaywallModalProps = {
-  feature: 'scan' | 'trades'
+  feature: 'scan' | 'trades' | 'upgrade'
   currentTier: Tier
   onClose?: () => void
 }
@@ -118,10 +118,14 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
     return `R$${(discounted / 100).toFixed(2).replace('.', ',')}`
   }
 
-  const featureTitle = feature === 'scan' ? 'Scanner com IA' : 'Trocas de Figurinhas'
-  const featureIcon = feature === 'scan' ? '📸' : '🔁'
+  const featureTitle = feature === 'scan' ? 'Scanner com IA'
+    : feature === 'upgrade' ? 'Fazer Upgrade'
+    : 'Trocas de Figurinhas'
+  const featureIcon = feature === 'scan' ? '📸' : feature === 'upgrade' ? '⬆️' : '🔁'
   const featureDesc = feature === 'scan'
     ? 'Detecte suas figurinhas automaticamente com IA.'
+    : feature === 'upgrade'
+    ? 'Escolha o plano ideal para completar seu álbum.'
     : 'Encontre pessoas perto de você para trocar figurinhas.'
 
   return (

@@ -553,11 +553,9 @@ export default function ScanHub({
           </button>
         )}
 
-        {isScanLimit && (
-          <a href="/album" className="mt-3 text-sm text-brand font-medium hover:underline">
-            Marcar manualmente no álbum →
-          </a>
-        )}
+        <a href="/album" className="mt-3 text-sm text-brand font-medium hover:underline">
+          Marcar manualmente no álbum →
+        </a>
       </div>
     )
   }

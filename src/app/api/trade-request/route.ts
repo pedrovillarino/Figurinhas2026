@@ -5,6 +5,7 @@ import { sendText, formatPhone } from '@/lib/zapi'
 import { sendPushToUser } from '@/lib/push'
 import { sendEmail, tradeRequestEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
+import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
 
 export const maxDuration = 30
 import { randomBytes } from 'crypto'
@@ -40,6 +41,10 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
  * Body: { target_user_id: string, they_have: number, i_have: number, match_score: number }
  */
 export async function POST(req: NextRequest) {
+  // Rate limit
+  const rlResponse = await checkRateLimit(getIp(req), tradeLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     // 1. Auth
     const cookieStore = cookies()

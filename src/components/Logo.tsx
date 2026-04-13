@@ -6,7 +6,8 @@
 
 export function LogoMark({ size = 48, color = '#00C896' }: { size?: number; color?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" role="img" aria-labelledby="logo-title">
+      <title id="logo-title">Logo Complete Aí</title>
       {/* Fundo arredondado */}
       <rect width="48" height="48" rx="12" fill={color} />
 

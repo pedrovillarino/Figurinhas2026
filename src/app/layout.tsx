@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import CookieConsent from "@/components/CookieConsent";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,10 +15,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.completeai.com.b
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "Complete Aí — Álbum da Copa 2026",
+    default: "Complete Aí — Álbum de Figurinhas com IA",
     template: "%s | Complete Aí",
   },
-  description: "Use IA para organizar e completar seu álbum mais fácil. Escaneie figurinhas, encontre trocas perto de você e complete sua coleção da Copa 2026.",
+  description: "Use IA para organizar e completar seu álbum mais fácil. Escaneie figurinhas, encontre trocas perto de você.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -27,7 +29,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     siteName: "Complete Aí",
-    title: "Complete Aí — Álbum da Copa 2026",
+    title: "Complete Aí — Álbum de Figurinhas com IA",
     description: "O único app que escaneia suas figurinhas com IA e encontra trocas perto de você.",
     url: APP_URL,
     images: [
@@ -35,13 +37,13 @@ export const metadata: Metadata = {
         url: "/album-cover.jpg",
         width: 1200,
         height: 630,
-        alt: "Complete Aí — Álbum de Figurinhas Copa 2026",
+        alt: "Complete Aí — Álbum de Figurinhas Digital",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Complete Aí — Álbum da Copa 2026",
+    title: "Complete Aí — Álbum de Figurinhas com IA",
     description: "Use IA para organizar e completar seu álbum mais fácil.",
     images: ["/album-cover.jpg"],
   },
@@ -79,7 +81,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               name: "Complete Aí",
-              description: "Use IA para organizar e completar seu álbum da Copa 2026 mais fácil. Escaneie figurinhas com IA e encontre trocas perto de você.",
+              description: "Use IA para organizar e completar seu álbum de figurinhas mais fácil. Escaneie figurinhas com IA e encontre trocas perto de você.",
               url: "https://www.completeai.com.br",
               applicationCategory: "UtilityApplication",
               operatingSystem: "Web",
@@ -96,6 +98,8 @@ export default function RootLayout({
         </a>
         {children}
         <ServiceWorkerRegister />
+        <CookieConsent />
+        <Analytics />
       </body>
     </html>
   );

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
 import { getScanLimit, type Tier } from '@/lib/tiers'
+import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 
 export const maxDuration = 60
 
@@ -51,8 +52,12 @@ RULES:
 - Double-check: did you list every sticker? If you see 15 stickers, your array must have 15 entries.
 - If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const startTime = Date.now()
+
+  // Rate limit
+  const rlResponse = await checkRateLimit(getIp(request), scanLimiter)
+  if (rlResponse) return rlResponse
 
   try {
     // 1. Validate auth
@@ -245,8 +250,11 @@ export async function POST(request: Request) {
 
     if (!responseText) {
       return NextResponse.json(
-        { error: 'Nossos servidores estão ocupados no momento. Tente novamente em 1 minuto.' },
-        { status: 429 }
+        {
+          error: 'Scanner temporariamente indisponível. Use a entrada manual no álbum.',
+          fallback: true,
+        },
+        { status: 503 }
       )
     }
 

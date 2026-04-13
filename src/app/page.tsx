@@ -17,7 +17,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-white text-navy overflow-hidden">
       {/* ── Hero Section ── */}
-      <section className="relative px-6 pt-10 pb-8">
+      <section id="main-content" className="relative px-6 pt-10 pb-8">
         {/* Subtle gradient bg */}
         <div className="absolute inset-0 bg-gradient-to-b from-brand-light/60 via-white to-white" />
 
@@ -121,7 +121,7 @@ export default async function Home() {
           <Step
             number="1"
             title="Crie sua conta"
-            description="Login rápido com Google ou Apple."
+            description="Login rápido com Google ou e-mail."
           />
           <Step
             number="2"

@@ -3,6 +3,11 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Termos de Serviço — Complete Aí',
   description: 'Termos de Serviço do Complete Aí — aplicativo de álbum de figurinhas com IA.',
+  openGraph: {
+    title: 'Termos de Serviço — Complete Aí',
+    url: 'https://www.completeai.com.br/termos',
+  },
+  alternates: { canonical: 'https://www.completeai.com.br/termos' },
 }
 
 function Section({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
@@ -56,16 +61,15 @@ export default function TermosPage() {
         <Section number={1} title="Identificação">
           <P>
             O aplicativo <strong>Complete Aí</strong> (&quot;Plataforma&quot;, &quot;App&quot;, &quot;Serviço&quot;) é
-            operado por Pedro Villarino (&quot;nós&quot;, &quot;nosso&quot;), pessoa física, inscrito sob CPF
-            junto à Receita Federal do Brasil, com domicílio eletrônico em{' '}
-            <a href="mailto:pedrovillarino@gmail.com" className="text-brand hover:text-brand-dark underline">
-              pedrovillarino@gmail.com
+            operado pelo Complete Aí (&quot;nós&quot;, &quot;nosso&quot;), contactável pelo e-mail{' '}
+            <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
+              contato@completeai.com.br
             </a>.
           </P>
           <P>
             O Encarregado de Proteção de Dados (DPO) pode ser contatado pelo e-mail{' '}
-            <a href="mailto:pedrovillarino@gmail.com" className="text-brand hover:text-brand-dark underline">
-              pedrovillarino@gmail.com
+            <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
+              contato@completeai.com.br
             </a>.
           </P>
         </Section>
@@ -164,8 +168,8 @@ export default function TermosPage() {
               solicitar o reembolso integral em até 7 (sete) dias corridos a partir da data do
               pagamento, sem necessidade de justificativa. Para exercer esse direito, entre em
               contato pelo e-mail{' '}
-              <a href="mailto:pedrovillarino@gmail.com" className="text-brand hover:text-brand-dark underline">
-                pedrovillarino@gmail.com
+              <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
+                contato@completeai.com.br
               </a>.
             </P>
           </SubSection>
@@ -237,8 +241,8 @@ export default function TermosPage() {
             <li>Informações fornecidas devem ser verdadeiras e atualizadas;</li>
             <li>
               Notifique-nos imediatamente em caso de uso não autorizado pelo e-mail{' '}
-              <a href="mailto:pedrovillarino@gmail.com" className="text-brand hover:text-brand-dark underline">
-                pedrovillarino@gmail.com
+              <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
+                contato@completeai.com.br
               </a>;
             </li>
             <li>Reservamo-nos o direito de suspender ou encerrar contas que violem estes Termos.</li>
@@ -373,14 +377,14 @@ export default function TermosPage() {
           <UL>
             <li>
               <strong>E-mail:</strong>{' '}
-              <a href="mailto:pedrovillarino@gmail.com" className="text-brand hover:text-brand-dark underline">
-                pedrovillarino@gmail.com
+              <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
+                contato@completeai.com.br
               </a>
             </li>
             <li>
               <strong>DPO (Encarregado de Proteção de Dados):</strong>{' '}
-              <a href="mailto:pedrovillarino@gmail.com" className="text-brand hover:text-brand-dark underline">
-                pedrovillarino@gmail.com
+              <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
+                contato@completeai.com.br
               </a>
             </li>
           </UL>
@@ -391,7 +395,9 @@ export default function TermosPage() {
       {/* Footer disclaimer */}
       <div className="mt-12 pt-6 border-t border-gray-200">
         <p className="text-xs text-gray-400 italic text-center">
-          Este documento deve ser validado por advogado antes da publicação.
+          O Complete Aí é operado por Pedro Villarino, pessoa física domiciliada no Brasil.
+          A identificação completa do responsável pode ser solicitada por requerimento formal
+          ao e-mail contato@completeai.com.br.
         </p>
       </div>
     </main>

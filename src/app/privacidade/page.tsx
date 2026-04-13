@@ -1,8 +1,13 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidade',
-  description: 'Política de Privacidade do Complete Aí',
+  title: 'Política de Privacidade — Complete Aí',
+  description: 'Política de Privacidade do Complete Aí — aplicativo de álbum de figurinhas com IA.',
+  openGraph: {
+    title: 'Política de Privacidade — Complete Aí',
+    url: 'https://www.completeai.com.br/privacidade',
+  },
+  alternates: { canonical: 'https://www.completeai.com.br/privacidade' },
 }
 
 export default function PrivacidadePage() {
@@ -18,12 +23,13 @@ export default function PrivacidadePage() {
       <div className="space-y-8 text-sm text-gray-600 leading-relaxed">
         <Section title="1. Responsável pelo Tratamento">
           <p>
-            O responsável pelo tratamento dos dados pessoais é <strong>Pedro Villarino Muniz de Mello</strong>,
-            pessoa física, inscrito no CPF sob n.o 109.353.577-69, atuando como Controlador nos termos da Lei Geral
-            de Proteção de Dados (Lei 13.709/2018).
+            O responsável pelo tratamento dos dados pessoais (Controlador) é o <strong>Complete Aí</strong>,
+            atuando nos termos da Lei Geral de Proteção de Dados (Lei 13.709/2018).
+            Nos termos do Art. 41 da LGPD, a identificação completa do Controlador pode ser solicitada
+            por requerimento formal ao e-mail abaixo.
           </p>
           <p className="mt-2">
-            <strong>Encarregado de Proteção de Dados (DPO):</strong> Pedro Villarino — pedrovillarino@gmail.com
+            <strong>Encarregado de Proteção de Dados (DPO):</strong> contato@completeai.com.br
           </p>
         </Section>
 
@@ -121,7 +127,7 @@ export default function PrivacidadePage() {
             <li>Solicitar exclusão dos dados pessoais tratados com base no consentimento</li>
           </ul>
           <p className="mt-2">
-            Para exercer qualquer direito, entre em contato: <strong>pedrovillarino@gmail.com</strong>
+            Para exercer qualquer direito, entre em contato: <strong>contato@completeai.com.br</strong>
           </p>
         </Section>
 
@@ -153,14 +159,16 @@ export default function PrivacidadePage() {
             Para dúvidas, solicitações ou exercício de direitos:
           </p>
           <ul className="list-disc pl-5 space-y-1 mt-2">
-            <li><strong>E-mail:</strong> pedrovillarino@gmail.com</li>
-            <li><strong>DPO:</strong> Pedro Villarino — pedrovillarino@gmail.com</li>
+            <li><strong>E-mail:</strong> contato@completeai.com.br</li>
+            <li><strong>DPO:</strong> contato@completeai.com.br</li>
           </ul>
         </Section>
 
         <div className="border-t border-gray-100 pt-6 mt-8">
-          <p className="text-[10px] text-gray-300 text-center italic">
-            Este documento deve ser validado por advogado antes da publicação.
+          <p className="text-[10px] text-gray-300 text-center">
+            O Complete Aí é operado por Pedro Villarino, pessoa física domiciliada no Brasil.
+            A identificação completa do responsável pode ser solicitada por requerimento formal
+            ao e-mail contato@completeai.com.br.
           </p>
           <p className="text-[10px] text-gray-300 text-center mt-2">
             Este app não é afiliado, endossado ou patrocinado pela FIFA, Panini, Topps, Fanatics ou qualquer organização oficial.

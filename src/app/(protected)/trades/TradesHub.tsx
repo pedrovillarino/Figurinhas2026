@@ -1131,7 +1131,7 @@ export default function TradesHub({
             onClick={() => setShowPaywall(true)}
             className="w-full bg-brand text-white rounded-xl py-3 text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
           >
-            Desbloquear por R$19,90
+            Desbloquear a partir de R$9,90
           </button>
           <p className="text-[9px] text-gray-300 text-center mt-2">Pagamento único. Sem assinatura.</p>
         </div>

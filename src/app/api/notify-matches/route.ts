@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     //    Fetch all users with location (phone or email for notifications)
     const { data: nearbyProfiles } = await supabase
       .from('profiles')
-      .select('id, phone, email, display_name, location_lat, location_lng, notify_channel, notify_min_threshold, notify_priority_stickers, notify_radius_km')
+      .select('id, phone, email, display_name, location_lat, location_lng, notify_channel, notify_min_threshold, notify_priority_stickers, notify_radius_km, notify_configured, last_match_notified_at')
       .neq('id', user_id)
       .not('location_lat', 'is', null)
       .not('location_lng', 'is', null)
@@ -106,6 +106,12 @@ export async function POST(req: NextRequest) {
         nearby.location_lat, nearby.location_lng
       )
       if (dist > (prefs.notify_radius_km || 50)) continue
+
+      // Rate limit: if user hasn't configured notifications, limit to 1 every 15 days
+      if (!nearby.notify_configured && nearby.last_match_notified_at) {
+        const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+        if (new Date(nearby.last_match_notified_at) > fifteenDaysAgo) continue
+      }
 
       // Check which of the duplicate stickers this user is missing
       const { data: theirStickers } = await supabase
@@ -172,11 +178,13 @@ export async function POST(req: NextRequest) {
       const channel = prefs.notify_channel || 'whatsapp'
 
       // Send via WhatsApp
+      let didNotify = false
       if (channel === 'whatsapp' || channel === 'both') {
         const phone = nearby.phone ? formatPhone(nearby.phone) : null
         if (phone) {
           await sendText(phone, msg)
           notified++
+          didNotify = true
         }
       }
 
@@ -187,6 +195,14 @@ export async function POST(req: NextRequest) {
         if (nearby.email) {
           console.log(`[EMAIL] Would notify ${nearby.email}: ${neededStickers.length} stickers available`)
         }
+      }
+
+      // Update last_match_notified_at so rate limiting works
+      if (didNotify) {
+        await supabase
+          .from('profiles')
+          .update({ last_match_notified_at: new Date().toISOString() })
+          .eq('id', nearby.id)
       }
     }
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { TIER_CONFIG, TIER_ORDER, tierIndex, type Tier } from '@/lib/tiers'
+import { checkRateLimit, getIp, stripeLimiter } from '@/lib/ratelimit'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -38,6 +39,10 @@ const TIER_PRODUCTS: Record<string, { name: string; description: string }> = {
 const VALID_PAID_TIERS: Tier[] = ['estreante', 'colecionador', 'copa_completa']
 
 export async function POST(req: NextRequest) {
+  // Rate limit
+  const rlResponse = await checkRateLimit(getIp(req), stripeLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

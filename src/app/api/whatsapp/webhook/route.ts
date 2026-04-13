@@ -3,6 +3,7 @@ import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, formatPhone } from '@/lib/zapi'
+import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -27,7 +28,7 @@ const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album W
 Given a user message in Portuguese, return ONLY valid JSON:
 
 {
-  "intent": "status|missing|duplicates|trades|help|unknown",
+  "intent": "status|missing|duplicates|trades|faq|help|unknown",
   "confidence": 0.95,
   "response_hint": "brief note about what the user wants"
 }
@@ -37,6 +38,7 @@ Intent definitions:
 - missing: user wants list of stickers they still need
 - duplicates: user wants list of sticker duplicates to trade
 - trades: user wants to see pending trade requests or trade status ("trocas", "aceitar", "pendentes", "solicitações")
+- faq: user asks about pricing, plans, how the app works, payment ("faq", "planos", "preço", "como funciona", "dúvidas")
 - help: user wants to know what the bot can do
 - unknown: anything else (greetings map to help)
 
@@ -440,6 +442,10 @@ function isDuplicate(messageId: string): boolean {
 
 // ─── Main webhook handler ───
 export async function POST(req: NextRequest) {
+  // Rate limit by IP
+  const rlResponse = await checkRateLimit(getIp(req), webhookLimiter)
+  if (rlResponse) return rlResponse
+
   try {
     const body = await req.json()
 
@@ -641,6 +647,8 @@ export async function POST(req: NextRequest) {
         intent = 'duplicates'
       } else if (/(troca|pendente|solicita|aceitar|minhas trocas|ver trocas)/.test(lower)) {
         intent = 'trades'
+      } else if (/\b(faq|perguntas?|dúvidas?|duvidas?|como funciona|planos?|preços?|precos?|quanto custa)\b/.test(lower)) {
+        intent = 'faq'
       } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como)\b/.test(lower)) {
         intent = 'help'
       } else {
@@ -747,6 +755,24 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        case 'faq': {
+          await sendText(
+            phone,
+            `❓ *Perguntas Frequentes*\n\n` +
+              `📱 *O que é?* App com IA para organizar seu álbum da Copa 2026\n\n` +
+              `📸 *Scanner:* Tire foto das figurinhas e a IA identifica automaticamente\n\n` +
+              `🔁 *Trocas:* Encontre colecionadores perto de você com aprovação segura\n\n` +
+              `💎 *Planos:*\n` +
+              `   • Grátis: 50 figurinhas, 5 scans\n` +
+              `   • Estreante R$9,90: 50 scans, 5 trocas\n` +
+              `   • Colecionador R$19,90: 150 scans, 15 trocas\n` +
+              `   • Copa Completa R$29,90: tudo ilimitado\n\n` +
+              `💳 Pagamento único (sem mensalidade)!\n\n` +
+              `Para o FAQ completo acesse:\n${APP_URL}/faq`
+          )
+          break
+        }
+
         case 'help':
         default: {
           const greeting = user.display_name ? `Oi, *${user.display_name.split(' ')[0]}*! ` : ''
@@ -757,6 +783,7 @@ export async function POST(req: NextRequest) {
               `🔍 *faltando* — o que falta\n` +
               `🔁 *repetidas* — pra trocar\n` +
               `🔔 *trocas* — ver solicitações pendentes\n` +
+              `❓ *faq* — perguntas frequentes\n` +
               `📸 Mande uma *foto* pra eu escanear!\n\n` +
               `Acesse o app: ${APP_URL}`
           )

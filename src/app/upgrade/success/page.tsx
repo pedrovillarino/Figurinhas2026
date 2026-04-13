@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -12,30 +12,50 @@ export default function UpgradeSuccessPage() {
   const [consent, setConsent] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasPhone, setHasPhone] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function checkPhone() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/'); return }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', user.id)
+        .single()
+
+      if (data?.phone) {
+        setHasPhone(true)
+        setPhone(data.phone)
+      }
+      setLoading(false)
+    }
+    checkPhone()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-
-    if (!phone.trim()) {
-      setError('Informe seu número de celular para continuar.')
-      return
-    }
-
     setSaving(true)
+
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/')
-      return
+    if (!user) { router.push('/'); return }
+
+    // Only update phone if user entered one
+    const updates: Record<string, unknown> = {
+      whatsapp_consent: consent,
+      last_active: new Date().toISOString(),
+    }
+    if (phone.trim()) {
+      updates.phone = phone.trim()
     }
 
     const { error: dbError } = await supabase
       .from('profiles')
-      .update({
-        phone: phone.trim(),
-        whatsapp_consent: consent,
-        last_active: new Date().toISOString(),
-      })
+      .update(updates)
       .eq('id', user.id)
 
     if (dbError) {
@@ -45,6 +65,14 @@ export default function UpgradeSuccessPage() {
     }
 
     router.push('/album')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <span className="w-8 h-8 border-3 border-brand/30 border-t-brand rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -57,7 +85,9 @@ export default function UpgradeSuccessPage() {
             Upgrade feito!
           </h1>
           <p className="text-sm text-gray-500">
-            Só mais um passo para liberar as trocas.
+            {hasPhone
+              ? 'Tudo pronto! Suas novas funcionalidades já estão ativas.'
+              : 'Adicione seu celular para receber alertas de troca (opcional).'}
           </p>
         </div>
 
@@ -79,51 +109,52 @@ export default function UpgradeSuccessPage() {
 
         {/* Phone + consent form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1">
-              Número de celular <span className="text-red-500">*</span>
-            </label>
-            <p className="text-xs text-gray-400 mb-2">
-              Necessário para conectar você com outros colecionadores.
-            </p>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+55 11 99999-9999"
-              required
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition"
-            />
-          </div>
-
-          {/* Consent checkbox */}
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <div className="relative mt-0.5 flex-shrink-0">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="sr-only"
-              />
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                consent
-                  ? 'bg-brand border-brand'
-                  : 'bg-white border-gray-300 group-hover:border-brand'
-              }`}>
-                {consent && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
+          {!hasPhone && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1">
+                  Número de celular <span className="text-gray-400 text-xs font-normal">(opcional)</span>
+                </label>
+                <p className="text-xs text-gray-400 mb-2">
+                  Para receber alertas de trocas por WhatsApp.
+                </p>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+55 11 99999-9999"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition"
+                />
               </div>
-            </div>
-            <span className="text-xs text-gray-600 leading-relaxed">
-              Eu autorizo compartilhar meu número de WhatsApp para troca de figurinhas.{' '}
-              <span className="text-gray-400">
-                Ao desmarcar, você não será encontrado por outros colecionadores.
-              </span>
-            </span>
-          </label>
+
+              {phone.trim() && (
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative mt-0.5 flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      consent
+                        ? 'bg-brand border-brand'
+                        : 'bg-white border-gray-300 group-hover:border-brand'
+                    }`}>
+                      {consent && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-600 leading-relaxed">
+                    Eu autorizo compartilhar meu número de WhatsApp para troca de figurinhas.
+                  </span>
+                </label>
+              )}
+            </>
+          )}
 
           {error && (
             <p className="text-red-500 text-xs text-center">{error}</p>

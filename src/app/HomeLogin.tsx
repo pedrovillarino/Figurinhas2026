@@ -220,15 +220,6 @@ export default function HomeLogin() {
     }
   }
 
-  async function handleApple() {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) { setError(error.message); setLoading(false) }
-  }
-
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
