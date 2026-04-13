@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNT, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNT, isPaid } from '@/lib/tiers'
 import type { Tier } from '@/lib/tiers'
+import PaywallModal from '@/components/PaywallModal'
 
 type Profile = {
   display_name: string | null
@@ -34,6 +35,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [buyingScans, setBuyingScans] = useState(false)
   const [buyingTrades, setBuyingTrades] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
   const [scansUsedTotal, setScansUsedTotal] = useState(0)
   const [tradesUsedTotal, setTradesUsedTotal] = useState(0)
   const [stats, setStats] = useState<Stats>({ owned: 0, missing: 0, duplicates: 0, total: 638 })
@@ -250,9 +252,9 @@ export default function ProfilePage() {
               {tierConfig.label}
             </span>
           </div>
-          {tier === 'free' && (
+          {tier !== 'copa_completa' && (
             <button
-              onClick={() => router.push('/scan')}
+              onClick={() => setShowPaywall(true)}
               className="text-[11px] text-brand font-semibold hover:text-brand-dark transition"
             >
               Fazer upgrade
@@ -437,6 +439,10 @@ export default function ProfilePage() {
       >
         Sair da Conta
       </button>
+
+      {showPaywall && (
+        <PaywallModal feature="upgrade" currentTier={tier} onClose={() => setShowPaywall(false)} />
+      )}
     </main>
   )
 }

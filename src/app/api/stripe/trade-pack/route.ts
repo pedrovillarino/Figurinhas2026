@@ -67,8 +67,9 @@ export async function POST() {
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('Trade pack checkout error:', error)
+    const message = error instanceof Error ? error.message : 'Erro desconhecido'
     return NextResponse.json(
-      { error: 'Erro ao criar sessão de pagamento' },
+      { error: `Erro ao criar sessão de pagamento: ${message}` },
       { status: 500 }
     )
   }
