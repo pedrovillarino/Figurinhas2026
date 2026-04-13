@@ -201,40 +201,50 @@ export async function POST(request: Request) {
     let geminiMs = 0
     let usedModel = ''
 
+    const isRateLimit = (msg: string) =>
+      msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('Too Many')
+    const isRetryable = (msg: string) =>
+      isRateLimit(msg) || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated')
+    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
     for (const modelName of MODELS) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          systemInstruction: SYSTEM_INSTRUCTION,
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-            maxOutputTokens: 8192,
-          },
-        })
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: SYSTEM_INSTRUCTION,
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+          maxOutputTokens: 8192,
+        },
+      })
 
-        console.log(`[scan] Trying ${modelName}...`)
-        const geminiStart = Date.now()
+      // Try up to 2 attempts per model (with delay on rate limit)
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`[scan] Retrying ${modelName} after delay...`)
+            await delay(4000)
+          }
+          console.log(`[scan] Trying ${modelName} (attempt ${attempt + 1})...`)
+          const geminiStart = Date.now()
 
-        const result = await model.generateContent(geminiPayload)
-        geminiMs = Date.now() - geminiStart
-        responseText = result.response.text()
-        usedModel = modelName
-        console.log(`[scan] ${modelName}: ${geminiMs}ms, ${responseText.length} chars`)
-        console.log('[scan] Response:', responseText.substring(0, 1200))
-        break // Success — don't try next model
-      } catch (modelErr) {
-        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
-        console.error(`[scan] ${modelName} failed:`, msg.substring(0, 200))
+          const result = await model.generateContent(geminiPayload)
+          geminiMs = Date.now() - geminiStart
+          responseText = result.response.text()
+          usedModel = modelName
+          console.log(`[scan] ${modelName}: ${geminiMs}ms, ${responseText.length} chars`)
+          console.log('[scan] Response:', responseText.substring(0, 1200))
+          break
+        } catch (modelErr) {
+          const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+          console.error(`[scan] ${modelName} attempt ${attempt + 1} failed:`, msg.substring(0, 200))
 
-        // If rate limited or model not found, try next model
-        if (msg.includes('429') || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-          console.log(`[scan] Falling back to next model...`)
-          continue
+          if (isRateLimit(msg) && attempt === 0) continue // Retry same model
+          if (isRetryable(msg)) break // Move to next model
+          throw modelErr // Unknown error
         }
-        // For other errors, rethrow
-        throw modelErr
       }
+      if (responseText) break // Got a response, stop trying models
     }
 
     if (!responseText) {

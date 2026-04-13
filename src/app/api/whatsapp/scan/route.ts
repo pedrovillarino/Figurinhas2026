@@ -87,41 +87,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Scan with Gemini — try 2.5-flash first, fallback to 2.5-flash-lite
+    // Scan with Gemini — try models with retry on rate limit
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
     const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
     let responseText = ''
 
+    const isRateLimit = (msg: string) =>
+      msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('Too Many')
+    const isRetryable = (msg: string) =>
+      isRateLimit(msg) || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated')
+    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
     for (const modelName of models) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          systemInstruction: SCAN_INSTRUCTION,
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-          },
-        })
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: SCAN_INSTRUCTION,
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      })
 
-        const result = await model.generateContent([
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
-          { text: 'Identify the sticker(s) in this photo. Return JSON.' },
-        ])
-
-        responseText = result.response.text()
-        console.log(`[WhatsApp scan] ${modelName} succeeded`)
-        break
-      } catch (modelErr) {
-        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
-        console.error(`[WhatsApp scan] ${modelName} failed:`, msg.substring(0, 200))
-        // If rate limited or model not found, try next model
-        if (msg.includes('429') || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-          console.log(`[WhatsApp scan] Falling back to next model...`)
-          continue
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          if (attempt > 0) await delay(4000)
+          const result = await model.generateContent([
+            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
+            { text: 'Identify the sticker(s) in this photo. Return JSON.' },
+          ])
+          responseText = result.response.text()
+          console.log(`[WhatsApp scan] ${modelName} succeeded (attempt ${attempt + 1})`)
+          break
+        } catch (modelErr) {
+          const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+          console.error(`[WhatsApp scan] ${modelName} attempt ${attempt + 1} failed:`, msg.substring(0, 200))
+          if (isRateLimit(msg) && attempt === 0) continue
+          if (isRetryable(msg)) break
+          throw modelErr
         }
-        // For other errors on last model, throw
-        if (modelName === models[models.length - 1]) throw modelErr
       }
+      if (responseText) break
     }
 
     if (!responseText) {
@@ -190,18 +195,19 @@ export async function POST(req: NextRequest) {
 
     for (const sticker of dbStickers) {
       const ex = existingMap.get(sticker.id)
+      const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
       if (!ex) {
         await supabase.from('user_stickers').insert({ user_id: userId, sticker_id: sticker.id, status: 'owned', quantity: 1 })
         saved++
-        savedNumbers.push(sticker.number)
+        savedNumbers.push(label)
       } else if (ex.status === 'owned') {
         await supabase.from('user_stickers').update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
         saved++
-        savedNumbers.push(`${sticker.number} (rep)`)
+        savedNumbers.push(`${label} (rep)`)
       } else if (ex.status === 'duplicate') {
         await supabase.from('user_stickers').update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
         saved++
-        savedNumbers.push(`${sticker.number} (rep x${ex.quantity + 1})`)
+        savedNumbers.push(`${label} (rep x${ex.quantity + 1})`)
       }
     }
 
@@ -217,7 +223,7 @@ export async function POST(req: NextRequest) {
     const pct = Math.round((owned / total) * 100)
 
     let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
-    reply += savedNumbers.join(', ') + '\n\n'
+    reply += savedNumbers.map((s) => `• ${s}`).join('\n') + '\n\n'
     reply += `📊 Progresso: *${owned}/${total}* (${pct}%)`
 
     await sendText(phone, reply)
