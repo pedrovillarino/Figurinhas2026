@@ -71,7 +71,13 @@ export async function POST(req: NextRequest) {
 
     const tierConfig = TIER_CONFIG[targetTier]
     const product = TIER_PRODUCTS[targetTier]
-    const originalPrice = 'priceBrl' in tierConfig ? tierConfig.priceBrl : 0
+    const targetPrice = 'priceBrl' in tierConfig ? tierConfig.priceBrl : 0
+
+    // Deduct what user already paid for current tier
+    const currentTierConfig = TIER_CONFIG[currentTier]
+    const currentPrice = 'priceBrl' in currentTierConfig ? currentTierConfig.priceBrl : 0
+    const originalPrice = Math.max(0, targetPrice - currentPrice)
+
     const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
     // Validate discount code if provided
@@ -169,7 +175,6 @@ export async function POST(req: NextRequest) {
     // Create Stripe checkout session
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
-      payment_method_types: ['card', 'boleto'],
       customer_email: profile?.email || user.email,
       line_items: [
         {
@@ -178,9 +183,11 @@ export async function POST(req: NextRequest) {
             unit_amount: finalPrice,
             product_data: {
               name: product.name,
-              description: percentOff > 0
-                ? `${product.description} (${percentOff}% de desconto!)`
-                : product.description,
+              description: currentPrice > 0
+                ? `${product.description} (upgrade do ${TIER_CONFIG[currentTier].label})`
+                : percentOff > 0
+                  ? `${product.description} (${percentOff}% de desconto!)`
+                  : product.description,
             },
           },
           quantity: 1,
