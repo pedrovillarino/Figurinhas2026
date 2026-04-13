@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Check scan limit
-    const { data: profile } = await supabase
+    const adminDb = getAdmin()
+    const { data: profile } = await adminDb
       .from('profiles')
       .select('tier')
       .eq('id', userId)
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
     const userTier = (profile?.tier || 'free') as Tier
     const tierScanLimit = getScanLimit(userTier)
 
-    const { data: usageData } = await supabase
+    const { data: usageData } = await adminDb
       .rpc('increment_scan_usage', {
         p_user_id: userId,
         p_daily_limit: tierScanLimit,
