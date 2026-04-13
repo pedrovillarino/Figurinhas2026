@@ -315,7 +315,7 @@ export default function HomeLogin() {
           onClick={() => setMode('email')}
           className="w-full text-xs text-gray-500 hover:text-brand transition py-1.5 font-medium underline underline-offset-2 decoration-gray-300 hover:decoration-brand"
         >
-          ou entre com e-mail
+          Entrar ou cadastrar com e-mail
         </button>
       </div>
     )

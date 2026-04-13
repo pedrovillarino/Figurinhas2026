@@ -114,9 +114,9 @@ export default async function Home() {
 
       {/* ── How it works ── */}
       <section className="px-6 py-10 max-w-md mx-auto">
-        <h3 className="text-base font-bold text-center text-navy mb-6">
+        <h2 className="text-base font-bold text-center text-navy mb-6">
           Como funciona
-        </h3>
+        </h2>
         <div className="flex flex-col gap-5">
           <Step
             number="1"

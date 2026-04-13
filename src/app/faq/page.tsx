@@ -95,6 +95,10 @@ const FAQ_SECTIONS: { title: string; icon: string; items: FaqItem[] }[] = [
         q: 'Quais formas de pagamento?',
         a: 'Aceitamos cartão de crédito e PIX via Stripe, a plataforma de pagamentos mais segura do mundo.',
       },
+      {
+        q: 'Por que o pacote extra tem preço diferente por plano?',
+        a: 'Os pacotes extras de scans e trocas são mais baratos nos planos maiores. O Colecionador paga R$5 por pacote extra, enquanto o Estreante paga R$10. Isso porque planos maiores já incluem mais recursos e o custo por scan é menor em volume. Se você usa muitos scans, o upgrade para Colecionador pode valer mais a pena.',
+      },
     ],
   },
   {

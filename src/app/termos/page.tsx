@@ -45,7 +45,7 @@ export default function TermosPage() {
 
       <h1 className="text-2xl font-black text-navy mb-2">Termos de Serviço</h1>
       <p className="text-xs text-gray-400 mb-8">
-        Última atualização: 13 de abril de 2026 — Versão 1.2
+        Última atualização: 13 de abril de 2026 — Versão 1.3
       </p>
 
       <div className="bg-gold-light border border-gold rounded-lg p-4 mb-8">
@@ -227,6 +227,11 @@ export default function TermosPage() {
           </P>
           <P>
             Menores de 13 anos não estão autorizados a utilizar o Serviço.
+          </P>
+          <P>
+            Menores de 18 anos podem utilizar os recursos de gerenciamento do álbum (registro manual
+            e scan de figurinhas), mas <strong>não têm acesso ao recurso de trocas</strong> entre
+            usuários. O plano Copa Completa não está disponível para menores de 18 anos.
           </P>
         </Section>
 

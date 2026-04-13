@@ -15,7 +15,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.completeai.com.b
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: "Complete Aí — Álbum de Figurinhas com IA",
+    default: "Complete Aí — Escaneie e Complete seu Álbum de Figurinhas com IA",
     template: "%s | Complete Aí",
   },
   description: "Use IA para organizar e completar seu álbum mais fácil. Escaneie figurinhas, encontre trocas perto de você.",

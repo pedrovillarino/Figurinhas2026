@@ -18,7 +18,7 @@ export default function PrivacidadePage() {
       </a>
 
       <h1 className="text-2xl font-black text-navy mb-2">Política de Privacidade</h1>
-      <p className="text-xs text-gray-400 mb-8">Última atualização: 13 de abril de 2026 — Versão 1.2</p>
+      <p className="text-xs text-gray-400 mb-8">Última atualização: 13 de abril de 2026 — Versão 1.3</p>
 
       <div className="space-y-8 text-sm text-gray-600 leading-relaxed">
         <Section title="1. Responsável pelo Tratamento">
@@ -99,10 +99,11 @@ export default function PrivacidadePage() {
           <ul className="list-disc pl-5 space-y-1 mt-2">
             <li>Verificação de idade no cadastro (data de nascimento)</li>
             <li>Menores de 13 anos não podem usar o serviço</li>
-            <li>Menores de 18 anos não compartilham WhatsApp — usam chat mediado pelo app</li>
-            <li>Geolocalização reduzida (apenas cidade/bairro, sem coordenadas precisas)</li>
+            <li>Menores de 18 anos não têm acesso ao recurso de trocas entre usuários</li>
+            <li>Dados de localização não são coletados de menores de 18 anos</li>
             <li>Sem anúncios personalizados</li>
             <li>Planos pagos exigem autorização do responsável legal</li>
+            <li>O plano Copa Completa (trocas ilimitadas) não está disponível para menores de 18 anos</li>
           </ul>
         </Section>
 
