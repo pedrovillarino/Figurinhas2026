@@ -54,17 +54,20 @@ export default async function TradesPage() {
     created_at: string
   }
 
+  const safe = <T,>(p: PromiseLike<{ data: T }>) =>
+    Promise.resolve(p).catch(() => ({ data: null as T }))
+
   const [matchesResult, pendingResult, sentResult, approvedResult] = await Promise.all([
     // Nearby matches (only if has location)
     hasLocation
-      ? supabase.rpc('get_trade_matches', { p_user_id: user.id, p_radius_km: 50 }).catch(() => ({ data: null }))
+      ? safe(supabase.rpc('get_trade_matches', { p_user_id: user.id, p_radius_km: 50 }))
       : Promise.resolve({ data: null }),
     // Pending trade requests
-    supabase.rpc('get_pending_trade_requests', { p_user_id: user.id }).catch(() => ({ data: null })),
+    safe(supabase.rpc('get_pending_trade_requests', { p_user_id: user.id })),
     // Sent requests (still pending)
-    supabase.from('trade_requests').select('target_id').eq('requester_id', user.id).eq('status', 'pending').then(r => r).catch(() => ({ data: null })),
+    safe(supabase.from('trade_requests').select('target_id').eq('requester_id', user.id).eq('status', 'pending')),
     // Recently approved trades
-    supabase.from('trade_requests').select('id, requester_id, responded_at').eq('target_id', user.id).eq('status', 'approved').order('responded_at', { ascending: false }).limit(5).then(r => r).catch(() => ({ data: null })),
+    safe(supabase.from('trade_requests').select('id, requester_id, responded_at').eq('target_id', user.id).eq('status', 'approved').order('responded_at', { ascending: false }).limit(5)),
   ])
 
   const nearbyMatches = ((matchesResult.data || []) as NearbyMatch[]).slice(0, 5)
