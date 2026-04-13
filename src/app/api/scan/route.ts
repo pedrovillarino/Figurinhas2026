@@ -186,7 +186,7 @@ export async function POST(request: Request) {
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite']
+    const MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
     const geminiPayload = [
       {
         inlineData: {
@@ -228,7 +228,7 @@ export async function POST(request: Request) {
         console.error(`[scan] ${modelName} failed:`, msg.substring(0, 200))
 
         // If rate limited or model not found, try next model
-        if (msg.includes('429') || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated') || msg.includes('quota')) {
+        if (msg.includes('429') || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
           console.log(`[scan] Falling back to next model...`)
           continue
         }

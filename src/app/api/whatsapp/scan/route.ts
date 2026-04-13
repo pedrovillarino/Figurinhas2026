@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     // Scan with Gemini — try 2.5-flash first, fallback to 2.5-flash-lite
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite']
+    const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
     let responseText = ''
 
     for (const modelName of models) {
