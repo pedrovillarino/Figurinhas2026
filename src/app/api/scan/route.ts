@@ -186,7 +186,13 @@ export async function POST(request: Request) {
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
-    const MODELS = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
+    const MODELS = [
+      'gemini-2.5-flash',           // principal — melhor qualidade estável
+      'gemini-3-flash-preview',     // fallback 1 — rápido, preview
+      'gemini-3.1-flash-lite-preview', // fallback 2 — ultra rápido, preview
+      'gemini-2.5-flash-lite',      // fallback 3 — estável, leve
+      'gemini-2.0-flash-001',       // fallback 4 — legado
+    ]
     const geminiPayload = [
       {
         inlineData: {
@@ -201,50 +207,40 @@ export async function POST(request: Request) {
     let geminiMs = 0
     let usedModel = ''
 
-    const isRateLimit = (msg: string) =>
-      msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('Too Many')
     const isRetryable = (msg: string) =>
-      isRateLimit(msg) || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated')
-    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') ||
+      msg.includes('Too Many') || msg.includes('404') || msg.includes('not found') ||
+      msg.includes('deprecated') || msg.includes('503') || msg.includes('UNAVAILABLE') ||
+      msg.includes('500') || msg.includes('INTERNAL')
 
     for (const modelName of MODELS) {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: SYSTEM_INSTRUCTION,
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-          maxOutputTokens: 8192,
-        },
-      })
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_INSTRUCTION,
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+            maxOutputTokens: 8192,
+          },
+        })
 
-      // Try up to 2 attempts per model (with delay on rate limit)
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          if (attempt > 0) {
-            console.log(`[scan] Retrying ${modelName} after delay...`)
-            await delay(4000)
-          }
-          console.log(`[scan] Trying ${modelName} (attempt ${attempt + 1})...`)
-          const geminiStart = Date.now()
+        console.log(`[scan] Trying ${modelName}...`)
+        const geminiStart = Date.now()
 
-          const result = await model.generateContent(geminiPayload)
-          geminiMs = Date.now() - geminiStart
-          responseText = result.response.text()
-          usedModel = modelName
-          console.log(`[scan] ${modelName}: ${geminiMs}ms, ${responseText.length} chars`)
-          console.log('[scan] Response:', responseText.substring(0, 1200))
-          break
-        } catch (modelErr) {
-          const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
-          console.error(`[scan] ${modelName} attempt ${attempt + 1} failed:`, msg.substring(0, 200))
-
-          if (isRateLimit(msg) && attempt === 0) continue // Retry same model
-          if (isRetryable(msg)) break // Move to next model
-          throw modelErr // Unknown error
-        }
+        const result = await model.generateContent(geminiPayload)
+        geminiMs = Date.now() - geminiStart
+        responseText = result.response.text()
+        usedModel = modelName
+        console.log(`[scan] ${modelName}: ${geminiMs}ms, ${responseText.length} chars`)
+        console.log('[scan] Response:', responseText.substring(0, 1200))
+        break
+      } catch (modelErr) {
+        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+        console.error(`[scan] ${modelName} failed:`, msg.substring(0, 200))
+        if (isRetryable(msg)) continue
+        throw modelErr
       }
-      if (responseText) break // Got a response, stop trying models
     }
 
     if (!responseText) {

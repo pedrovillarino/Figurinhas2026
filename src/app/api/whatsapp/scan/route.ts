@@ -89,44 +89,45 @@ export async function POST(req: NextRequest) {
 
     // Scan with Gemini — try models with retry on rate limit
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const models = ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite']
+    const models = [
+      'gemini-2.5-flash',
+      'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite-preview',
+      'gemini-2.5-flash-lite',
+      'gemini-2.0-flash-001',
+    ]
     let responseText = ''
 
-    const isRateLimit = (msg: string) =>
-      msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('Too Many')
     const isRetryable = (msg: string) =>
-      isRateLimit(msg) || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated')
-    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+      msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') ||
+      msg.includes('Too Many') || msg.includes('404') || msg.includes('not found') ||
+      msg.includes('deprecated') || msg.includes('503') || msg.includes('UNAVAILABLE') ||
+      msg.includes('500') || msg.includes('INTERNAL')
 
     for (const modelName of models) {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: SCAN_INSTRUCTION,
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      })
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SCAN_INSTRUCTION,
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        })
 
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          if (attempt > 0) await delay(4000)
-          const result = await model.generateContent([
-            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
-            { text: 'Identify the sticker(s) in this photo. Return JSON.' },
-          ])
-          responseText = result.response.text()
-          console.log(`[WhatsApp scan] ${modelName} succeeded (attempt ${attempt + 1})`)
-          break
-        } catch (modelErr) {
-          const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
-          console.error(`[WhatsApp scan] ${modelName} attempt ${attempt + 1} failed:`, msg.substring(0, 200))
-          if (isRateLimit(msg) && attempt === 0) continue
-          if (isRetryable(msg)) break
-          throw modelErr
-        }
+        const result = await model.generateContent([
+          { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
+          { text: 'Identify the sticker(s) in this photo. Return JSON.' },
+        ])
+        responseText = result.response.text()
+        console.log(`[WhatsApp scan] ${modelName} succeeded`)
+        break
+      } catch (modelErr) {
+        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+        console.error(`[WhatsApp scan] ${modelName} failed:`, msg.substring(0, 200))
+        if (isRetryable(msg)) continue
+        throw modelErr
       }
-      if (responseText) break
     }
 
     if (!responseText) {
