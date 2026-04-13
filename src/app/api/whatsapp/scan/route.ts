@@ -20,25 +20,33 @@ const SCAN_INSTRUCTION = `Você é um scanner de figurinhas de álbuns Panini de
 
 Você pode receber:
 1. Uma foto de uma PÁGINA INTEIRA do álbum — identifique todos os slots visíveis.
-2. Uma foto de uma FIGURINHA INDIVIDUAL (solta, fora do álbum) — identifique o número, jogador e país.
+2. Uma foto de FIGURINHAS SOLTAS (uma ou várias) — identifique cada uma.
+
+TIPOS DE FIGURINHAS:
+- Jogadores: têm nome do jogador e número (ex: BRA-10 Neymar Jr)
+- Emblemas/Escudos: mostram o brasão da seleção (ex: BRA-1 Emblem)
+- Foto do time: foto coletiva da seleção (ex: BRA-2 Team Photo)
+- Estádios e logos FIFA: figurinhas especiais (ex: FWC-1, FWC-2)
 
 REGRAS:
 - "filled": figurinha colada ou figurinha individual fotografada.
 - "empty": espaço vazio no álbum.
-- Confiança < 0.7 se incerto.
-- scan_confidence: qualidade geral da imagem.
-- Ignore decorações. Países em Português.
-- Para figurinha individual: retorne apenas 1 item no array stickers com status "filled".
-- Use o número EXATO impresso na figurinha (ex: FWC-1, QAT-1, BRA-10, ARG-12).
+- CRÍTICO: Identifique TODAS as figurinhas visíveis — jogadores, emblemas, escudos, fotos de time, logos FIFA. NÃO pule nenhuma.
+- CRÍTICO: Leia o nome EXATO impresso na figurinha. NÃO adivinhe — "MARQUINHOS" NÃO é "NEYMAR JR".
+- Use o número EXATO impresso (ex: FWC-1, QAT-1, BRA-10, ARG-12).
 - NÃO invente números. Leia o que está impresso.
-- CRÍTICO: Leia o nome EXATO impresso na figurinha. NÃO adivinhe — "MARQUINHOS" NÃO é "NEYMAR JR". Cada jogador tem um nome único.
+- Para emblemas sem nome de jogador, use "Emblem" como player_name.
+- Para fotos de time, use "Team Photo" como player_name.
+- Confiança < 0.7 se incerto.
+- Ignore decorações do álbum. Países em Português.
 
 Retorne APENAS JSON válido neste formato:
 {
   "pages_detected": 1,
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Alisson", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95},
+    {"number": "BRA-3", "player_name": "Thiago Silva", "country": "Brasil", "status": "filled", "confidence": 0.95}
   ],
   "unreadable": [],
   "warnings": []
@@ -61,8 +69,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check scan limit
     const adminDb = getAdmin()
+
+    // Check scan limit
     const { data: profile } = await adminDb
       .from('profiles')
       .select('tier')
@@ -87,7 +96,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Scan with Gemini — try models with retry on rate limit
+    // Scan with Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
     const models = [
       'gemini-2.5-flash',
@@ -117,7 +126,7 @@ export async function POST(req: NextRequest) {
 
         const result = await model.generateContent([
           { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
-          { text: 'Identify the sticker(s) in this photo. Return JSON.' },
+          { text: 'Identify ALL stickers in this photo — players, emblems, team photos, FIFA logos. Do not miss any. Return JSON.' },
         ])
         responseText = result.response.text()
         console.log(`[WhatsApp scan] ${modelName} succeeded`)
@@ -136,7 +145,6 @@ export async function POST(req: NextRequest) {
     }
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-
     if (!jsonMatch) {
       await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸')
       return NextResponse.json({ ok: true })
@@ -157,11 +165,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Save stickers to DB
-    const supabase = getAdmin()
-
-    // Match by number
-    let dbStickers = (await supabase
+    // Match stickers in DB
+    let dbStickers = (await adminDb
       .from('stickers')
       .select('id, number, player_name')
       .in('number', filledNumbers)).data || []
@@ -169,7 +174,7 @@ export async function POST(req: NextRequest) {
     // If no match by number, try by player name
     if (dbStickers.length === 0 && filledNames.length > 0) {
       for (const name of filledNames.filter(Boolean)) {
-        const { data } = await supabase
+        const { data } = await adminDb
           .from('stickers')
           .select('id, number, player_name')
           .ilike('player_name', `%${name.trim()}%`)
@@ -183,51 +188,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Get existing user stickers
-    const { data: existing } = await supabase
+    // Deduplicate by sticker id
+    const uniqueMap = new Map(dbStickers.map((s) => [s.id, s]))
+    dbStickers = Array.from(uniqueMap.values())
+
+    // Check which ones user already has
+    const { data: existing } = await adminDb
       .from('user_stickers')
       .select('sticker_id, status, quantity')
       .eq('user_id', userId)
       .in('sticker_id', dbStickers.map((s) => s.id))
 
     const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
-    let saved = 0
-    const savedNumbers: string[] = []
+
+    // Build preview list
+    const previewLines: string[] = []
+    const scanData: Array<{ sticker_id: number; number: string; player_name: string }> = []
 
     for (const sticker of dbStickers) {
       const ex = existingMap.get(sticker.id)
       const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
+
       if (!ex) {
-        await supabase.from('user_stickers').insert({ user_id: userId, sticker_id: sticker.id, status: 'owned', quantity: 1 })
-        saved++
-        savedNumbers.push(label)
+        previewLines.push(`🆕 ${label}`)
       } else if (ex.status === 'owned') {
-        await supabase.from('user_stickers').update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
-        saved++
-        savedNumbers.push(`${label} (rep)`)
+        previewLines.push(`🔁 ${label} _(repetida)_`)
       } else if (ex.status === 'duplicate') {
-        await supabase.from('user_stickers').update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
-        saved++
-        savedNumbers.push(`${label} (rep x${ex.quantity + 1})`)
+        previewLines.push(`🔁 ${label} _(rep x${ex.quantity + 1})_`)
       }
+
+      scanData.push({ sticker_id: sticker.id, number: sticker.number, player_name: sticker.player_name || '' })
     }
 
-    // Get updated stats
-    const { count: totalStickers } = await supabase.from('stickers').select('*', { count: 'exact', head: true })
-    const { data: userStickers } = await supabase.from('user_stickers').select('status, quantity').eq('user_id', userId)
-
-    const total = totalStickers || 670
-    let owned = 0
-    userStickers?.forEach((us) => {
-      if (us.status === 'owned' || us.status === 'duplicate') owned++
+    // Save pending scan
+    await adminDb.from('pending_scans').insert({
+      user_id: userId,
+      phone,
+      scan_data: scanData,
     })
-    const pct = Math.round((owned / total) * 100)
 
-    let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
-    reply += savedNumbers.map((s) => `• ${s}`).join('\n') + '\n\n'
-    reply += `📊 Progresso: *${owned}/${total}* (${pct}%)`
+    // Send preview and ask for confirmation
+    let msg = `📋 *Encontrei ${dbStickers.length} figurinha(s):*\n\n`
+    msg += previewLines.join('\n')
+    msg += '\n\n✅ Responda *SIM* para registrar'
+    msg += '\n❌ Responda *NÃO* para cancelar'
 
-    await sendText(phone, reply)
+    await sendText(phone, msg)
     return NextResponse.json({ ok: true })
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err)

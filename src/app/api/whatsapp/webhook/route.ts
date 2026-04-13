@@ -546,8 +546,86 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      // Fast keyword matching before calling Gemini
       const lower = text.trim().toLowerCase()
+
+      // ─── Check for pending scan confirmation ───
+      if (/^(sim|s|yes|y|confirma|ok)$/i.test(lower.trim())) {
+        const supabaseAdmin = getAdmin()
+        const { data: pending } = await supabaseAdmin
+          .from('pending_scans')
+          .select('*')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (pending) {
+          // Save stickers
+          const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string }>
+          const { data: existing } = await supabaseAdmin
+            .from('user_stickers')
+            .select('sticker_id, status, quantity')
+            .eq('user_id', user.id)
+            .in('sticker_id', scanData.map((s) => s.sticker_id))
+
+          const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
+          let saved = 0
+          const savedLines: string[] = []
+
+          for (const sticker of scanData) {
+            const ex = existingMap.get(sticker.sticker_id)
+            const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
+
+            if (!ex) {
+              await supabaseAdmin.from('user_stickers').insert({ user_id: user.id, sticker_id: sticker.sticker_id, status: 'owned', quantity: 1 })
+              saved++
+              savedLines.push(`• ${label}`)
+            } else if (ex.status === 'owned') {
+              await supabaseAdmin.from('user_stickers').update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('sticker_id', sticker.sticker_id)
+              saved++
+              savedLines.push(`• ${label} (rep)`)
+            } else if (ex.status === 'duplicate') {
+              await supabaseAdmin.from('user_stickers').update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('sticker_id', sticker.sticker_id)
+              saved++
+              savedLines.push(`• ${label} (rep x${ex.quantity + 1})`)
+            }
+          }
+
+          // Delete pending scan
+          await supabaseAdmin.from('pending_scans').delete().eq('id', pending.id)
+
+          // Get updated stats
+          const stats = await getUserStats(user.id)
+
+          let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
+          reply += savedLines.join('\n') + '\n\n'
+          reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+
+          await sendText(phone, reply)
+          return NextResponse.json({ ok: true })
+        }
+        // No pending scan — fall through to normal intent handling
+      }
+
+      if (/^(n[aã]o|n|cancelar|cancel)$/i.test(lower.trim())) {
+        const supabaseAdmin = getAdmin()
+        const { data: pending } = await supabaseAdmin
+          .from('pending_scans')
+          .select('id')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .limit(1)
+          .single()
+
+        if (pending) {
+          await supabaseAdmin.from('pending_scans').delete().eq('id', pending.id)
+          await sendText(phone, '❌ Scan cancelado. Mande outra foto para tentar novamente! 📸')
+          return NextResponse.json({ ok: true })
+        }
+      }
+
+      // Fast keyword matching before calling Gemini
       let intent: string
 
       if (/^(status|progresso|quanto|meu album|meu álbum)/.test(lower)) {
