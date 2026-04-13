@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
@@ -38,6 +39,34 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Generate referral code if user doesn't have one
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+          )
+
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('referral_code')
+            .eq('id', user.id)
+            .single()
+
+          if (profile && !profile.referral_code) {
+            const referralCode = user.id.replace(/-/g, '').substring(0, 6).toUpperCase()
+            await supabaseAdmin
+              .from('profiles')
+              .update({ referral_code: referralCode })
+              .eq('id', user.id)
+          }
+        }
+      } catch (e) {
+        console.error('Error generating referral code:', e)
+      }
+
       return NextResponse.redirect(`${origin}${next}`)
     }
 

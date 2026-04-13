@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 // ─── helpers visuais ──────────────────────────────────────────────────────────
 
@@ -131,8 +131,17 @@ export default function HomeLogin() {
   const [message, setMessage] = useState<string | null>(null)
   const [passwordTouched, setPasswordTouched] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const strength = usePasswordStrength(password)
+
+  // Capture referral code from URL (?ref=CODE) and store in localStorage
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      localStorage.setItem('referral_code', ref.trim().toUpperCase())
+    }
+  }, [searchParams])
 
   // Reset loading when user returns from OAuth (e.g. cancelled Google popup)
   useEffect(() => {
@@ -145,6 +154,22 @@ export default function HomeLogin() {
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
+
+  async function applyReferralCode() {
+    const code = localStorage.getItem('referral_code')
+    if (!code) return
+    try {
+      await fetch('/api/referral/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referral_code: code }),
+      })
+    } catch {
+      // Silently fail — referral is non-critical
+    } finally {
+      localStorage.removeItem('referral_code')
+    }
+  }
 
   function validate() {
     const errors: Record<string, string> = {}
@@ -263,6 +288,7 @@ export default function HomeLogin() {
       })
       if (error) setError(friendlyError(error.message))
       else if (data.session) {
+        await applyReferralCode()
         router.push('/album')
         router.refresh()
       } else {
@@ -271,7 +297,7 @@ export default function HomeLogin() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError(friendlyError(error.message))
-      else { router.push('/album'); router.refresh() }
+      else { await applyReferralCode(); router.push('/album'); router.refresh() }
     }
     setLoading(false)
   }

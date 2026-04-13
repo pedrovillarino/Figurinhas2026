@@ -15,6 +15,7 @@ type Profile = {
   tier: Tier
   scan_credits: number
   trade_credits: number
+  referral_code: string | null
 }
 
 type Stats = {
@@ -39,6 +40,9 @@ export default function ProfilePage() {
   const [scansUsedTotal, setScansUsedTotal] = useState(0)
   const [tradesUsedTotal, setTradesUsedTotal] = useState(0)
   const [stats, setStats] = useState<Stats>({ owned: 0, missing: 0, duplicates: 0, total: 638 })
+  const [referralCount, setReferralCount] = useState(0)
+  const [referralRewards, setReferralRewards] = useState({ trade_credits: 0, scan_credits: 0 })
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -52,7 +56,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits')
+      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, referral_code')
       .eq('id', user.id)
       .single()
 
@@ -62,6 +66,7 @@ export default function ProfilePage() {
         tier: (data.tier || 'free') as Tier,
         scan_credits: data.scan_credits || 0,
         trade_credits: data.trade_credits || 0,
+        referral_code: data.referral_code || null,
       })
       setPhone(data.phone || '')
       setDisplayName(data.display_name || '')
@@ -86,6 +91,24 @@ export default function ProfilePage() {
       .eq('user_id', user.id)
 
     setTradesUsedTotal(count || 0)
+
+    // Fetch referral stats
+    const { data: rewards } = await supabase
+      .from('referral_rewards')
+      .select('reward_type, trade_credits, scan_credits')
+      .eq('referrer_id', user.id)
+
+    if (rewards && rewards.length > 0) {
+      setReferralCount(rewards.length)
+      const totals = rewards.reduce(
+        (acc, r) => ({
+          trade_credits: acc.trade_credits + (r.trade_credits || 0),
+          scan_credits: acc.scan_credits + (r.scan_credits || 0),
+        }),
+        { trade_credits: 0, scan_credits: 0 }
+      )
+      setReferralRewards(totals)
+    }
   }
 
   async function loadStats() {
@@ -431,6 +454,85 @@ export default function ProfilePage() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>
       </a>
+
+      {/* Referral / Indique amigos */}
+      {profile?.referral_code && (
+        <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+              <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Indique amigos</p>
+              <p className="text-[11px] text-gray-500">Ganhe créditos de troca e scan</p>
+            </div>
+          </div>
+
+          {/* Referral link */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 truncate font-mono">
+              completeai.com.br/?ref={profile.referral_code}
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`https://completeai.com.br/?ref=${profile.referral_code}`)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              }}
+              className="flex-shrink-0 bg-brand-light text-brand rounded-lg px-3 py-2 text-xs font-semibold hover:bg-brand/20 transition"
+            >
+              {copied ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
+
+          {/* WhatsApp share */}
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+              `Estou usando o Complete Aí para organizar meu álbum da Copa 2026! Escaneia figurinhas com IA e encontra trocas perto de você. Crie sua conta com meu link e a gente ganha créditos: https://completeai.com.br/?ref=${profile.referral_code}`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full bg-emerald-500 text-white rounded-lg px-4 py-2.5 text-xs font-semibold hover:bg-emerald-600 transition mb-3"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+              <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
+            </svg>
+            Compartilhar via WhatsApp
+          </a>
+
+          {/* Referral stats */}
+          <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3">
+            <div className="text-center">
+              <p className="text-lg font-bold text-brand">{referralCount}</p>
+              <p className="text-[10px] text-gray-500">Indicados</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-gold">{referralRewards.trade_credits}</p>
+              <p className="text-[10px] text-gray-500">Trocas ganhas</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-blue-500">{referralRewards.scan_credits}</p>
+              <p className="text-[10px] text-gray-500">Scans ganhos</p>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Como funciona:</p>
+            <div className="space-y-1">
+              <p className="text-[10px] text-gray-500">
+                <span className="font-semibold text-brand">+1 troca</span> quando seu amigo cria a conta
+              </p>
+              <p className="text-[10px] text-gray-500">
+                <span className="font-semibold text-brand">+5 trocas +10 scans</span> quando seu amigo faz upgrade
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Logout */}
       <button
