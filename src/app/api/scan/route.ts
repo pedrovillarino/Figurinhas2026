@@ -33,14 +33,15 @@ Return ONLY valid JSON:
 {
   "scan_confidence": 0.9,
   "stickers": [
-    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95},
-    {"player_name": "Lionel Messi", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.90}
+    {"player_name": "Alisson", "country_code": "BRA", "sticker_number": "BRA-1", "status": "filled", "confidence": 0.95},
+    {"player_name": "Enzo Fernandez", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.90}
   ],
   "warnings": []
 }
 
 RULES:
 - CRITICAL: Read EVERY SINGLE sticker visible — do NOT skip any. Count them first, then list each one.
+- CRITICAL: Read the ACTUAL player name printed on the sticker. Do NOT guess or assume — read exactly what is written. "MARQUINHOS" is NOT "NEYMAR JR". Every player has a unique name printed.
 - If the photo shows many stickers (e.g. a table full of stickers), scan the image systematically: left-to-right, top-to-bottom, and list ALL of them.
 - If you see the BACK of stickers, the number is the most important field
 - If you see the FRONT, the player name and country code are most important

@@ -7,7 +7,7 @@ import { sendText, formatPhone } from '@/lib/zapi'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br').trim()
 
 // ─── Admin Supabase client (service role) ───
 function getAdmin() {
@@ -62,13 +62,14 @@ REGRAS:
 - Para figurinha individual: retorne apenas 1 item no array stickers com status "filled".
 - Use o número EXATO impresso na figurinha (ex: FWC-1, QAT-1, BRA-10, ARG-12).
 - NÃO invente números. Leia o que está impresso.
+- CRÍTICO: Leia o nome EXATO impresso na figurinha. NÃO adivinhe — "MARQUINHOS" NÃO é "NEYMAR JR". Cada jogador tem um nome único.
 
 Retorne APENAS JSON válido neste formato:
 {
   "pages_detected": 1,
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Neymar", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"number": "BRA-1", "player_name": "Alisson", "country": "Brasil", "status": "filled", "confidence": 0.95}
   ],
   "unreadable": [],
   "warnings": []

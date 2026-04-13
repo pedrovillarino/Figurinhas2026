@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText } from '@/lib/zapi'
+import { getScanLimit, type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br'
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br').trim()
 
 function getAdmin() {
   return createClient(
@@ -30,13 +31,14 @@ REGRAS:
 - Para figurinha individual: retorne apenas 1 item no array stickers com status "filled".
 - Use o número EXATO impresso na figurinha (ex: FWC-1, QAT-1, BRA-10, ARG-12).
 - NÃO invente números. Leia o que está impresso.
+- CRÍTICO: Leia o nome EXATO impresso na figurinha. NÃO adivinhe — "MARQUINHOS" NÃO é "NEYMAR JR". Cada jogador tem um nome único.
 
 Retorne APENAS JSON válido neste formato:
 {
   "pages_detected": 1,
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Neymar", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"number": "BRA-1", "player_name": "Alisson", "country": "Brasil", "status": "filled", "confidence": 0.95}
   ],
   "unreadable": [],
   "warnings": []
@@ -57,6 +59,31 @@ export async function POST(req: NextRequest) {
     const secret = req.headers.get('x-internal-secret')
     if (secret !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check scan limit
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tier')
+      .eq('id', userId)
+      .single()
+
+    const userTier = (profile?.tier || 'free') as Tier
+    const tierScanLimit = getScanLimit(userTier)
+
+    const { data: usageData } = await supabase
+      .rpc('increment_scan_usage', {
+        p_user_id: userId,
+        p_daily_limit: tierScanLimit,
+      })
+
+    if (usageData && !usageData.allowed) {
+      const isFree = userTier === 'free'
+      const msg = isFree
+        ? `Você usou seus 5 scans gratuitos! Faça upgrade para continuar:\n${APP_URL}/profile`
+        : `Você usou todos os seus ${usageData.limit} scans. Compre um pacote extra pelo app:\n${APP_URL}/profile`
+      await sendText(phone, msg)
+      return NextResponse.json({ ok: true })
     }
 
     // Scan with Gemini — try 2.5-flash first, fallback to 2.0-flash-lite
