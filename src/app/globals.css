@@ -68,3 +68,18 @@
 }
 
 .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+
+/* Respeitar preferência do usuário por menos movimento (WCAG 2.1 AA) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-fade-up,
+  .animate-fade-up-delay,
+  .animate-fade-up-delay-2,
+  .animate-fade-up-delay-3,
+  .animate-slide-up,
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
