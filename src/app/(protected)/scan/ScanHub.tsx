@@ -415,6 +415,30 @@ export default function ScanHub({
           </div>
         </div>
 
+        {/* ── WhatsApp CTA ── */}
+        <a
+          href="https://wa.me/5521966791113?text=oi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 mb-4 active:scale-[0.98] transition-transform shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white leading-tight">Escaneie pelo WhatsApp</p>
+              <p className="text-[11px] text-emerald-100 mt-0.5">Mande uma foto das figurinhas e a IA registra pra você — sem abrir o app!</p>
+            </div>
+            <svg className="w-5 h-5 text-white/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+        </a>
+
         {/* ── Subtle selling banner ── */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
           <span className="text-sm">✨</span>
@@ -422,22 +446,6 @@ export default function ScanHub({
             1 foto = várias figurinhas detectadas. <span className="text-brand font-medium">Junte o máximo na mesa pra aproveitar cada scan!</span>
           </p>
         </div>
-
-        {/* ── WhatsApp hint ── */}
-        <a
-          href="https://wa.me/5521966791113?text=oi"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50/60 border border-emerald-100 mb-4"
-        >
-          <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
-          </svg>
-          <p className="text-[10px] text-gray-500 flex-1">
-            Tambem pelo <span className="font-semibold text-emerald-600">WhatsApp</span> — mande uma foto e escaneie direto no chat!
-          </p>
-        </a>
 
         {/* ── Disclaimer + privacy ── */}
         <p className="text-[9px] text-gray-300 px-1 leading-relaxed">

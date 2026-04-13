@@ -273,7 +273,7 @@ export default function AlbumClient({
     if (us.status === 'owned')
       return 'bg-white border-gray-200 shadow-sm'
     if (us.status === 'duplicate')
-      return 'bg-white border-brand/30 shadow-sm'
+      return 'bg-white border-blue-200 shadow-sm'
     return 'bg-white border-gray-200'
   }
 
@@ -312,7 +312,7 @@ export default function AlbumClient({
       >
         {/* Quantity badge */}
         {qty > 1 && (
-          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-brand rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm z-10">
+          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-blue-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm z-10">
             {qty}
           </span>
         )}
@@ -419,8 +419,8 @@ export default function AlbumClient({
           </div>
         </div>
         <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
-          <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
-            <div className="w-2 h-2 rounded-full bg-brand" />
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-blue-500" />
           </div>
           <div>
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.duplicates}</p>
@@ -499,7 +499,11 @@ export default function AlbumClient({
             }`}
           >
             {tab.label}
-            <span className={`ml-1 ${activeTab === tab.key ? 'text-brand' : 'text-gray-400'}`}>
+            <span className={`ml-1 ${activeTab === tab.key
+              ? tab.key === 'missing' ? 'text-orange-400'
+              : tab.key === 'duplicates' ? 'text-blue-500'
+              : 'text-brand'
+              : 'text-gray-400'}`}>
               {tab.count}
             </span>
           </button>
