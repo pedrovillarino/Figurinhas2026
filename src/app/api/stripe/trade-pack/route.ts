@@ -38,6 +38,13 @@ export async function POST() {
 
     const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('STRIPE_SECRET_KEY is not set')
+      return NextResponse.json({ error: 'Configuração de pagamento ausente' }, { status: 500 })
+    }
+
+    console.log('Trade pack checkout - origin:', origin, 'tier:', tier, 'price:', packConfig.priceBrl)
+
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       customer_email: profile?.email || user.email,

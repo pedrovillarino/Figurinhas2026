@@ -145,10 +145,10 @@ export default function ProfilePage() {
     try {
       const res = await fetch('/api/stripe/scan-pack', { method: 'POST' })
       const data = await res.json()
-      if (data.url) {
+      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://')) {
         window.location.href = data.url
       } else {
-        alert(data.error || 'Erro ao iniciar compra')
+        alert(data.error || `Erro ao iniciar compra (url: ${JSON.stringify(data.url)})`)
         setBuyingScans(false)
       }
     } catch {
@@ -162,14 +162,14 @@ export default function ProfilePage() {
     try {
       const res = await fetch('/api/stripe/trade-pack', { method: 'POST' })
       const data = await res.json()
-      if (data.url) {
+      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://')) {
         window.location.href = data.url
       } else {
-        alert(data.error || 'Erro ao iniciar compra')
+        alert(data.error || `Erro ao iniciar compra (url: ${JSON.stringify(data.url)})`)
         setBuyingTrades(false)
       }
-    } catch {
-      alert('Erro ao conectar com o servidor')
+    } catch (err) {
+      alert(`Erro ao conectar: ${err instanceof Error ? err.message : 'desconhecido'}`)
       setBuyingTrades(false)
     }
   }

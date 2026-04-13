@@ -107,9 +107,13 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
   function getDiscountedPrice(tier: string): string | null {
     if (!couponStatus?.valid || couponStatus.tier !== tier) return null
     const config = TIER_CONFIG[tier as Tier]
-    const original = 'priceBrl' in config ? (config as { priceBrl: number }).priceBrl : 0
-    if (!original) return null
-    const discounted = Math.round(original * (1 - couponStatus.percent_off / 100))
+    const targetPrice = 'priceBrl' in config ? (config as { priceBrl: number }).priceBrl : 0
+    if (!targetPrice) return null
+    // Base price for discount = target price minus what user already paid
+    const currentConfig = TIER_CONFIG[currentTier]
+    const currentPrice = 'priceBrl' in currentConfig ? (currentConfig as { priceBrl: number }).priceBrl : 0
+    const upgradePrice = Math.max(0, targetPrice - currentPrice)
+    const discounted = Math.round(upgradePrice * (1 - couponStatus.percent_off / 100))
     if (discounted === 0) return 'Grátis'
     return `R$${(discounted / 100).toFixed(2).replace('.', ',')}`
   }
@@ -192,8 +196,16 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
             const badge = TIER_BADGE[t]
             const highlights = TIER_HIGHLIGHTS[t]
             const discountedPrice = getDiscountedPrice(t)
-            const priceDisplay = 'priceDisplay' in config ? (config as { priceDisplay: string }).priceDisplay : ''
             const isBest = t === 'colecionador'
+
+            // Calculate upgrade price: deduct what user already paid for current tier
+            const targetPrice = 'priceBrl' in config ? (config as { priceBrl: number }).priceBrl : 0
+            const currentConfig = TIER_CONFIG[currentTier]
+            const currentPrice = 'priceBrl' in currentConfig ? (currentConfig as { priceBrl: number }).priceBrl : 0
+            const upgradePrice = Math.max(0, targetPrice - currentPrice)
+            const priceDisplay = upgradePrice !== targetPrice
+              ? `R$${(upgradePrice / 100).toFixed(2).replace('.', ',')}`
+              : 'priceDisplay' in config ? (config as { priceDisplay: string }).priceDisplay : ''
 
             return (
               <div
