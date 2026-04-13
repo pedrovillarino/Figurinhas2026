@@ -7,6 +7,7 @@ type PaywallModalProps = {
   feature: 'scan' | 'trades' | 'upgrade'
   currentTier: Tier
   onClose?: () => void
+  isMinor?: boolean
 }
 
 const PAID_TIERS: Tier[] = ['estreante', 'colecionador', 'copa_completa']
@@ -37,7 +38,7 @@ const TIER_BADGE: Record<string, { text: string; bg: string; fg: string }> = {
   copa_completa: { text: 'COMPLETO', bg: 'bg-emerald-100', fg: 'text-emerald-700' },
 }
 
-export default function PaywallModal({ feature, currentTier, onClose }: PaywallModalProps) {
+export default function PaywallModal({ feature, currentTier, onClose, isMinor = false }: PaywallModalProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [showCoupon, setShowCoupon] = useState(false)
   const [couponCode, setCouponCode] = useState('')
@@ -51,8 +52,12 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
 
   const currentIdx = tierIndex(currentTier)
 
-  // Show only tiers above current
-  const availableTiers = PAID_TIERS.filter((t) => tierIndex(t) > currentIdx)
+  // Show only tiers above current (menores não veem Copa Completa — inclui trocas ilimitadas)
+  const availableTiers = PAID_TIERS.filter((t) => {
+    if (tierIndex(t) <= currentIdx) return false
+    if (isMinor && t === 'copa_completa') return false
+    return true
+  })
 
   async function validateCoupon(tier: string) {
     if (!couponCode.trim()) return

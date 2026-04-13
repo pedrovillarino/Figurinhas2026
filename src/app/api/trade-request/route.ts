@@ -84,6 +84,17 @@ export async function POST(req: NextRequest) {
 
     const admin = getAdmin()
 
+    // 1.5. Check if requester is a minor (blocked from trades)
+    const { data: requesterCheck } = await admin
+      .from('profiles')
+      .select('is_minor')
+      .eq('id', user.id)
+      .single()
+
+    if (requesterCheck?.is_minor) {
+      return NextResponse.json({ error: 'Trocas não disponíveis para menores de 18 anos.' }, { status: 403 })
+    }
+
     // 2. Check for existing pending request
     const { data: existing } = await admin
       .from('trade_requests')

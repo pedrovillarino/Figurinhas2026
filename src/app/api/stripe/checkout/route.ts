@@ -61,9 +61,14 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('tier, email')
+      .select('tier, email, is_minor')
       .eq('id', user.id)
       .single()
+
+    // Menores de 18 não podem comprar Copa Completa (inclui trocas ilimitadas)
+    if (profile?.is_minor && targetTier === 'copa_completa') {
+      return NextResponse.json({ error: 'O plano Copa Completa não está disponível para menores de 18 anos.' }, { status: 403 })
+    }
 
     const currentTier = (profile?.tier || 'free') as Tier
     const currentIdx = tierIndex(currentTier)

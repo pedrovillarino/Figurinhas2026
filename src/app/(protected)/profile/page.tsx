@@ -57,7 +57,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, referral_code')
+      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, referral_code, is_minor')
       .eq('id', user.id)
       .single()
 
@@ -564,7 +564,7 @@ export default function ProfilePage() {
       </button>
 
       {showPaywall && (
-        <PaywallModal feature="upgrade" currentTier={tier} onClose={() => setShowPaywall(false)} />
+        <PaywallModal feature="upgrade" currentTier={tier} onClose={() => setShowPaywall(false)} isMinor={profile?.is_minor === true} />
       )}
     </main>
   )

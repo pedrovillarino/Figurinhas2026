@@ -260,8 +260,15 @@ export default function OnboardingModal() {
 
             {isMinor && (
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4">
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  Como você é menor de 18, algumas funcionalidades possuem restrições adicionais para sua segurança.
+                <p className="text-xs text-amber-700 leading-relaxed font-medium mb-1.5">
+                  🔒 Restrições para menores de 18
+                </p>
+                <p className="text-xs text-amber-600 leading-relaxed mb-2">
+                  Para sua segurança, o recurso de <strong>trocas entre usuários</strong> e o
+                  plano <strong>Copa Completa</strong> não estão disponíveis para menores de 18 anos.
+                </p>
+                <p className="text-xs text-amber-600 leading-relaxed">
+                  💡 Um responsável (pai, mãe ou tutor) pode criar uma conta própria e fazer trocas por você!
                 </p>
               </div>
             )}

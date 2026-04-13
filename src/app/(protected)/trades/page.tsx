@@ -18,13 +18,14 @@ export default async function TradesPage() {
   if (!user) redirect('/login')
 
   const [{ data: profile }, { data: stickers }, { data: userStickers }] = await Promise.all([
-    supabase.from('profiles').select('tier, location_lat, location_lng, display_name').eq('id', user.id).single(),
+    supabase.from('profiles').select('tier, location_lat, location_lng, display_name, is_minor').eq('id', user.id).single(),
     supabase.from('stickers').select('id, number, player_name, country, section, type').order('number'),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
   ])
 
   const tier = (profile?.tier || 'free') as Tier
   const hasLocation = !!(profile?.location_lat && profile?.location_lng)
+  const isMinor = profile?.is_minor === true
 
   // Build user stickers map
   const userStickersMap: Record<number, { status: string; quantity: number }> = {}
@@ -96,6 +97,44 @@ export default async function TradesPage() {
         contact: phone ? `wa.me/${phone}` : p?.email || null,
       }
     })
+  }
+
+  // Menores de 18 não têm acesso a trocas
+  if (isMinor) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-5 py-8 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h1 className="text-lg font-bold text-gray-800 mb-2">Trocas indisponíveis</h1>
+          <p className="text-sm text-gray-500 leading-relaxed mb-4">
+            Para sua segurança, o recurso de trocas não está disponível para menores de 18 anos.
+            Isso inclui encontrar colecionadores, solicitar e receber trocas.
+          </p>
+          <div className="bg-brand-light/50 rounded-xl p-4 text-left mb-4">
+            <p className="text-xs font-semibold text-gray-700 mb-2">💡 Dica</p>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Um responsável legal (pai, mãe ou tutor) pode criar uma conta própria no Complete Aí
+              e utilizar o recurso de trocas por você. Assim vocês podem completar o álbum juntos
+              com total segurança!
+            </p>
+          </div>
+          <p className="text-xs text-gray-400 leading-relaxed mb-5">
+            Você continua podendo usar o scanner com IA, registrar figurinhas manualmente,
+            exportar listas e acompanhar o progresso do seu álbum normalmente.
+          </p>
+          <a
+            href="/album"
+            className="inline-block bg-brand text-white text-sm font-semibold rounded-full px-6 py-2.5 hover:bg-brand-dark transition active:scale-[0.98]"
+          >
+            Voltar ao meu álbum
+          </a>
+        </div>
+      </main>
+    )
   }
 
   return (
