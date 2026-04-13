@@ -40,6 +40,12 @@ export const webhookLimiter = createLimiter('webhook', 60, '1 m')
 /** 10 requests per minute — for Stripe checkout */
 export const stripeLimiter = createLimiter('stripe', 10, '1 m')
 
+/** 5 requests per minute — for notify-matches (heavy endpoint) */
+export const notifyLimiter = createLimiter('notify', 5, '1 m')
+
+/** 30 requests per minute — for general write endpoints */
+export const generalLimiter = createLimiter('general', 30, '1 m')
+
 function createLimiter(prefix: string, tokens: number, window: `${number} ${'s' | 'm' | 'h' | 'd'}`) {
   return {
     prefix,

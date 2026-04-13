@@ -52,6 +52,59 @@ RULES:
 - Double-check: did you list every sticker? If you see 15 stickers, your array must have 15 entries.
 - If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
 
+// ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
+type CachedSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
+let stickerCache: {
+  data: CachedSticker[]
+  numberMap: Map<string, CachedSticker>
+  nameByCountry: Map<string, Map<string, CachedSticker>>
+  nameFlat: Map<string, CachedSticker>
+  loadedAt: number
+} | null = null
+const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerCache> {
+  if (stickerCache && Date.now() - stickerCache.loadedAt < CACHE_TTL_MS) {
+    return stickerCache
+  }
+
+  const { data: allDbStickers, error: dbError } = await supabaseAdmin
+    .from('stickers')
+    .select('id, number, player_name, country, section, type')
+
+  if (dbError) {
+    console.error('[scan] DB error loading stickers:', dbError.message)
+  }
+
+  if (!allDbStickers || allDbStickers.length === 0) {
+    return null
+  }
+
+  const stickers = allDbStickers as CachedSticker[]
+
+  // Build lookup maps
+  const numberMap = new Map(stickers.map((s) => [s.number.toUpperCase(), s]))
+  const nameByCountry = new Map<string, Map<string, CachedSticker>>()
+  const nameFlat = new Map<string, CachedSticker>()
+
+  for (const s of stickers) {
+    const code = s.number.split('-')[0]
+    const normName = normalizeName(s.player_name)
+
+    if (!nameByCountry.has(code)) nameByCountry.set(code, new Map())
+    nameByCountry.get(code)!.set(normName, s)
+
+    if (!nameFlat.has(normName)) {
+      nameFlat.set(normName, s)
+    }
+  }
+
+  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, loadedAt: Date.now() }
+  console.log(`[scan] Cached ${allDbStickers.length} stickers (TTL: 1h)`)
+  return stickerCache
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
@@ -151,43 +204,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. Load ALL stickers from DB for name-based matching
-    const { data: allDbStickers, error: dbError } = await supabaseAdmin
-      .from('stickers')
-      .select('id, number, player_name, country, section, type')
+    // 5. Load stickers with module-level cache (avoids 670+ row query on every scan)
+    const cached = await getStickersWithCache(supabaseAdmin)
 
-    if (dbError) {
-      console.error('[scan] DB error:', dbError.message)
-    }
-
-    if (!allDbStickers || allDbStickers.length === 0) {
+    if (!cached) {
       return NextResponse.json(
         { error: 'Dados de figurinhas não encontrados. Contate o suporte.' },
         { status: 500 }
       )
     }
 
-    console.log(`[scan] Loaded ${allDbStickers.length} stickers from DB`)
-
-    // Build lookup maps
-    // 1. Exact number map: "BRA-10" -> sticker
-    const numberMap = new Map(allDbStickers.map((s) => [s.number.toUpperCase(), s]))
-    // 2. Name by country: "BRA" -> { "neymar jr" -> sticker }
-    const nameByCountry = new Map<string, Map<string, typeof allDbStickers[0]>>()
-    // 3. Flat name map for fallback
-    const nameFlat = new Map<string, typeof allDbStickers[0]>()
-
-    for (const s of allDbStickers) {
-      const code = s.number.split('-')[0]
-      const normName = normalizeName(s.player_name)
-
-      if (!nameByCountry.has(code)) nameByCountry.set(code, new Map())
-      nameByCountry.get(code)!.set(normName, s)
-
-      if (!nameFlat.has(normName)) {
-        nameFlat.set(normName, s)
-      }
-    }
+    const { numberMap, nameByCountry, nameFlat } = cached
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
@@ -323,7 +350,7 @@ export async function POST(request: NextRequest) {
       const stickerNumber = (detected.sticker_number || detected.number || '').toUpperCase().trim()
       const normPlayer = normalizeName(playerName)
 
-      let dbSticker = null
+      let dbSticker: CachedSticker | null = null
 
       // ── Priority 1: Match by sticker number (e.g., back of sticker shows "BRA-10") ──
       if (stickerNumber) {
@@ -357,10 +384,12 @@ export async function POST(request: NextRequest) {
 
         // Fuzzy match across all countries
         if (!dbSticker) {
-          for (const [, countryMap] of nameByCountry) {
-            const found = fuzzyNameMatch(normPlayer, countryMap)
-            if (found) { dbSticker = found; break }
-          }
+          nameByCountry.forEach((countryMap) => {
+            if (!dbSticker) {
+              const found = fuzzyNameMatch(normPlayer, countryMap)
+              if (found) { dbSticker = found }
+            }
+          })
         }
       }
 
@@ -448,7 +477,8 @@ export async function POST(request: NextRequest) {
 
 // ── Matching helpers ──
 
-type DbSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
+// Reuse CachedSticker type alias for matching functions
+type DbSticker = CachedSticker
 
 /** Try to match by sticker number (from back of sticker). Handles "BRA-10", "BRA 10", "BRA10" */
 function findByNumber(raw: string, numberMap: Map<string, DbSticker>): DbSticker | null {
@@ -489,17 +519,17 @@ function normalizeName(name: string): string {
 /** Try fuzzy matching: last name, first name, contains */
 function fuzzyNameMatch(
   normTarget: string,
-  nameMap: Map<string, { id: number; number: string; player_name: string; country: string; section: string; type: string }>,
+  nameMap: Map<string, CachedSticker>,
 ) {
   const targetParts = normTarget.split(' ')
   const targetLast = targetParts[targetParts.length - 1]
   const targetFirst = targetParts[0]
 
-  let bestMatch: { id: number; number: string; player_name: string; country: string; section: string; type: string } | null = null
+  let bestMatch: CachedSticker | null = null
   let bestScore = 0
 
-  for (const [dbNorm, sticker] of nameMap) {
-    if (sticker.type !== 'player') continue // Skip badges/special for fuzzy
+  nameMap.forEach((sticker, dbNorm) => {
+    if (sticker.type !== 'player') return // Skip badges/special for fuzzy
 
     const dbParts = dbNorm.split(' ')
     const dbLast = dbParts[dbParts.length - 1]
@@ -524,7 +554,7 @@ function fuzzyNameMatch(
     if (targetFirst === dbNorm || dbFirst === normTarget) {
       if (bestScore < 3) { bestMatch = sticker; bestScore = 3 }
     }
-  }
+  })
 
   return bestMatch
 }

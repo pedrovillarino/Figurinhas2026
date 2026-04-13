@@ -428,15 +428,26 @@ async function downloadImage(url: string, messageId?: string): Promise<{ base64:
   }
 }
 
-// ─── Dedup: avoid processing same message twice ───
-const recentMessages = new Set<string>()
+// ─── Dedup: avoid processing same message twice (Map with TTL) ───
+const recentMessages = new Map<string, number>()
+const DEDUP_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const DEDUP_MAX_SIZE = 500
 
 function isDuplicate(messageId: string): boolean {
   if (!messageId) return false
+  const now = Date.now()
+
+  // Periodically clean expired entries (every check, but it's cheap for <500 items)
+  if (recentMessages.size > DEDUP_MAX_SIZE / 2) {
+    const expired: string[] = []
+    recentMessages.forEach((timestamp, id) => {
+      if (now - timestamp > DEDUP_TTL_MS) expired.push(id)
+    })
+    expired.forEach((id) => recentMessages.delete(id))
+  }
+
   if (recentMessages.has(messageId)) return true
-  recentMessages.add(messageId)
-  // Keep set small — clear old entries after 100
-  if (recentMessages.size > 100) recentMessages.clear()
+  recentMessages.set(messageId, now)
   return false
 }
 
