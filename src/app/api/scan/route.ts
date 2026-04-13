@@ -17,7 +17,7 @@ const VALID_CODES = [
   'SUI', 'CMR', 'POR', 'GHA', 'URU', 'KOR',
 ]
 
-const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup Qatar 2022 sticker scanner.
+const SYSTEM_INSTRUCTION = `You are a Panini World Cup 2026 sticker album scanner.
 Analyze photos of stickers — this could be:
 - FRONT of stickers (showing player photo, name, country flag)
 - BACK of stickers (showing a sticker number like "BRA 10", "FRA 19", "ARG 20")

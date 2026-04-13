@@ -269,7 +269,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
           Pagamento único via Stripe. Aceita cartão e boleto.
         </p>
         <p className="text-[9px] text-gray-300 text-center mt-1">
-          Válido até 31/12/2026 (Copa do Mundo FIFA 2026).
+          Válido até 31/12/2026 (edição Copa 2026).
         </p>
       </div>
     </div>

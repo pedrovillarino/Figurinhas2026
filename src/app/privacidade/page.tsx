@@ -18,7 +18,7 @@ export default function PrivacidadePage() {
       </a>
 
       <h1 className="text-2xl font-black text-navy mb-2">Política de Privacidade</h1>
-      <p className="text-xs text-gray-400 mb-8">Última atualização: 12 de abril de 2026 — Versão 1.1</p>
+      <p className="text-xs text-gray-400 mb-8">Última atualização: 13 de abril de 2026 — Versão 1.2</p>
 
       <div className="space-y-8 text-sm text-gray-600 leading-relaxed">
         <Section title="1. Responsável pelo Tratamento">
@@ -136,7 +136,7 @@ export default function PrivacidadePage() {
             <li>Dados do perfil e figurinhas — mantidos enquanto a conta estiver ativa</li>
             <li>Dados de pagamento — conforme exigência fiscal (5 anos)</li>
             <li>Logs de consentimento — mantidos por prazo legal</li>
-            <li>Após exclusão da conta — dados removidos em até 15 dias úteis, exceto obrigações legais</li>
+            <li>Após exclusão da conta — dados removidos em até 15 dias corridos, exceto obrigações legais</li>
           </ul>
         </Section>
 
@@ -150,7 +150,7 @@ export default function PrivacidadePage() {
         <Section title="11. Alterações nesta Política">
           <p>
             Esta política pode ser atualizada. Alterações relevantes serão comunicadas por e-mail e/ou
-            notificação no app com pelo menos 15 dias de antecedência.
+            notificação no app com pelo menos 15 dias corridos de antecedência.
           </p>
         </Section>
 

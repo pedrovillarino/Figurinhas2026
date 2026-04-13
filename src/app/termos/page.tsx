@@ -45,7 +45,7 @@ export default function TermosPage() {
 
       <h1 className="text-2xl font-black text-navy mb-2">Termos de Serviço</h1>
       <p className="text-xs text-gray-400 mb-8">
-        Ultima atualização: 12 de abril de 2026 — Versão 1.1
+        Última atualização: 13 de abril de 2026 — Versão 1.2
       </p>
 
       <div className="bg-gold-light border border-gold rounded-lg p-4 mb-8">
@@ -105,7 +105,8 @@ export default function TermosPage() {
           </P>
           <SubSection id="3.1">
             <P>
-              <strong>Vigência:</strong> O Complete Aí é um serviço temporário vinculado à Copa do Mundo FIFA 2026.
+              <strong>Vigência:</strong> O Complete Aí é um serviço temporário vinculado à edição 2026 do maior
+              torneio internacional de futebol de seleções.
               A prestação do serviço está prevista até <strong>31 de dezembro de 2026</strong>, podendo ser
               encerrada antes ou estendida a critério exclusivo do Complete Aí, mediante aviso prévio aos usuários.
               Após o encerramento, os dados do usuário serão mantidos por 90 dias e então excluídos.
@@ -197,9 +198,9 @@ export default function TermosPage() {
             <p className="text-sm font-semibold text-navy">4.6. Alteração de preços</p>
             <P>
               Os preços dos planos são: Estreante R$&nbsp;9,90, Colecionador R$&nbsp;19,90 e Copa Completa R$&nbsp;29,90.
-              Os preços podem ser alterados a qualquer momento sem aviso prévio.
-              Usuários que já realizaram o pagamento não serão afetados por alterações de preço,
-              visto que o pagamento é único e já foi concluído.
+              Eventuais alterações de preço serão comunicadas com pelo menos 30 dias de antecedência
+              por meio do App ou e-mail. Usuários que já realizaram o pagamento mantêm o plano
+              adquirido nas condições originais, visto que o pagamento é único e já foi concluído.
             </P>
           </SubSection>
 
@@ -339,7 +340,7 @@ export default function TermosPage() {
           </UL>
           <P>
             A responsabilidade total do Complete Aí, em qualquer hipótese, estará limitada ao
-            valor efetivamente pago pelo Usuário nos últimos 12 meses.
+            valor efetivamente pago pelo Usuário no plano ativo, conforme descrito na seção 4.
           </P>
         </Section>
 
@@ -388,7 +389,7 @@ export default function TermosPage() {
               </a>
             </li>
           </UL>
-          <P>Prazo de resposta: até 15 dias úteis.</P>
+          <P>Prazo de resposta: até 15 dias corridos.</P>
         </Section>
       </div>
 

@@ -23,7 +23,7 @@ const FAQ_SECTIONS: { title: string; icon: string; items: FaqItem[] }[] = [
       },
       {
         q: 'Funciona para qual álbum?',
-        a: 'Atualmente funciona para o álbum oficial Panini da Copa do Mundo FIFA 2026. Estamos trabalhando para suportar outros álbuns no futuro.',
+        a: 'Atualmente funciona para o álbum oficial da Copa 2026. Estamos trabalhando para suportar outros álbuns no futuro.',
       },
       {
         q: 'Preciso instalar alguma coisa?',

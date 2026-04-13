@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     siteName: "Complete Aí",
     title: "Complete Aí — Álbum de Figurinhas com IA",
-    description: "O único app que escaneia suas figurinhas com IA e encontra trocas perto de você.",
+    description: "Escaneie suas figurinhas com IA e encontre trocas perto de você.",
     url: APP_URL,
     images: [
       {

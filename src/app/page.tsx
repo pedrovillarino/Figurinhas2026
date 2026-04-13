@@ -44,7 +44,7 @@ export default async function Home() {
           </h2>
 
           <p className="text-sm text-gray-500 mt-2 text-center leading-relaxed max-w-[280px] animate-fade-up-delay">
-            O único app que escaneia suas figurinhas com IA e encontra trocas perto de você.
+            Escaneie suas figurinhas com IA e encontre trocas perto de você.
           </p>
 
           {/* CTA */}
@@ -106,7 +106,7 @@ export default async function Home() {
         <div className="max-w-md mx-auto">
           <div className="grid grid-cols-3 gap-3 text-center">
             <StatBlock value="980" label="figurinhas" />
-            <StatBlock value="1s" label="por scan" />
+            <StatBlock value="20+" label="por foto" />
             <StatBlock value="50km" label="de alcance" />
           </div>
         </div>
