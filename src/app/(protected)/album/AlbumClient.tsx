@@ -73,14 +73,11 @@ export default function AlbumClient({
     return () => observer.disconnect()
   }, [])
 
-  // Reset visibleCount e abre seções quando filtro muda
+  // Reset visibleCount e fecha seções quando filtro muda
   useEffect(() => {
     setVisibleCount(40)
-    // Ao filtrar por Faltam/Repetidas, abre todas as seções que têm resultados
-    if (activeTab !== 'all') {
-      setOpenSections(new Set(Object.keys(groupedByCountry)))
-    }
-  }, [activeTab, debouncedSearch]) // eslint-disable-line react-hooks/exhaustive-deps
+    setOpenSections(new Set())
+  }, [activeTab, debouncedSearch])
 
   // Sort numérico natural (ARG-1, ARG-2, ..., ARG-10 em vez de ARG-1, ARG-10, ARG-2)
   const collator = useMemo(() => new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' }), [])
