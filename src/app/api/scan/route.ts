@@ -40,12 +40,14 @@ Return ONLY valid JSON:
 }
 
 RULES:
-- Read ALL stickers visible — do not skip any
+- CRITICAL: Read EVERY SINGLE sticker visible — do NOT skip any. Count them first, then list each one.
+- If the photo shows many stickers (e.g. a table full of stickers), scan the image systematically: left-to-right, top-to-bottom, and list ALL of them.
 - If you see the BACK of stickers, the number is the most important field
 - If you see the FRONT, the player name and country code are most important
 - For the sticker_number, ALWAYS use a hyphen between code and number (e.g., "BRA-10" not "BRA 10")
 - For team photos, use player_name "Team Photo"
 - For emblems/badges, use player_name "Emblem"
+- Double-check: did you list every sticker? If you see 15 stickers, your array must have 15 entries.
 - If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
 
 export async function POST(request: Request) {
@@ -190,7 +192,7 @@ export async function POST(request: Request) {
           data: image,
         },
       },
-      { text: 'Identify all stickers in this photo. Read player names, country codes, and sticker numbers (if visible on the back). Return JSON.' },
+      { text: 'Identify ALL stickers in this photo — do not miss any. First count how many stickers you see, then list every single one. Read player names, country codes, and sticker numbers (if visible on the back). Scan systematically left-to-right, top-to-bottom. Return JSON.' },
     ]
 
     let responseText = ''
@@ -205,6 +207,7 @@ export async function POST(request: Request) {
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',
+            maxOutputTokens: 8192,
           },
         })
 

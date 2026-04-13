@@ -13,7 +13,7 @@ export default function PrivacidadePage() {
       </a>
 
       <h1 className="text-2xl font-black text-navy mb-2">Política de Privacidade</h1>
-      <p className="text-xs text-gray-400 mb-8">Última atualização: 11 de abril de 2026 — Versão 1.0</p>
+      <p className="text-xs text-gray-400 mb-8">Última atualização: 12 de abril de 2026 — Versão 1.1</p>
 
       <div className="space-y-8 text-sm text-gray-600 leading-relaxed">
         <Section title="1. Responsável pelo Tratamento">
@@ -40,6 +40,7 @@ export default function PrivacidadePage() {
           <ul className="list-disc pl-5 space-y-1">
             <li>Localização aproximada (com consentimento, para recurso de trocas — precisão de ~1km)</li>
             <li>Dados de uso do aplicativo (páginas visitadas, funcionalidades utilizadas)</li>
+            <li>Contagem de scans realizados (para controle de limites do plano — sem armazenamento das imagens)</li>
           </ul>
 
           <p className="font-medium text-navy mb-2 mt-4">2.3 Dados NÃO coletados:</p>
@@ -56,7 +57,8 @@ export default function PrivacidadePage() {
             <li>Identificar figurinhas via Scanner IA (processamento em memória, sem armazenamento de imagens)</li>
             <li>Conectar colecionadores para trocas (com base em localização aproximada e consentimento)</li>
             <li>Enviar notificações sobre trocas compatíveis (via WhatsApp e/ou e-mail, conforme preferência)</li>
-            <li>Processar pagamentos (via Stripe — não armazenamos dados de cartão)</li>
+            <li>Processar pagamentos de planos e pacotes extras (via Stripe — não armazenamos dados de cartão)</li>
+            <li>Controlar limites de uso de scans por plano contratado</li>
             <li>Cumprir obrigações legais (ECA Digital, LGPD, CDC)</li>
           </ul>
         </Section>

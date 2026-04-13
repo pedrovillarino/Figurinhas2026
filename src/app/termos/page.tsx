@@ -40,7 +40,7 @@ export default function TermosPage() {
 
       <h1 className="text-2xl font-black text-navy mb-2">Termos de Serviço</h1>
       <p className="text-xs text-gray-400 mb-8">
-        Ultima atualização: 11 de abril de 2026 — Versão 1.0
+        Ultima atualização: 12 de abril de 2026 — Versão 1.1
       </p>
 
       <div className="bg-gold-light border border-gold rounded-lg p-4 mb-8">
@@ -126,17 +126,17 @@ export default function TermosPage() {
                   <tr>
                     <td className="px-3 py-2 font-medium">Free</td>
                     <td className="px-3 py-2">Grátis</td>
-                    <td className="px-3 py-2">Gerenciamento manual do álbum, lista de repetidas/faltantes, até 5 trocas ativas</td>
+                    <td className="px-3 py-2">Gerenciamento manual do álbum, lista de repetidas/faltantes, 5 scans com IA (demonstração)</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium">Plus</td>
                     <td className="px-3 py-2">R$&nbsp;9,90 (pagamento único)</td>
-                    <td className="px-3 py-2">Tudo do Free + escaneamento por IA (até 50/mês), trocas ilimitadas, exportação em PDF</td>
+                    <td className="px-3 py-2">Tudo do Free + 200 scans com IA (~1.400 figurinhas), exportação em PDF</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium">Premium</td>
                     <td className="px-3 py-2">R$&nbsp;19,90 (pagamento único)</td>
-                    <td className="px-3 py-2">Tudo do Plus + escaneamento ilimitado, prioridade em matchmaking de trocas, badge exclusivo</td>
+                    <td className="px-3 py-2">Tudo do Plus + 400 scans com IA (dobro do Plus), trocas entre colecionadores, relatório semanal, badge exclusivo</td>
                   </tr>
                 </tbody>
               </table>
@@ -190,6 +190,17 @@ export default function TermosPage() {
               Os preços dos planos podem ser alterados a qualquer momento para novas aquisições.
               Usuários que já realizaram o pagamento não serão afetados por alterações de preço,
               visto que o pagamento é único e já foi concluído.
+            </P>
+          </SubSection>
+
+          <SubSection id="4.7">
+            <p className="text-sm font-semibold text-navy">4.7. Pacotes extras de scans</p>
+            <P>
+              Usuários dos planos Plus e Premium que esgotarem seus scans incluídos podem adquirir
+              pacotes extras de <strong>+100 scans por R$&nbsp;4,90</strong> (pagamento único por pacote).
+              Cada scan processa uma foto e pode detectar múltiplas figurinhas de uma vez. Os créditos
+              extras não expiram e são cumulativos com o saldo do plano. Usuários do plano Free devem
+              fazer upgrade para Plus ou Premium antes de adquirir pacotes extras.
             </P>
           </SubSection>
         </Section>

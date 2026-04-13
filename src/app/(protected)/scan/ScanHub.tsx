@@ -62,7 +62,7 @@ export default function ScanHub({
     action()
   }
 
-  function compressImage(dataUrl: string, maxWidth = 1600): Promise<string> {
+  function compressImage(dataUrl: string, maxWidth = 2048): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
