@@ -87,9 +87,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Scan with Gemini — try 2.5-flash first, fallback to 2.0-flash-lite
+    // Scan with Gemini — try 2.5-flash first, fallback to 2.5-flash-lite
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash-lite']
+    const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
     let responseText = ''
 
     for (const modelName of models) {
@@ -112,9 +112,21 @@ export async function POST(req: NextRequest) {
         console.log(`[WhatsApp scan] ${modelName} succeeded`)
         break
       } catch (modelErr) {
-        console.error(`[WhatsApp scan] ${modelName} failed:`, modelErr instanceof Error ? modelErr.message : modelErr)
+        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+        console.error(`[WhatsApp scan] ${modelName} failed:`, msg.substring(0, 200))
+        // If rate limited or model not found, try next model
+        if (msg.includes('429') || msg.includes('404') || msg.includes('not found') || msg.includes('deprecated') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+          console.log(`[WhatsApp scan] Falling back to next model...`)
+          continue
+        }
+        // For other errors on last model, throw
         if (modelName === models[models.length - 1]) throw modelErr
       }
+    }
+
+    if (!responseText) {
+      await sendText(phone, 'O serviço de scan está ocupado. Tenta de novo em 1 minuto ou use o scan pelo site! 🌐\n\n' + APP_URL + '/scan')
+      return NextResponse.json({ ok: true })
     }
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)
