@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
+import { createPerfLogger } from '@/lib/perf'
 
 export const maxDuration = 60
 
@@ -106,7 +107,7 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
 }
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
+  const perf = createPerfLogger('scan')
 
   // Rate limit
   const rlResponse = await checkRateLimit(getIp(request), scanLimiter)
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nenhuma imagem recebida. Tente novamente.' }, { status: 400 })
     }
 
+    perf.mark('auth')
     console.log(`[scan] Image: ${(image.length * 0.75 / 1024).toFixed(0)}KB, mime: ${mimeType}`)
 
     // 3. Check scan limit (total per account, based on tier + purchased credits)
@@ -204,6 +206,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    perf.mark('usage')
+
     // 5. Load stickers with module-level cache (avoids 670+ row query on every scan)
     const cached = await getStickersWithCache(supabaseAdmin)
 
@@ -215,6 +219,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { numberMap, nameByCountry, nameFlat } = cached
+    perf.mark('cache')
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
     const genAI = new GoogleGenerativeAI(apiKey)
@@ -279,6 +284,8 @@ export async function POST(request: NextRequest) {
         if (!isRetryable(msg)) throw modelErr
       }
     }
+
+    perf.mark('gemini')
 
     if (!responseText) {
       return NextResponse.json(
@@ -417,7 +424,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[scan] Result: ${matched.length} matched, ${unmatched.length} unmatched`)
+    perf.mark('match')
+    perf.end({ matched: matched.length, unmatched: unmatched.length, model: usedModel })
 
     if (unmatched.length > 0 && matched.length > 0) {
       warnings.push(`${unmatched.length} figurinha(s) não encontrada(s) no álbum: ${unmatched.slice(0, 3).join(', ')}${unmatched.length > 3 ? '...' : ''}`)
@@ -433,8 +441,6 @@ export async function POST(request: NextRequest) {
       warnings.push('Qualidade da foto baixa. Confira os resultados.')
     }
 
-    const totalMs = Date.now() - startTime
-
     return NextResponse.json({
       matched,
       unmatched,
@@ -448,13 +454,12 @@ export async function POST(request: NextRequest) {
         matched: matched.length,
         unmatched: unmatched.length,
         geminiMs,
-        totalMs,
         model: usedModel,
       },
     })
   } catch (err) {
-    const totalMs = Date.now() - startTime
-    console.error(`[scan] Error after ${totalMs}ms:`, err)
+    perf.end({ error: 'true' })
+    console.error('[scan] Error:', err)
 
     const errMsg = err instanceof Error ? err.message : String(err)
 
@@ -476,7 +481,7 @@ export async function POST(request: NextRequest) {
       message = 'Nosso serviço de scan está instável no momento. Tente novamente em instantes.'
     }
 
-    return NextResponse.json({ error: message, _debug: { errorMsg: errMsg, totalMs } }, { status })
+    return NextResponse.json({ error: message, _debug: { errorMsg: errMsg } }, { status })
   }
 }
 

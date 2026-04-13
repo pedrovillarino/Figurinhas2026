@@ -290,85 +290,70 @@ async function saveScannedStickers(userId: string, stickerNumbers: string[], pla
 
   if (!dbStickers || dbStickers.length === 0) return { saved: 0, numbers: [] }
 
-  const { data: existing } = await supabase
-    .from('user_stickers')
-    .select('sticker_id, status, quantity')
-    .eq('user_id', userId)
-    .in('sticker_id', dbStickers.map((s) => s.id))
-
-  const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
-
-  let saved = 0
-  const savedNumbers: string[] = []
-
-  for (const sticker of dbStickers) {
-    const ex = existingMap.get(sticker.id)
-
-    if (!ex) {
-      // New sticker → owned
-      await supabase.from('user_stickers').insert({
-        user_id: userId,
-        sticker_id: sticker.id,
-        status: 'owned',
-        quantity: 1,
-      })
-      saved++
-      savedNumbers.push(sticker.number)
-    } else if (ex.status === 'owned') {
-      // Already owned → duplicate
-      await supabase
-        .from('user_stickers')
-        .update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .eq('sticker_id', sticker.id)
-      saved++
-      savedNumbers.push(`${sticker.number} (rep)`)
-    } else if (ex.status === 'duplicate') {
-      // Already duplicate → increment
-      await supabase
-        .from('user_stickers')
-        .update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .eq('sticker_id', sticker.id)
-      saved++
-      savedNumbers.push(`${sticker.number} (rep x${ex.quantity + 1})`)
-    }
-  }
-
-  return { saved, numbers: savedNumbers }
+  return batchSaveStickers(supabase, userId, dbStickers.map((s) => ({ sticker_id: s.id, number: s.number })))
 }
 
 // Helper for when we already resolved DB stickers by name
 async function saveScannedStickersFromList(userId: string, dbStickers: { id: number; number: string; player_name: string }[]) {
   const supabase = getAdmin()
+  return batchSaveStickers(supabase, userId, dbStickers.map((s) => ({ sticker_id: s.id, number: s.number })))
+}
 
+/**
+ * Batch save stickers — single query to fetch existing, then batch upserts.
+ * Replaces the old N-query-per-sticker loop.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function batchSaveStickers(supabase: any, userId: string, stickers: { sticker_id: number; number: string }[]) {
+  if (stickers.length === 0) return { saved: 0, numbers: [] }
+
+  // 1. Single query: fetch existing stickers for this user
   const { data: existing } = await supabase
     .from('user_stickers')
     .select('sticker_id, status, quantity')
     .eq('user_id', userId)
-    .in('sticker_id', dbStickers.map((s) => s.id))
+    .in('sticker_id', stickers.map((s) => s.sticker_id))
 
-  const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
-  let saved = 0
+  const existingMap = new Map((existing || []).map((e: { sticker_id: number; status: string; quantity: number }) => [e.sticker_id, e]))
+
+  // 2. Categorize: new inserts vs updates
+  const toInsert: Array<{ user_id: string; sticker_id: number; status: string; quantity: number }> = []
+  const toUpdate: Array<{ sticker_id: number; status: string; quantity: number }> = []
   const savedNumbers: string[] = []
+  const now = new Date().toISOString()
 
-  for (const sticker of dbStickers) {
-    const ex = existingMap.get(sticker.id)
+  for (const sticker of stickers) {
+    const ex = existingMap.get(sticker.sticker_id) as { status: string; quantity: number } | undefined
     if (!ex) {
-      await supabase.from('user_stickers').insert({ user_id: userId, sticker_id: sticker.id, status: 'owned', quantity: 1 })
-      saved++
+      toInsert.push({ user_id: userId, sticker_id: sticker.sticker_id, status: 'owned', quantity: 1 })
       savedNumbers.push(sticker.number)
     } else if (ex.status === 'owned') {
-      await supabase.from('user_stickers').update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
-      saved++
+      toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: 2 })
       savedNumbers.push(`${sticker.number} (rep)`)
     } else if (ex.status === 'duplicate') {
-      await supabase.from('user_stickers').update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
-      saved++
+      toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: ex.quantity + 1 })
       savedNumbers.push(`${sticker.number} (rep x${ex.quantity + 1})`)
     }
   }
-  return { saved, numbers: savedNumbers }
+
+  // 3. Batch insert new stickers (single query)
+  if (toInsert.length > 0) {
+    await supabase.from('user_stickers').insert(toInsert)
+  }
+
+  // 4. Batch update existing stickers (upsert with onConflict)
+  if (toUpdate.length > 0) {
+    const upsertData = toUpdate.map((u) => ({
+      user_id: userId,
+      sticker_id: u.sticker_id,
+      status: u.status,
+      quantity: u.quantity,
+      updated_at: now,
+    }))
+    await supabase.from('user_stickers').upsert(upsertData, { onConflict: 'user_id,sticker_id' })
+  }
+
+  return { saved: toInsert.length + toUpdate.length, numbers: savedNumbers }
 }
 
 // ─── Download image from Z-API URL ───
@@ -586,35 +571,13 @@ export async function POST(req: NextRequest) {
           }
           const mergedStickers = Array.from(allStickers.values())
 
-          // Check existing
-          const { data: existing } = await supabaseAdmin
-            .from('user_stickers')
-            .select('sticker_id, status, quantity')
-            .eq('user_id', user.id)
-            .in('sticker_id', mergedStickers.map((s) => s.sticker_id))
-
-          const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
-          let saved = 0
-          const savedLines: string[] = []
-
-          for (const sticker of mergedStickers) {
-            const ex = existingMap.get(sticker.sticker_id)
-            const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
-
-            if (!ex) {
-              await supabaseAdmin.from('user_stickers').insert({ user_id: user.id, sticker_id: sticker.sticker_id, status: 'owned', quantity: 1 })
-              saved++
-              savedLines.push(`• ${label}`)
-            } else if (ex.status === 'owned') {
-              await supabaseAdmin.from('user_stickers').update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('sticker_id', sticker.sticker_id)
-              saved++
-              savedLines.push(`• ${label} (rep)`)
-            } else if (ex.status === 'duplicate') {
-              await supabaseAdmin.from('user_stickers').update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('sticker_id', sticker.sticker_id)
-              saved++
-              savedLines.push(`• ${label} (rep x${ex.quantity + 1})`)
-            }
-          }
+          // Batch save using shared helper (single insert + single upsert instead of N queries)
+          const { saved, numbers: savedNumbers } = await batchSaveStickers(
+            supabaseAdmin,
+            user.id,
+            mergedStickers.map((s) => ({ sticker_id: s.sticker_id, number: s.number }))
+          )
+          const savedLines = savedNumbers.map((n) => `• ${n}`)
 
           // Delete all pending scans
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)

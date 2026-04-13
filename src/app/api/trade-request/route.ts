@@ -6,6 +6,7 @@ import { sendPushToUser } from '@/lib/push'
 import { sendEmail, tradeRequestEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
 import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
+import { createPerfLogger } from '@/lib/perf'
 
 export const maxDuration = 30
 import { randomBytes } from 'crypto'
@@ -44,6 +45,8 @@ export async function POST(req: NextRequest) {
   // Rate limit
   const rlResponse = await checkRateLimit(getIp(req), tradeLimiter)
   if (rlResponse) return rlResponse
+
+  const perf = createPerfLogger('trade-request')
 
   try {
     // 1. Auth
@@ -193,12 +196,15 @@ export async function POST(req: NextRequest) {
       console.error('Push notification error:', err)
     })
 
+    perf.end({ whatsapp: !!(phone && (channel === 'whatsapp' || channel === 'both')) ? 1 : 0 })
+
     return NextResponse.json({
       ok: true,
       request_id: tradeReq.id,
       whatsapp_sent: !!(phone && (channel === 'whatsapp' || channel === 'both')),
     })
   } catch (err) {
+    perf.end({ error: 'true' })
     console.error('Trade request error:', err)
     return NextResponse.json({ error: 'Erro ao processar solicitação.' }, { status: 500 })
   }

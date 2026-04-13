@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { sendText, formatPhone } from '@/lib/zapi'
 import { checkRateLimit, getIp, notifyLimiter } from '@/lib/ratelimit'
+import { createPerfLogger } from '@/lib/perf'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -37,6 +38,8 @@ export async function POST(req: NextRequest) {
   // Rate limit (heavy endpoint)
   const rlResponse = await checkRateLimit(getIp(req), notifyLimiter)
   if (rlResponse) return rlResponse
+
+  const perf = createPerfLogger('notify-matches')
 
   try {
     // Auth check
@@ -89,6 +92,8 @@ export async function POST(req: NextRequest) {
     if (duplicateIds.size === 0) {
       return NextResponse.json({ ok: true, notified: 0 })
     }
+
+    perf.mark('setup')
 
     // 3. Find nearby users using BOUNDING BOX filter in DB (not haversine on all users)
     //    Default max radius is 100km. We use a generous bounding box then refine with haversine.
@@ -151,6 +156,8 @@ export async function POST(req: NextRequest) {
       if (tr.status === 'pending' || tr.status === 'approved') status.hasPending = true
       if (new Date(tr.created_at) > twentyFourHoursAgo) status.hasRecent24h = true
     }
+
+    perf.mark('batch-queries')
 
     // 5. Process each nearby user (no more DB queries in this loop!)
     let notified = 0
@@ -244,8 +251,12 @@ export async function POST(req: NextRequest) {
         .in('id', notifiedUserIds)
     }
 
+    perf.mark('notify')
+    perf.end({ notified, nearby: nearbyProfiles.length })
+
     return NextResponse.json({ ok: true, notified })
   } catch (err) {
+    perf.end({ error: 'true' })
     console.error('Notify matches error:', err)
     return NextResponse.json({ ok: true, notified: 0 })
   }
