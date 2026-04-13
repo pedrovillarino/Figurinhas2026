@@ -1,35 +1,72 @@
-export type Tier = 'free' | 'plus' | 'premium'
+export type Tier = 'free' | 'estreante' | 'colecionador' | 'copa_completa'
 
-// Scan pack pricing
-export const SCAN_PACK_PRICE_BRL = 490 // R$4,90
+// ─── Scan pack pricing (for estreante & colecionador only) ───
 export const SCAN_PACK_AMOUNT = 100
-export const SCAN_PACK_PRICE_DISPLAY = 'R$4,90'
 
+export const SCAN_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
+  estreante: { priceBrl: 1000, priceDisplay: 'R$10,00' },
+  colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
+}
+
+// ─── Trade pack pricing (for estreante & colecionador only) ───
+export const TRADE_PACK_AMOUNT = 10
+
+export const TRADE_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
+  estreante: { priceBrl: 1000, priceDisplay: 'R$10,00' },
+  colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
+}
+
+// ─── Tier definitions ───
 export const TIER_CONFIG = {
   free: {
     label: 'Free',
-    stickerLimit: Infinity,
+    scanLimit: 5, // ~40 figurinhas
     canScan: true,
-    canTrade: false,
-    scanLimit: 5, // demo: ~35 figurinhas
-  },
-  plus: {
-    label: 'Plus',
+    canTrade: true, // can view matches + 2 included trades
+    tradeLimit: 2,
+    hasAds: true,
+    canBuyScanPack: false,
+    canBuyTradePack: false,
     stickerLimit: Infinity,
-    canScan: true,
-    canTrade: false,
-    scanLimit: 200, // ~1.400 figurinhas (1 álbum + folga)
-    priceBrl: 990, // R$9,90
-    priceDisplay: 'R$9,90',
   },
-  premium: {
-    label: 'Premium',
-    stickerLimit: Infinity,
+  estreante: {
+    label: 'Estreante',
+    scanLimit: 50, // ~400 figurinhas
     canScan: true,
     canTrade: true,
-    scanLimit: 400, // dobro do plus
-    priceBrl: 1990, // R$19,90
+    tradeLimit: 5,
+    hasAds: false,
+    canBuyScanPack: true,
+    canBuyTradePack: true,
+    stickerLimit: Infinity,
+    priceBrl: 990,
+    priceDisplay: 'R$9,90',
+  },
+  colecionador: {
+    label: 'Colecionador',
+    scanLimit: 150, // ~1.200 figurinhas
+    canScan: true,
+    canTrade: true,
+    tradeLimit: 15,
+    hasAds: false,
+    canBuyScanPack: true,
+    canBuyTradePack: true,
+    stickerLimit: Infinity,
+    priceBrl: 1990,
     priceDisplay: 'R$19,90',
+  },
+  copa_completa: {
+    label: 'Copa Completa',
+    scanLimit: 500, // ~4.000 figurinhas
+    canScan: true,
+    canTrade: true,
+    tradeLimit: Infinity,
+    hasAds: false,
+    canBuyScanPack: false,
+    canBuyTradePack: false,
+    stickerLimit: Infinity,
+    priceBrl: 2990,
+    priceDisplay: 'R$29,90',
   },
 } as const
 
@@ -47,4 +84,23 @@ export function getStickerLimit(tier: Tier): number {
 
 export function getScanLimit(tier: Tier): number {
   return TIER_CONFIG[tier].scanLimit
+}
+
+export function getTradeLimit(tier: Tier): number {
+  return TIER_CONFIG[tier].tradeLimit
+}
+
+export function hasAds(tier: Tier): boolean {
+  return TIER_CONFIG[tier].hasAds
+}
+
+export function isPaid(tier: Tier): boolean {
+  return tier !== 'free'
+}
+
+/** Order of tiers for upgrade logic */
+export const TIER_ORDER: Tier[] = ['free', 'estreante', 'colecionador', 'copa_completa']
+
+export function tierIndex(tier: Tier): number {
+  return TIER_ORDER.indexOf(tier)
 }

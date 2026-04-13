@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
-import type { Tier } from '@/lib/tiers'
+import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
@@ -99,50 +99,71 @@ export default function ScanHub({
 
     for (let i = 0; i < files.length; i++) {
       setBatchIndex(i + 1)
-      try {
-        const dataUrl = await readFile(files[i])
-        const compressed = await compressImage(dataUrl)
-        const base64 = compressed.split(',')[1]
 
-        const res = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
-        })
+      // Small delay between calls to avoid API rate limits (skip first)
+      if (i > 0) await new Promise(r => setTimeout(r, 800))
 
-        const data = await res.json()
+      let success = false
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const dataUrl = await readFile(files[i])
+          const compressed = await compressImage(dataUrl)
+          const base64 = compressed.split(',')[1]
 
-        if (res.ok) {
-          const scanData = data as ScanResponse
-          accumulated.push(...scanData.matched)
-          accWarnings.push(...scanData.warnings)
-          processedCount++
+          const res = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
+          })
 
-          // Update scan usage from response
-          if (scanData.scanUsage) {
-            setScansRemaining(scanData.scanUsage.remaining)
-            setScansLimit(scanData.scanUsage.limit || 200)
+          const data = await res.json()
+
+          if (res.ok) {
+            const scanData = data as ScanResponse
+            accumulated.push(...scanData.matched)
+            accWarnings.push(...scanData.warnings)
+            processedCount++
+            success = true
+
+            // Update scan usage from response
+            if (scanData.scanUsage) {
+              setScansRemaining(scanData.scanUsage.remaining)
+              setScansLimit(scanData.scanUsage.limit || 200)
+            }
+            break
+          } else if (res.status === 429 && (data.needsUpgrade || data.needsPack)) {
+            // Scan limit hit mid-batch — stop and show what we have
+            hitLimit = true
+            if (data.scanUsage) {
+              setScansRemaining(0)
+              setScansLimit(data.scanUsage.limit || 200)
+            }
+            setNeedsUpgrade(!!data.needsUpgrade)
+            setNeedsPack(!!data.needsPack)
+
+            const remaining = files.length - i
+            accWarnings.push(`Limite de scans atingido — ${remaining} foto${remaining !== 1 ? 's' : ''} não processada${remaining !== 1 ? 's' : ''}`)
+            break
+          } else if (attempt === 0 && (res.status === 429 || res.status >= 500)) {
+            // Transient error — retry once after a short wait
+            await new Promise(r => setTimeout(r, 1500))
+            continue
+          } else {
+            accWarnings.push(`Foto ${i + 1}: ${data.error || 'Não foi possível analisar — tente uma foto com mais luz'}`)
+            success = true // Don't retry non-transient errors
+            break
           }
-        } else if (res.status === 429 && (data.needsUpgrade || data.needsPack)) {
-          // Scan limit hit mid-batch — stop and show what we have
-          hitLimit = true
-          if (data.scanUsage) {
-            setScansRemaining(0)
-            setScansLimit(data.scanUsage.limit || 200)
+        } catch {
+          if (attempt === 0) {
+            // Network error — retry once
+            await new Promise(r => setTimeout(r, 1500))
+            continue
           }
-          setNeedsUpgrade(!!data.needsUpgrade)
-          setNeedsPack(!!data.needsPack)
-
-          const remaining = files.length - i
-          accWarnings.push(`Limite de scans atingido — ${remaining} foto${remaining !== 1 ? 's' : ''} não processada${remaining !== 1 ? 's' : ''}`)
-          break
-        } else {
-          // Other API error — note it but continue with next image
-          accWarnings.push(`Foto ${i + 1}: ${data.error || 'Erro ao processar'}`)
+          accWarnings.push(`Foto ${i + 1}: Sem conexão — verifique sua internet`)
         }
-      } catch {
-        accWarnings.push(`Foto ${i + 1}: Falha na conexão`)
       }
+
+      if (hitLimit) break
     }
 
     // If no stickers found at all and we hit a limit, go to error screen
@@ -199,7 +220,7 @@ export default function ScanHub({
       const data = await res.json()
 
       if (!res.ok) {
-        setErrorMsg(data.error || 'Erro ao processar scan')
+        setErrorMsg(data.error || 'Não foi possível analisar a foto. Tente novamente com uma imagem mais nítida.')
         if (data.scanUsage) {
           setScansRemaining(0)
           setScansLimit(data.scanUsage.limit || 200)
@@ -221,7 +242,7 @@ export default function ScanHub({
       setChecked(initial)
       setState('results')
     } catch {
-      setErrorMsg('Falha na conexao. Verifique sua internet.')
+      setErrorMsg('Sem conexão com a internet. Verifique seu Wi-Fi ou dados móveis e tente novamente.')
       setState('error')
     }
   }
@@ -402,6 +423,22 @@ export default function ScanHub({
           </p>
         </div>
 
+        {/* ── WhatsApp hint ── */}
+        <a
+          href="https://wa.me/5521966791113?text=oi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50/60 border border-emerald-100 mb-4"
+        >
+          <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
+          </svg>
+          <p className="text-[10px] text-gray-500 flex-1">
+            Tambem pelo <span className="font-semibold text-emerald-600">WhatsApp</span> — mande uma foto e escaneie direto no chat!
+          </p>
+        </a>
+
         {/* ── Disclaimer + privacy ── */}
         <p className="text-[9px] text-gray-300 px-1 leading-relaxed">
           Suas fotos não são armazenadas — descartadas após análise. Fotografe apenas figurinhas, páginas do álbum ou envelopes.
@@ -469,19 +506,31 @@ export default function ScanHub({
   // ── ERROR ──
   if (state === 'error') {
     const isScanLimit = needsUpgrade || needsPack
-    const isRateLimit = !isScanLimit && (errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho'))
+    const isRateLimit = !isScanLimit && (errorMsg.includes('Muitos scans') || errorMsg.includes('minutinho') || errorMsg.includes('ocupados'))
     const isTimeout = errorMsg.includes('demorou') || errorMsg.includes('iluminação')
-    const emoji = isScanLimit ? '📊' : isRateLimit ? '⏳' : isTimeout ? '📷' : '😕'
+    const isNetwork = errorMsg.includes('internet') || errorMsg.includes('Wi-Fi') || errorMsg.includes('conexão')
+    const isUnavailable = errorMsg.includes('indisponível') || errorMsg.includes('manutenção') || errorMsg.includes('instável')
+    const emoji = isScanLimit ? '📊' : isRateLimit ? '⏳' : isTimeout ? '📷' : isNetwork ? '📶' : isUnavailable ? '🔧' : '😕'
+
+    const hint = isScanLimit
+      ? 'Fotografe várias figurinhas juntas para aproveitar melhor cada scan!'
+      : isTimeout
+      ? 'Dica: use boa iluminação e enquadre bem as figurinhas na foto.'
+      : isNetwork
+      ? 'Verifique se está conectado ao Wi-Fi ou com dados móveis ativos.'
+      : isRateLimit
+      ? 'Aguarde alguns instantes e tente novamente.'
+      : isUnavailable
+      ? 'Nosso serviço está passando por manutenção. Tente em alguns minutos.'
+      : 'Tente com uma foto mais nítida e com boa iluminação.'
 
     return (
       <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-5xl mb-4">{emoji}</div>
         <p className="text-base font-semibold text-gray-700 text-center leading-relaxed max-w-xs">{errorMsg}</p>
-        {isScanLimit && (
-          <p className="text-xs text-gray-400 mt-3 text-center max-w-xs">
-            💡 Dica: fotografe várias figurinhas juntas para aproveitar melhor cada scan!
-          </p>
-        )}
+        <p className="text-xs text-gray-400 mt-3 text-center max-w-xs">
+          {hint}
+        </p>
 
         {needsUpgrade ? (
           <button
@@ -496,11 +545,11 @@ export default function ScanHub({
             disabled={buyingPack}
             className="mt-6 bg-gold text-navy rounded-xl px-6 py-3 text-sm font-bold hover:bg-gold/90 transition disabled:opacity-50"
           >
-            {buyingPack ? 'Redirecionando...' : 'Comprar +100 scans por R$4,90'}
+            {buyingPack ? 'Redirecionando...' : `Comprar +${SCAN_PACK_AMOUNT} scans por ${SCAN_PACK_CONFIG[tier]?.priceDisplay || 'R$10,00'}`}
           </button>
         ) : (
           <button onClick={reset} className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition">
-            {isRateLimit ? 'Tentar de Novo' : 'Tirar Outra Foto'}
+            {isRateLimit || isUnavailable ? 'Tentar de Novo' : 'Tirar Outra Foto'}
           </button>
         )}
 
@@ -615,6 +664,22 @@ export default function ScanHub({
             Ver Album
           </a>
         </div>
+
+        {/* WhatsApp hint */}
+        <a
+          href="https://wa.me/5521966791113?text=oi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 mt-6 px-3 py-2 rounded-lg bg-emerald-50/60 border border-emerald-100"
+        >
+          <svg className="w-4 h-4 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
+          </svg>
+          <p className="text-[10px] text-emerald-700">
+            Sabia que pode escanear pelo <span className="font-semibold">WhatsApp</span> tambem? Mande uma foto!
+          </p>
+        </a>
       </div>
     )
   }

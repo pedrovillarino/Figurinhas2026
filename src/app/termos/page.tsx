@@ -126,17 +126,22 @@ export default function TermosPage() {
                   <tr>
                     <td className="px-3 py-2 font-medium">Free</td>
                     <td className="px-3 py-2">Grátis</td>
-                    <td className="px-3 py-2">Gerenciamento manual do álbum, lista de repetidas/faltantes, 5 scans com IA (demonstração)</td>
+                    <td className="px-3 py-2">Controle manual do álbum, 5 scans com IA (~40 figurinhas), 2 trocas incluídas, com anúncios</td>
                   </tr>
                   <tr>
-                    <td className="px-3 py-2 font-medium">Plus</td>
+                    <td className="px-3 py-2 font-medium">Estreante</td>
                     <td className="px-3 py-2">R$&nbsp;9,90 (pagamento único)</td>
-                    <td className="px-3 py-2">Tudo do Free + 200 scans com IA (~1.400 figurinhas), exportação em PDF</td>
+                    <td className="px-3 py-2">50 scans com IA (~400 figurinhas), 5 trocas incluídas, sem anúncios</td>
                   </tr>
                   <tr>
-                    <td className="px-3 py-2 font-medium">Premium</td>
+                    <td className="px-3 py-2 font-medium">Colecionador</td>
                     <td className="px-3 py-2">R$&nbsp;19,90 (pagamento único)</td>
-                    <td className="px-3 py-2">Tudo do Plus + 400 scans com IA (dobro do Plus), trocas entre colecionadores, relatório semanal, badge exclusivo</td>
+                    <td className="px-3 py-2">150 scans com IA (~1.200 figurinhas), 15 trocas incluídas, packs avulsos mais baratos, sem anúncios</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium">Copa Completa</td>
+                    <td className="px-3 py-2">R$&nbsp;29,90 (pagamento único)</td>
+                    <td className="px-3 py-2">500 scans com IA (~4.000 figurinhas), trocas ilimitadas, sem anúncios</td>
                   </tr>
                 </tbody>
               </table>
@@ -187,7 +192,8 @@ export default function TermosPage() {
           <SubSection id="4.6">
             <p className="text-sm font-semibold text-navy">4.6. Alteração de preços</p>
             <P>
-              Os preços dos planos podem ser alterados a qualquer momento para novas aquisições.
+              Os preços dos planos são: Estreante R$&nbsp;9,90, Colecionador R$&nbsp;19,90 e Copa Completa R$&nbsp;29,90.
+              Os preços podem ser alterados a qualquer momento sem aviso prévio.
               Usuários que já realizaram o pagamento não serão afetados por alterações de preço,
               visto que o pagamento é único e já foi concluído.
             </P>
@@ -196,11 +202,12 @@ export default function TermosPage() {
           <SubSection id="4.7">
             <p className="text-sm font-semibold text-navy">4.7. Pacotes extras de scans</p>
             <P>
-              Usuários dos planos Plus e Premium que esgotarem seus scans incluídos podem adquirir
-              pacotes extras de <strong>+100 scans por R$&nbsp;4,90</strong> (pagamento único por pacote).
+              Usuários dos planos Estreante e Colecionador que esgotarem seus scans ou trocas incluídos podem adquirir
+              pacotes extras de <strong>+100 scans</strong> ou <strong>+10 trocas</strong> (pagamento único por pacote).
+              Os preços variam conforme o plano: Estreante paga R$&nbsp;10,00 por pacote e Colecionador paga R$&nbsp;5,00.
               Cada scan processa uma foto e pode detectar múltiplas figurinhas de uma vez. Os créditos
-              extras não expiram e são cumulativos com o saldo do plano. Usuários do plano Free devem
-              fazer upgrade para Plus ou Premium antes de adquirir pacotes extras.
+              extras não expiram e são cumulativos com o saldo do plano. Usuários do plano Free e Copa Completa
+              não possuem opção de compra avulsa.
             </P>
           </SubSection>
         </Section>
@@ -302,7 +309,7 @@ export default function TermosPage() {
         {/* 10. Publicidade */}
         <Section number={10} title="Publicidade">
           <P>
-            O plano Free poderá exibir anúncios de terceiros. Os planos pagos (Plus e Premium)
+            O plano Free poderá exibir anúncios de terceiros. Os planos pagos (Estreante, Colecionador e Copa Completa)
             oferecem experiência livre de anúncios. Não compartilhamos dados pessoais
             identificáveis com anunciantes sem o seu consentimento explícito.
           </P>

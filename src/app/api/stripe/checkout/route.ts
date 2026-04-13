@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
-import { TIER_CONFIG, type Tier } from '@/lib/tiers'
+import { TIER_CONFIG, TIER_ORDER, tierIndex, type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -21,15 +21,21 @@ function getAdmin() {
 }
 
 const TIER_PRODUCTS: Record<string, { name: string; description: string }> = {
-  plus: {
-    name: 'Complete Aí — Plus',
-    description: 'Scanner IA + figurinhas ilimitadas',
+  estreante: {
+    name: 'Complete Aí — Estreante',
+    description: '50 scans IA + 5 trocas + sem anúncios',
   },
-  premium: {
-    name: 'Complete Aí — Premium',
-    description: 'Scanner IA + trocas + figurinhas ilimitadas',
+  colecionador: {
+    name: 'Complete Aí — Colecionador',
+    description: '150 scans IA + 15 trocas + packs baratos',
+  },
+  copa_completa: {
+    name: 'Complete Aí — Copa Completa',
+    description: '500 scans IA + trocas ilimitadas',
   },
 }
+
+const VALID_PAID_TIERS: Tier[] = ['estreante', 'colecionador', 'copa_completa']
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,11 +47,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}))
-    const targetTier = (body.tier || 'premium') as Tier
+    const targetTier = (body.tier || 'estreante') as Tier
     const discountCode = (body.discountCode || '').trim().toUpperCase()
 
-    if (targetTier !== 'plus' && targetTier !== 'premium') {
-      return NextResponse.json({ error: 'Tier inválido' }, { status: 400 })
+    if (!VALID_PAID_TIERS.includes(targetTier)) {
+      return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
     }
 
     const { data: profile } = await supabase
@@ -55,9 +61,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     const currentTier = (profile?.tier || 'free') as Tier
+    const currentIdx = tierIndex(currentTier)
+    const targetIdx = tierIndex(targetTier)
 
     // Can't downgrade or buy same tier
-    if (currentTier === targetTier || currentTier === 'premium') {
+    if (targetIdx <= currentIdx) {
       return NextResponse.json({ error: 'Você já possui este plano ou superior!' }, { status: 400 })
     }
 
@@ -85,8 +93,9 @@ export async function POST(req: NextRequest) {
       }
 
       if (discount.tier !== targetTier) {
+        const tierLabel = TIER_CONFIG[discount.tier as Tier]?.label || discount.tier
         return NextResponse.json(
-          { error: `Este código é válido apenas para o plano ${discount.tier === 'plus' ? 'Plus' : 'Premium'}` },
+          { error: `Este código é válido apenas para o plano ${tierLabel}` },
           { status: 400 }
         )
       }
@@ -119,7 +128,6 @@ export async function POST(req: NextRequest) {
     if (percentOff === 100 && codeId) {
       const admin = getAdmin()
 
-      // Record redemption
       await admin.from('discount_redemptions').insert({
         code_id: codeId,
         user_id: user.id,
@@ -127,7 +135,6 @@ export async function POST(req: NextRequest) {
         percent_off: 100,
       })
 
-      // Increment usage counter
       const { data: currentCode } = await admin
         .from('discount_codes')
         .select('times_used')
@@ -141,7 +148,6 @@ export async function POST(req: NextRequest) {
           .eq('id', codeId)
       }
 
-      // Upgrade user directly
       await admin
         .from('profiles')
         .update({

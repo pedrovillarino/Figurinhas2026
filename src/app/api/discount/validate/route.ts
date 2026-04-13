@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}))
     const code = (body.code || '').trim().toUpperCase()
-    const tier = body.tier || 'premium'
+    const tier = body.tier || 'estreante'
 
     if (!code) {
       return NextResponse.json({ error: 'Código não informado' }, { status: 400 })
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Check tier compatibility
     if (discount.tier !== tier) {
       return NextResponse.json(
-        { error: `Este código é válido apenas para o plano ${discount.tier === 'plus' ? 'Plus' : 'Premium'}` },
+        { error: `Este código é válido apenas para o plano ${discount.tier}` },
         { status: 400 }
       )
     }

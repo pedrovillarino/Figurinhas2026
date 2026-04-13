@@ -1,11 +1,15 @@
 const INSTANCE_ID = process.env.ZAPI_INSTANCE_ID!
 const TOKEN = process.env.ZAPI_TOKEN!
+const CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN!
 const BASE_URL = `https://api.z-api.io/instances/${INSTANCE_ID}/token/${TOKEN}`
 
 export async function sendText(phone: string, message: string) {
   const res = await fetch(`${BASE_URL}/send-text`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Client-Token': CLIENT_TOKEN,
+    },
     body: JSON.stringify({ phone, message }),
   })
 

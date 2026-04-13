@@ -29,15 +29,15 @@ export default function PremiumBanner() {
           <span className="text-lg">⭐</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-gray-800">Limite de 100 figurinhas atingido</p>
-          <p className="text-[10px] text-gray-500 mt-0.5">Desbloqueie ilimitado a partir de R$9,90</p>
+          <p className="text-xs font-semibold text-gray-800">Desbloqueie mais recursos</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">Planos a partir de <span className="text-emerald-600 font-semibold">R$9,90</span></p>
         </div>
         <button
           onClick={handleUpgrade}
           disabled={loading}
           className="bg-gray-900 text-white rounded-xl px-3 py-2 text-[10px] font-semibold hover:bg-gray-800 transition shrink-0 disabled:opacity-50"
         >
-          {loading ? '...' : 'Upgrade'}
+          {loading ? '...' : 'Ver Planos'}
         </button>
       </div>
     </div>

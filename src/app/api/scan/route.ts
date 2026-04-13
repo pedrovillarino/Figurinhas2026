@@ -117,16 +117,17 @@ export async function POST(request: Request) {
       console.log(`[scan] User ${user.id} hit scan limit: ${usageData.current}/${usageData.limit} (tier=${userTier})`)
 
       const isFree = userTier === 'free'
+      const canBuyPack = userTier === 'estreante' || userTier === 'colecionador'
       const errorMsg = isFree
-        ? 'Você usou seus 5 scans gratuitos! Cada scan detecta várias figurinhas — desbloqueie o Plus para continuar. 📸'
-        : `Você usou todos os seus ${usageData.limit} scans. Cada scan lê várias figurinhas — compre um pacote extra para continuar! 📸`
+        ? 'Você usou seus 5 scans gratuitos! Cada scan detecta várias figurinhas — faça upgrade para continuar.'
+        : `Você usou todos os seus ${usageData.limit} scans. Cada scan lê várias figurinhas${canBuyPack ? ' — compre um pacote extra para continuar!' : '.'}`
 
       return NextResponse.json(
         {
           error: errorMsg,
           scanUsage: usageData,
           needsUpgrade: isFree,
-          needsPack: !isFree,
+          needsPack: canBuyPack,
         },
         { status: 429 }
       )
@@ -237,7 +238,7 @@ export async function POST(request: Request) {
 
     if (!responseText) {
       return NextResponse.json(
-        { error: 'Todos os serviços de scan estão ocupados. Tente novamente em 1 minuto. ☕' },
+        { error: 'Nossos servidores estão ocupados no momento. Tente novamente em 1 minuto.' },
         { status: 429 }
       )
     }
@@ -408,22 +409,22 @@ export async function POST(request: Request) {
 
     const errMsg = err instanceof Error ? err.message : String(err)
 
-    let message = 'Algo deu errado no scan. Tente novamente.'
+    let message = 'Não foi possível analisar sua foto. Tente novamente com uma imagem mais nítida e com boa iluminação.'
     let status = 500
 
     if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('Too Many Requests') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-      message = 'Muitos scans seguidos! Espere um minutinho e tente de novo. ☕'
+      message = 'Muitos scans sendo processados agora. Espere um minutinho e tente de novo.'
       status = 429
     } else if (errMsg.includes('timeout') || errMsg.includes('DEADLINE_EXCEEDED')) {
-      message = 'O scan demorou demais. Tente uma foto com melhor iluminação. 📷'
+      message = 'A análise demorou demais. Tente uma foto com melhor iluminação e mais perto das figurinhas.'
     } else if (errMsg.includes('403') || errMsg.includes('PERMISSION_DENIED')) {
-      message = 'Serviço de scan temporariamente indisponível. Tente mais tarde.'
+      message = 'Serviço de scan temporariamente indisponível. Tente novamente em alguns minutos.'
       status = 503
     } else if (errMsg.includes('404') || errMsg.includes('not found')) {
-      message = 'Serviço de scan em manutenção. Tente em alguns minutos.'
+      message = 'Serviço de scan em manutenção. Tente novamente em alguns minutos.'
       status = 503
     } else if (errMsg.includes('500') || errMsg.includes('INTERNAL')) {
-      message = 'O serviço de scan está instável. Tente em instantes.'
+      message = 'Nosso serviço de scan está instável no momento. Tente novamente em instantes.'
     }
 
     return NextResponse.json({ error: message, _debug: { errorMsg: errMsg, totalMs } }, { status })

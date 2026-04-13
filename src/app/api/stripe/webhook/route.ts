@@ -52,10 +52,25 @@ async function addScanCredits(userId: string, credits: number) {
   return true
 }
 
+async function addTradeCredits(userId: string, credits: number) {
+  const supabase = getAdminClient()
+  const { data, error } = await supabase.rpc('add_trade_credits', {
+    p_user_id: userId,
+    p_credits: credits,
+  })
+
+  if (error) {
+    console.error('Error adding trade credits:', error)
+    return false
+  }
+  console.log(`User ${userId} added ${credits} trade credits:`, data)
+  return true
+}
+
 async function recordDiscountRedemption(metadata: Record<string, string>, userId: string) {
   const codeId = metadata.discount_code_id
   const percentOff = parseInt(metadata.percent_off || '0', 10)
-  const tier = metadata.tier || 'premium'
+  const tier = metadata.tier || 'estreante'
 
   if (!codeId || percentOff === 0) return
 
@@ -117,9 +132,14 @@ export async function POST(req: NextRequest) {
         const credits = parseInt(session.metadata?.credits || '100', 10)
         const ok = await addScanCredits(userId, credits)
         if (!ok) return NextResponse.json({ error: 'Credits update failed' }, { status: 500 })
+      } else if (userId && type === 'trade_pack') {
+        // Trade pack purchase — add trade credits
+        const credits = parseInt(session.metadata?.credits || '10', 10)
+        const ok = await addTradeCredits(userId, credits)
+        if (!ok) return NextResponse.json({ error: 'Trade credits update failed' }, { status: 500 })
       } else if (userId) {
         // Tier upgrade
-        const tier = session.metadata?.tier || 'premium'
+        const tier = session.metadata?.tier || 'estreante'
         const ok = await upgradeTier(userId, tier, session.customer as string)
         if (!ok) return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
         if (session.metadata) {
@@ -138,8 +158,11 @@ export async function POST(req: NextRequest) {
     if (userId && type === 'scan_pack') {
       const credits = parseInt(session.metadata?.credits || '100', 10)
       await addScanCredits(userId, credits)
+    } else if (userId && type === 'trade_pack') {
+      const credits = parseInt(session.metadata?.credits || '10', 10)
+      await addTradeCredits(userId, credits)
     } else if (userId) {
-      const tier = session.metadata?.tier || 'premium'
+      const tier = session.metadata?.tier || 'estreante'
       await upgradeTier(userId, tier, session.customer as string)
       if (session.metadata) {
         await recordDiscountRedemption(session.metadata as Record<string, string>, userId)

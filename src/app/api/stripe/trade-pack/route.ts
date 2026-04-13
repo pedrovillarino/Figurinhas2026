@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
-import { SCAN_PACK_AMOUNT, SCAN_PACK_CONFIG, type Tier } from '@/lib/tiers'
+import { TRADE_PACK_AMOUNT, TRADE_PACK_CONFIG, type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,11 +27,11 @@ export async function POST() {
       .single()
 
     const tier = (profile?.tier || 'free') as Tier
-    const packConfig = SCAN_PACK_CONFIG[tier]
+    const packConfig = TRADE_PACK_CONFIG[tier]
 
     if (!packConfig) {
       return NextResponse.json(
-        { error: 'Compra de scans extras não disponível para seu plano.' },
+        { error: 'Compra de trocas extras não disponível para seu plano.' },
         { status: 400 }
       )
     }
@@ -48,8 +48,8 @@ export async function POST() {
             currency: 'brl',
             unit_amount: packConfig.priceBrl,
             product_data: {
-              name: `Complete Aí — +${SCAN_PACK_AMOUNT} Scans`,
-              description: `Pacote extra de ${SCAN_PACK_AMOUNT} scans para seu álbum`,
+              name: `Complete Aí — +${TRADE_PACK_AMOUNT} Trocas`,
+              description: `Pacote extra de ${TRADE_PACK_AMOUNT} créditos de troca`,
             },
           },
           quantity: 1,
@@ -57,16 +57,16 @@ export async function POST() {
       ],
       metadata: {
         user_id: user.id,
-        type: 'scan_pack',
-        credits: String(SCAN_PACK_AMOUNT),
+        type: 'trade_pack',
+        credits: String(TRADE_PACK_AMOUNT),
       },
-      success_url: `${origin}/scan?pack_purchased=true`,
-      cancel_url: `${origin}/scan`,
+      success_url: `${origin}/trades?pack_purchased=true`,
+      cancel_url: `${origin}/trades`,
     })
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
-    console.error('Scan pack checkout error:', error)
+    console.error('Trade pack checkout error:', error)
     return NextResponse.json(
       { error: 'Erro ao criar sessão de pagamento' },
       { status: 500 }

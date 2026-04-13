@@ -103,7 +103,7 @@ export default function TradesHub({
   approvedTrades?: Array<{ requestId: string; requesterName: string; contact: string | null }>
 }) {
   const supabase = createClient()
-  const isPremium = canTrade(tier)
+  const isPremium = true // all tiers can trade (limited by credits)
 
   // ─── State ───
   const [showPaywall, setShowPaywall] = useState(false)

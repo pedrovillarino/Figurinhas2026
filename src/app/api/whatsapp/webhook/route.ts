@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, formatPhone } from '@/lib/zapi'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
@@ -39,9 +40,10 @@ Intent definitions:
 - help: user wants to know what the bot can do
 - unknown: anything else (greetings map to help)
 
-Be generous: "oi" → help, "quanto tenho" → status,
-"quais me faltam" → missing, "o que tenho repetido" → duplicates,
-"trocas pendentes" → trades, "aceitar troca" → trades.`
+Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
+"quais me faltam" → missing, "faltando" → missing, "faltam" → missing,
+"o que tenho repetido" → duplicates, "repetidas" → duplicates, "duplicatas" → duplicates,
+"trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades.`
 
 // ─── Sticker scan prompt (same as /api/scan) ───
 const SCAN_INSTRUCTION = `Você é um scanner de figurinhas de álbuns Panini de Copa do Mundo (qualquer edição: 2022, 2026, etc).
@@ -89,12 +91,25 @@ e crie sua conta gratuita 🎉`
 // ─── Find user by phone ───
 async function findUserByPhone(phone: string) {
   const supabase = getAdmin()
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, display_name, phone, tier')
-    .eq('phone', phone)
-    .single()
-  return data
+
+  // Try exact match first, then without country code (55), then with +55
+  const variants = [
+    phone,
+    phone.replace(/^55/, ''),
+    `+${phone}`,
+    `+55${phone.replace(/^55/, '')}`,
+  ]
+
+  for (const variant of variants) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, display_name, phone, tier')
+      .eq('phone', variant)
+      .single()
+    if (data) return data
+  }
+
+  return null
 }
 
 // ─── Get user stats ───
@@ -209,14 +224,19 @@ async function detectIntent(text: string): Promise<{ intent: string; confidence:
 // ─── Scan image via Gemini ───
 async function scanImage(imageBase64: string, mimeType: string) {
   const genAI = getGemini()
+  // Use gemini-2.5-flash for WhatsApp — much faster than 2.5-flash for image analysis
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     systemInstruction: SCAN_INSTRUCTION,
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+    },
   })
 
   const result = await model.generateContent([
     { inlineData: { mimeType, data: imageBase64 } },
-    { text: 'Scan this album page and return the sticker inventory as JSON.' },
+    { text: 'Identify the sticker(s) in this photo. Return JSON.' },
   ])
 
   const responseText = result.response.text()
@@ -234,13 +254,36 @@ async function scanImage(imageBase64: string, mimeType: string) {
 }
 
 // ─── Save scanned stickers to DB ───
-async function saveScannedStickers(userId: string, stickerNumbers: string[]) {
+async function saveScannedStickers(userId: string, stickerNumbers: string[], playerNames?: string[]) {
   const supabase = getAdmin()
 
+  // Match by number first
   const { data: dbStickers } = await supabase
     .from('stickers')
     .select('id, number, player_name')
     .in('number', stickerNumbers)
+
+  // If no match by number, try by player name
+  if ((!dbStickers || dbStickers.length === 0) && playerNames && playerNames.length > 0) {
+    const names = playerNames.filter(Boolean).map(n => n.trim())
+    if (names.length > 0) {
+      for (const name of names) {
+        const { data: byName } = await supabase
+          .from('stickers')
+          .select('id, number, player_name')
+          .ilike('player_name', `%${name}%`)
+          .limit(1)
+        if (byName && byName.length > 0) {
+          if (!dbStickers) {
+            return saveScannedStickersFromList(userId, byName)
+          }
+          // Add to existing results if not already there
+          const existingIds = new Set(dbStickers.map(s => s.id))
+          byName.forEach(s => { if (!existingIds.has(s.id)) dbStickers.push(s) })
+        }
+      }
+    }
+  }
 
   if (!dbStickers || dbStickers.length === 0) return { saved: 0, numbers: [] }
 
@@ -292,26 +335,118 @@ async function saveScannedStickers(userId: string, stickerNumbers: string[]) {
   return { saved, numbers: savedNumbers }
 }
 
+// Helper for when we already resolved DB stickers by name
+async function saveScannedStickersFromList(userId: string, dbStickers: { id: number; number: string; player_name: string }[]) {
+  const supabase = getAdmin()
+
+  const { data: existing } = await supabase
+    .from('user_stickers')
+    .select('sticker_id, status, quantity')
+    .eq('user_id', userId)
+    .in('sticker_id', dbStickers.map((s) => s.id))
+
+  const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
+  let saved = 0
+  const savedNumbers: string[] = []
+
+  for (const sticker of dbStickers) {
+    const ex = existingMap.get(sticker.id)
+    if (!ex) {
+      await supabase.from('user_stickers').insert({ user_id: userId, sticker_id: sticker.id, status: 'owned', quantity: 1 })
+      saved++
+      savedNumbers.push(sticker.number)
+    } else if (ex.status === 'owned') {
+      await supabase.from('user_stickers').update({ status: 'duplicate', quantity: 2, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
+      saved++
+      savedNumbers.push(`${sticker.number} (rep)`)
+    } else if (ex.status === 'duplicate') {
+      await supabase.from('user_stickers').update({ quantity: ex.quantity + 1, updated_at: new Date().toISOString() }).eq('user_id', userId).eq('sticker_id', sticker.id)
+      saved++
+      savedNumbers.push(`${sticker.number} (rep x${ex.quantity + 1})`)
+    }
+  }
+  return { saved, numbers: savedNumbers }
+}
+
 // ─── Download image from Z-API URL ───
-async function downloadImage(url: string): Promise<{ base64: string; mimeType: string } | null> {
+async function downloadImage(url: string, messageId?: string): Promise<{ base64: string; mimeType: string } | null> {
+  // Try Z-API's get-media-message endpoint first (more reliable)
+  if (messageId) {
+    try {
+      const INSTANCE_ID = process.env.ZAPI_INSTANCE_ID!
+      const TOKEN = process.env.ZAPI_TOKEN!
+      const CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN!
+      const zapiUrl = `https://api.z-api.io/instances/${INSTANCE_ID}/token/${TOKEN}/download-media-message/${messageId}`
+      const res = await fetch(zapiUrl, {
+        headers: { 'Client-Token': CLIENT_TOKEN },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.url) {
+          const imgRes = await fetch(data.url)
+          if (imgRes.ok) {
+            const buffer = await imgRes.arrayBuffer()
+            return {
+              base64: Buffer.from(buffer).toString('base64'),
+              mimeType: imgRes.headers.get('content-type') || 'image/jpeg',
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Z-API media download error:', err)
+    }
+  }
+
+  // Fallback: direct URL download (with and without auth)
   try {
-    const res = await fetch(url)
-    if (!res.ok) return null
+    const CLIENT_TOKEN_FALLBACK = process.env.ZAPI_CLIENT_TOKEN || ''
+    // Try with Client-Token first (Z-API URLs may require it)
+    let res = await fetch(url, {
+      headers: CLIENT_TOKEN_FALLBACK ? { 'Client-Token': CLIENT_TOKEN_FALLBACK } : {},
+    })
+    // If auth header caused issues, try without
+    if (!res.ok && CLIENT_TOKEN_FALLBACK) {
+      res = await fetch(url)
+    }
+    if (!res.ok) {
+      console.error('[WhatsApp] Direct image download failed:', res.status, res.statusText)
+      return null
+    }
 
     const buffer = await res.arrayBuffer()
     const base64 = Buffer.from(buffer).toString('base64')
     const mimeType = res.headers.get('content-type') || 'image/jpeg'
 
     return { base64, mimeType }
-  } catch {
+  } catch (err) {
+    console.error('[WhatsApp] Direct image download error:', err)
     return null
   }
+}
+
+// ─── Dedup: avoid processing same message twice ───
+const recentMessages = new Set<string>()
+
+function isDuplicate(messageId: string): boolean {
+  if (!messageId) return false
+  if (recentMessages.has(messageId)) return true
+  recentMessages.add(messageId)
+  // Keep set small — clear old entries after 100
+  if (recentMessages.size > 100) recentMessages.clear()
+  return false
 }
 
 // ─── Main webhook handler ───
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+
+    // Dedup — Z-API can send multiple webhooks for same message
+    const msgId = body.messageId || body.id?.id || body.ids?.[0] || ''
+    if (isDuplicate(msgId)) {
+      return NextResponse.json({ ok: true })
+    }
 
     // Z-API sends different event types
     // We care about received messages
@@ -326,7 +461,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const messageType = body.type // 'text', 'image', 'audio', 'video', etc.
+    // Z-API may send type in different formats — detect by content
+    const rawType = body.type || ''
+    const hasImage = !!(body.image?.imageUrl || body.image?.url || body.imageUrl)
+    const hasText = !!(body.text?.message || body.body || body.message || '').toString().trim()
+    const hasAudio = !!(body.audio?.audioUrl || body.audio?.url)
+
+    const messageType = hasImage ? 'image'
+      : (rawType === 'audio' || rawType === 'ptt' || hasAudio) ? 'audio'
+      : hasText ? 'text'
+      : rawType
+
+    console.log('[WhatsApp webhook]', { phone, rawType, messageType, hasImage, hasText, bodyKeys: Object.keys(body) })
 
     // Find user by phone
     const user = await findUserByPhone(phone)
@@ -338,7 +484,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Audio ───
-    if (messageType === 'audio' || messageType === 'ptt') {
+    if (messageType === 'audio') {
       await sendText(phone, 'Ainda não processo áudios 😅 Manda texto ou foto!')
       return NextResponse.json({ ok: true })
     }
@@ -346,64 +492,78 @@ export async function POST(req: NextRequest) {
     // ─── Image ───
     if (messageType === 'image') {
       const imageUrl = body.image?.imageUrl || body.image?.url || body.imageUrl
-      if (!imageUrl) {
+      const imageBase64 = body.image?.base64 || body.base64 || null
+
+      if (!imageUrl && !imageBase64) {
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
         return NextResponse.json({ ok: true })
       }
 
-      // Check tier
-      if (user.tier === 'free') {
-        await sendText(
-          phone,
-          `📸 O scanner é uma funcionalidade *Plus*.\n\nDesbloqueie por apenas R$9,90:\n${APP_URL}/scan`
-        )
-        return NextResponse.json({ ok: true })
+      // Scan credits are checked inside the /api/whatsapp/scan route
+      // All tiers have scan credits (free=5, estreante=50, etc.)
+
+      // Download image
+      let imageData: { base64: string; mimeType: string } | null = null
+      if (imageBase64) {
+        imageData = { base64: imageBase64, mimeType: 'image/jpeg' }
+      } else {
+        imageData = await downloadImage(imageUrl, msgId)
       }
 
-      await sendText(phone, '🔍 Analisando sua foto... aguarde!')
-
-      const imageData = await downloadImage(imageUrl)
       if (!imageData) {
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
         return NextResponse.json({ ok: true })
       }
 
-      const scanResult = await scanImage(imageData.base64, imageData.mimeType)
-      if (!scanResult || scanResult.stickers.length === 0) {
-        await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸')
-        return NextResponse.json({ ok: true })
-      }
+      await sendText(phone, '🔍 Analisando sua foto... aguarde!')
 
-      const filledNumbers = scanResult.stickers
-        .filter((s: { status: string }) => s.status === 'filled')
-        .map((s: { number: string }) => s.number)
+      // Run scan in background using waitUntil (continues after response)
+      waitUntil(
+        fetch(`${APP_URL}/api/whatsapp/scan`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-secret': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          },
+          body: JSON.stringify({
+            base64: imageData.base64,
+            mimeType: imageData.mimeType,
+            phone,
+            userId: user.id,
+          }),
+        }).catch((err) => console.error('[WhatsApp] Failed to trigger scan:', err))
+      )
 
-      if (filledNumbers.length === 0) {
-        await sendText(phone, 'Não encontrei figurinhas coladas nessa foto. Tenta outra! 📸')
-        return NextResponse.json({ ok: true })
-      }
-
-      const { saved, numbers } = await saveScannedStickers(user.id, filledNumbers)
-
-      const stats = await getUserStats(user.id)
-
-      let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
-      reply += numbers.join(', ') + '\n\n'
-      reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
-
-      await sendText(phone, reply)
       return NextResponse.json({ ok: true })
     }
 
     // ─── Text ───
-    if (messageType === 'text' || messageType === 'chat') {
+    if (messageType === 'text') {
       const text = body.text?.message || body.body || body.message || ''
 
       if (!text.trim()) {
         return NextResponse.json({ ok: true })
       }
 
-      const { intent } = await detectIntent(text)
+      // Fast keyword matching before calling Gemini
+      const lower = text.trim().toLowerCase()
+      let intent: string
+
+      if (/^(status|progresso|quanto|meu album|meu álbum)/.test(lower)) {
+        intent = 'status'
+      } else if (/^(falt|missing|preciso|necessito)/.test(lower)) {
+        intent = 'missing'
+      } else if (/^(repet|duplic|sobr|troc?ar|pra troc)/.test(lower)) {
+        intent = 'duplicates'
+      } else if (/^(troca|pendente|solicita|aceitar)/.test(lower)) {
+        intent = 'trades'
+      } else if (/^(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como)\b/.test(lower)) {
+        intent = 'help'
+      } else {
+        // Fallback to Gemini for ambiguous messages
+        const detected = await detectIntent(text)
+        intent = detected.intent
+      }
 
       switch (intent) {
         case 'status': {
@@ -505,9 +665,10 @@ export async function POST(req: NextRequest) {
 
         case 'help':
         default: {
+          const greeting = user.display_name ? `Oi, *${user.display_name.split(' ')[0]}*! ` : ''
           await sendText(
             phone,
-            `⚽ *O que posso fazer:*\n\n` +
+            `${greeting}⚽ *O que posso fazer:*\n\n` +
               `📊 *status* — seu progresso\n` +
               `🔍 *faltando* — o que falta\n` +
               `🔁 *repetidas* — pra trocar\n` +

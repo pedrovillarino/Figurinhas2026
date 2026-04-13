@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Tier } from '@/lib/tiers'
+import { TIER_CONFIG, TIER_ORDER, tierIndex, type Tier } from '@/lib/tiers'
 
 type PaywallModalProps = {
   feature: 'scan' | 'trades'
@@ -9,29 +9,32 @@ type PaywallModalProps = {
   onClose?: () => void
 }
 
-const featureInfo = {
-  scan: {
-    icon: '📸',
-    title: 'Scanner é Plus',
-    description: 'Detecte suas figurinhas automaticamente com IA.',
-    requiredTier: 'plus' as Tier,
-  },
-  trades: {
-    icon: '🔁',
-    title: 'Trocas é Premium',
-    description: 'Encontre pessoas perto de você para trocar figurinhas.',
-    requiredTier: 'premium' as Tier,
-  },
+const PAID_TIERS: Tier[] = ['estreante', 'colecionador', 'copa_completa']
+
+const TIER_HIGHLIGHTS: Record<string, string[]> = {
+  estreante: [
+    '50 scans com IA (~400 figurinhas)',
+    '5 trocas incluídas',
+    'Sem anúncios',
+  ],
+  colecionador: [
+    '150 scans com IA (~1.200 figurinhas)',
+    '15 trocas incluídas',
+    'Packs avulsos mais baratos',
+    'Sem anúncios',
+  ],
+  copa_completa: [
+    '500 scans com IA (~4.000 figurinhas)',
+    'Trocas ilimitadas',
+    'Sem anúncios',
+    'Experiência completa',
+  ],
 }
 
-const TIER_PRICES: Record<string, number> = {
-  plus: 990,
-  premium: 1990,
-}
-
-const TIER_DISPLAY: Record<string, string> = {
-  plus: 'R$9,90',
-  premium: 'R$19,90',
+const TIER_BADGE: Record<string, { text: string; bg: string; fg: string }> = {
+  estreante: { text: 'POPULAR', bg: 'bg-brand-light', fg: 'text-brand-dark' },
+  colecionador: { text: 'MELHOR CUSTO', bg: 'bg-gold/20', fg: 'text-gold-dark' },
+  copa_completa: { text: 'COMPLETO', bg: 'bg-emerald-100', fg: 'text-emerald-700' },
 }
 
 export default function PaywallModal({ feature, currentTier, onClose }: PaywallModalProps) {
@@ -45,7 +48,11 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
     error?: string
   } | null>(null)
   const [validating, setValidating] = useState(false)
-  const info = featureInfo[feature]
+
+  const currentIdx = tierIndex(currentTier)
+
+  // Show only tiers above current
+  const availableTiers = PAID_TIERS.filter((t) => tierIndex(t) > currentIdx)
 
   async function validateCoupon(tier: string) {
     if (!couponCode.trim()) return
@@ -71,7 +78,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
     setValidating(false)
   }
 
-  async function handleUpgrade(targetTier: 'plus' | 'premium') {
+  async function handleUpgrade(targetTier: Tier) {
     setLoading(targetTier)
     try {
       const bodyData: Record<string, string> = { tier: targetTier }
@@ -99,24 +106,24 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
 
   function getDiscountedPrice(tier: string): string | null {
     if (!couponStatus?.valid || couponStatus.tier !== tier) return null
-    const original = TIER_PRICES[tier] || 0
+    const config = TIER_CONFIG[tier as Tier]
+    const original = 'priceBrl' in config ? (config as { priceBrl: number }).priceBrl : 0
+    if (!original) return null
     const discounted = Math.round(original * (1 - couponStatus.percent_off / 100))
     if (discounted === 0) return 'Grátis'
     return `R$${(discounted / 100).toFixed(2).replace('.', ',')}`
   }
 
-  // For scan paywall: show Plus option (and Premium as upgrade)
-  // For trades paywall: show Premium only (user might already be Plus)
-  const showPlus = feature === 'scan' && currentTier === 'free'
-  const showPremium = true
-
-  const plusDiscountedPrice = getDiscountedPrice('plus')
-  const premiumDiscountedPrice = getDiscountedPrice('premium')
+  const featureTitle = feature === 'scan' ? 'Scanner com IA' : 'Trocas de Figurinhas'
+  const featureIcon = feature === 'scan' ? '📸' : '🔁'
+  const featureDesc = feature === 'scan'
+    ? 'Detecte suas figurinhas automaticamente com IA.'
+    : 'Encontre pessoas perto de você para trocar figurinhas.'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-6">
-      <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-fade-up relative">
-        {/* Close button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl animate-fade-up relative max-h-[90vh] overflow-y-auto">
+        {/* Close */}
         {onClose && (
           <button
             onClick={onClose}
@@ -128,20 +135,14 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
           </button>
         )}
 
-        {/* Icon */}
+        {/* Header */}
         <div className="text-center mb-4">
-          <span className="text-5xl">{info.icon}</span>
+          <span className="text-4xl">{featureIcon}</span>
+          <h2 className="text-lg font-bold text-gray-900 mt-2">{featureTitle}</h2>
+          <p className="text-sm text-gray-500 mt-1">{featureDesc}</p>
         </div>
 
-        {/* Content */}
-        <h2 className="text-lg font-bold text-gray-900 text-center mb-1">
-          {info.title}
-        </h2>
-        <p className="text-sm text-gray-500 text-center mb-5">
-          {info.description}
-        </p>
-
-        {/* Discount code section */}
+        {/* Coupon */}
         <div className="mb-4">
           {!showCoupon ? (
             <button
@@ -164,7 +165,7 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
                   className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs uppercase tracking-wider focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
                 />
                 <button
-                  onClick={() => validateCoupon(showPlus ? 'plus' : 'premium')}
+                  onClick={() => validateCoupon(availableTiers[0] || 'estreante')}
                   disabled={validating || !couponCode.trim()}
                   className="bg-gray-900 text-white rounded-xl px-3 py-2 text-xs font-semibold hover:bg-gray-800 transition disabled:opacity-50"
                 >
@@ -185,93 +186,74 @@ export default function PaywallModal({ feature, currentTier, onClose }: PaywallM
         </div>
 
         {/* Tier cards */}
-        <div className="space-y-3 mb-5">
-          {/* Plus tier */}
-          {showPlus && (
-            <div className="border border-gray-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-gray-800">Plus</span>
-                <div className="flex items-center gap-1.5">
-                  {plusDiscountedPrice && (
-                    <span className="text-xs text-gray-400 line-through">{TIER_DISPLAY.plus}</span>
-                  )}
-                  <span className={`text-sm font-black ${plusDiscountedPrice ? 'text-emerald-600' : 'text-gray-900'}`}>
-                    {plusDiscountedPrice || TIER_DISPLAY.plus}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1 mb-3">
-                <Feature text="200 scans com IA (~1.400 figurinhas)" />
-                <Feature text="Escaneie e registre automaticamente" />
-              </div>
-              <button
-                onClick={() => handleUpgrade('plus')}
-                disabled={loading !== null}
-                className="w-full bg-gray-900 text-white rounded-xl py-2.5 text-xs font-semibold hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
-              >
-                {loading === 'plus' ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Redirecionando...
-                  </span>
-                ) : plusDiscountedPrice === 'Grátis' ? (
-                  'Ativar Plus Grátis'
-                ) : (
-                  'Desbloquear Plus'
-                )}
-              </button>
-            </div>
-          )}
+        <div className="space-y-3 mb-4">
+          {availableTiers.map((t) => {
+            const config = TIER_CONFIG[t]
+            const badge = TIER_BADGE[t]
+            const highlights = TIER_HIGHLIGHTS[t]
+            const discountedPrice = getDiscountedPrice(t)
+            const priceDisplay = 'priceDisplay' in config ? (config as { priceDisplay: string }).priceDisplay : ''
+            const isBest = t === 'colecionador'
 
-          {/* Premium tier */}
-          {showPremium && (
-            <div className="border-2 border-brand/30 bg-brand-light/30 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-gray-800">Premium</span>
-                  <span className="text-[9px] bg-gold text-navy rounded-full px-1.5 py-0.5 font-bold">MELHOR</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {premiumDiscountedPrice && (
-                    <span className="text-xs text-gray-400 line-through">{TIER_DISPLAY.premium}</span>
-                  )}
-                  <span className={`text-sm font-black ${premiumDiscountedPrice ? 'text-emerald-600' : 'text-gray-900'}`}>
-                    {premiumDiscountedPrice || TIER_DISPLAY.premium}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1 mb-3">
-                <Feature text="400 scans com IA (dobro do Plus!)" />
-                <Feature text="Trocas com colecionadores" />
-                <Feature text="Relatório semanal" />
-              </div>
-              <button
-                onClick={() => handleUpgrade('premium')}
-                disabled={loading !== null}
-                className="w-full bg-brand text-white rounded-xl py-2.5 text-xs font-semibold hover:bg-brand-dark transition-all active:scale-[0.98] disabled:opacity-50"
+            return (
+              <div
+                key={t}
+                className={`rounded-2xl p-4 ${
+                  isBest
+                    ? 'border-2 border-brand/30 bg-brand-light/30'
+                    : 'border border-gray-200'
+                }`}
               >
-                {loading === 'premium' ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Redirecionando...
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-gray-800">{config.label}</span>
+                    {badge && (
+                      <span className={`text-[9px] ${badge.bg} ${badge.fg} rounded-full px-1.5 py-0.5 font-bold`}>
+                        {badge.text}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-sm font-black ${discountedPrice ? 'text-emerald-600' : 'text-gray-900'}`}>
+                    {discountedPrice || priceDisplay}
                   </span>
-                ) : premiumDiscountedPrice === 'Grátis' ? (
-                  'Ativar Premium Grátis'
-                ) : currentTier === 'plus' ? (
-                  'Upgrade para Premium'
-                ) : (
-                  'Desbloquear Premium'
-                )}
-              </button>
-            </div>
-          )}
+                </div>
+                <div className="flex flex-col gap-1 mb-3">
+                  {highlights?.map((h) => (
+                    <Feature key={h} text={h} />
+                  ))}
+                </div>
+                <button
+                  onClick={() => handleUpgrade(t)}
+                  disabled={loading !== null}
+                  className={`w-full rounded-xl py-2.5 text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50 ${
+                    isBest
+                      ? 'bg-brand text-white hover:bg-brand-dark'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  {loading === t ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Redirecionando...
+                    </span>
+                  ) : discountedPrice === 'Grátis' ? (
+                    `Ativar ${config.label} Grátis`
+                  ) : currentTier !== 'free' ? (
+                    `Upgrade para ${config.label}`
+                  ) : (
+                    `Desbloquear ${config.label}`
+                  )}
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         <p className="text-[10px] text-gray-300 text-center">
           Pagamento único via Stripe. Aceita cartão e boleto.
         </p>
         <p className="text-[9px] text-gray-300 text-center mt-1">
-          Serviço válido até 31/12/2026 (Copa do Mundo FIFA 2026).
+          Válido até 31/12/2026 (Copa do Mundo FIFA 2026).
         </p>
       </div>
     </div>
