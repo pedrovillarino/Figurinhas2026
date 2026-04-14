@@ -95,21 +95,37 @@ export async function POST(req: NextRequest) {
 
     perf.mark('setup')
 
-    // 3. Find nearby users using BOUNDING BOX filter in DB (not haversine on all users)
-    //    Default max radius is 100km. We use a generous bounding box then refine with haversine.
+    // 3. Find nearby users using PostGIS ST_DWithin (GiST index)
+    //    Falls back to bounding box if RPC fails
     const MAX_RADIUS_KM = 100
-    const latDelta = MAX_RADIUS_KM / 111 // ~1 degree latitude ≈ 111km
-    const lngDelta = MAX_RADIUS_KM / (111 * Math.cos(userProfile.location_lat * Math.PI / 180))
 
-    const { data: nearbyProfiles } = await supabase
-      .from('profiles')
-      .select('id, phone, email, display_name, location_lat, location_lng, notify_channel, notify_min_threshold, notify_priority_stickers, notify_radius_km, notify_configured, last_match_notified_at')
-      .neq('id', user_id)
-      .gte('location_lat', userProfile.location_lat - latDelta)
-      .lte('location_lat', userProfile.location_lat + latDelta)
-      .gte('location_lng', userProfile.location_lng - lngDelta)
-      .lte('location_lng', userProfile.location_lng + lngDelta)
-      .limit(200) // cap at 200 nearby users max
+    type NearbyProfile = { id: string; phone: string | null; email: string | null; display_name: string | null; location_lat: number; location_lng: number; distance_km?: number; notify_channel: string | null; notify_min_threshold: number | null; notify_priority_stickers: number[] | null; notify_radius_km: number | null; notify_configured: boolean | null; last_match_notified_at: string | null }
+    let nearbyProfiles: NearbyProfile[] | null = null
+
+    // Try PostGIS RPC first (uses GiST index, accurate distances)
+    const { data: postgisResult, error: postgisError } = await supabase
+      .rpc('find_nearby_profiles', { p_user_id: user_id, p_radius_km: MAX_RADIUS_KM })
+
+    if (!postgisError && postgisResult) {
+      nearbyProfiles = postgisResult as NearbyProfile[]
+    } else {
+      // Fallback: bounding box filter (works without PostGIS)
+      console.warn('PostGIS RPC failed, falling back to bounding box:', postgisError?.message)
+      const latDelta = MAX_RADIUS_KM / 111
+      const lngDelta = MAX_RADIUS_KM / (111 * Math.cos(userProfile.location_lat * Math.PI / 180))
+
+      const { data: nearbyProfilesFallback } = await supabase
+        .from('profiles')
+        .select('id, phone, email, display_name, location_lat, location_lng, notify_channel, notify_min_threshold, notify_priority_stickers, notify_radius_km, notify_configured, last_match_notified_at')
+        .neq('id', user_id)
+        .gte('location_lat', userProfile.location_lat - latDelta)
+        .lte('location_lat', userProfile.location_lat + latDelta)
+        .gte('location_lng', userProfile.location_lng - lngDelta)
+        .lte('location_lng', userProfile.location_lng + lngDelta)
+        .limit(200)
+
+      nearbyProfiles = nearbyProfilesFallback as NearbyProfile[] | null
+    }
 
     if (!nearbyProfiles || nearbyProfiles.length === 0) {
       return NextResponse.json({ ok: true, notified: 0 })
@@ -171,8 +187,8 @@ export async function POST(req: NextRequest) {
         notify_radius_km: nearby.notify_radius_km || 50,
       }
 
-      // Precise distance check with haversine (bounding box was approximate)
-      const dist = haversine(
+      // Distance check: use PostGIS distance if available, else haversine fallback
+      const dist = nearby.distance_km ?? haversine(
         userProfile.location_lat, userProfile.location_lng,
         nearby.location_lat, nearby.location_lng
       )

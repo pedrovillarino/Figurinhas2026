@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCachedStickers } from '@/lib/stickers-cache'
 import DashboardClient from './DashboardClient'
 import type { Metadata } from 'next'
 
@@ -16,8 +17,8 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const [{ data: stickers }, { data: userStickers }] = await Promise.all([
-    supabase.from('stickers').select('id, number, player_name, country, section, type').order('number'),
+  const [stickers, { data: userStickers }] = await Promise.all([
+    getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity, updated_at').eq('user_id', user.id),
   ])
 
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      stickers={stickers || []}
+      stickers={stickers}
       userStickersMap={userStickersMap}
     />
   )

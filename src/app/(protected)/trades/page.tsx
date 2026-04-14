@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCachedStickers } from '@/lib/stickers-cache'
 import TradesHub from './TradesHub'
 import { type Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
@@ -17,9 +18,9 @@ export default async function TradesPage() {
 
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: stickers }, { data: userStickers }] = await Promise.all([
+  const [{ data: profile }, stickers, { data: userStickers }] = await Promise.all([
     supabase.from('profiles').select('tier, location_lat, location_lng, display_name, is_minor').eq('id', user.id).single(),
-    supabase.from('stickers').select('id, number, player_name, country, section, type').order('number'),
+    getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
   ])
 
@@ -141,7 +142,7 @@ export default async function TradesPage() {
     <TradesHub
       userId={user.id}
       tier={tier}
-      stickers={stickers || []}
+      stickers={stickers}
       userStickersMap={userStickersMap}
       hasLocation={hasLocation}
       nearbyCount={nearbyCount}

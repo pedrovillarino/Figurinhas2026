@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCachedStickers } from '@/lib/stickers-cache'
 import AlbumClient from './AlbumClient'
 import type { Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
@@ -17,8 +18,8 @@ export default async function AlbumPage() {
 
   if (!user) redirect('/login')
 
-  const [{ data: stickers }, { data: userStickers }, { data: profile }] = await Promise.all([
-    supabase.from('stickers').select('id, number, player_name, country, section, type').order('number'),
+  const [stickers, { data: userStickers }, { data: profile }] = await Promise.all([
+    getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
     supabase.from('profiles').select('tier').eq('id', user.id).single(),
   ])
@@ -30,7 +31,7 @@ export default async function AlbumPage() {
 
   return (
     <AlbumClient
-      stickers={stickers || []}
+      stickers={stickers}
       userStickersMap={userStickersMap}
       userId={user.id}
       tier={(profile?.tier || 'free') as Tier}
