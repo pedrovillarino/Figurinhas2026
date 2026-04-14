@@ -12,6 +12,19 @@ function supabaseAdmin() {
 
 // ─── Data fetchers ───
 
+async function getHealthCheck() {
+  try {
+    const start = Date.now()
+    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br'}/api/health`, {
+      cache: 'no-store',
+    })
+    const data = await res.json()
+    return { ...data, fetch_ms: Date.now() - start }
+  } catch {
+    return { status: 'unreachable', checks: {}, latency_ms: 0, fetch_ms: 0 }
+  }
+}
+
 async function getMetrics() {
   const sb = supabaseAdmin()
   const now = new Date()
@@ -208,7 +221,7 @@ export default async function AdminPage({
     return <LoginForm />
   }
 
-  const m = await getMetrics()
+  const [m, health] = await Promise.all([getMetrics(), getHealthCheck()])
 
   const refreshUrl = `/admin?secret=${ADMIN_SECRET}`
 
@@ -308,6 +321,59 @@ export default async function AdminPage({
           </div>
         </>
       )}
+
+      {/* Infrastructure */}
+      <SectionTitle>Infraestrutura</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className={`rounded-xl shadow-sm border p-5 ${health.status === 'healthy' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">API Health</p>
+          <p className={`text-2xl font-bold mt-1 ${health.status === 'healthy' ? 'text-emerald-600' : 'text-red-600'}`}>
+            {health.status === 'healthy' ? 'Saudavel' : health.status === 'degraded' ? 'Degradado' : 'Fora do ar'}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">{health.latency_ms}ms DB · {health.fetch_ms}ms total</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Supabase</p>
+          <p className={`text-2xl font-bold mt-1 ${health.checks?.supabase === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+            {health.checks?.supabase === 'ok' ? 'Online' : 'Offline'}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">Pro · PostGIS ativo</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Versao</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: '#0A1628' }}>{health.version || 'dev'}</p>
+          <p className="text-sm text-gray-400 mt-1">commit SHA</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Env Vars</p>
+          <p className={`text-2xl font-bold mt-1 ${health.checks?.env === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+            {health.checks?.env === 'ok' ? 'OK' : 'Faltando'}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">Supabase + Stripe</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <a href="https://inove-ai-32.sentry.io" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-sm font-medium hover:bg-purple-100 transition">
+          <span>🐛</span> Sentry (Erros)
+        </a>
+        <a href="https://stats.uptimerobot.com/T6hoVVuvwy" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm font-medium hover:bg-green-100 transition">
+          <span>📡</span> UptimeRobot (Uptime)
+        </a>
+        <a href="https://supabase.com/dashboard/project/vcxswsbmulztuzdmuuui" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition">
+          <span>🗄️</span> Supabase
+        </a>
+        <a href="https://vercel.com" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-100 transition">
+          <span>▲</span> Vercel (Deploy)
+        </a>
+        <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition">
+          <span>💳</span> Stripe (Pagamentos)
+        </a>
+      </div>
 
       {/* Footer */}
       <p className="text-center text-xs text-gray-300 mt-12 mb-4">
