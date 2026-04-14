@@ -108,7 +108,7 @@ export default function NotificationBell() {
 
           {/* Link to full config */}
           <Link
-            href="/trades"
+            href="/trades#alertas"
             onClick={() => setShowPopover(false)}
             className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition text-[10px] font-medium text-gray-600"
           >

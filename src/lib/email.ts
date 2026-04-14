@@ -1,5 +1,6 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Complete Aí <noreply@completeai.com.br>'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
 
 export async function sendEmail(to: string, subject: string, html: string) {
   if (!RESEND_API_KEY) {
@@ -122,6 +123,74 @@ export function tradeApprovedEmailHtml(
           Abrir no app
         </a>
       </p>
+      <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
+        Complete Aí — Álbum da Copa 2026
+      </p>
+    </div>
+  `
+}
+
+export function matchAlertEmailHtml(
+  senderName: string,
+  distance: string,
+  stickerCount: number,
+  stickerList: string,
+  hasPriority: boolean
+): string {
+  const priorityBadge = hasPriority
+    ? `<div style="background: #FEF3C7; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; text-align: center;">
+         <span style="color: #92400E; font-size: 13px; font-weight: 600;">⭐ Inclui figurinhas prioritárias!</span>
+       </div>`
+    : ''
+
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #0A1628; font-size: 20px; margin: 0;">🔔 Alerta de figurinhas!</h1>
+      </div>
+      <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <p style="color: #374151; font-size: 15px; margin: 0 0 12px;">
+          <strong>${senderName}</strong> (a ${distance} de você) tem <strong>${stickerCount} figurinha${stickerCount > 1 ? 's' : ''}</strong> que você precisa!
+        </p>
+        ${priorityBadge}
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-top: 8px;">
+          <p style="color: #6b7280; font-size: 11px; margin: 0 0 4px; font-weight: 600;">Figurinhas disponíveis:</p>
+          <p style="color: #374151; font-size: 13px; margin: 0; line-height: 1.6;">${stickerList}</p>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <a href="${APP_URL}/trades" style="display: inline-block; background: #00C896; color: white; padding: 14px 40px; border-radius: 10px; font-weight: bold; font-size: 15px; text-decoration: none;">
+          🔄 Solicitar troca
+        </a>
+      </div>
+      <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
+        Complete Aí — Álbum da Copa 2026
+      </p>
+    </div>
+  `
+}
+
+export function tradeRejectedEmailHtml(
+  targetName: string
+): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #0A1628; font-size: 20px; margin: 0;">😕 Troca recusada</h1>
+      </div>
+      <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
+        <p style="color: #374151; font-size: 15px; margin: 0;">
+          <strong>${targetName}</strong> preferiu não trocar dessa vez.
+        </p>
+        <p style="color: #6b7280; font-size: 13px; margin: 8px 0 0;">
+          Não desanime! Tente outros colecionadores.
+        </p>
+      </div>
+      <div style="text-align: center;">
+        <a href="${APP_URL}/trades" style="display: inline-block; background: #00C896; color: white; padding: 14px 40px; border-radius: 10px; font-weight: bold; font-size: 15px; text-decoration: none;">
+          🔄 Ver mais trocas
+        </a>
+      </div>
       <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
         Complete Aí — Álbum da Copa 2026
       </p>

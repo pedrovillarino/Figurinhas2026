@@ -25,6 +25,22 @@ async function getHealthCheck() {
   }
 }
 
+async function getWhatsAppHealth() {
+  try {
+    const cronSecret = process.env.CRON_SECRET
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br'}/api/whatsapp/health`,
+      {
+        cache: 'no-store',
+        headers: cronSecret ? { Authorization: `Bearer ${cronSecret}` } : {},
+      },
+    )
+    return await res.json()
+  } catch {
+    return { ok: false, whatsapp: { connected: false }, error: 'unreachable' }
+  }
+}
+
 async function getMetrics() {
   const sb = supabaseAdmin()
   const now = new Date()
@@ -221,7 +237,7 @@ export default async function AdminPage({
     return <LoginForm />
   }
 
-  const [m, health] = await Promise.all([getMetrics(), getHealthCheck()])
+  const [m, health, waHealth] = await Promise.all([getMetrics(), getHealthCheck(), getWhatsAppHealth()])
 
   const refreshUrl = `/admin?secret=${ADMIN_SECRET}`
 
@@ -322,9 +338,39 @@ export default async function AdminPage({
         </>
       )}
 
-      {/* Infrastructure */}
-      <SectionTitle>Infraestrutura</SectionTitle>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      {/* System Monitor */}
+      <SectionTitle>Monitor do Sistema</SectionTitle>
+
+      {/* Alerts banner */}
+      {waHealth.alerts && waHealth.alerts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+          <p className="text-sm font-bold text-red-700 mb-2">🚨 Alertas ativos ({waHealth.alerts.length})</p>
+          <ul className="text-sm text-red-600 space-y-1">
+            {waHealth.alerts.map((a: string, i: number) => (
+              <li key={i}>• {a}</li>
+            ))}
+          </ul>
+          <p className="text-xs text-red-400 mt-2">Ultima verificacao: {waHealth.timestamp ? new Date(waHealth.timestamp).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—'}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        {/* WhatsApp */}
+        <div className={`rounded-xl shadow-sm border p-5 ${
+          waHealth.whatsapp?.connected ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+        }`}>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">WhatsApp</p>
+          <p className={`text-2xl font-bold mt-1 ${waHealth.whatsapp?.connected ? 'text-emerald-600' : 'text-red-600'}`}>
+            {waHealth.whatsapp?.connected ? 'Conectado' : 'Desconectado'}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            {waHealth.whatsapp?.connected
+              ? `Celular: ${waHealth.whatsapp?.smartphoneConnected ? 'OK' : 'Offline'}`
+              : waHealth.whatsapp_action === 'restarted' ? 'Restart enviado' : 'Verificar Z-API'}
+          </p>
+        </div>
+
+        {/* API Health */}
         <div className={`rounded-xl shadow-sm border p-5 ${health.status === 'healthy' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">API Health</p>
           <p className={`text-2xl font-bold mt-1 ${health.status === 'healthy' ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -332,24 +378,57 @@ export default async function AdminPage({
           </p>
           <p className="text-sm text-gray-400 mt-1">{health.latency_ms}ms DB · {health.fetch_ms}ms total</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+
+        {/* Supabase */}
+        <div className={`rounded-xl shadow-sm border p-5 ${
+          (waHealth.supabase?.ok ?? health.checks?.supabase === 'ok') ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+        }`}>
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Supabase</p>
-          <p className={`text-2xl font-bold mt-1 ${health.checks?.supabase === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
-            {health.checks?.supabase === 'ok' ? 'Online' : 'Offline'}
+          <p className={`text-2xl font-bold mt-1 ${
+            (waHealth.supabase?.ok ?? health.checks?.supabase === 'ok') ? 'text-emerald-600' : 'text-red-600'
+          }`}>
+            {(waHealth.supabase?.ok ?? health.checks?.supabase === 'ok') ? 'Online' : 'Offline'}
           </p>
-          <p className="text-sm text-gray-400 mt-1">Pro · PostGIS ativo</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {waHealth.supabase?.latency_ms ? `${waHealth.supabase.latency_ms}ms` : 'Pro · PostGIS'}
+          </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Versao</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: '#0A1628' }}>{health.version || 'dev'}</p>
-          <p className="text-sm text-gray-400 mt-1">commit SHA</p>
+
+        {/* Notification Queue */}
+        <div className={`rounded-xl shadow-sm border p-5 ${
+          (waHealth.notification_queue?.failed ?? 0) === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
+        }`}>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Fila Notif.</p>
+          <p className={`text-2xl font-bold mt-1 ${
+            (waHealth.notification_queue?.failed ?? 0) === 0 ? 'text-emerald-600' : 'text-amber-600'
+          }`}>
+            {(waHealth.notification_queue?.failed ?? 0) === 0 ? 'Limpa' : `${waHealth.notification_queue?.failed} falhas`}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">retry a cada 2min</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+
+        {/* Env Vars */}
+        <div className={`rounded-xl shadow-sm border p-5 ${
+          waHealth.env === 'ok' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+        }`}>
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Env Vars</p>
-          <p className={`text-2xl font-bold mt-1 ${health.checks?.env === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
-            {health.checks?.env === 'ok' ? 'OK' : 'Faltando'}
+          <p className={`text-2xl font-bold mt-1 ${waHealth.env === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+            {waHealth.env === 'ok' ? 'OK' : 'Faltando'}
           </p>
-          <p className="text-sm text-gray-400 mt-1">Supabase + Stripe</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {waHealth.env === 'ok' ? '6 vars criticas' : (waHealth.env?.missing || []).join(', ')}
+          </p>
+        </div>
+      </div>
+
+      {/* Version + links */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4 flex items-center justify-between">
+        <div>
+          <span className="text-sm text-gray-500">Versao:</span>{' '}
+          <span className="font-mono text-sm font-bold" style={{ color: '#0A1628' }}>{health.version || 'dev'}</span>
+        </div>
+        <div className="text-sm text-gray-400">
+          Monitor roda a cada 5min · Alertas via WhatsApp + Email
         </div>
       </div>
       <div className="flex flex-wrap gap-3">

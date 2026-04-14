@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { sendText, formatPhone } from '@/lib/zapi'
+import { sendEmail, matchAlertEmailHtml } from '@/lib/email'
 import { checkRateLimit, getIp, notifyLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
+import { backgroundHealthPing } from '@/lib/health-ping'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -35,6 +37,8 @@ type NotifyPrefs = {
  * Requires authentication.
  */
 export async function POST(req: NextRequest) {
+  backgroundHealthPing()
+
   // Rate limit (heavy endpoint)
   const rlResponse = await checkRateLimit(getIp(req), notifyLimiter)
   if (rlResponse) return rlResponse
@@ -235,26 +239,58 @@ export async function POST(req: NextRequest) {
         `Abra o app para solicitar a troca (com aprovação segura):\n${APP_URL}/trades`
 
       const channel = prefs.notify_channel || 'whatsapp'
+      const phone = nearby.phone ? formatPhone(nearby.phone) : null
 
       // Send via WhatsApp
       let didNotify = false
+      let whatsappSent = false
+
       if (channel === 'whatsapp' || channel === 'both') {
-        const phone = nearby.phone ? formatPhone(nearby.phone) : null
         if (phone) {
-          await sendText(phone, msg)
-          notified++
+          try {
+            await sendText(phone, msg)
+            whatsappSent = true
+            didNotify = true
+          } catch (err) {
+            console.error(`WhatsApp failed for ${nearby.id}:`, err)
+          }
+        }
+      }
+
+      // Send via email:
+      //  - If user chose 'email' or 'both' → always send email
+      //  - If user chose 'whatsapp' but WhatsApp failed or no phone → fallback to email
+      const shouldEmail =
+        channel === 'email' ||
+        channel === 'both' ||
+        (channel === 'whatsapp' && !whatsappSent)
+
+      if (shouldEmail && nearby.email) {
+        const stickerListFormatted = neededStickers
+          .slice(0, 15)
+          .map((s) => s.isPriority ? `⭐ ${s.number}` : s.number)
+          .join(', ')
+        const extraText = neededStickers.length > 15 ? ` e mais ${neededStickers.length - 15}` : ''
+
+        const html = matchAlertEmailHtml(
+          firstName,
+          distStr,
+          neededStickers.length,
+          stickerListFormatted + extraText,
+          hasPriority
+        )
+        const emailSent = await sendEmail(
+          nearby.email,
+          `🔔 ${firstName} tem ${neededStickers.length} figurinha${neededStickers.length > 1 ? 's' : ''} que você precisa!`,
+          html
+        )
+        if (emailSent) {
           didNotify = true
         }
       }
 
-      // Send via email (placeholder)
-      if (channel === 'email' || channel === 'both') {
-        if (nearby.email) {
-          console.log(`[EMAIL] Would notify ${nearby.email}: ${neededStickers.length} stickers available`)
-        }
-      }
-
       if (didNotify) {
+        notified++
         notifiedUserIds.push(nearby.id)
       }
     }

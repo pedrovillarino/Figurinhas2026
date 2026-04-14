@@ -54,14 +54,15 @@ export default function TradesClient({ userId }: { userId: string }) {
     }
   }
 
-  async function requestLocation() {
+  async function requestLocation(highAccuracy = false) {
     if (!navigator.geolocation) {
-      alert('Seu navegador não suporta geolocalização.')
+      setLocationState('denied')
       return
     }
 
     setLocationState('requesting')
 
+    // Try fast location first (cell tower / WiFi — ~1-3s), then offer GPS refinement
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const lat = position.coords.latitude
@@ -69,7 +70,6 @@ export default function TradesClient({ userId }: { userId: string }) {
         setCoords({ lat, lng })
         setLocationState('saving')
 
-        // Save to profile
         await supabase
           .from('profiles')
           .update({
@@ -84,18 +84,30 @@ export default function TradesClient({ userId }: { userId: string }) {
       },
       (error) => {
         console.error('Geolocation error:', error)
-        setLocationState('denied')
+        if (error.code === 1) {
+          // PERMISSION_DENIED
+          setLocationState('denied')
+        } else if (!highAccuracy) {
+          // Timeout or unavailable with low accuracy — retry once with high accuracy
+          requestLocation(true)
+        } else {
+          setLocationState('denied')
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      {
+        enableHighAccuracy: highAccuracy,
+        timeout: highAccuracy ? 10000 : 5000,
+        maximumAge: 5 * 60 * 1000, // accept cached location up to 5 min old
+      }
     )
   }
 
-  async function loadMatches() {
+  async function loadMatches(overrideRadius?: number) {
     setLoading(true)
     try {
       const { data, error } = await supabase.rpc('get_trade_matches', {
         p_user_id: userId,
-        p_radius_km: radius,
+        p_radius_km: overrideRadius ?? radius,
       })
 
       if (error) {
@@ -197,21 +209,30 @@ export default function TradesClient({ userId }: { userId: string }) {
           {locationState === 'denied' ? (
             <>
               <p className="text-sm font-medium text-gray-700 mb-1">Localização bloqueada</p>
-              <p className="text-xs text-gray-400 text-center max-w-[260px] mb-6">
-                Permita o acesso à localização nas configurações do seu navegador para encontrar trocas
+              <p className="text-xs text-gray-400 text-center max-w-[260px] mb-4">
+                Para encontrar trocas, ative a localização nas configurações do navegador.
               </p>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-6 max-w-[280px]">
+                <p className="text-[10px] text-amber-700 leading-relaxed text-center">
+                  📍 <strong>iPhone:</strong> Ajustes → Safari → Localização → Permitir<br />
+                  📍 <strong>Android:</strong> Toque no cadeado na barra de endereço → Localização → Permitir
+                </p>
+              </div>
             </>
           ) : (
             <>
               <p className="text-sm font-medium text-gray-700 mb-1">Ative sua localização</p>
-              <p className="text-xs text-gray-400 text-center max-w-[260px] mb-6">
-                Precisamos da sua localização para encontrar colecionadores perto de você
+              <p className="text-xs text-gray-400 text-center max-w-[260px] mb-2">
+                Precisamos da sua localização para encontrar colecionadores perto de você.
+              </p>
+              <p className="text-[10px] text-gray-300 text-center max-w-[240px] mb-6">
+                Usamos apenas sua região aproximada. Sua posição exata não é compartilhada.
               </p>
             </>
           )}
 
           <button
-            onClick={requestLocation}
+            onClick={() => requestLocation()}
             className="bg-gray-900 text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-all active:scale-[0.98]"
           >
             {locationState === 'denied' ? 'Tentar novamente' : 'Permitir localização'}
@@ -255,7 +276,7 @@ export default function TradesClient({ userId }: { userId: string }) {
         </div>
 
         <button
-          onClick={requestLocation}
+          onClick={() => loadMatches()}
           className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 shrink-0 mt-1"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -272,7 +293,7 @@ export default function TradesClient({ userId }: { userId: string }) {
             key={r}
             onClick={() => {
               setRadius(r)
-              if (coords) loadMatches()
+              if (coords) loadMatches(r)
             }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               radius === r

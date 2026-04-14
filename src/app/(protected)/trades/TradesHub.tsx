@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { canTrade, type Tier } from '@/lib/tiers'
@@ -125,6 +125,10 @@ export default function TradesHub({
   const [requestingTrade, setRequestingTrade] = useState<string | null>(null)
   const [requestedTrades, setRequestedTrades] = useState<Set<string>>(new Set(sentRequestUserIds))
 
+  // Live pending requests (updated via Supabase Realtime)
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>(initialPendingRequests)
+  const [newRequestAlert, setNewRequestAlert] = useState(false)
+
   // Notification preferences
   const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>('whatsapp')
   const [notifyMinThreshold, setNotifyMinThreshold] = useState(1)
@@ -133,6 +137,8 @@ export default function TradesHub({
   const [showPriorityPicker, setShowPriorityPicker] = useState(false)
   const [prioritySearch, setPrioritySearch] = useState('')
   const [savingPrefs, setSavingPrefs] = useState(false)
+
+  const alertasSectionRef = useRef<HTMLDivElement>(null)
 
   // Load excluded list + notification prefs from localStorage
   useEffect(() => {
@@ -143,6 +149,76 @@ export default function TradesHub({
     setNotifyChannel(prefs.channel)
     setNotifyMinThreshold(prefs.minThreshold)
     setNotifyPriorityIds(prefs.priorityIds)
+  }, [])
+
+  // Supabase Realtime: listen for new trade requests targeting this user
+  useEffect(() => {
+    const channel = supabase
+      .channel('trade-requests-live')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'trade_requests',
+          filter: `target_id=eq.${userId}`,
+        },
+        async (payload) => {
+          // Fetch the new request with requester profile
+          const newReq = payload.new as { id: string; requester_id: string; they_have: number; i_have: number; match_score: number; distance_km: number; created_at: string }
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', newReq.requester_id)
+            .single()
+
+          const pending: PendingRequest = {
+            id: newReq.id,
+            requester_id: newReq.requester_id,
+            requester_name: profile?.display_name || 'Usuário',
+            they_have: newReq.they_have,
+            i_have: newReq.i_have,
+            match_score: newReq.match_score,
+            distance_km: newReq.distance_km,
+            created_at: newReq.created_at,
+            message: null,
+          }
+          setPendingRequests((prev) => [pending, ...prev])
+          setNewRequestAlert(true)
+          setTimeout(() => setNewRequestAlert(false), 5000)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trade_requests',
+          filter: `target_id=eq.${userId}`,
+        },
+        (payload) => {
+          const updated = payload.new as { id: string; status: string }
+          if (updated.status !== 'pending') {
+            setPendingRequests((prev) => prev.filter((r) => r.id !== updated.id))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
+
+  // Auto-open config and scroll when arriving via #alertas hash
+  useEffect(() => {
+    if (window.location.hash === '#alertas') {
+      setShowNotifyConfig(true)
+      // Wait for render then scroll
+      setTimeout(() => {
+        alertasSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
+    }
   }, [])
 
   // ─── Computed ───
@@ -535,7 +611,7 @@ export default function TradesHub({
 
             {/* Pending trade requests received */}
             <TradeRequestsBanner
-              requests={initialPendingRequests}
+              requests={pendingRequests}
               onRespond={handleRespondToRequest}
               initialApprovedTrades={initialApprovedTrades}
             />
@@ -682,7 +758,7 @@ export default function TradesHub({
       </div>
 
       {/* ─── Notificacoes & Lista de desejos ─── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+      <div id="alertas" ref={alertasSectionRef} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4 scroll-mt-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm shadow-sm">🔔</div>

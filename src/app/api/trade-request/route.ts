@@ -74,13 +74,18 @@ export async function POST(req: NextRequest) {
 
     const { target_user_id, they_have, i_have, match_score } = await req.json()
 
-    if (!target_user_id) {
+    if (!target_user_id || typeof target_user_id !== 'string') {
       return NextResponse.json({ error: 'target_user_id obrigatório' }, { status: 400 })
     }
 
     if (target_user_id === user.id) {
       return NextResponse.json({ error: 'Não é possível solicitar troca consigo mesmo' }, { status: 400 })
     }
+
+    // Sanitize numeric fields
+    const safeTheyHave = typeof they_have === 'number' && they_have >= 0 ? Math.round(they_have) : 0
+    const safeIHave = typeof i_have === 'number' && i_have >= 0 ? Math.round(i_have) : 0
+    const safeMatchScore = typeof match_score === 'number' && match_score >= 0 ? Math.min(Math.round(match_score), 10000) : 0
 
     const admin = getAdmin()
 
@@ -111,7 +116,7 @@ export async function POST(req: NextRequest) {
     // 3. Get both profiles
     const [{ data: requesterProfile }, { data: targetProfile }] = await Promise.all([
       admin.from('profiles').select('display_name, location_lat, location_lng').eq('id', user.id).single(),
-      admin.from('profiles').select('display_name, phone, location_lat, location_lng, notify_channel').eq('id', target_user_id).single(),
+      admin.from('profiles').select('display_name, phone, email, location_lat, location_lng, notify_channel').eq('id', target_user_id).single(),
     ])
 
     if (!targetProfile) {
@@ -138,9 +143,9 @@ export async function POST(req: NextRequest) {
         requester_id: user.id,
         target_id: target_user_id,
         status: 'pending',
-        match_score: match_score || 0,
-        they_have: they_have || 0,
-        i_have: i_have || 0,
+        match_score: safeMatchScore,
+        they_have: safeTheyHave,
+        i_have: safeIHave,
         distance_km: distance,
         token,
       })
@@ -159,55 +164,58 @@ export async function POST(req: NextRequest) {
     // 7. Send WhatsApp notification to target user
     const requesterName = requesterProfile?.display_name?.split(' ')[0] || 'Alguém'
     const distStr = distance != null ? (distance < 1 ? 'menos de 1km' : `${Math.round(distance)}km`) : 'sua região'
-    const totalTrade = (they_have || 0) + (i_have || 0)
+    const totalTrade = safeTheyHave + safeIHave
 
     const channel = targetProfile.notify_channel || 'whatsapp'
     const phone = targetProfile.phone ? formatPhone(targetProfile.phone) : null
 
-    if (phone && (channel === 'whatsapp' || channel === 'both')) {
-      const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
-      const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
+    // Fire notifications in background (non-blocking)
+    const whatsappSent = !!(phone && (channel === 'whatsapp' || channel === 'both'))
+    const notifyAsync = async () => {
+      const notifications: Promise<unknown>[] = []
 
-      const msg =
-        `🔔 *Solicitação de troca!*\n\n` +
-        `*${requesterName}* (a ${distStr} de você) quer trocar figurinhas!\n\n` +
-        `📊 Potencial: *${totalTrade} figurinhas* para trocar\n` +
-        `   • ${they_have || 0} que você precisa\n` +
-        `   • ${i_have || 0} que você tem pra dar\n\n` +
-        `✅ *Aceitar* (compartilhar seu contato):\n${approveUrl}\n\n` +
-        `❌ *Recusar*:\n${rejectUrl}\n\n` +
-        `Ou abra o app para ver detalhes:\n${APP_URL}/trades`
+      if (whatsappSent) {
+        const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
+        const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
 
-      await sendText(phone, msg).catch((err: unknown) => {
-        console.error('WhatsApp notification error:', err)
-      })
+        const msg =
+          `🔔 *Solicitação de troca!*\n\n` +
+          `*${requesterName}* (a ${distStr} de você) quer trocar figurinhas!\n\n` +
+          `📊 Potencial: *${totalTrade} figurinhas* para trocar\n` +
+          `   • ${they_have || 0} que você precisa\n` +
+          `   • ${i_have || 0} que você tem pra dar\n\n` +
+          `✅ *Aceitar* (compartilhar seu contato):\n${approveUrl}\n\n` +
+          `❌ *Recusar*:\n${rejectUrl}\n\n` +
+          `Ou abra o app para ver detalhes:\n${APP_URL}/trades`
+
+        notifications.push(sendText(phone, msg))
+      }
+
+      // Email notification to target user
+      const targetEmail = targetProfile.email
+      if (targetEmail && (channel === 'email' || channel === 'both' || !phone)) {
+        const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
+        const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
+        const html = tradeRequestEmailHtml(
+          requesterName, distStr, totalTrade,
+          they_have || 0, i_have || 0,
+          approveUrl, rejectUrl, APP_URL
+        )
+        notifications.push(sendEmail(targetEmail, `🔔 ${requesterName} quer trocar figurinhas com você!`, html))
+      }
+
+      // Push notification to target user
+      notifications.push(sendPushToUser(target_user_id, {
+        title: '🔔 Solicitação de troca!',
+        body: `${requesterName} (a ${distStr}) quer trocar ${totalTrade} figurinhas com você!`,
+        url: '/trades',
+      }))
+
+      await Promise.allSettled(notifications)
     }
+    notifyAsync().catch(err => console.error('Async trade-request notification error:', err))
 
-    // 8. Send email notification to target user
-    const targetEmail = targetProfile.email
-    if (targetEmail && (channel === 'email' || channel === 'both' || !phone)) {
-      const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
-      const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
-      const html = tradeRequestEmailHtml(
-        requesterName, distStr, totalTrade,
-        they_have || 0, i_have || 0,
-        approveUrl, rejectUrl, APP_URL
-      )
-      await sendEmail(targetEmail, `🔔 ${requesterName} quer trocar figurinhas com você!`, html).catch((err: unknown) => {
-        console.error('Email notification error:', err)
-      })
-    }
-
-    // 9. Send push notification to target user
-    await sendPushToUser(target_user_id, {
-      title: '🔔 Solicitação de troca!',
-      body: `${requesterName} (a ${distStr}) quer trocar ${totalTrade} figurinhas com você!`,
-      url: '/trades',
-    }).catch((err: unknown) => {
-      console.error('Push notification error:', err)
-    })
-
-    perf.end({ whatsapp: !!(phone && (channel === 'whatsapp' || channel === 'both')) ? 1 : 0 })
+    perf.end({ whatsapp: whatsappSent ? 1 : 0 })
 
     return NextResponse.json({
       ok: true,

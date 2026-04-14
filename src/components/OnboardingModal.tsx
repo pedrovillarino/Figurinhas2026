@@ -15,6 +15,11 @@ const tutorialSteps = [
     description: 'Gerencie seu álbum da Copa 2026. Marque coladas, faltantes e repetidas com facilidade.',
   },
   {
+    icon: '🎁',
+    title: 'Convide amigos e ganhe!',
+    description: 'Indique o Complete Aí para quem também coleciona. Quando seu amigo entrar, vocês dois ganham créditos de troca e scan. Compartilhe seu link no Perfil!',
+  },
+  {
     icon: '👆',
     title: 'Toque para marcar',
     description: 'Toque em uma figurinha para expandir. Use + e - para ajustar a quantidade. Repetidas ficam com borda verde.',

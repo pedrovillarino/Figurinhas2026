@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
+import { backgroundHealthPing } from '@/lib/health-ping'
 
 export const maxDuration = 60
 
@@ -17,40 +18,47 @@ const VALID_CODES = [
   'SUI', 'CMR', 'POR', 'GHA', 'URU', 'KOR',
 ]
 
-const SYSTEM_INSTRUCTION = `You are a Panini World Cup 2026 sticker album scanner.
-Analyze photos of stickers — this could be:
-- FRONT of stickers (showing player photo, name, country flag)
-- BACK of stickers (showing a sticker number like "BRA 10", "FRA 19", "ARG 20")
-- Album pages with slots (some filled, some empty)
-- Multiple stickers on a table
+const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup sticker scanner (supports ALL editions: Qatar 2022, USA/Canada/Mexico 2026, etc).
+
+You analyze photos of Panini stickers and identify each one. Photos may show:
+- FRONT of stickers (player photo, name printed at bottom, country flag, 3-letter code like "BRA")
+- BACK of stickers (sticker number printed like "BRA 10", "FRA 19")
+- Album pages with filled and empty slots
+- Multiple stickers loose on a table
+
+CRITICAL — HOW TO READ PANINI STICKERS:
+- The PLAYER NAME is printed in large letters at the bottom of the sticker (e.g., "NEYMAR JR", "CASEMIRO", "MARQUINHOS", "LIONEL MESSI")
+- The 3-LETTER COUNTRY CODE is near the flag (e.g., "BRA", "ARG", "FRA", "POR")
+- ⚠️ DO NOT confuse these numbers with the sticker number:
+  - The 4-digit year (e.g., 2010, 2019) = year of national team debut, NOT the sticker number
+  - Height/weight numbers (e.g., 1.75, 68) = player stats, NOT the sticker number
+- The actual STICKER NUMBER follows format: CODE + space/hyphen + small number (e.g., "BRA 17", "ARG 20", "FRA 19"). It may be printed small on the front or clearly on the back.
+- If you CANNOT see a clear sticker number in CODE-NUMBER format, leave sticker_number as "" — the system will match by player name instead.
 
 For EACH sticker visible, extract:
-1. "player_name": The player name if visible (e.g., "NEYMAR JR", "CASEMIRO", "LIONEL MESSI"). For badges, use "Emblem" or "Team Photo". If only the back is visible and no name is shown, use "".
-2. "country_code": The 3-letter code (e.g., "BRA", "ARG", "FRA"). Look for it on the sticker front near the flag, or on the back.
-3. "sticker_number": If you can see a sticker code/number like "BRA 10", "FRA 19", "FIFA 3" — include it here in the format CODE-NUMBER (with a hyphen). Valid codes are: ${VALID_CODES.join(', ')}. If no sticker number is visible, use "".
-4. "status": "filled" if it's an actual sticker. "empty" if it's an empty album slot.
-5. "confidence": 0.0 to 1.0.
+1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo".
+2. "country_code": The 3-letter code. Valid codes: ${VALID_CODES.join(', ')}
+3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
+4. "status": "filled" (actual sticker) or "empty" (empty album slot)
+5. "confidence": 0.0 to 1.0
 
 Return ONLY valid JSON:
 {
   "scan_confidence": 0.9,
   "stickers": [
-    {"player_name": "Alisson", "country_code": "BRA", "sticker_number": "BRA-1", "status": "filled", "confidence": 0.95},
-    {"player_name": "Enzo Fernandez", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.90}
+    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95},
+    {"player_name": "Lionel Messi", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.90}
   ],
   "warnings": []
 }
 
 RULES:
-- CRITICAL: Read EVERY SINGLE sticker visible — do NOT skip any. Count them first, then list each one.
-- CRITICAL: Read the ACTUAL player name printed on the sticker. Do NOT guess or assume — read exactly what is written. "MARQUINHOS" is NOT "NEYMAR JR". Every player has a unique name printed.
-- If the photo shows many stickers (e.g. a table full of stickers), scan the image systematically: left-to-right, top-to-bottom, and list ALL of them.
-- If you see the BACK of stickers, the number is the most important field
-- If you see the FRONT, the player name and country code are most important
-- For the sticker_number, ALWAYS use a hyphen between code and number (e.g., "BRA-10" not "BRA 10")
-- For team photos, use player_name "Team Photo"
-- For emblems/badges, use player_name "Emblem"
-- Double-check: did you list every sticker? If you see 15 stickers, your array must have 15 entries.
+- CRITICAL: Read EVERY SINGLE sticker visible — count them first, then list each one. Left-to-right, top-to-bottom.
+- CRITICAL: Read the ACTUAL name printed on the sticker — do NOT guess. Each player has a unique name.
+- CRITICAL: Emblems/badges showing a country crest (e.g., CBF logo for Brazil, AFA logo for Argentina, FFF logo for France) are stickers too — include them with player_name "Emblem".
+- Player name is the PRIMARY identifier. Getting the name right is more important than the number.
+- If you see the BACK of a sticker, the CODE-NUMBER printed there IS the sticker number.
+- Double-check: if you see 9 items (players + emblems), your array must have 9 entries.
 - If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
@@ -107,6 +115,7 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
 }
 
 export async function POST(request: NextRequest) {
+  backgroundHealthPing() // fire-and-forget system monitor
   const perf = createPerfLogger('scan')
 
   // Rate limit
@@ -137,12 +146,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faça login para usar o scanner.' }, { status: 401 })
     }
 
-    // 2. Parse request (do this early so we have body ready)
+    // 2. Parse & validate request
     const body = await request.json()
     const { image, mimeType } = body as { image: string; mimeType: string }
 
     if (!image || !mimeType) {
       return NextResponse.json({ error: 'Nenhuma imagem recebida. Tente novamente.' }, { status: 400 })
+    }
+
+    // Validate mimeType
+    const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+    if (!ALLOWED_MIMES.includes(mimeType)) {
+      return NextResponse.json({ error: 'Formato de imagem não suportado. Use JPEG, PNG ou WebP.' }, { status: 400 })
+    }
+
+    // Validate base64 size (approximate decoded size: base64 is ~4/3 of original)
+    const approxSizeBytes = image.length * 0.75
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
+    if (approxSizeBytes > MAX_IMAGE_SIZE) {
+      return NextResponse.json({ error: 'Imagem muito grande. Máximo 10MB. Tente tirar mais perto.' }, { status: 400 })
+    }
+    if (image.length < 100) {
+      return NextResponse.json({ error: 'Imagem muito pequena ou corrompida. Tente outra foto.' }, { status: 400 })
     }
 
     perf.mark('auth')
@@ -235,7 +260,7 @@ export async function POST(request: NextRequest) {
           data: image,
         },
       },
-      { text: 'Identify ALL stickers in this photo — do not miss any. First count how many stickers you see, then list every single one. Read player names, country codes, and sticker numbers (if visible on the back). Scan systematically left-to-right, top-to-bottom. Return JSON.' },
+      { text: 'Identify ALL stickers in this photo — players, emblems, badges. First COUNT how many you see. Then list EVERY one with the EXACT player name printed on it. Read names carefully: MARQUINHOS ≠ NEYMAR JR ≠ CASEMIRO. Also include emblems/badges. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
     ]
 
     let responseText = ''
@@ -352,6 +377,8 @@ export async function POST(request: NextRequest) {
       player_name: string | null
       country: string
       status: string
+      confidence: number
+      quantity: number
     }> = []
     const unmatched: string[] = []
     const seenIds = new Set<number>()
@@ -408,17 +435,27 @@ export async function POST(request: NextRequest) {
       // Skip if we have nothing to match on
       if (!dbSticker && !normPlayer && !stickerNumber) continue
 
-      if (dbSticker && !seenIds.has(dbSticker.id)) {
-        seenIds.add(dbSticker.id)
-        matched.push({
-          sticker_id: dbSticker.id,
-          number: dbSticker.number,
-          player_name: dbSticker.player_name,
-          country: dbSticker.country,
-          status: detected.status || 'filled',
-        })
+      if (dbSticker) {
+        if (!seenIds.has(dbSticker.id)) {
+          seenIds.add(dbSticker.id)
+          matched.push({
+            sticker_id: dbSticker.id,
+            number: dbSticker.number,
+            player_name: dbSticker.player_name,
+            country: dbSticker.country,
+            status: detected.status || 'filled',
+            confidence: typeof detected.confidence === 'number' ? detected.confidence : 0.8,
+            quantity: 1,
+          })
+        } else {
+          // Same sticker seen again in this scan → increment quantity
+          const existing = matched.find((m) => m.sticker_id === dbSticker!.id)
+          if (existing) existing.quantity = (existing.quantity || 1) + 1
+        }
         console.log(`[scan] ✓ "${playerName || stickerNumber}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name}`)
-      } else if (!dbSticker) {
+      } else if (!normPlayer && !stickerNumber) {
+        // Skip — nothing to match on
+      } else {
         unmatched.push(playerName ? `${playerName} (${countryCode})` : stickerNumber)
         console.log(`[scan] ✗ "${playerName}" (${countryCode}) → no match`)
       }

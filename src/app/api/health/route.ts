@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { backgroundHealthPing } from '@/lib/health-ping'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 10
@@ -7,8 +8,10 @@ export const maxDuration = 10
 /**
  * Health check endpoint for UptimeRobot / monitoring.
  * Checks: Supabase connectivity + basic app readiness.
+ * Also triggers the full system health check (WhatsApp, queue, etc.) in background.
  */
 export async function GET() {
+  backgroundHealthPing() // triggers /api/whatsapp/health in background if 5+ min since last
   const start = Date.now()
   const checks: Record<string, 'ok' | 'fail'> = {}
 

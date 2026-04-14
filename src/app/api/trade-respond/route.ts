@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
 import { sendPushToUser } from '@/lib/push'
-import { sendEmail, tradeApprovedEmailHtml } from '@/lib/email'
+import { sendEmail, tradeApprovedEmailHtml, tradeRejectedEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
 import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
 
@@ -137,65 +137,71 @@ export async function POST(req: NextRequest) {
       const requesterPhone = requesterProfile?.phone ? formatPhone(requesterProfile.phone) : null
       const targetPhone = targetProfile?.phone ? formatPhone(targetProfile.phone) : null
 
-      if (requesterPhone) {
-        const contactLine = targetPhone
-          ? `📱 WhatsApp: wa.me/${targetPhone}`
-          : targetProfile?.email
-            ? `📧 E-mail: ${targetProfile.email}`
-            : `Abra o app: ${APP_URL}/trades`
-
-        const msgToRequester =
-          `🎉 *Troca aprovada!*\n\n` +
-          `*${targetName}* aceitou sua solicitação de troca!\n\n` +
-          `📊 Potencial: ${tradeReq.they_have + tradeReq.i_have} figurinhas\n` +
-          `   • ${tradeReq.they_have} que você precisa\n` +
-          `   • ${tradeReq.i_have} que você tem pra dar\n\n` +
-          `📞 *Contato:*\n${contactLine}\n\n` +
-          `Boa troca de figurinhas! ⚽`
-
-        await sendText(requesterPhone, msgToRequester).catch((err: unknown) => {
-          console.error('Error notifying requester:', err)
-        })
-      }
-
-      // Notify target: here's the requester's contact too
-      if (targetPhone) {
-        const contactLine = requesterPhone
-          ? `📱 WhatsApp: wa.me/${requesterPhone}`
-          : requesterProfile?.email
-            ? `📧 E-mail: ${requesterProfile.email}`
-            : `Abra o app: ${APP_URL}/trades`
-
-        const msgToTarget =
-          `✅ Troca aprovada com *${requesterName}*!\n\n` +
-          `📞 *Contato dele(a):*\n${contactLine}\n\n` +
-          `Boa troca de figurinhas! ⚽`
-
-        await sendText(targetPhone, msgToTarget).catch((err: unknown) => {
-          console.error('Error notifying target:', err)
-        })
-      }
-
-      // Email notification to requester
+      // Fire notifications in background (non-blocking)
       const totalTrade = tradeReq.they_have + tradeReq.i_have
-      if (requesterProfile?.email) {
-        const contact = targetPhone ? `wa.me/${targetPhone}` : targetProfile?.email || ''
-        const html = tradeApprovedEmailHtml(targetName, contact, totalTrade, APP_URL)
-        await sendEmail(requesterProfile.email, `🎉 ${targetName} aceitou sua troca!`, html).catch(() => {})
-      }
-      // Email notification to target (self)
-      if (targetProfile?.email) {
-        const contact = requesterPhone ? `wa.me/${requesterPhone}` : requesterProfile?.email || ''
-        const html = tradeApprovedEmailHtml(requesterName, contact, totalTrade, APP_URL)
-        await sendEmail(targetProfile.email, `✅ Troca aprovada com ${requesterName}!`, html).catch(() => {})
-      }
+      const notifyAsync = async () => {
+        const notifications: Promise<unknown>[] = []
 
-      // Push notification to requester: trade approved!
-      await sendPushToUser(tradeReq.requester_id, {
-        title: '🎉 Troca aprovada!',
-        body: `${targetName} aceitou sua troca! Abra o app para ver o contato.`,
-        url: '/trades',
-      }).catch(() => {})
+        // WhatsApp to requester
+        if (requesterPhone) {
+          const contactLine = targetPhone
+            ? `📱 WhatsApp: wa.me/${targetPhone}`
+            : targetProfile?.email
+              ? `📧 E-mail: ${targetProfile.email}`
+              : `Abra o app: ${APP_URL}/trades`
+
+          const msgToRequester =
+            `🎉 *Troca aprovada!*\n\n` +
+            `*${targetName}* aceitou sua solicitação de troca!\n\n` +
+            `📊 Potencial: ${totalTrade} figurinhas\n` +
+            `   • ${tradeReq.they_have} que você precisa\n` +
+            `   • ${tradeReq.i_have} que você tem pra dar\n\n` +
+            `📞 *Contato:*\n${contactLine}\n\n` +
+            `Boa troca de figurinhas! ⚽`
+
+          notifications.push(sendText(requesterPhone, msgToRequester))
+        }
+
+        // WhatsApp to target
+        if (targetPhone) {
+          const contactLine = requesterPhone
+            ? `📱 WhatsApp: wa.me/${requesterPhone}`
+            : requesterProfile?.email
+              ? `📧 E-mail: ${requesterProfile.email}`
+              : `Abra o app: ${APP_URL}/trades`
+
+          const msgToTarget =
+            `✅ Troca aprovada com *${requesterName}*!\n\n` +
+            `📞 *Contato dele(a):*\n${contactLine}\n\n` +
+            `Boa troca de figurinhas! ⚽`
+
+          notifications.push(sendText(targetPhone, msgToTarget))
+        }
+
+        // Email to requester
+        if (requesterProfile?.email) {
+          const contact = targetPhone ? `wa.me/${targetPhone}` : targetProfile?.email || ''
+          const html = tradeApprovedEmailHtml(targetName, contact, totalTrade, APP_URL)
+          notifications.push(sendEmail(requesterProfile.email, `🎉 ${targetName} aceitou sua troca!`, html))
+        }
+
+        // Email to target
+        if (targetProfile?.email) {
+          const contact = requesterPhone ? `wa.me/${requesterPhone}` : requesterProfile?.email || ''
+          const html = tradeApprovedEmailHtml(requesterName, contact, totalTrade, APP_URL)
+          notifications.push(sendEmail(targetProfile.email, `✅ Troca aprovada com ${requesterName}!`, html))
+        }
+
+        // Push notification to requester
+        notifications.push(sendPushToUser(tradeReq.requester_id, {
+          title: '🎉 Troca aprovada!',
+          body: `${targetName} aceitou sua troca! Abra o app para ver o contato.`,
+          url: '/trades',
+        }))
+
+        await Promise.allSettled(notifications)
+      }
+      notifyAsync().catch(err => console.error('Async approve notification error:', err))
 
       return NextResponse.json({
         ok: true,
@@ -210,21 +216,33 @@ export async function POST(req: NextRequest) {
     // Rejected — notify requester
     if (action === 'reject') {
       const [{ data: requesterProfile }, { data: targetProfile }] = await Promise.all([
-        admin.from('profiles').select('display_name, phone').eq('id', tradeReq.requester_id).single(),
+        admin.from('profiles').select('display_name, phone, email').eq('id', tradeReq.requester_id).single(),
         admin.from('profiles').select('display_name').eq('id', tradeReq.target_id).single(),
       ])
 
       const requesterPhone = requesterProfile?.phone ? formatPhone(requesterProfile.phone) : null
       const targetName = targetProfile?.display_name?.split(' ')[0] || 'O usuário'
 
-      if (requesterPhone) {
-        await sendText(
-          requesterPhone,
-          `😕 *${targetName}* preferiu não trocar dessa vez.\n\nTente outros colecionadores na página de trocas:\n${APP_URL}/trades`
-        ).catch((err: unknown) => {
-          console.error('Error notifying requester about rejection:', err)
-        })
+      // Fire notifications in background (non-blocking)
+      const notifyRejectAsync = async () => {
+        const notifications: Promise<unknown>[] = []
+
+        if (requesterPhone) {
+          notifications.push(sendText(
+            requesterPhone,
+            `😕 *${targetName}* preferiu não trocar dessa vez.\n\nTente outros colecionadores na página de trocas:\n${APP_URL}/trades`
+          ))
+        }
+
+        // Email fallback (send if no phone available)
+        if (requesterProfile?.email && !requesterPhone) {
+          const html = tradeRejectedEmailHtml(targetName)
+          notifications.push(sendEmail(requesterProfile.email, `😕 ${targetName} preferiu não trocar dessa vez`, html))
+        }
+
+        await Promise.allSettled(notifications)
       }
+      notifyRejectAsync().catch(err => console.error('Async reject notification error:', err))
 
       return NextResponse.json({ ok: true, status: 'rejected' })
     }

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, formatPhone } from '@/lib/zapi'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
+import { backgroundHealthPing } from '@/lib/health-ping'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -47,31 +48,28 @@ Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
 "o que tenho repetido" → duplicates, "repetidas" → duplicates, "duplicatas" → duplicates,
 "trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades.`
 
-// ─── Sticker scan prompt (same as /api/scan) ───
-const SCAN_INSTRUCTION = `Você é um scanner de figurinhas de álbuns Panini de Copa do Mundo (qualquer edição: 2022, 2026, etc).
+// ─── Sticker scan prompt (same as /api/whatsapp/scan) ───
+const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini de Copa do Mundo FIFA (qualquer edição: Qatar 2022, 2026, etc).
 
-Você pode receber:
-1. Uma foto de uma PÁGINA INTEIRA do álbum — identifique todos os slots visíveis.
-2. Uma foto de uma FIGURINHA INDIVIDUAL (solta, fora do álbum) — identifique o número, jogador e país.
+COMO LER UMA FIGURINHA PANINI:
+- O NOME DO JOGADOR está em letras grandes na parte inferior (ex: "NEYMAR JR", "CASEMIRO", "MARQUINHOS")
+- O CÓDIGO DO PAÍS (3 letras) está perto da bandeira (ex: "BRA", "ARG", "FRA")
+- ⚠️ NÃO confunda: ano de 4 dígitos (2010, 2019) = ano de estreia, NÃO é número da figurinha. Altura/peso também NÃO.
+- O NÚMERO DA FIGURINHA tem formato CÓDIGO-NÚMERO (ex: "BRA 17"). Se não conseguir ver, deixe "" — o sistema encontra pelo nome.
 
 REGRAS:
-- "filled": figurinha colada ou figurinha individual fotografada.
-- "empty": espaço vazio no álbum.
-- Confiança < 0.7 se incerto.
-- "unreadable": descreva slots ilegíveis.
-- scan_confidence: qualidade geral da imagem.
-- Ignore decorações. Países em Português.
-- Para figurinha individual: retorne apenas 1 item no array stickers com status "filled".
-- Use o número EXATO impresso na figurinha (ex: FWC-1, QAT-1, BRA-10, ARG-12).
-- NÃO invente números. Leia o que está impresso.
-- CRÍTICO: Leia o nome EXATO impresso na figurinha. NÃO adivinhe — "MARQUINHOS" NÃO é "NEYMAR JR". Cada jogador tem um nome único.
+- CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO".
+- O NOME é o identificador principal.
+- Emblemas/escudos (CBF, AFA, FFF) → player_name "Emblem"
+- Fotos de time → player_name "Team Photo"
+- Países em Português.
 
-Retorne APENAS JSON válido neste formato:
+Retorne APENAS JSON:
 {
   "pages_detected": 1,
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Alisson", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"number": "", "player_name": "Neymar Jr", "country": "Brasil", "status": "filled", "confidence": 0.95}
   ],
   "unreadable": [],
   "warnings": []
@@ -304,7 +302,7 @@ async function saveScannedStickersFromList(userId: string, dbStickers: { id: num
  * Replaces the old N-query-per-sticker loop.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function batchSaveStickers(supabase: any, userId: string, stickers: { sticker_id: number; number: string }[]) {
+async function batchSaveStickers(supabase: any, userId: string, stickers: { sticker_id: number; number: string; quantity?: number }[]) {
   if (stickers.length === 0) return { saved: 0, numbers: [] }
 
   // 1. Single query: fetch existing stickers for this user
@@ -323,16 +321,17 @@ async function batchSaveStickers(supabase: any, userId: string, stickers: { stic
   const now = new Date().toISOString()
 
   for (const sticker of stickers) {
+    const qty = sticker.quantity || 1
     const ex = existingMap.get(sticker.sticker_id) as { status: string; quantity: number } | undefined
     if (!ex) {
-      toInsert.push({ user_id: userId, sticker_id: sticker.sticker_id, status: 'owned', quantity: 1 })
-      savedNumbers.push(sticker.number)
+      toInsert.push({ user_id: userId, sticker_id: sticker.sticker_id, status: qty > 1 ? 'duplicate' : 'owned', quantity: qty })
+      savedNumbers.push(qty > 1 ? `${sticker.number} (x${qty})` : sticker.number)
     } else if (ex.status === 'owned') {
-      toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: 2 })
-      savedNumbers.push(`${sticker.number} (rep)`)
+      toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: ex.quantity + qty })
+      savedNumbers.push(`${sticker.number} (rep${qty > 1 ? ` x${ex.quantity + qty}` : ''})`)
     } else if (ex.status === 'duplicate') {
-      toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: ex.quantity + 1 })
-      savedNumbers.push(`${sticker.number} (rep x${ex.quantity + 1})`)
+      toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: ex.quantity + qty })
+      savedNumbers.push(`${sticker.number} (rep x${ex.quantity + qty})`)
     }
   }
 
@@ -413,6 +412,27 @@ async function downloadImage(url: string, messageId?: string): Promise<{ base64:
   }
 }
 
+// ─── Cleanup expired pending scans (fire-and-forget, throttled) ───
+let lastCleanup = 0
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000 // 10 minutes
+
+function cleanupExpiredScans() {
+  const now = Date.now()
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return
+  lastCleanup = now
+
+  const supabase = getAdmin()
+  supabase
+    .from('pending_scans')
+    .delete()
+    .lt('expires_at', new Date().toISOString())
+    .then(({ error, count }) => {
+      if (error) console.error('[cleanup] Failed to delete expired scans:', error.message)
+      else if (count && count > 0) console.log(`[cleanup] Deleted ${count} expired pending scans`)
+    })
+    .catch(() => {}) // fire-and-forget
+}
+
 // ─── Dedup: avoid processing same message twice (Map with TTL) ───
 const recentMessages = new Map<string, number>()
 const DEDUP_TTL_MS = 5 * 60 * 1000 // 5 minutes
@@ -438,6 +458,11 @@ function isDuplicate(messageId: string): boolean {
 
 // ─── Main webhook handler ───
 export async function POST(req: NextRequest) {
+  backgroundHealthPing() // fire-and-forget system monitor
+
+  // Cleanup expired pending scans (fire-and-forget, max once per 10 min)
+  cleanupExpiredScans()
+
   // Rate limit by IP
   const rlResponse = await checkRateLimit(getIp(req), webhookLimiter)
   if (rlResponse) return rlResponse
@@ -561,12 +586,17 @@ export async function POST(req: NextRequest) {
           .order('created_at', { ascending: true })
 
         if (allPending && allPending.length > 0) {
-          // Merge all pending scans into one list, dedup by sticker_id
-          const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string }>()
+          // Merge all pending scans into one list, summing quantities for same sticker
+          const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
           for (const pending of allPending) {
-            const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string }>
+            const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity?: number }>
             for (const s of scanData) {
-              allStickers.set(s.sticker_id, s)
+              const existing = allStickers.get(s.sticker_id)
+              if (existing) {
+                existing.quantity += (s.quantity || 1)
+              } else {
+                allStickers.set(s.sticker_id, { ...s, quantity: s.quantity || 1 })
+              }
             }
           }
           const mergedStickers = Array.from(allStickers.values())
@@ -575,7 +605,7 @@ export async function POST(req: NextRequest) {
           const { saved, numbers: savedNumbers } = await batchSaveStickers(
             supabaseAdmin,
             user.id,
-            mergedStickers.map((s) => ({ sticker_id: s.sticker_id, number: s.number }))
+            mergedStickers.map((s) => ({ sticker_id: s.sticker_id, number: s.number, quantity: s.quantity }))
           )
           const savedLines = savedNumbers.map((n) => `• ${n}`)
 
@@ -585,7 +615,8 @@ export async function POST(req: NextRequest) {
           // Get updated stats
           const stats = await getUserStats(user.id)
 
-          let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
+          const fromPhotos = allPending.length > 1 ? ` (de ${allPending.length} fotos)` : ''
+          let reply = `✅ *${saved} figurinha(s) registrada(s)!*${fromPhotos}\n\n`
           reply += savedLines.join('\n') + '\n\n'
           reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
 
@@ -605,7 +636,7 @@ export async function POST(req: NextRequest) {
 
         if (allPending && allPending.length > 0) {
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
-          await sendText(phone, `❌ ${allPending.length} scan(s) cancelado(s). Mande outra foto para tentar novamente! 📸`)
+          await sendText(phone, `❌ ${allPending.length} foto(s) cancelada(s). Nada foi registrado.\nMande outra foto para tentar novamente! 📸`)
           return NextResponse.json({ ok: true })
         }
       }
@@ -677,7 +708,9 @@ export async function POST(req: NextRequest) {
               .join('\n')
             await sendText(
               phone,
-              `🔁 *Suas repetidas* (${dupes.length} figurinhas):\n\n${list}`
+              `🔁 *Suas repetidas* (${dupes.length} figurinhas):\n\n${list}\n\n` +
+              `📲 Lista gerada pelo *Complete Aí* — completeai.com.br\n` +
+              `Escaneie suas figurinhas com IA e complete seu álbum mais rápido!`
             )
           }
           break

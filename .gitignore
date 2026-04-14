@@ -34,3 +34,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test scripts (local only)
+test-scan.mjs
+scripts/test-*.mjs
+scripts/measure-*.mjs
+
+# claude artifacts
+.agents/
+supabase/.temp/
+public/.next/

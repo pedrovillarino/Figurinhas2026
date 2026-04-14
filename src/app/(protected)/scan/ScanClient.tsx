@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 
@@ -12,6 +12,8 @@ type MatchedSticker = {
   player_name: string | null
   country: string
   status: string // filled | empty
+  confidence: number // 0.0 to 1.0
+  quantity: number // how many of this sticker were detected (≥1)
 }
 
 type ScanResponse = {
@@ -33,10 +35,43 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
   const [saving, setSaving] = useState(false)
   const [batchIndex, setBatchIndex] = useState(0)
   const [batchTotal, setBatchTotal] = useState(0)
+  const [offlineQueued, setOfflineQueued] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
-  function compressImage(dataUrl: string, maxWidth = 800): Promise<string> {
+  // Process offline scan queue when coming back online
+  useEffect(() => {
+    function processQueue() {
+      navigator.serviceWorker?.controller?.postMessage({ type: 'PROCESS_SCAN_QUEUE' })
+    }
+    function handleSwMessage(event: MessageEvent) {
+      if (event.data?.type === 'SCAN_QUEUE_RESULTS') {
+        const { results, remaining } = event.data
+        setOfflineQueued(remaining)
+        if (results.length > 0) {
+          // Show the last result
+          const lastResult = results[results.length - 1] as ScanResponse
+          if (lastResult.matched?.length > 0) {
+            setScanResult(lastResult)
+            const initial: Record<number, boolean> = {}
+            lastResult.matched.forEach((s: MatchedSticker) => { initial[s.sticker_id] = s.status === 'filled' })
+            setChecked(initial)
+            setState('results')
+          }
+        }
+      }
+    }
+    window.addEventListener('online', processQueue)
+    navigator.serviceWorker?.addEventListener('message', handleSwMessage)
+    // Check queue on mount
+    if (navigator.onLine) processQueue()
+    return () => {
+      window.removeEventListener('online', processQueue)
+      navigator.serviceWorker?.removeEventListener('message', handleSwMessage)
+    }
+  }, [])
+
+  function compressImage(dataUrl: string, maxWidth = 1600): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
@@ -46,7 +81,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         canvas.height = img.height * ratio
         const ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.6))
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
       }
       img.src = dataUrl
     })
@@ -92,10 +127,17 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
       }
     }
 
-    // Deduplicate by sticker_id, keeping last occurrence
-    const deduped = accumulated.filter(
-      (s, idx, arr) => arr.findLastIndex((x) => x.sticker_id === s.sticker_id) === idx
-    )
+    // Deduplicate by sticker_id, summing quantities
+    const dedupMap = new Map<number, MatchedSticker>()
+    for (const s of accumulated) {
+      const existing = dedupMap.get(s.sticker_id)
+      if (existing) {
+        existing.quantity = (existing.quantity || 1) + (s.quantity || 1)
+      } else {
+        dedupMap.set(s.sticker_id, { ...s, quantity: s.quantity || 1 })
+      }
+    }
+    const deduped = Array.from(dedupMap.values())
 
     const result: ScanResponse = { matched: deduped, unmatched: [], warnings: accWarnings, confidence: 'high' }
     setScanResult(result)
@@ -138,24 +180,59 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         body: JSON.stringify({ image: base64, mimeType }),
       })
 
-      const data = await res.json()
+      // Handle empty or invalid responses gracefully
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any
+      try {
+        const text = await res.text()
+        data = text ? JSON.parse(text) : null
+      } catch {
+        data = null
+      }
 
-      if (!res.ok) {
-        setErrorMsg(data.error || 'Erro ao processar scan')
+      // Server returned empty/crashed response
+      if (!res.ok && !data) {
+        setErrorMsg('O servidor não conseguiu processar o scan. Tente novamente em instantes.')
         setState('error')
         return
       }
 
-      setScanResult(data)
+      // Queued offline
+      if (data?.queued) {
+        setOfflineQueued((prev) => prev + 1)
+        setErrorMsg(data.message || 'Scan salvo para quando voltar online.')
+        setState('error')
+        return
+      }
+
+      if (!res.ok) {
+        setErrorMsg(data?.error || 'Erro ao processar scan')
+        setState('error')
+        return
+      }
+
+      setScanResult(data as ScanResponse)
       // Pre-check all "filled" stickers
       const initial: Record<number, boolean> = {}
-      data.matched.forEach((s: MatchedSticker) => {
+      ;(data as ScanResponse).matched.forEach((s: MatchedSticker) => {
         initial[s.sticker_id] = s.status === 'filled'
       })
       setChecked(initial)
       setState('results')
-    } catch {
-      setErrorMsg('Falha na conexão. Verifique sua internet.')
+    } catch (err) {
+      // Distinguish real network errors from other failures
+      const isOffline = !navigator.onLine
+      const isNetworkError = err instanceof TypeError && (
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('NetworkError') ||
+        err.message.includes('Load failed')
+      )
+
+      if (isOffline || isNetworkError) {
+        setErrorMsg('Sem conexão com a internet. Verifique seu Wi-Fi ou dados móveis.')
+      } else {
+        setErrorMsg('Erro inesperado ao processar o scan. Tente novamente em instantes.')
+      }
       setState('error')
     }
   }
@@ -173,6 +250,8 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
     const toSave = scanResult.matched.filter((s) => checked[s.sticker_id])
 
     for (const sticker of toSave) {
+      const qty = sticker.quantity || 1
+
       const { data: existing } = await supabase
         .from('user_stickers')
         .select('id, status, quantity')
@@ -182,25 +261,34 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
 
       if (existing) {
         if (existing.status === 'owned') {
-          // Already owned → make duplicate, increment quantity
+          // Already owned → make duplicate, add scanned quantity
           await supabase
             .from('user_stickers')
-            .update({ status: 'duplicate', quantity: existing.quantity + 1, updated_at: new Date().toISOString() })
+            .update({ status: 'duplicate', quantity: existing.quantity + qty, updated_at: new Date().toISOString() })
             .eq('id', existing.id)
-        }
-        // If already duplicate or missing, mark as owned
-        if (existing.status === 'missing') {
+        } else if (existing.status === 'duplicate') {
+          // Already duplicate → just increment quantity
           await supabase
             .from('user_stickers')
-            .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() })
+            .update({ quantity: existing.quantity + qty, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+        } else if (existing.status === 'missing') {
+          // Was missing → now owned (qty=1 means owned, qty>1 means has extras)
+          await supabase
+            .from('user_stickers')
+            .update({
+              status: qty > 1 ? 'duplicate' : 'owned',
+              quantity: qty,
+              updated_at: new Date().toISOString(),
+            })
             .eq('id', existing.id)
         }
       } else {
         await supabase.from('user_stickers').insert({
           user_id: userId,
           sticker_id: sticker.sticker_id,
-          status: 'owned',
-          quantity: 1,
+          status: qty > 1 ? 'duplicate' : 'owned',
+          quantity: qty,
         })
       }
     }
@@ -239,6 +327,16 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         <p className="text-[13px] text-gray-400 mb-4">
           Fotografe ou escolha da galeria para registrar automaticamente.
         </p>
+
+        {/* Offline queue banner */}
+        {offlineQueued > 0 && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 mb-4 animate-pulse">
+            <span className="text-sm">📶</span>
+            <p className="text-[11px] text-amber-700 flex-1">
+              <strong>{offlineQueued}</strong> scan{offlineQueued > 1 ? 's' : ''} na fila — ser{offlineQueued > 1 ? 'ão' : 'á'} processado{offlineQueued > 1 ? 's' : ''} quando voltar online
+            </p>
+          </div>
+        )}
 
         {/* Camera input (hidden) */}
         <input
@@ -490,17 +588,34 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
                     )}
                   </div>
                   <span className="text-lg">{getFlag(sticker.country)}</span>
-                  <div className="text-left flex-1">
-                    <p className="text-sm font-semibold">{sticker.number}</p>
-                    <p className="text-xs text-gray-500">{sticker.player_name || sticker.country}</p>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-sm font-semibold">
+                      {sticker.number}
+                      {(sticker.quantity || 1) > 1 && (
+                        <span className="ml-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">x{sticker.quantity}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{sticker.player_name || sticker.country}</p>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    sticker.status === 'filled'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {sticker.status === 'filled' ? 'Colada' : 'Vazia'}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Confidence badge */}
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                      sticker.confidence >= 0.85
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : sticker.confidence >= 0.6
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
+                    }`}>
+                      {sticker.confidence >= 0.85 ? '✓' : sticker.confidence >= 0.6 ? '~' : '?'} {Math.round(sticker.confidence * 100)}%
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      sticker.status === 'filled'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {sticker.status === 'filled' ? 'Colada' : 'Vazia'}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
