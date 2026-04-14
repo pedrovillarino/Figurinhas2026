@@ -6,9 +6,10 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: {
+        path: '/',
         maxAge: 60 * 60 * 24 * 365, // 1 year
-        sameSite: 'lax',
-        secure: true,
+        sameSite: 'lax' as const,
+        secure: process.env.NODE_ENV === 'production',
       },
     }
   )

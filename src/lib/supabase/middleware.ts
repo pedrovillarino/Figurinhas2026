@@ -7,9 +7,10 @@ export async function updateSession(request: NextRequest) {
   })
 
   const cookieOptions = {
+    path: '/',
     maxAge: 60 * 60 * 24 * 365, // 1 year
     sameSite: 'lax' as const,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
   }
 
   const supabase = createServerClient(

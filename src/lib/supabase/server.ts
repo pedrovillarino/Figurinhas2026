@@ -5,9 +5,10 @@ export function createClient() {
   const cookieStore = cookies()
 
   const cookieOpts = {
+    path: '/',
     maxAge: 60 * 60 * 24 * 365,
     sameSite: 'lax' as const,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
   }
 
   return createServerClient(

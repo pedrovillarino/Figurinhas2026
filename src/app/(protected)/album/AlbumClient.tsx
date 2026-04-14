@@ -616,38 +616,40 @@ export default function AlbumClient({
         href="https://wa.me/5521966791113?text=oi"
         target="_blank"
         rel="noopener noreferrer"
-        className="block mt-6 rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 active:scale-[0.99] transition-transform shadow-sm"
+        className="block mt-6 rounded-2xl border border-emerald-100 bg-white p-4 active:scale-[0.99] transition-transform shadow-sm"
       >
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-            <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
               <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold text-white leading-tight">Use pelo WhatsApp</p>
-            <p className="text-[11px] text-emerald-100 mt-1.5 leading-relaxed">
-              Mande uma foto e a IA registra suas figurinhas direto no chat — sem abrir o app!
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-white bg-white/15 rounded-full px-2.5 py-1">
-                <span>📸</span> Escanear figurinhas
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-white bg-white/15 rounded-full px-2.5 py-1">
-                <span>📋</span> Ver faltantes
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-white bg-white/15 rounded-full px-2.5 py-1">
-                <span>📊</span> Progresso do álbum
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-white bg-white/15 rounded-full px-2.5 py-1">
-                <span>🔔</span> Alertas de trocas
-              </span>
-            </div>
+            <p className="text-sm font-bold text-gray-800 leading-tight">Use pelo WhatsApp</p>
+            <p className="text-[11px] text-gray-500">Mande uma foto e a IA registra tudo</p>
           </div>
-          <svg className="w-5 h-5 text-white/50 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-2.5 py-2">
+            <span className="text-sm">📸</span>
+            <span className="text-[10px] font-medium text-emerald-700">Escanear figurinhas</span>
+          </div>
+          <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-2.5 py-2">
+            <span className="text-sm">📋</span>
+            <span className="text-[10px] font-medium text-emerald-700">Ver faltantes</span>
+          </div>
+          <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-2.5 py-2">
+            <span className="text-sm">📊</span>
+            <span className="text-[10px] font-medium text-emerald-700">Progresso do álbum</span>
+          </div>
+          <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-2.5 py-2">
+            <span className="text-sm">🔔</span>
+            <span className="text-[10px] font-medium text-emerald-700">Alertas de trocas</span>
+          </div>
         </div>
       </a>
 

@@ -3,6 +3,7 @@ import AppHeader from '@/components/AppHeader'
 import InstallBanner from '@/components/InstallBanner'
 import PushPermission from '@/components/PushPermission'
 import ReferralApplier from '@/components/ReferralApplier'
+import AuthRefresh from '@/components/AuthRefresh'
 
 export default function ProtectedLayout({
   children,
@@ -16,6 +17,7 @@ export default function ProtectedLayout({
       <InstallBanner />
       <PushPermission />
       <ReferralApplier />
+      <AuthRefresh />
       <footer>
         <BottomNav />
       </footer>
