@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs'
+
 /** @type {import('next').NextConfig} */
 
 const securityHeaders = [
@@ -12,7 +14,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com",
       "font-src 'self' data:",
       // connect-src: Supabase, Google auth, Stripe, Gemini AI, Z-API (WhatsApp), Vercel Analytics, push subscriptions
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.ingest.sentry.io",
       // frame-src: Stripe checkout iframe, Google login popup
       "frame-src https://*.stripe.com https://accounts.google.com",
       "frame-ancestors 'none'",
@@ -46,4 +48,21 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Sentry options
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+
+  // Upload source maps for better stack traces
+  widenClientFileUpload: true,
+
+  // Hide source maps from users
+  hideSourceMaps: true,
+
+  // Tree-shake Sentry logger statements
+  disableLogger: true,
+
+  // Auto-instrument server functions
+  automaticVercelMonitors: true,
+});

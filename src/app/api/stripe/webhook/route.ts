@@ -161,6 +161,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
+  // ── Idempotency: skip already-processed events ──
+  const supabaseAdmin = getAdminClient()
+  const { data: existingEvent } = await supabaseAdmin
+    .from('processed_stripe_events')
+    .select('id')
+    .eq('event_id', event.id)
+    .maybeSingle()
+
+  if (existingEvent) {
+    console.log(`Stripe event ${event.id} already processed, skipping`)
+    return NextResponse.json({ received: true, duplicate: true })
+  }
+
+  // Mark event as processing (ignore insert conflict = another instance got it first)
+  const { error: insertError } = await supabaseAdmin
+    .from('processed_stripe_events')
+    .insert({ event_id: event.id, event_type: event.type })
+
+  if (insertError?.code === '23505') {
+    // Unique constraint violation — another instance processed it
+    console.log(`Stripe event ${event.id} claimed by another instance`)
+    return NextResponse.json({ received: true, duplicate: true })
+  }
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
 
