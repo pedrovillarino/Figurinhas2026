@@ -401,6 +401,12 @@ export async function POST(request: NextRequest) {
     const unmatched: string[] = []
     const seenIds = new Set<number>()
 
+    // Detect image quality from base64 size (small image = low quality)
+    const imageSizeKB = image.length * 0.75 / 1024
+    const serverQuality: 'high' | 'medium' | 'low' =
+      imageSizeKB < 50 ? 'low' : imageSizeKB < 150 ? 'medium' : 'high'
+    const qualityPenalty = serverQuality === 'low' ? 0.7 : serverQuality === 'medium' ? 0.85 : 1.0
+
     for (const detected of stickersArr) {
       const playerName = detected.player_name || ''
       const countryCode = (detected.country_code || detected.country || '').toUpperCase().trim()
@@ -408,10 +414,12 @@ export async function POST(request: NextRequest) {
       const normPlayer = normalizeName(playerName)
 
       let dbSticker: CachedSticker | null = null
+      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' = 'fuzzy_cross_country'
 
       // ── Priority 1: Match by sticker number (e.g., back of sticker shows "BRA-10") ──
       if (stickerNumber) {
         dbSticker = findByNumber(stickerNumber, numberMap)
+        if (dbSticker) matchType = 'number'
       }
 
       // ── Priority 2: Match by player name + country ──
@@ -420,7 +428,17 @@ export async function POST(request: NextRequest) {
           // Try exact country code
           const countryMap = nameByCountry.get(countryCode)
           if (countryMap) {
-            dbSticker = countryMap.get(normPlayer) || fuzzyNameMatch(normPlayer, countryMap)
+            const exactMatch = countryMap.get(normPlayer)
+            if (exactMatch) {
+              dbSticker = exactMatch
+              matchType = 'exact_name_country'
+            } else {
+              const fuzzyMatch = fuzzyNameMatch(normPlayer, countryMap)
+              if (fuzzyMatch) {
+                dbSticker = fuzzyMatch
+                matchType = 'fuzzy_name_country'
+              }
+            }
           }
           // Try country name → code mapping
           if (!dbSticker) {
@@ -428,7 +446,17 @@ export async function POST(request: NextRequest) {
             if (mappedCode) {
               const mappedMap = nameByCountry.get(mappedCode)
               if (mappedMap) {
-                dbSticker = mappedMap.get(normPlayer) || fuzzyNameMatch(normPlayer, mappedMap)
+                const exactMatch = mappedMap.get(normPlayer)
+                if (exactMatch) {
+                  dbSticker = exactMatch
+                  matchType = 'exact_name_country'
+                } else {
+                  const fuzzyMatch = fuzzyNameMatch(normPlayer, mappedMap)
+                  if (fuzzyMatch) {
+                    dbSticker = fuzzyMatch
+                    matchType = 'fuzzy_name_country'
+                  }
+                }
               }
             }
           }
@@ -436,7 +464,11 @@ export async function POST(request: NextRequest) {
 
         // Flat name match (ignore country)
         if (!dbSticker) {
-          dbSticker = nameFlat.get(normPlayer) || null
+          const flatMatch = nameFlat.get(normPlayer)
+          if (flatMatch) {
+            dbSticker = flatMatch
+            matchType = 'exact_name_flat'
+          }
         }
 
         // Fuzzy match across all countries
@@ -444,7 +476,10 @@ export async function POST(request: NextRequest) {
           nameByCountry.forEach((countryMap) => {
             if (!dbSticker) {
               const found = fuzzyNameMatch(normPlayer, countryMap)
-              if (found) { dbSticker = found }
+              if (found) {
+                dbSticker = found
+                matchType = 'fuzzy_cross_country'
+              }
             }
           })
         }
@@ -452,6 +487,17 @@ export async function POST(request: NextRequest) {
 
       // Skip if we have nothing to match on
       if (!dbSticker && !normPlayer && !stickerNumber) continue
+
+      // ── Calculate server-side confidence (DON'T trust Gemini's self-reported value) ──
+      const matchConfidence: Record<string, number> = {
+        number: 0.97,                // Sticker number match = near certain
+        exact_name_country: 0.92,    // Exact name + right country = very good
+        fuzzy_name_country: 0.72,    // Fuzzy name + right country = decent
+        exact_name_flat: 0.75,       // Exact name, no country verification = decent
+        fuzzy_cross_country: 0.50,   // Fuzzy name, wrong/no country = risky
+      }
+      const baseConfidence = matchConfidence[matchType] || 0.5
+      const finalConfidence = Math.round(baseConfidence * qualityPenalty * 100) / 100
 
       if (dbSticker) {
         if (!seenIds.has(dbSticker.id)) {
@@ -462,7 +508,7 @@ export async function POST(request: NextRequest) {
             player_name: dbSticker.player_name,
             country: dbSticker.country,
             status: detected.status || 'filled',
-            confidence: typeof detected.confidence === 'number' ? detected.confidence : 0.8,
+            confidence: finalConfidence,
             quantity: 1,
           })
         } else {
@@ -470,7 +516,7 @@ export async function POST(request: NextRequest) {
           const existing = matched.find((m) => m.sticker_id === dbSticker!.id)
           if (existing) existing.quantity = (existing.quantity || 1) + 1
         }
-        console.log(`[scan] ✓ "${playerName || stickerNumber}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name}`)
+        console.log(`[scan] ✓ "${playerName || stickerNumber}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name} [${matchType}, ${finalConfidence}]`)
       } else if (!normPlayer && !stickerNumber) {
         // Skip — nothing to match on
       } else {
@@ -491,33 +537,24 @@ export async function POST(request: NextRequest) {
       warnings.push('Nenhuma figurinha pôde ser associada ao álbum. Verifique se as figurinhas são da Copa 2022.')
     }
 
-    const scanConf = parsed.scan_confidence as number | undefined
-    const imageQuality = (parsed.image_quality as string) || 'high'
-
-    // ── Post-process: adjust individual confidence based on overall image quality ──
-    // Gemini tends to over-report confidence. Apply a ceiling based on image quality.
-    const qualityCeiling = imageQuality === 'low' ? 0.65 : imageQuality === 'medium' ? 0.85 : 1.0
-    const scanConfFactor = scanConf && scanConf < 0.8 ? scanConf : 1.0
-
-    for (const m of matched) {
-      // Cap confidence by image quality ceiling
-      m.confidence = Math.min(m.confidence, qualityCeiling)
-      // Further reduce by scan_confidence if it's low
-      m.confidence = Math.round(m.confidence * scanConfFactor * 100) / 100
-    }
-
-    if (imageQuality === 'low') {
+    if (serverQuality === 'low') {
       warnings.push('Foto com pouca qualidade — confira cada figurinha antes de salvar.')
-    } else if (scanConf && scanConf < 0.6) {
-      warnings.push('Qualidade da foto baixa. Confira os resultados com atenção.')
     }
+
+    // Log confidence distribution for monitoring
+    const confDist = matched.reduce((acc, m) => {
+      const bucket = m.confidence >= 0.85 ? 'high' : m.confidence >= 0.6 ? 'medium' : 'low'
+      acc[bucket] = (acc[bucket] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    console.log(`[scan] Confidence: ${JSON.stringify(confDist)}, imageQuality: ${serverQuality} (${imageSizeKB.toFixed(0)}KB)`)
 
     return NextResponse.json({
       matched,
       unmatched,
       warnings,
-      confidence: scanConf || 'high',
-      imageQuality,
+      confidence: serverQuality,
+      imageQuality: serverQuality,
       scanUsage: scansRemaining !== null
         ? { remaining: scansRemaining, limit: usageData?.limit ?? tierScanLimit }
         : undefined,
