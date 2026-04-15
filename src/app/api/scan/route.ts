@@ -491,10 +491,10 @@ export async function POST(request: NextRequest) {
       // ── Calculate server-side confidence (DON'T trust Gemini's self-reported value) ──
       const matchConfidence: Record<string, number> = {
         number: 0.97,                // Sticker number match = near certain
-        exact_name_country: 0.92,    // Exact name + right country = very good
-        fuzzy_name_country: 0.72,    // Fuzzy name + right country = decent
-        exact_name_flat: 0.75,       // Exact name, no country verification = decent
-        fuzzy_cross_country: 0.50,   // Fuzzy name, wrong/no country = risky
+        exact_name_country: 0.95,    // Exact name + right country = very good
+        fuzzy_name_country: 0.80,    // Fuzzy name + right country = good
+        exact_name_flat: 0.82,       // Exact name, no country verification = good
+        fuzzy_cross_country: 0.60,   // Fuzzy name, wrong/no country = acceptable
       }
       const baseConfidence = matchConfidence[matchType] || 0.5
       const finalConfidence = Math.round(baseConfidence * qualityPenalty * 100) / 100

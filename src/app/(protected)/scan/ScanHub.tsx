@@ -14,6 +14,8 @@ type MatchedSticker = {
   player_name: string | null
   country: string
   status: string
+  confidence: number
+  quantity: number
 }
 
 type ScanResponse = {
