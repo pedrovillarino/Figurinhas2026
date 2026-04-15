@@ -173,10 +173,17 @@ export default function ScanHub({
       return
     }
 
-    // If nothing found at all (no limit issue), show empty results
-    const deduped = accumulated.filter(
-      (s, idx, arr) => arr.findLastIndex((x) => x.sticker_id === s.sticker_id) === idx
-    )
+    // Deduplicate by sticker_id, summing quantities across images
+    const dedupMap = new Map<number, MatchedSticker>()
+    for (const s of accumulated) {
+      const existing = dedupMap.get(s.sticker_id)
+      if (existing) {
+        existing.quantity = (existing.quantity || 1) + (s.quantity || 1)
+      } else {
+        dedupMap.set(s.sticker_id, { ...s, quantity: s.quantity || 1 })
+      }
+    }
+    const deduped = Array.from(dedupMap.values())
 
     const result: ScanResponse = { matched: deduped, unmatched: [], warnings: accWarnings, confidence: 'high' }
     setScanResult(result)
@@ -592,7 +599,7 @@ export default function ScanHub({
     return (
       <div className="px-4 pt-6">
         <h1 className="text-2xl font-bold mb-1">Figurinhas Detectadas</h1>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <p className="text-gray-500 text-sm">
             {scanResult.matched.length} encontrada(s). Desmarque as incorretas.
           </p>
@@ -602,6 +609,12 @@ export default function ScanHub({
             </span>
           )}
         </div>
+        <p className="text-[11px] text-gray-400 mb-3">
+          O <span className="font-semibold text-emerald-600">%</span> indica a confiabilidade da IA ao identificar cada figurinha.
+          {scanResult.matched.some((s) => (s.quantity || 1) > 1) && (
+            <> O badge <span className="font-bold text-amber-600">xN</span> indica repetidas detectadas.</>
+          )}
+        </p>
 
         {scanResult.warnings.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
