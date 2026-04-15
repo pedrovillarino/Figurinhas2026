@@ -442,13 +442,13 @@ export default function ScanHub({
         {/* ── Subtle selling banner ── */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
           <span className="text-sm">✨</span>
-          <p className="text-[10px] text-gray-500 flex-1">
+          <p className="text-xs text-gray-600 flex-1">
             1 foto = várias figurinhas detectadas. <span className="text-brand font-medium">Junte até 20 figurinhas na mesa pra aproveitar cada scan!</span>
           </p>
         </div>
 
         {/* ── Disclaimer + privacy ── */}
-        <p className="text-[9px] text-gray-300 px-1 leading-relaxed">
+        <p className="text-[11px] text-gray-400 px-1 leading-relaxed">
           Suas fotos não são armazenadas — descartadas após análise. Fotografe apenas figurinhas, páginas do álbum ou envelopes.
         </p>
 
