@@ -188,7 +188,7 @@ export default function ScanHub({
     const result: ScanResponse = { matched: deduped, unmatched: [], warnings: accWarnings, confidence: 'high' }
     setScanResult(result)
     const initial: Record<number, boolean> = {}
-    deduped.forEach((s) => { initial[s.sticker_id] = s.status === 'filled' })
+    deduped.forEach((s) => { initial[s.sticker_id] = s.status === 'filled' && s.confidence >= 0.6 })
     setChecked(initial)
     setState('results')
   }
@@ -245,7 +245,10 @@ export default function ScanHub({
 
       setScanResult(data)
       const initial: Record<number, boolean> = {}
-      data.matched.forEach((s: MatchedSticker) => { initial[s.sticker_id] = s.status === 'filled' })
+      data.matched.forEach((s: MatchedSticker) => {
+        // Auto-check only stickers with good confidence; low confidence = unchecked by default
+        initial[s.sticker_id] = s.status === 'filled' && s.confidence >= 0.6
+      })
       setChecked(initial)
       setState('results')
     } catch {
@@ -609,10 +612,11 @@ export default function ScanHub({
             </span>
           )}
         </div>
-        <p className="text-[11px] text-gray-400 mb-3">
-          O <span className="font-semibold text-emerald-600">%</span> indica a confiabilidade da IA ao identificar cada figurinha.
+        <p className="text-[11px] text-gray-500 mb-3">
+          O <span className="font-semibold text-emerald-600">✓ %</span> é a confiança da IA na leitura — quanto maior, mais certeza.
+          Figurinhas com confiança baixa ficam <strong>desmarcadas</strong> por padrão.
           {scanResult.matched.some((s) => (s.quantity || 1) > 1) && (
-            <> O badge <span className="font-bold text-amber-600">xN</span> indica repetidas detectadas.</>
+            <> O badge <span className="font-bold text-amber-600">xN</span> indica cópias repetidas detectadas.</>
           )}
         </p>
 

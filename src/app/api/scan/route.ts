@@ -40,27 +40,44 @@ For EACH sticker visible, extract:
 2. "country_code": The 3-letter code. Valid codes: ${VALID_CODES.join(', ')}
 3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
 4. "status": "filled" (actual sticker) or "empty" (empty album slot)
-5. "confidence": 0.0 to 1.0
+5. "confidence": YOUR HONEST confidence 0.0 to 1.0 — see CONFIDENCE RULES below.
 
 Return ONLY valid JSON:
 {
-  "scan_confidence": 0.9,
+  "scan_confidence": 0.7,
+  "image_quality": "high" | "medium" | "low",
   "stickers": [
     {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95},
-    {"player_name": "Lionel Messi", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.90}
+    {"player_name": "Lionel Messi", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.65}
   ],
   "warnings": []
 }
 
-RULES:
+CONFIDENCE RULES — BE HONEST, users rely on this to decide what to save:
+- 0.95+: You can CLEARLY read the full printed name AND country code — sharp image, no doubt.
+- 0.80-0.94: You can read most of the name but some letters are slightly unclear.
+- 0.60-0.79: Image is blurry/small, you're making an educated guess based on partial text or context.
+- 0.40-0.59: You can barely read the text, mostly guessing from uniform color, position, or one visible word.
+- Below 0.40: Do NOT include the sticker — skip it entirely.
+- CRITICAL: If the image is low resolution or blurry, ALL confidences MUST be lower. A blurry photo CANNOT have 0.95 confidence.
+- scan_confidence reflects OVERALL image quality: "low" quality photo → scan_confidence ≤ 0.5.
+- image_quality: "high" = sharp/clear text readable, "medium" = somewhat blurry but names partially readable, "low" = very blurry/small/dark.
+
+DUPLICATE RULES — BE CONSERVATIVE:
+- ONLY report a sticker as duplicate if you can CLEARLY see TWO separate physical copies of the SAME sticker in the image.
+- Each physical copy must be visibly distinct (different position, separate edges visible).
+- If you see ONE sticker and you're not 100% sure there's a second copy, report it ONCE only.
+- NEVER assume duplicates — if in doubt, report ONE copy. The user can scan again.
+- Wrong duplicates are WORSE than missing duplicates for the user.
+
+OTHER RULES:
 - CRITICAL: Read EVERY SINGLE sticker visible — count them first, then list each one. Left-to-right, top-to-bottom.
-- CRITICAL: Read the ACTUAL name printed on the sticker — do NOT guess. Each player has a unique name.
+- CRITICAL: Read the ACTUAL name printed on the sticker — do NOT guess or infer from jersey number. Each player has a unique name.
 - CRITICAL: Emblems/badges showing a country crest (e.g., CBF logo for Brazil, AFA logo for Argentina, FFF logo for France) are stickers too — include them with player_name "Emblem".
-- CRITICAL DUPLICATES: If you see TWO or MORE copies of the SAME sticker (e.g., two "NEYMAR JR" stickers), list EACH copy as a SEPARATE entry in the array. The user collects duplicates for trading — every physical sticker must be one entry. If you see 3 copies of Neymar Jr, your array must have 3 Neymar Jr entries.
 - Player name is the PRIMARY identifier. Getting the name right is more important than the number.
 - If you see the BACK of a sticker, the CODE-NUMBER printed there IS the sticker number.
-- Double-check: if you see 9 physical stickers (including duplicates), your array must have 9 entries.
-- If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
+- If the image is not sticker-related: {"error": "not_album_page", "message": "description"}
+- PREFER skipping a sticker over guessing wrong. A wrong identification hurts the user more than a missed one.`
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
 type CachedSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
@@ -261,7 +278,7 @@ export async function POST(request: NextRequest) {
           data: image,
         },
       },
-      { text: 'Identify ALL physical stickers in this photo. IMPORTANT: if there are DUPLICATE copies of the same player (e.g., two Neymar Jr stickers), list EACH copy separately — the user needs to track how many they have. First COUNT every physical sticker. Then list EVERY one with the EXACT name. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
+      { text: 'Identify ALL physical stickers in this photo. First assess the image quality (high/medium/low). Then COUNT every physical sticker you can see. List EVERY one with the EXACT name printed on the sticker — read carefully, do NOT guess. Be HONEST with confidence scores — blurry/small images CANNOT have 95% confidence. Only report duplicates if you can CLEARLY see two separate physical copies. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
     ]
 
     let responseText = ''
@@ -475,8 +492,24 @@ export async function POST(request: NextRequest) {
     }
 
     const scanConf = parsed.scan_confidence as number | undefined
-    if (scanConf && scanConf < 0.5) {
-      warnings.push('Qualidade da foto baixa. Confira os resultados.')
+    const imageQuality = (parsed.image_quality as string) || 'high'
+
+    // ── Post-process: adjust individual confidence based on overall image quality ──
+    // Gemini tends to over-report confidence. Apply a ceiling based on image quality.
+    const qualityCeiling = imageQuality === 'low' ? 0.65 : imageQuality === 'medium' ? 0.85 : 1.0
+    const scanConfFactor = scanConf && scanConf < 0.8 ? scanConf : 1.0
+
+    for (const m of matched) {
+      // Cap confidence by image quality ceiling
+      m.confidence = Math.min(m.confidence, qualityCeiling)
+      // Further reduce by scan_confidence if it's low
+      m.confidence = Math.round(m.confidence * scanConfFactor * 100) / 100
+    }
+
+    if (imageQuality === 'low') {
+      warnings.push('Foto com pouca qualidade — confira cada figurinha antes de salvar.')
+    } else if (scanConf && scanConf < 0.6) {
+      warnings.push('Qualidade da foto baixa. Confira os resultados com atenção.')
     }
 
     return NextResponse.json({
@@ -484,6 +517,7 @@ export async function POST(request: NextRequest) {
       unmatched,
       warnings,
       confidence: scanConf || 'high',
+      imageQuality,
       scanUsage: scansRemaining !== null
         ? { remaining: scansRemaining, limit: usageData?.limit ?? tierScanLimit }
         : undefined,
