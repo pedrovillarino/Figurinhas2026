@@ -251,7 +251,9 @@ export default function ScanHub({
     setChecked((prev) => ({ ...prev, [stickerId]: !prev[stickerId] }))
   }
 
-  const selectedCount = Object.values(checked).filter(Boolean).length
+  const selectedCount = scanResult
+    ? scanResult.matched.filter((s) => checked[s.sticker_id]).reduce((sum, s) => sum + (s.quantity || 1), 0)
+    : 0
 
   async function handleSave() {
     if (!scanResult) return
@@ -260,6 +262,8 @@ export default function ScanHub({
     const toSave = scanResult.matched.filter((s) => checked[s.sticker_id])
 
     for (const sticker of toSave) {
+      const qty = sticker.quantity || 1
+
       const { data: existing } = await supabase
         .from('user_stickers')
         .select('id, status, quantity')
@@ -268,22 +272,28 @@ export default function ScanHub({
         .single()
 
       if (existing) {
-        if (existing.status === 'owned' || existing.status === 'duplicate') {
-          // Already owned — increment quantity and mark as duplicate
+        if (existing.status === 'owned') {
+          // Already owned → make duplicate, add scanned quantity
           await supabase.from('user_stickers')
-            .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + 1, updated_at: new Date().toISOString() })
+            .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + qty, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+        } else if (existing.status === 'duplicate') {
+          // Already duplicate → just increment quantity
+          await supabase.from('user_stickers')
+            .update({ quantity: (existing.quantity ?? 1) + qty, updated_at: new Date().toISOString() })
             .eq('id', existing.id)
         } else if (existing.status === 'missing') {
+          // Was missing → now owned (qty=1) or duplicate (qty>1)
           await supabase.from('user_stickers')
-            .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() })
+            .update({ status: qty > 1 ? 'duplicate' : 'owned', quantity: qty, updated_at: new Date().toISOString() })
             .eq('id', existing.id)
         }
       } else {
         await supabase.from('user_stickers').insert({
           user_id: userId,
           sticker_id: sticker.sticker_id,
-          status: 'owned',
-          quantity: 1,
+          status: qty > 1 ? 'duplicate' : 'owned',
+          quantity: qty,
         })
       }
     }
@@ -294,7 +304,8 @@ export default function ScanHub({
       .eq('user_id', userId)
       .in('status', ['owned', 'duplicate'])
 
-    setSavedCount(toSave.length)
+    const totalQty = toSave.reduce((sum, s) => sum + (s.quantity || 1), 0)
+    setSavedCount(totalQty)
     setOwnedCount(count || 0)
     setSaving(false)
     setState('success')
@@ -625,15 +636,31 @@ export default function ScanHub({
                     {checked[sticker.sticker_id] && <span className="text-xs">✓</span>}
                   </div>
                   <span className="text-lg">{getFlag(sticker.country)}</span>
-                  <div className="text-left flex-1">
-                    <p className="text-sm font-semibold">{sticker.number}</p>
-                    <p className="text-xs text-gray-500">{sticker.player_name || sticker.country}</p>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-sm font-semibold">
+                      {sticker.number}
+                      {(sticker.quantity || 1) > 1 && (
+                        <span className="ml-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">x{sticker.quantity}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{sticker.player_name || sticker.country}</p>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    sticker.status === 'filled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {sticker.status === 'filled' ? 'Colada' : 'Vazia'}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                      sticker.confidence >= 0.85
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : sticker.confidence >= 0.6
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
+                    }`}>
+                      {sticker.confidence >= 0.85 ? '✓' : sticker.confidence >= 0.6 ? '~' : '?'} {Math.round(sticker.confidence * 100)}%
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      sticker.status === 'filled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {sticker.status === 'filled' ? 'Colada' : 'Vazia'}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
