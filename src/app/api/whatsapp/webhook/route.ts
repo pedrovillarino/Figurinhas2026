@@ -795,7 +795,7 @@ export async function POST(req: NextRequest) {
               `📱 ${phone}\n\n` +
               `"${text}"`
             // Fire-and-forget
-            sendText(adminPhone, fwdMsg).catch(() => {})
+            sendText(adminPhone, fwdMsg).catch((err) => console.error('[SUGGESTION] WhatsApp forward failed:', err))
           }
           await sendText(
             phone,

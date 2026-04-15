@@ -219,6 +219,10 @@ export default function DashboardClient({
   }, [countryData])
 
   // ─── Weekly Evolution (last 6 weeks) ───
+  // Uses updated_at as proxy for acquisition date. Each unique sticker counts
+  // once in the week it was last updated (scan/manual add). Not perfect for
+  // stickers updated multiple times, but good enough since each sticker_id
+  // appears only once in the map.
   const weeklyData = useMemo(() => {
     const now = new Date()
     const weeks: { label: string; count: number; start: Date; end: Date }[] = []
@@ -234,8 +238,10 @@ export default function DashboardClient({
       weeks.push({ label, count: 0, start, end })
     }
 
-    Object.values(userStickersMap).forEach((us) => {
+    Object.entries(userStickersMap).forEach(([, us]) => {
       if (!us.updated_at) return
+      // Only count stickers that are owned or duplicate (not removed)
+      if (us.status !== 'owned' && us.status !== 'duplicate') return
       const d = new Date(us.updated_at)
       for (const w of weeks) {
         if (d >= w.start && d < w.end) {
@@ -426,7 +432,7 @@ export default function DashboardClient({
               <span>📈</span> Evolução Semanal
             </h2>
             <span className="text-[10px] text-gray-400 font-medium">
-              {weeklyTotal} figurinhas em 6 semanas
+              {weeklyTotal} atualizações em 6 semanas
             </span>
           </div>
           <div className="flex items-end gap-1.5 h-20">

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendText, formatPhone } from '@/lib/zapi'
+import { sendText } from '@/lib/zapi'
 import { sendEmail } from '@/lib/email'
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,15 +39,15 @@ export async function POST(req: NextRequest) {
         `👤 ${name}\n` +
         `📧 ${contact}\n\n` +
         `"${text}"`
-      sendText(adminPhone, whatsappMsg).catch(() => {})
+      sendText(adminPhone, whatsappMsg).catch((err) => console.error('[SUGGESTION] WhatsApp forward failed:', err))
     }
 
     // Send to admin email
     sendEmail(
       'contato@completeai.com.br',
       `Sugestão de ${name}`,
-      `<p><strong>${name}</strong> (${contact}) enviou:</p><blockquote>${text}</blockquote>`
-    ).catch(() => {})
+      `<p><strong>${escapeHtml(name)}</strong> (${escapeHtml(contact)}) enviou:</p><blockquote>${escapeHtml(text)}</blockquote>`
+    ).catch((err) => console.error('[SUGGESTION] Email forward failed:', err))
 
     return NextResponse.json({ success: true })
   } catch {

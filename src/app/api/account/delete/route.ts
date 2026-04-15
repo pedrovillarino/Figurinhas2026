@@ -34,40 +34,101 @@ export async function POST() {
       { auth: { persistSession: false } }
     )
 
-    // Delete in order to respect FK constraints
-    // Trade requests (both as requester and responder)
-    await admin.from('trade_requests').delete().or(`requester_id.eq.${userId},responder_id.eq.${userId}`)
+    const errors: string[] = []
+
+    async function del(table: string, filter: () => ReturnType<ReturnType<typeof admin.from>['delete']>) {
+      const { error } = await filter()
+      if (error) {
+        console.error(`[DELETE_ACCOUNT] Failed to delete from ${table}:`, error.message)
+        errors.push(`${table}: ${error.message}`)
+      }
+    }
+
+    // Delete in order to respect FK constraints (children first)
+
+    // Trade requests (both as requester and target)
+    await del('trade_requests', () =>
+      admin.from('trade_requests').delete().or(`requester_id.eq.${userId},target_id.eq.${userId}`)
+    )
+
+    // Notification queue
+    await del('notification_queue', () =>
+      admin.from('notification_queue').delete().eq('user_id', userId)
+    )
 
     // Notifications
-    await admin.from('notifications').delete().eq('user_id', userId)
+    await del('notifications', () =>
+      admin.from('notifications').delete().eq('user_id', userId)
+    )
 
-    // Referral rewards (as referrer)
-    await admin.from('referral_rewards').delete().eq('referrer_id', userId)
+    // Discount redemptions
+    await del('discount_redemptions', () =>
+      admin.from('discount_redemptions').delete().eq('user_id', userId)
+    )
+
+    // Referral rewards (as referrer OR as referred)
+    await del('referral_rewards (referrer)', () =>
+      admin.from('referral_rewards').delete().eq('referrer_id', userId)
+    )
+    await del('referral_rewards (referred)', () =>
+      admin.from('referral_rewards').delete().eq('referred_id', userId)
+    )
 
     // Scan usage
-    await admin.from('scan_usage').delete().eq('user_id', userId)
+    await del('scan_usage', () =>
+      admin.from('scan_usage').delete().eq('user_id', userId)
+    )
 
     // Trade usage
-    await admin.from('trade_usage').delete().eq('user_id', userId)
+    await del('trade_usage', () =>
+      admin.from('trade_usage').delete().eq('user_id', userId)
+    )
 
     // User stickers
-    await admin.from('user_stickers').delete().eq('user_id', userId)
+    await del('user_stickers', () =>
+      admin.from('user_stickers').delete().eq('user_id', userId)
+    )
 
     // Pending scans (WhatsApp)
-    await admin.from('pending_scans').delete().eq('user_id', userId)
+    await del('pending_scans', () =>
+      admin.from('pending_scans').delete().eq('user_id', userId)
+    )
 
     // Push subscriptions
-    await admin.from('push_subscriptions').delete().eq('user_id', userId)
+    await del('push_subscriptions', () =>
+      admin.from('push_subscriptions').delete().eq('user_id', userId)
+    )
+
+    // User reports (as reporter or reported)
+    await del('user_reports', () =>
+      admin.from('user_reports').delete().or(`reporter_id.eq.${userId},reported_user_id.eq.${userId}`)
+    )
+
+    // Clear referred_by references in other profiles
+    await del('profiles (referred_by)', () =>
+      admin.from('profiles').update({ referred_by: null }).eq('referred_by', userId)
+    )
 
     // Profile (must be after FKs that reference it)
-    await admin.from('profiles').delete().eq('id', userId)
+    await del('profiles', () =>
+      admin.from('profiles').delete().eq('id', userId)
+    )
+
+    // If any critical deletes failed, abort before deleting auth user
+    if (errors.length > 0) {
+      console.error(`[DELETE_ACCOUNT] ${errors.length} errors during cascade delete for ${userId}:`, errors)
+      return NextResponse.json(
+        { error: 'Erro ao excluir alguns dados. Entre em contato com contato@completeai.com.br para concluir a exclusão.' },
+        { status: 500 }
+      )
+    }
 
     // 3. Delete auth user (this is the final step)
     const { error: deleteAuthError } = await admin.auth.admin.deleteUser(userId)
     if (deleteAuthError) {
       console.error('[DELETE_ACCOUNT] Failed to delete auth user:', deleteAuthError)
       return NextResponse.json(
-        { error: 'Erro ao excluir conta. Tente novamente ou entre em contato conosco.' },
+        { error: 'Erro ao excluir conta. Entre em contato com contato@completeai.com.br.' },
         { status: 500 }
       )
     }

@@ -194,12 +194,12 @@ export async function POST(req: NextRequest) {
 
       if (userId && type === 'scan_pack') {
         // Scan pack purchase — add credits
-        const credits = parseInt(session.metadata?.credits || '100', 10)
+        const credits = parseInt(session.metadata?.credits || '10', 10) // safe fallback: smallest pack
         const ok = await addScanCredits(userId, credits)
         if (!ok) return NextResponse.json({ error: 'Credits update failed' }, { status: 500 })
       } else if (userId && type === 'trade_pack') {
         // Trade pack purchase — add trade credits
-        const credits = parseInt(session.metadata?.credits || '10', 10)
+        const credits = parseInt(session.metadata?.credits || '2', 10) // safe fallback: smallest pack
         const ok = await addTradeCredits(userId, credits)
         if (!ok) return NextResponse.json({ error: 'Trade credits update failed' }, { status: 500 })
       } else if (userId) {
@@ -223,10 +223,10 @@ export async function POST(req: NextRequest) {
     const type = session.metadata?.type
 
     if (userId && type === 'scan_pack') {
-      const credits = parseInt(session.metadata?.credits || '100', 10)
+      const credits = parseInt(session.metadata?.credits || '10', 10) // safe fallback: smallest pack
       await addScanCredits(userId, credits)
     } else if (userId && type === 'trade_pack') {
-      const credits = parseInt(session.metadata?.credits || '10', 10)
+      const credits = parseInt(session.metadata?.credits || '2', 10) // safe fallback: smallest pack
       await addTradeCredits(userId, credits)
     } else if (userId) {
       const tier = session.metadata?.tier || 'estreante'
