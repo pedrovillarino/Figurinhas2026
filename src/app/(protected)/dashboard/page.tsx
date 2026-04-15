@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
-  description: 'Painel com resumo do progresso do seu álbum de figurinhas da Copa 2026.',
+  description: 'Painel com resumo do progresso do seu álbum de figurinhas.',
 }
 
 export const dynamic = 'force-dynamic'

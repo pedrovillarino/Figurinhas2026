@@ -218,6 +218,39 @@ export default function DashboardClient({
     return { complete, almostComplete, notStarted, mostDupes }
   }, [countryData])
 
+  // ─── Weekly Evolution (last 6 weeks) ───
+  const weeklyData = useMemo(() => {
+    const now = new Date()
+    const weeks: { label: string; count: number; start: Date; end: Date }[] = []
+
+    for (let i = 5; i >= 0; i--) {
+      const start = new Date(now)
+      start.setDate(start.getDate() - i * 7 - start.getDay())
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setDate(end.getDate() + 7)
+
+      const label = `${start.getDate()}/${start.getMonth() + 1}`
+      weeks.push({ label, count: 0, start, end })
+    }
+
+    Object.values(userStickersMap).forEach((us) => {
+      if (!us.updated_at) return
+      const d = new Date(us.updated_at)
+      for (const w of weeks) {
+        if (d >= w.start && d < w.end) {
+          w.count++
+          break
+        }
+      }
+    })
+
+    return weeks
+  }, [userStickersMap])
+
+  const weeklyMax = Math.max(1, ...weeklyData.map((w) => w.count))
+  const weeklyTotal = weeklyData.reduce((s, w) => s + w.count, 0)
+
   // ─── Duplicate efficiency ───
   const dupeEfficiency = useMemo(() => {
     const totalCollected = stats.owned + stats.totalExtras
@@ -384,6 +417,39 @@ export default function DashboardClient({
           </p>
         </div>
       </div>
+
+      {/* ─── Evolução Semanal ─── */}
+      {weeklyTotal > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span>📈</span> Evolução Semanal
+            </h2>
+            <span className="text-[10px] text-gray-400 font-medium">
+              {weeklyTotal} figurinhas em 6 semanas
+            </span>
+          </div>
+          <div className="flex items-end gap-1.5 h-20">
+            {weeklyData.map((w, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full flex flex-col justify-end h-14">
+                  <div
+                    className="w-full rounded-t-md bg-gradient-to-t from-brand to-brand-dark transition-all duration-700"
+                    style={{
+                      height: `${Math.max(w.count > 0 ? 8 : 0, (w.count / weeklyMax) * 100)}%`,
+                      animationDelay: `${i * 100}ms`,
+                    }}
+                  />
+                </div>
+                <span className="text-[8px] text-gray-400 font-medium">{w.label}</span>
+                {w.count > 0 && (
+                  <span className="text-[9px] font-bold text-gray-600">+{w.count}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─── Conquistas / Achievements ─── */}
       {(achievements.complete.length > 0 || achievements.almostComplete.length > 0) && (

@@ -42,6 +42,7 @@ REGRAS:
 - "empty": espaço vazio no álbum.
 - CRÍTICO: Identifique TODAS as figurinhas — jogadores, emblemas, escudos, fotos de time. NÃO pule nenhuma.
 - CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO". Cada jogador é único.
+- CRÍTICO DUPLICATAS: Se houver DUAS ou MAIS cópias da MESMA figurinha (ex: dois "NEYMAR JR"), liste CADA cópia como uma entrada SEPARADA no array. O usuário coleciona duplicatas para trocar — cada figurinha física = uma entrada.
 - O NOME é o identificador principal. Acertar o nome é mais importante que o número.
 - Confiança < 0.7 se incerto. Ignore decorações. Países em Português.
 

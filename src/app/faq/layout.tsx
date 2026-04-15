@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 // FAQ items for JSON-LD (must match page.tsx content)
 const FAQ_ITEMS = [
-  { q: 'O que é o Complete Aí?', a: 'O Complete Aí usa inteligência artificial para te ajudar a organizar e completar seu álbum de figurinhas da Copa 2026.' },
+  { q: 'O que é o Complete Aí?', a: 'O Complete Aí usa inteligência artificial para te ajudar a organizar e completar seu álbum de figurinhas.' },
   { q: 'O app é gratuito?', a: 'Sim! O plano gratuito permite registrar até 50 figurinhas manualmente e fazer 5 scans com IA. Para desbloquear mais, temos planos a partir de R$9,90.' },
   { q: 'Como funciona o scanner?', a: 'Tire uma foto de uma página do álbum ou de figurinhas soltas. Nossa IA analisa a imagem e identifica automaticamente os números e jogadores.' },
   { q: 'Como funcionam as trocas?', a: 'O app encontra outros colecionadores perto de você que têm figurinhas que você precisa. Você envia uma solicitação e, se aceita, vocês trocam contatos.' },

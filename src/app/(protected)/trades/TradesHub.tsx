@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
-import { canTrade, type Tier } from '@/lib/tiers'
+import { canTrade, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, TIER_CONFIG, getTradeLimit, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 import TradeRequestsBanner from '@/components/TradeRequestsBanner'
 
@@ -137,8 +137,28 @@ export default function TradesHub({
   const [showPriorityPicker, setShowPriorityPicker] = useState(false)
   const [prioritySearch, setPrioritySearch] = useState('')
   const [savingPrefs, setSavingPrefs] = useState(false)
+  const [tradesUsed, setTradesUsed] = useState(0)
+  const [buyingTradePack, setBuyingTradePack] = useState(false)
 
   const alertasSectionRef = useRef<HTMLDivElement>(null)
+
+  // Trade limits
+  const tradeLimit = getTradeLimit(tier)
+  const tradePackConfig = TRADE_PACK_CONFIG[tier]
+  const tradePackAmount = TRADE_PACK_AMOUNTS[tier] || TRADE_PACK_AMOUNT
+
+  // Load trade usage count
+  useEffect(() => {
+    async function loadTradeUsage() {
+      const { count } = await supabase
+        .from('trade_usage')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+      setTradesUsed(count || 0)
+    }
+    loadTradeUsage()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Load excluded list + notification prefs from localStorage
   useEffect(() => {
@@ -459,6 +479,25 @@ export default function TradesHub({
   }
 
   // Send trade request (approval flow instead of direct WhatsApp)
+  async function handleBuyTradePack() {
+    setBuyingTradePack(true)
+    try {
+      const res = await fetch('/api/stripe/trade-pack', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || 'Erro ao iniciar compra')
+      }
+    } catch {
+      alert('Erro ao conectar com o servidor')
+    }
+    setBuyingTradePack(false)
+  }
+
+  const tradesRemaining = tradeLimit === Infinity ? Infinity : Math.max(0, tradeLimit - tradesUsed)
+  const tradesExhausted = tradeLimit !== Infinity && tradesRemaining <= 0
+
   async function requestTrade(match: NearbyMatch) {
     setRequestingTrade(match.user_id)
 
@@ -608,6 +647,35 @@ export default function TradesHub({
                 </p>
               </div>
             </div>
+
+            {/* Trade credits exhausted banner */}
+            {tradesExhausted && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3">
+                <p className="text-xs font-bold text-yellow-800 mb-1">Suas trocas acabaram</p>
+                <p className="text-[10px] text-yellow-700 mb-2">
+                  Você usou {tradesUsed}/{tradeLimit} trocas do plano {TIER_CONFIG[tier].label}.
+                </p>
+                <div className="flex gap-2">
+                  {tradePackConfig && (
+                    <button
+                      onClick={handleBuyTradePack}
+                      disabled={buyingTradePack}
+                      className="flex-1 bg-gold text-navy rounded-lg px-3 py-2 text-[11px] font-bold hover:bg-gold/90 transition disabled:opacity-50"
+                    >
+                      {buyingTradePack ? '...' : `+${tradePackAmount} trocas por ${tradePackConfig.priceDisplay}`}
+                    </button>
+                  )}
+                  {tier !== 'copa_completa' && (
+                    <button
+                      onClick={() => setShowPaywall(true)}
+                      className="flex-1 border border-brand text-brand rounded-lg px-3 py-2 text-[11px] font-semibold hover:bg-brand-light/50 transition"
+                    >
+                      Fazer upgrade
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Pending trade requests received */}
             <TradeRequestsBanner

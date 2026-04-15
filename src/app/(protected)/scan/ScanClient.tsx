@@ -409,7 +409,7 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
           <span className="text-sm">✨</span>
           <p className="text-[10px] text-gray-500 flex-1">
-            Boa iluminação + números visíveis = scan perfeito. <span className="text-brand font-medium">A IA identifica tudo em segundos.</span>
+            Boa iluminação + até 20 figurinhas por foto = scan perfeito. <span className="text-brand font-medium">A IA identifica tudo em segundos.</span>
           </p>
         </div>
 

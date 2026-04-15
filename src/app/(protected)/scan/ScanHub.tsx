@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
-import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
+import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
@@ -443,7 +443,7 @@ export default function ScanHub({
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
           <span className="text-sm">✨</span>
           <p className="text-[10px] text-gray-500 flex-1">
-            1 foto = várias figurinhas detectadas. <span className="text-brand font-medium">Junte o máximo na mesa pra aproveitar cada scan!</span>
+            1 foto = várias figurinhas detectadas. <span className="text-brand font-medium">Junte até 20 figurinhas na mesa pra aproveitar cada scan!</span>
           </p>
         </div>
 
@@ -548,13 +548,21 @@ export default function ScanHub({
             Desbloquear Scanner
           </button>
         ) : needsPack ? (
-          <button
-            onClick={handleBuyPack}
-            disabled={buyingPack}
-            className="mt-6 bg-gold text-navy rounded-xl px-6 py-3 text-sm font-bold hover:bg-gold/90 transition disabled:opacity-50"
-          >
-            {buyingPack ? 'Redirecionando...' : `Comprar +${SCAN_PACK_AMOUNT} scans por ${SCAN_PACK_CONFIG[tier]?.priceDisplay || 'R$10,00'}`}
-          </button>
+          <>
+            <button
+              onClick={handleBuyPack}
+              disabled={buyingPack}
+              className="mt-6 bg-gold text-navy rounded-xl px-6 py-3 text-sm font-bold hover:bg-gold/90 transition disabled:opacity-50"
+            >
+              {buyingPack ? 'Redirecionando...' : `Comprar +${SCAN_PACK_AMOUNTS[tier] || SCAN_PACK_AMOUNT} scans por ${SCAN_PACK_CONFIG[tier]?.priceDisplay || 'R$10,00'}`}
+            </button>
+            <button
+              onClick={() => setShowPaywall(true)}
+              className="mt-2 text-xs text-brand font-semibold hover:text-brand-dark transition"
+            >
+              Ou fazer upgrade do plano
+            </button>
+          </>
         ) : (
           <button onClick={reset} className="mt-6 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition">
             {isRateLimit || isUnavailable ? 'Tentar de Novo' : 'Tirar Outra Foto'}
@@ -579,7 +587,7 @@ export default function ScanHub({
           </p>
           {scansRemaining !== null && (
             <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
-              {scansRemaining} restantes
+              {scansRemaining} scans restantes
             </span>
           )}
         </div>

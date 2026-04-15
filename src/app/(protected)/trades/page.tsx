@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Trocas',
-  description: 'Encontre colecionadores perto de você e troque figurinhas repetidas da Copa 2026.',
+  description: 'Encontre colecionadores perto de você e troque figurinhas repetidas.',
 }
 
 export const dynamic = 'force-dynamic'

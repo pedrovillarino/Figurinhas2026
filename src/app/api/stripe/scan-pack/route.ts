@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
-import { SCAN_PACK_AMOUNT, SCAN_PACK_CONFIG, type Tier } from '@/lib/tiers'
+import { SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, SCAN_PACK_CONFIG, type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +36,7 @@ export async function POST() {
       )
     }
 
+    const packAmount = SCAN_PACK_AMOUNTS[tier] || SCAN_PACK_AMOUNT
     const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
     const session = await getStripe().checkout.sessions.create({
@@ -47,8 +48,8 @@ export async function POST() {
             currency: 'brl',
             unit_amount: packConfig.priceBrl,
             product_data: {
-              name: `Complete Aí — +${SCAN_PACK_AMOUNT} Scans`,
-              description: `Pacote extra de ${SCAN_PACK_AMOUNT} scans para seu álbum`,
+              name: `Complete Aí — +${packAmount} Scans`,
+              description: `Pacote extra de ${packAmount} scans para seu álbum`,
             },
           },
           quantity: 1,
@@ -57,7 +58,7 @@ export async function POST() {
       metadata: {
         user_id: user.id,
         type: 'scan_pack',
-        credits: String(SCAN_PACK_AMOUNT),
+        credits: String(packAmount),
       },
       success_url: `${origin}/scan?pack_purchased=true`,
       cancel_url: `${origin}/scan`,

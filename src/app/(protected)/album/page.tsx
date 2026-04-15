@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Meu Álbum',
-  description: 'Visualize e gerencie todas as figurinhas do seu álbum da Copa 2026.',
+  description: 'Visualize e gerencie todas as figurinhas do seu álbum.',
 }
 
 export const dynamic = 'force-dynamic'

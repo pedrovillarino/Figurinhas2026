@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00C896"/>
+      <stop offset="100%" stop-color="#00A67D"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFB800"/>
+      <stop offset="100%" stop-color="#E6A600"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="0" dy="8" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="1080" height="1080" rx="240" fill="url(#bg)"/>
+
+  <!-- Grid 2x2 -->
+  <g transform="translate(260, 240)" filter="url(#shadow)">
+    <rect x="0" y="0" width="260" height="300" rx="24" fill="#FFFFFF"/>
+    <circle cx="130" cy="110" r="46" fill="#00C896"/>
+    <rect x="50" y="190" width="160" height="14" rx="7" fill="#0A1628" opacity="0.85"/>
+    <rect x="70" y="218" width="120" height="10" rx="5" fill="#0A1628" opacity="0.5"/>
+
+    <rect x="280" y="0" width="260" height="300" rx="24" fill="#0A1628"/>
+    <circle cx="410" cy="110" r="46" fill="url(#goldGrad)"/>
+    <rect x="330" y="190" width="160" height="14" rx="7" fill="#FFB800"/>
+    <rect x="350" y="218" width="120" height="10" rx="5" fill="#FFB800" opacity="0.6"/>
+
+    <rect x="0" y="320" width="260" height="300" rx="24" fill="url(#goldGrad)"/>
+    <circle cx="130" cy="430" r="46" fill="#0A1628"/>
+    <rect x="50" y="510" width="160" height="14" rx="7" fill="#0A1628" opacity="0.85"/>
+    <rect x="70" y="538" width="120" height="10" rx="5" fill="#0A1628" opacity="0.5"/>
+
+    <rect x="280" y="320" width="260" height="300" rx="24" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-dasharray="14 10"/>
+    <text x="410" y="505" font-family="Inter, Arial, sans-serif" font-size="180" font-weight="800" fill="#FFFFFF" text-anchor="middle" opacity="0.9">?</text>
+  </g>
+
+  <!-- Camera badge overlapping -->
+  <g transform="translate(800, 760)" filter="url(#shadow)">
+    <circle cx="0" cy="0" r="92" fill="url(#goldGrad)" stroke="#0A1628" stroke-width="6"/>
+    <rect x="-52" y="-34" width="104" height="72" rx="10" fill="#0A1628"/>
+    <rect x="-22" y="-48" width="44" height="18" rx="4" fill="#0A1628"/>
+    <circle cx="0" cy="6" r="22" fill="url(#goldGrad)"/>
+    <circle cx="0" cy="6" r="11" fill="#0A1628"/>
+    <circle cx="28" cy="-18" r="4" fill="#FFB800"/>
+  </g>
+</svg>

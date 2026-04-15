@@ -84,7 +84,7 @@ export function tradeRequestEmailHtml(
         </a>
       </p>
       <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
-        Complete Aí — Álbum da Copa 2026
+        Complete Aí — Seu álbum de figurinhas
       </p>
     </div>
   `
@@ -124,7 +124,7 @@ export function tradeApprovedEmailHtml(
         </a>
       </p>
       <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
-        Complete Aí — Álbum da Copa 2026
+        Complete Aí — Seu álbum de figurinhas
       </p>
     </div>
   `
@@ -164,7 +164,7 @@ export function matchAlertEmailHtml(
         </a>
       </div>
       <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
-        Complete Aí — Álbum da Copa 2026
+        Complete Aí — Seu álbum de figurinhas
       </p>
     </div>
   `
@@ -192,7 +192,7 @@ export function tradeRejectedEmailHtml(
         </a>
       </div>
       <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
-        Complete Aí — Álbum da Copa 2026
+        Complete Aí — Seu álbum de figurinhas
       </p>
     </div>
   `

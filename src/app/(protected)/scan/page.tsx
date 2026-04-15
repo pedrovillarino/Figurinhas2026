@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Escanear Figurinhas',
-  description: 'Use a câmera para escanear e registrar figurinhas no seu álbum da Copa 2026.',
+  description: 'Use a câmera para escanear e registrar figurinhas no seu álbum.',
 }
 
 export const dynamic = 'force-dynamic'

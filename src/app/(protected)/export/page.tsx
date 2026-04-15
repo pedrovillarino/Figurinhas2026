@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Exportar Lista',
-  description: 'Exporte sua lista de figurinhas faltantes ou repetidas da Copa 2026.',
+  description: 'Exporte sua lista de figurinhas faltantes ou repetidas.',
 }
 
 export const dynamic = 'force-dynamic'

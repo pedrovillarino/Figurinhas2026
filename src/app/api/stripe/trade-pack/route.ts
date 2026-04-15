@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
-import { TRADE_PACK_AMOUNT, TRADE_PACK_CONFIG, type Tier } from '@/lib/tiers'
+import { TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, TRADE_PACK_CONFIG, type Tier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +45,8 @@ export async function POST() {
 
     console.log('Trade pack checkout - origin:', origin, 'tier:', tier, 'price:', packConfig.priceBrl)
 
+    const packAmount = TRADE_PACK_AMOUNTS[tier] || TRADE_PACK_AMOUNT
+
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       customer_email: profile?.email || user.email,
@@ -54,8 +56,8 @@ export async function POST() {
             currency: 'brl',
             unit_amount: packConfig.priceBrl,
             product_data: {
-              name: `Complete Aí — +${TRADE_PACK_AMOUNT} Trocas`,
-              description: `Pacote extra de ${TRADE_PACK_AMOUNT} créditos de troca`,
+              name: `Complete Aí — +${packAmount} Trocas`,
+              description: `Pacote extra de ${packAmount} créditos de troca`,
             },
           },
           quantity: 1,
@@ -64,7 +66,7 @@ export async function POST() {
       metadata: {
         user_id: user.id,
         type: 'trade_pack',
-        credits: String(TRADE_PACK_AMOUNT),
+        credits: String(packAmount),
       },
       success_url: `${origin}/trades?pack_purchased=true`,
       cancel_url: `${origin}/trades`,

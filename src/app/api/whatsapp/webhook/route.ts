@@ -29,7 +29,7 @@ const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album W
 Given a user message in Portuguese, return ONLY valid JSON:
 
 {
-  "intent": "status|missing|duplicates|trades|faq|help|unknown",
+  "intent": "status|missing|duplicates|trades|faq|suggestion|help|unknown",
   "confidence": 0.95,
   "response_hint": "brief note about what the user wants"
 }
@@ -40,13 +40,15 @@ Intent definitions:
 - duplicates: user wants list of sticker duplicates to trade
 - trades: user wants to see pending trade requests or trade status ("trocas", "aceitar", "pendentes", "solicitações")
 - faq: user asks about pricing, plans, how the app works, payment ("faq", "planos", "preço", "como funciona", "dúvidas")
+- suggestion: user wants to give feedback, report a bug, or suggest a feature ("sugestão", "ideia", "bug", "problema", "reclamação", "feedback", "melhoria")
 - help: user wants to know what the bot can do
 - unknown: anything else (greetings map to help)
 
 Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
 "quais me faltam" → missing, "faltando" → missing, "faltam" → missing,
 "o que tenho repetido" → duplicates, "repetidas" → duplicates, "duplicatas" → duplicates,
-"trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades.`
+"trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades,
+"sugestão" → suggestion, "ideia" → suggestion, "bug" → suggestion, "problema" → suggestion, "reclamação" → suggestion.`
 
 // ─── Sticker scan prompt (same as /api/whatsapp/scan) ───
 const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini de Copa do Mundo FIFA (qualquer edição: Qatar 2022, 2026, etc).
@@ -59,6 +61,7 @@ COMO LER UMA FIGURINHA PANINI:
 
 REGRAS:
 - CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO".
+- CRÍTICO: Se há DUAS cópias da mesma figurinha, liste CADA uma separadamente.
 - O NOME é o identificador principal.
 - Emblemas/escudos (CBF, AFA, FFF) → player_name "Emblem"
 - Fotos de time → player_name "Team Photo"
@@ -77,7 +80,7 @@ Retorne APENAS JSON:
 
 // ─── Welcome message for unknown users ───
 function getWelcomeMessage(phone: string) {
-  return `Olá! 👋 Sou o assistente do *Álbum da Copa 2026* ⚽
+  return `Olá! 👋 Sou o assistente do *Complete Aí* ⚽
 
 Posso te ajudar com:
 📊 *status* — seu progresso atual
@@ -654,6 +657,8 @@ export async function POST(req: NextRequest) {
         intent = 'trades'
       } else if (/\b(faq|perguntas?|dúvidas?|duvidas?|como funciona|planos?|preços?|precos?|quanto custa)\b/.test(lower)) {
         intent = 'faq'
+      } else if (/\b(sugest|ideia|feedback|bug|problema|reclam|melhoria|opinião|opiniao)\b/.test(lower)) {
+        intent = 'suggestion'
       } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como)\b/.test(lower)) {
         intent = 'help'
       } else {
@@ -708,7 +713,7 @@ export async function POST(req: NextRequest) {
               .join('\n')
             await sendText(
               phone,
-              `🔁 *Suas repetidas* (${dupes.length} figurinhas):\n\n${list}\n\n` +
+              `🔁 *Minhas repetidas* (${dupes.length} figurinhas):\n\n${list}\n\n` +
               `📲 Lista gerada pelo *Complete Aí* — completeai.com.br\n` +
               `Escaneie suas figurinhas com IA e complete seu álbum mais rápido!`
             )
@@ -766,16 +771,37 @@ export async function POST(req: NextRequest) {
           await sendText(
             phone,
             `❓ *Perguntas Frequentes*\n\n` +
-              `📱 *O que é?* App com IA para organizar seu álbum da Copa 2026\n\n` +
+              `📱 *O que é?* App com IA para organizar seu álbum de figurinhas\n\n` +
               `📸 *Scanner:* Tire foto das figurinhas e a IA identifica automaticamente\n\n` +
               `🔁 *Trocas:* Encontre colecionadores perto de você com aprovação segura\n\n` +
               `💎 *Planos:*\n` +
-              `   • Grátis: 50 figurinhas, 5 scans\n` +
+              `   • Grátis: 5 scans, 2 trocas\n` +
               `   • Estreante R$9,90: 50 scans, 5 trocas\n` +
               `   • Colecionador R$19,90: 150 scans, 15 trocas\n` +
               `   • Copa Completa R$29,90: tudo ilimitado\n\n` +
               `💳 Pagamento único (sem mensalidade)!\n\n` +
               `Para o FAQ completo acesse:\n${APP_URL}/faq`
+          )
+          break
+        }
+
+        case 'suggestion': {
+          // Forward suggestion to admin WhatsApp
+          const adminPhone = process.env.ADMIN_PHONE
+          const userName = user.display_name?.split(' ')[0] || 'Usuário'
+          if (adminPhone) {
+            const fwdMsg =
+              `💡 *Sugestão/Feedback de ${userName}*\n` +
+              `📱 ${phone}\n\n` +
+              `"${text}"`
+            // Fire-and-forget
+            sendText(adminPhone, fwdMsg).catch(() => {})
+          }
+          await sendText(
+            phone,
+            `💡 Obrigado pelo feedback, *${userName}*!\n\n` +
+            `Sua mensagem foi encaminhada para nossa equipe. Vamos analisar com carinho! 🙏\n\n` +
+            `Se quiser falar mais, mande um email:\n📧 contato@completeai.com.br`
           )
           break
         }
@@ -791,6 +817,7 @@ export async function POST(req: NextRequest) {
               `🔁 *repetidas* — pra trocar\n` +
               `🔔 *trocas* — ver solicitações pendentes\n` +
               `❓ *faq* — perguntas frequentes\n` +
+              `💡 *sugestão* — enviar feedback ou ideia\n` +
               `📸 Mande uma *foto* pra eu escanear!\n\n` +
               `Acesse o app: ${APP_URL}`
           )

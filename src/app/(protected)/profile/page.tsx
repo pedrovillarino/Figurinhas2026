@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNT, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNT, isPaid } from '@/lib/tiers'
+import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, isPaid } from '@/lib/tiers'
 import type { Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 
@@ -44,6 +44,11 @@ export default function ProfilePage() {
   const [referralCount, setReferralCount] = useState(0)
   const [referralRewards, setReferralRewards] = useState({ trade_credits: 0, scan_credits: 0 })
   const [copied, setCopied] = useState(false)
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0) // 0=hidden, 1=first confirm, 2=final confirm
+  const [deleting, setDeleting] = useState(false)
+  const [suggestion, setSuggestion] = useState('')
+  const [sendingSuggestion, setSendingSuggestion] = useState(false)
+  const [suggestionSent, setSuggestionSent] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -198,6 +203,27 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleDeleteAccount() {
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        await supabase.auth.signOut()
+        router.push('/login')
+        router.refresh()
+      } else {
+        alert(data.error || 'Erro ao excluir conta')
+        setDeleting(false)
+        setDeleteStep(0)
+      }
+    } catch {
+      alert('Erro ao conectar com o servidor')
+      setDeleting(false)
+      setDeleteStep(0)
+    }
+  }
+
   const tier = profile?.tier || 'free'
   const tierConfig = TIER_CONFIG[tier]
   const scanLimit = tierConfig.scanLimit + (profile?.scan_credits || 0)
@@ -211,9 +237,9 @@ export default function ProfilePage() {
   const tradePct = tradeLimit === Infinity ? 0 : tradeLimit > 0 ? Math.min(100, Math.round((tradesUsed / tradeLimit) * 100)) : 0
 
   const scanPackConfig = SCAN_PACK_CONFIG[tier]
+  const scanPackAmount = SCAN_PACK_AMOUNTS[tier] || SCAN_PACK_AMOUNT
   const tradePackConfig = TRADE_PACK_CONFIG[tier]
-
-  const progressPct = stats.total > 0 ? Math.round((stats.owned / stats.total) * 100) : 0
+  const tradePackAmount = TRADE_PACK_AMOUNTS[tier] || TRADE_PACK_AMOUNT
 
   return (
     <main className="px-4 pt-6 pb-24">
@@ -231,34 +257,13 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Progress */}
-        <div className="mb-4">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Progresso do álbum</span>
-            <span>{stats.owned}/{stats.total} ({progressPct}%)</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-brand h-2 rounded-full transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-center">
-            <p className="text-lg font-bold text-green-600">{stats.owned}</p>
-            <p className="text-[11px] text-gray-600">Coladas</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-bold text-red-500">{stats.missing}</p>
-            <p className="text-[11px] text-gray-600">Faltam</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-bold text-blue-500">{stats.duplicates}</p>
-            <p className="text-[11px] text-gray-600">Repetidas</p>
-          </div>
+        {/* Quick stats — compact, since full progress is in /album and /dashboard */}
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <span>✅ {stats.owned} coladas</span>
+          <span>·</span>
+          <span>🔁 {stats.duplicates} repetidas</span>
+          <span>·</span>
+          <span>❌ {stats.missing} faltam</span>
         </div>
       </div>
 
@@ -310,7 +315,7 @@ export default function ProfilePage() {
             disabled={buyingScans}
             className="w-full mb-3 border border-brand/30 text-brand rounded-lg px-4 py-2 text-xs font-semibold hover:bg-brand-light/50 transition disabled:opacity-50"
           >
-            {buyingScans ? 'Redirecionando...' : `Comprar +${SCAN_PACK_AMOUNT} scans por ${scanPackConfig.priceDisplay}`}
+            {buyingScans ? 'Redirecionando...' : `Comprar +${scanPackAmount} scans por ${scanPackConfig.priceDisplay}`}
           </button>
         )}
 
@@ -346,7 +351,7 @@ export default function ProfilePage() {
             disabled={buyingTrades}
             className="w-full border border-gold/30 text-gold-dark rounded-lg px-4 py-2 text-xs font-semibold hover:bg-gold-light/50 transition disabled:opacity-50"
           >
-            {buyingTrades ? 'Redirecionando...' : `Comprar +${TRADE_PACK_AMOUNT} trocas por ${tradePackConfig.priceDisplay}`}
+            {buyingTrades ? 'Redirecionando...' : `Comprar +${tradePackAmount} trocas por ${tradePackConfig.priceDisplay}`}
           </button>
         )}
       </div>
@@ -386,7 +391,7 @@ export default function ProfilePage() {
           {/* WhatsApp share */}
           <a
             href={`https://wa.me/?text=${encodeURIComponent(
-              `Estou usando o Complete Aí para organizar meu álbum da Copa 2026! Escaneia figurinhas com IA e encontra trocas perto de você. Crie sua conta com meu link e a gente ganha créditos: https://completeai.com.br/?ref=${profile.referral_code}`
+              `Estou usando o Complete Aí para organizar meu álbum de figurinhas! Escaneia figurinhas com IA e encontra trocas perto de você. Crie sua conta com meu link e a gente ganha créditos: https://completeai.com.br/?ref=${profile.referral_code}`
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -555,13 +560,146 @@ export default function ProfilePage() {
         </a>
       </div>
 
+      {/* Suggestion Box */}
+      <div className="bg-white rounded-xl shadow-sm mb-4 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+            <span className="text-sm">💡</span>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">Sugestões</p>
+            <p className="text-[11px] text-gray-500">Ideias, bugs ou feedback</p>
+          </div>
+        </div>
+        {suggestionSent ? (
+          <p className="text-xs text-emerald-600 font-medium py-2">
+            Obrigado pelo feedback! Vamos analisar com carinho.
+          </p>
+        ) : (
+          <>
+            <textarea
+              value={suggestion}
+              onChange={(e) => setSuggestion(e.target.value)}
+              placeholder="Conte sua ideia, reporte um bug ou mande um feedback..."
+              rows={3}
+              maxLength={1000}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-brand focus:border-transparent outline-none mb-2"
+            />
+            <button
+              onClick={async () => {
+                if (!suggestion.trim()) return
+                setSendingSuggestion(true)
+                try {
+                  const res = await fetch('/api/suggestion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: suggestion }),
+                  })
+                  if (res.ok) {
+                    setSuggestionSent(true)
+                    setSuggestion('')
+                  } else {
+                    alert('Erro ao enviar. Tente novamente.')
+                  }
+                } catch {
+                  alert('Erro de conexão')
+                }
+                setSendingSuggestion(false)
+              }}
+              disabled={sendingSuggestion || !suggestion.trim()}
+              className="w-full bg-gray-900 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-gray-800 transition disabled:opacity-50"
+            >
+              {sendingSuggestion ? 'Enviando...' : 'Enviar sugestão'}
+            </button>
+          </>
+        )}
+      </div>
+
       {/* Logout */}
       <button
         onClick={handleLogout}
-        className="w-full bg-red-50 text-red-600 rounded-xl px-4 py-3 text-sm font-medium hover:bg-red-100 transition"
+        className="w-full bg-red-50 text-red-600 rounded-xl px-4 py-3 text-sm font-medium hover:bg-red-100 transition mb-4"
       >
         Sair da Conta
       </button>
+
+      {/* Delete Account */}
+      <button
+        onClick={() => setDeleteStep(1)}
+        className="w-full text-gray-400 text-xs py-2 hover:text-red-500 transition"
+      >
+        Excluir minha conta
+      </button>
+
+      {/* Delete Account Modal — Step 1 */}
+      {deleteStep >= 1 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            {deleteStep === 1 && (
+              <>
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Excluir conta?</h3>
+                <p className="text-sm text-gray-600 text-center mb-6">
+                  Todos os seus dados serão apagados permanentemente e <strong>não podem ser recuperados</strong>. Isso inclui suas figurinhas, trocas, créditos e histórico.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteStep(0)}
+                    className="flex-1 bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-200 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => setDeleteStep(2)}
+                    className="flex-1 bg-red-500 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-red-600 transition"
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </>
+            )}
+            {deleteStep === 2 && (
+              <>
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-red-600 text-center mb-2">Última confirmação</h3>
+                {isPaid(tier) && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-xs text-yellow-800">
+                      <strong>Atenção:</strong> Se passados 7 dias da compra do plano, o valor <strong>não será devolvido</strong>. Para solicitar reembolso dentro do prazo, entre em contato antes de excluir.
+                    </p>
+                  </div>
+                )}
+                <p className="text-sm text-gray-600 text-center mb-4">
+                  Esta ação é <strong>irreversível</strong>. Conforme a LGPD, todos os seus dados pessoais serão removidos dos nossos sistemas.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteStep(0)}
+                    className="flex-1 bg-gray-100 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-200 transition"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleting}
+                    className="flex-1 bg-red-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-red-700 transition disabled:opacity-50"
+                  >
+                    {deleting ? 'Excluindo...' : 'Excluir definitivamente'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showPaywall && (
         <PaywallModal feature="upgrade" currentTier={tier} onClose={() => setShowPaywall(false)} isMinor={profile?.is_minor === true} />

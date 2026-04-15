@@ -152,7 +152,7 @@ export default async function Home() {
       {/* ── Footer ── */}
       <footer className="px-6 py-6 border-t border-gray-100 text-center space-y-2">
         <p className="text-xs text-gray-500">
-          Complete Aí — Álbum da Copa 2026
+          Complete Aí — Seu álbum de figurinhas
         </p>
         <p className="text-xs text-gray-500">
           contato@completeai.com.br

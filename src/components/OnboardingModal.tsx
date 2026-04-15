@@ -12,7 +12,7 @@ const tutorialSteps = [
   {
     icon: '📖',
     title: 'Bem-vindo ao Complete Aí!',
-    description: 'Gerencie seu álbum da Copa 2026. Marque coladas, faltantes e repetidas com facilidade.',
+    description: 'Gerencie seu álbum de figurinhas. Marque coladas, faltantes e repetidas com facilidade.',
   },
   {
     icon: '🎁',

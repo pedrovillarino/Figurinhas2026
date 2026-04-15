@@ -15,7 +15,7 @@ const FAQ_SECTIONS: { title: string; icon: string; items: FaqItem[] }[] = [
     items: [
       {
         q: 'O que é o Complete Aí?',
-        a: 'O Complete Aí usa inteligência artificial para te ajudar a organizar e completar seu álbum de figurinhas da Copa 2026. Você escaneia suas figurinhas com a câmera, e a IA identifica automaticamente quais você tem.',
+        a: 'O Complete Aí usa inteligência artificial para te ajudar a organizar e completar seu álbum de figurinhas. Você escaneia suas figurinhas com a câmera, e a IA identifica automaticamente quais você tem.',
       },
       {
         q: 'O app é gratuito?',

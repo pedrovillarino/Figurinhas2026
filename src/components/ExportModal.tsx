@@ -109,7 +109,7 @@ export default function ExportModal({
     }
 
     parts.push('---')
-    parts.push('Complete Aí — gerencie seu álbum da Copa 2026 de graça!')
+    parts.push('Complete Aí — gerencie seu álbum de figurinhas de graça!')
     parts.push('Marque coladas, faltantes e repetidas, exporte e troque.')
     parts.push(SITE_URL)
 
@@ -127,7 +127,7 @@ export default function ExportModal({
       if (exportMissing) subjectParts.push('faltantes')
       if (exportDuplicates) subjectParts.push('repetidas')
       const subject = encodeURIComponent(
-        `Minhas figurinhas ${subjectParts.join(' e ')} - Copa 2026`
+        `Minhas figurinhas ${subjectParts.join(' e ')} - Complete Aí`
       )
       const body = encodeURIComponent(text)
       window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')

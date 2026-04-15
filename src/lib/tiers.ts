@@ -1,17 +1,29 @@
 export type Tier = 'free' | 'estreante' | 'colecionador' | 'copa_completa'
 
 // ─── Scan pack pricing (for estreante & colecionador only) ───
-export const SCAN_PACK_AMOUNT = 100
+export const SCAN_PACK_AMOUNTS: Record<string, number> = {
+  free: 10,
+  estreante: 100,
+  colecionador: 100,
+}
+export const SCAN_PACK_AMOUNT = 100 // default for paid tiers
 
 export const SCAN_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
+  free: { priceBrl: 299, priceDisplay: 'R$2,99' },
   estreante: { priceBrl: 1000, priceDisplay: 'R$10,00' },
   colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
 }
 
 // ─── Trade pack pricing (for estreante & colecionador only) ───
-export const TRADE_PACK_AMOUNT = 10
+export const TRADE_PACK_AMOUNTS: Record<string, number> = {
+  free: 2,
+  estreante: 10,
+  colecionador: 10,
+}
+export const TRADE_PACK_AMOUNT = 10 // default for paid tiers
 
 export const TRADE_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
+  free: { priceBrl: 299, priceDisplay: 'R$2,99' },
   estreante: { priceBrl: 1000, priceDisplay: 'R$10,00' },
   colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
 }
@@ -25,8 +37,8 @@ export const TIER_CONFIG = {
     canTrade: true, // can view matches + 2 included trades
     tradeLimit: 2,
     hasAds: true,
-    canBuyScanPack: false,
-    canBuyTradePack: false,
+    canBuyScanPack: true,
+    canBuyTradePack: true,
     stickerLimit: Infinity,
   },
   estreante: {

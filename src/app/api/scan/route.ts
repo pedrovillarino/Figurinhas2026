@@ -56,9 +56,10 @@ RULES:
 - CRITICAL: Read EVERY SINGLE sticker visible — count them first, then list each one. Left-to-right, top-to-bottom.
 - CRITICAL: Read the ACTUAL name printed on the sticker — do NOT guess. Each player has a unique name.
 - CRITICAL: Emblems/badges showing a country crest (e.g., CBF logo for Brazil, AFA logo for Argentina, FFF logo for France) are stickers too — include them with player_name "Emblem".
+- CRITICAL DUPLICATES: If you see TWO or MORE copies of the SAME sticker (e.g., two "NEYMAR JR" stickers), list EACH copy as a SEPARATE entry in the array. The user collects duplicates for trading — every physical sticker must be one entry. If you see 3 copies of Neymar Jr, your array must have 3 Neymar Jr entries.
 - Player name is the PRIMARY identifier. Getting the name right is more important than the number.
 - If you see the BACK of a sticker, the CODE-NUMBER printed there IS the sticker number.
-- Double-check: if you see 9 items (players + emblems), your array must have 9 entries.
+- Double-check: if you see 9 physical stickers (including duplicates), your array must have 9 entries.
 - If the image is not sticker-related: {"error": "not_album_page", "message": "description"}`
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
@@ -260,7 +261,7 @@ export async function POST(request: NextRequest) {
           data: image,
         },
       },
-      { text: 'Identify ALL stickers in this photo — players, emblems, badges. First COUNT how many you see. Then list EVERY one with the EXACT player name printed on it. Read names carefully: MARQUINHOS ≠ NEYMAR JR ≠ CASEMIRO. Also include emblems/badges. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
+      { text: 'Identify ALL physical stickers in this photo. IMPORTANT: if there are DUPLICATE copies of the same player (e.g., two Neymar Jr stickers), list EACH copy separately — the user needs to track how many they have. First COUNT every physical sticker. Then list EVERY one with the EXACT name. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
     ]
 
     let responseText = ''
