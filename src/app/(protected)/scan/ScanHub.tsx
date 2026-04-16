@@ -272,64 +272,96 @@ export default function ScanHub({
     setSaving(true)
 
     const toSave = scanResult.matched.filter((s) => checked[s.sticker_id])
+    let saveErrors = 0
 
-    for (const sticker of toSave) {
-      const qty = sticker.quantity || 1
+    try {
+      for (const sticker of toSave) {
+        const qty = sticker.quantity || 1
 
-      const { data: existing } = await supabase
-        .from('user_stickers')
-        .select('id, status, quantity')
-        .eq('user_id', userId)
-        .eq('sticker_id', sticker.sticker_id)
-        .single()
+        const { data: existing, error: fetchErr } = await supabase
+          .from('user_stickers')
+          .select('id, status, quantity')
+          .eq('user_id', userId)
+          .eq('sticker_id', sticker.sticker_id)
+          .single()
 
-      if (existing) {
-        if (existing.status === 'owned') {
-          // Already owned → make duplicate, add scanned quantity
-          await supabase.from('user_stickers')
-            .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + qty, updated_at: new Date().toISOString() })
-            .eq('id', existing.id)
-        } else if (existing.status === 'duplicate') {
-          // Already duplicate → just increment quantity
-          await supabase.from('user_stickers')
-            .update({ quantity: (existing.quantity ?? 1) + qty, updated_at: new Date().toISOString() })
-            .eq('id', existing.id)
-        } else if (existing.status === 'missing') {
-          // Was missing → now owned (qty=1) or duplicate (qty>1)
-          await supabase.from('user_stickers')
-            .update({ status: qty > 1 ? 'duplicate' : 'owned', quantity: qty, updated_at: new Date().toISOString() })
-            .eq('id', existing.id)
+        if (fetchErr && fetchErr.code !== 'PGRST116') {
+          // PGRST116 = "not found" which is expected for new stickers
+          console.error('[save] Fetch error:', fetchErr.message)
+          saveErrors++
+          continue
         }
-      } else {
-        await supabase.from('user_stickers').insert({
-          user_id: userId,
-          sticker_id: sticker.sticker_id,
-          status: qty > 1 ? 'duplicate' : 'owned',
-          quantity: qty,
-        })
+
+        let saveErr = null
+
+        if (existing) {
+          if (existing.status === 'owned') {
+            const { error } = await supabase.from('user_stickers')
+              .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + qty, updated_at: new Date().toISOString() })
+              .eq('id', existing.id)
+            saveErr = error
+          } else if (existing.status === 'duplicate') {
+            const { error } = await supabase.from('user_stickers')
+              .update({ quantity: (existing.quantity ?? 1) + qty, updated_at: new Date().toISOString() })
+              .eq('id', existing.id)
+            saveErr = error
+          } else if (existing.status === 'missing') {
+            const { error } = await supabase.from('user_stickers')
+              .update({ status: qty > 1 ? 'duplicate' : 'owned', quantity: qty, updated_at: new Date().toISOString() })
+              .eq('id', existing.id)
+            saveErr = error
+          }
+        } else {
+          const { error } = await supabase.from('user_stickers').insert({
+            user_id: userId,
+            sticker_id: sticker.sticker_id,
+            status: qty > 1 ? 'duplicate' : 'owned',
+            quantity: qty,
+          })
+          saveErr = error
+        }
+
+        if (saveErr) {
+          console.error('[save] Write error:', saveErr.message)
+          saveErrors++
+        }
       }
-    }
 
-    const { count } = await supabase
-      .from('user_stickers')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .in('status', ['owned', 'duplicate'])
+      const { count } = await supabase
+        .from('user_stickers')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .in('status', ['owned', 'duplicate'])
 
-    const totalQty = toSave.reduce((sum, s) => sum + (s.quantity || 1), 0)
-    setSavedCount(totalQty)
-    setOwnedCount(count || 0)
-    setSaving(false)
-    setState('success')
+      const totalQty = toSave.reduce((sum, s) => sum + (s.quantity || 1), 0)
+      setSavedCount(totalQty - saveErrors)
+      setOwnedCount(count || 0)
 
-    // Notify nearby users about new duplicates (fire & forget)
-    const savedIds = toSave.map((s) => s.sticker_id)
-    if (savedIds.length > 0) {
-      fetch('/api/notify-matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, sticker_ids: savedIds }),
-      }).catch(() => {})
+      if (saveErrors > 0 && saveErrors === toSave.length) {
+        setErrorMsg('Não foi possível salvar as figurinhas. Verifique sua conexão e tente novamente.')
+        setState('error')
+      } else if (saveErrors > 0) {
+        setErrorMsg(`${saveErrors} figurinha(s) não puderam ser salvas. As demais foram registradas.`)
+        setState('success')
+      } else {
+        setState('success')
+      }
+
+      // Notify nearby users about new duplicates (fire & forget)
+      const savedIds = toSave.filter((_, i) => i < toSave.length - saveErrors).map((s) => s.sticker_id)
+      if (savedIds.length > 0) {
+        fetch('/api/notify-matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, sticker_ids: savedIds }),
+        }).catch(() => {})
+      }
+    } catch (err) {
+      console.error('[save] Unexpected error:', err)
+      setErrorMsg('Erro ao salvar. Verifique sua conexão e tente novamente.')
+      setState('error')
+    } finally {
+      setSaving(false)
     }
   }
 
