@@ -16,7 +16,7 @@ function getAdmin() {
   )
 }
 
-const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini de Copa do Mundo FIFA (qualquer edição: Qatar 2022, 2026, etc).
+const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini da Copa do Mundo FIFA 2026 (edição USA/Canadá/México).
 
 Você pode receber:
 1. Uma foto de uma PÁGINA INTEIRA do álbum — identifique todos os slots visíveis.

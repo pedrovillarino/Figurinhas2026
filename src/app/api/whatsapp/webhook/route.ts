@@ -51,7 +51,7 @@ Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
 "sugestão" → suggestion, "ideia" → suggestion, "bug" → suggestion, "problema" → suggestion, "reclamação" → suggestion.`
 
 // ─── Sticker scan prompt (same as /api/whatsapp/scan) ───
-const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini de Copa do Mundo FIFA (qualquer edição: Qatar 2022, 2026, etc).
+const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini da Copa do Mundo FIFA 2026 (edição USA/Canadá/México).
 
 COMO LER UMA FIGURINHA PANINI:
 - O NOME DO JOGADOR está em letras grandes na parte inferior (ex: "NEYMAR JR", "CASEMIRO", "MARQUINHOS")

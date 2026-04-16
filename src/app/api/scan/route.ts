@@ -10,15 +10,10 @@ import { backgroundHealthPing } from '@/lib/health-ping'
 
 export const maxDuration = 60
 
-// All valid country codes in our database
-const VALID_CODES = [
-  'FIFA', 'QAT', 'ECU', 'SEN', 'NED', 'ENG', 'IRN', 'USA', 'WAL',
-  'ARG', 'KSA', 'MEX', 'POL', 'FRA', 'AUS', 'DEN', 'TUN', 'ESP',
-  'CRC', 'GER', 'JPN', 'BEL', 'CAN', 'MAR', 'CRO', 'BRA', 'SRB',
-  'SUI', 'CMR', 'POR', 'GHA', 'URU', 'KOR',
-]
+// VALID_CODES is built dynamically from the database via getStickersWithCache()
 
-const SYSTEM_INSTRUCTION = `You are a Panini FIFA World Cup sticker scanner (supports ALL editions: Qatar 2022, USA/Canada/Mexico 2026, etc).
+function buildSystemInstruction(validCodes: string[]): string {
+  return `You are a Panini FIFA World Cup sticker scanner.
 
 You analyze photos of Panini stickers and identify each one. Photos may show:
 - FRONT of stickers (player photo, name printed at bottom, country flag, 3-letter code like "BRA")
@@ -37,7 +32,7 @@ CRITICAL — HOW TO READ PANINI STICKERS:
 
 For EACH sticker visible, extract:
 1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo".
-2. "country_code": The 3-letter code. Valid codes: ${VALID_CODES.join(', ')}
+2. "country_code": The 3-letter code. Valid codes: ${validCodes.join(', ')}
 3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
 4. "status": "filled" (actual sticker) or "empty" (empty album slot)
 5. "confidence": YOUR HONEST confidence 0.0 to 1.0 — see CONFIDENCE RULES below.
@@ -78,6 +73,7 @@ OTHER RULES:
 - If you see the BACK of a sticker, the CODE-NUMBER printed there IS the sticker number.
 - If the image is not sticker-related: {"error": "not_album_page", "message": "description"}
 - PREFER skipping a sticker over guessing wrong. A wrong identification hurts the user more than a missed one.`
+}
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
 type CachedSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
@@ -86,6 +82,7 @@ let stickerCache: {
   numberMap: Map<string, CachedSticker>
   nameByCountry: Map<string, Map<string, CachedSticker>>
   nameFlat: Map<string, CachedSticker>
+  validCodes: string[]
   loadedAt: number
 } | null = null
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
@@ -127,7 +124,10 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
     }
   }
 
-  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, loadedAt: Date.now() }
+  // Extract unique country codes from sticker numbers (e.g., "BRA-17" → "BRA")
+  const validCodes = [...new Set(stickers.map((s) => s.number.split('-')[0].toUpperCase()))]
+
+  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, validCodes, loadedAt: Date.now() }
   console.log(`[scan] Cached ${allDbStickers.length} stickers (TTL: 1h)`)
   return stickerCache
 }
@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
-          systemInstruction: SYSTEM_INSTRUCTION,
+          systemInstruction: buildSystemInstruction(cached!.validCodes),
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',
@@ -534,7 +534,7 @@ export async function POST(request: NextRequest) {
 
     if (matched.length === 0 && stickersArr.length > 0) {
       console.error('[scan] ZERO matches! Names:', stickersArr.map((s) => s.player_name))
-      warnings.push('Nenhuma figurinha pôde ser associada ao álbum. Verifique se as figurinhas são da Copa 2022.')
+      warnings.push('Nenhuma figurinha pôde ser associada ao álbum. Verifique se as figurinhas são do álbum correto.')
     }
 
     if (serverQuality === 'low') {
