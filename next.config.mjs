@@ -19,14 +19,14 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://*.supabase.co https://api.completeai.com.br https://lh3.googleusercontent.com",
       "font-src 'self' data:",
       // connect-src: Supabase (custom domain + fallback), Google auth, Stripe, Gemini AI, Z-API (WhatsApp), Vercel Analytics, push subscriptions
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.completeai.com.br wss://api.completeai.com.br https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.ingest.sentry.io",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.completeai.com.br wss://api.completeai.com.br https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
       // frame-src: Stripe checkout iframe, Google login popup
       "frame-src https://*.stripe.com https://accounts.google.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      // worker-src: service worker for push notifications
-      "worker-src 'self'",
+      // worker-src: service worker + blob: for Sentry replay
+      "worker-src 'self' blob:",
       // report-uri: CSP violations → Sentry (catches blocked connections like the custom domain issue)
       ...(SENTRY_CSP_REPORT ? [`report-uri ${SENTRY_CSP_REPORT}`] : []),
     ].join('; ')
