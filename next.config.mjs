@@ -2,6 +2,11 @@ import { withSentryConfig } from '@sentry/nextjs'
 
 /** @type {import('next').NextConfig} */
 
+// Sentry CSP report endpoint — violations are sent here and appear in Sentry
+const SENTRY_CSP_REPORT = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? `https://o4511218791415808.ingest.us.sentry.io/api/4511218802229253/security/?sentry_key=${(process.env.NEXT_PUBLIC_SENTRY_DSN || '').match(/\/\/([^@]+)@/)?.[1] || ''}`
+  : ''
+
 const securityHeaders = [
   {
     key: 'Content-Security-Policy',
@@ -22,6 +27,8 @@ const securityHeaders = [
       "form-action 'self'",
       // worker-src: service worker for push notifications
       "worker-src 'self'",
+      // report-uri: CSP violations → Sentry (catches blocked connections like the custom domain issue)
+      ...(SENTRY_CSP_REPORT ? [`report-uri ${SENTRY_CSP_REPORT}`] : []),
     ].join('; ')
   },
   { key: 'X-Frame-Options', value: 'DENY' },
