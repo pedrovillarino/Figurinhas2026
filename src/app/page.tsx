@@ -101,16 +101,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── Social Proof ── */}
-      <section className="px-6 py-6 bg-gray-50/80">
-        <div className="max-w-md mx-auto">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <StatBlock value="980" label="figurinhas" />
-            <StatBlock value="20+" label="por foto" />
-            <StatBlock value="50km" label="de alcance" />
-          </div>
-        </div>
-      </section>
 
       {/* ── How it works ── */}
       <section className="px-6 py-10 max-w-md mx-auto">
@@ -202,14 +192,6 @@ function ValueProp({
   );
 }
 
-function StatBlock({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="py-3">
-      <p className="text-xl font-black text-brand">{value}</p>
-      <p className="text-[10px] text-gray-400 font-medium">{label}</p>
-    </div>
-  );
-}
 
 function Step({ number, title, description }: { number: string; title: string; description: string }) {
   return (

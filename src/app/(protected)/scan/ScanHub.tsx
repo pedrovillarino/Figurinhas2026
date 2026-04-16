@@ -463,16 +463,16 @@ export default function ScanHub({
         </a>
 
         {/* ── Subtle selling banner ── */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 mb-4">
-          <span className="text-sm">✨</span>
-          <p className="text-xs text-gray-600 flex-1">
-            1 foto = várias figurinhas detectadas. <span className="text-brand font-medium">Junte até 20 figurinhas na mesa pra aproveitar cada scan!</span>
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
+          <span className="text-sm mt-0.5">💡</span>
+          <p className="text-xs text-gray-600 flex-1 leading-relaxed">
+            <span className="font-semibold text-gray-700">Dica:</span> Fotografar a <span className="font-semibold">parte de trás</span> das figurinhas (onde fica o número) aumenta muito a assertividade do scan. Também dá para juntar até 20 de frente na mesa!
           </p>
         </div>
 
         {/* ── Disclaimer + privacy ── */}
         <p className="text-[11px] text-gray-400 px-1 leading-relaxed">
-          Suas fotos não são armazenadas — descartadas após análise. Fotografe apenas figurinhas, páginas do álbum ou envelopes.
+          Suas fotos são descartadas imediatamente após a análise. Fotografe apenas figurinhas ou páginas do álbum.
         </p>
 
         {/* Paywall Modal */}

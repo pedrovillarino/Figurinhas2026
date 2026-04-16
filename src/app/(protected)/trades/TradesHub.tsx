@@ -1266,7 +1266,7 @@ export default function TradesHub({
           )}
 
           {/* Explanation */}
-          <p className="text-[8px] text-gray-300 mt-2 text-center leading-relaxed">
+          <p className="text-[10px] text-gray-400 mt-2 text-center leading-relaxed">
             Cálculo baseado no Problema do Colecionador (Coupon Collector). Pacote = {PACK_SIZE} fig. a R${PACK_PRICE.toFixed(2)}
           </p>
         </div>
@@ -1292,7 +1292,7 @@ export default function TradesHub({
           >
             Desbloquear a partir de R$9,90
           </button>
-          <p className="text-[9px] text-gray-300 text-center mt-2">Pagamento único. Sem assinatura.</p>
+          <p className="text-[10px] text-gray-500 text-center mt-2">Pagamento único. Sem assinatura.</p>
         </div>
       )}
 
