@@ -242,7 +242,7 @@ export default function ScanHub({
 
       if (data.scanUsage) {
         setScansRemaining(data.scanUsage.remaining)
-        setScansLimit(data.scanUsage.limit || 20)
+        setScansLimit(data.scanUsage.limit || 200)
       }
 
       setScanResult(data)

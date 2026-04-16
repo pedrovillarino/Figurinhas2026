@@ -599,9 +599,24 @@ export default function TradesHub({
           {[2.5, 5, 10, 15, 25, 50].map((r) => (
             <button
               key={r}
-              onClick={() => { setRadius(r); if (hasLocation) loadMatchesFromServer() }}
+              onClick={() => {
+                setRadius(r)
+                // Pass radius directly to avoid stale closure
+                if (hasLocation) {
+                  setLoadingMatches(true)
+                  supabase.rpc('get_trade_matches', { p_user_id: userId, p_radius_km: r })
+                    .then(({ data }) => {
+                      if (data) {
+                        setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km || b.match_score - a.match_score))
+                        setNearbyCount(data.length)
+                      }
+                    })
+                    .catch(() => {})
+                    .finally(() => setLoadingMatches(false))
+                }
+              }}
               className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-                radius === r ? 'bg-brand-light0 text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                radius === r ? 'bg-brand text-white shadow-sm' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
               }`}
             >
               {r} km

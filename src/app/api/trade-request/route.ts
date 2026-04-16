@@ -7,6 +7,8 @@ import { sendEmail, tradeRequestEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
 import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
+import { getTradeLimit } from '@/lib/tiers'
+import type { Tier } from '@/lib/tiers'
 
 export const maxDuration = 30
 import { randomBytes } from 'crypto'
@@ -89,15 +91,35 @@ export async function POST(req: NextRequest) {
 
     const admin = getAdmin()
 
-    // 1.5. Check if requester is a minor (blocked from trades)
+    // 1.5. Check if requester is a minor (blocked from trades) + get tier for limit check
     const { data: requesterCheck } = await admin
       .from('profiles')
-      .select('is_minor')
+      .select('is_minor, tier')
       .eq('id', user.id)
       .single()
 
     if (requesterCheck?.is_minor) {
       return NextResponse.json({ error: 'Trocas não disponíveis para menores de 18 anos.' }, { status: 403 })
+    }
+
+    // 1.6. Check and increment trade usage (enforces tier limit + purchased credits)
+    const userTier = (requesterCheck?.tier || 'free') as Tier
+    const tierTradeLimit = getTradeLimit(userTier)
+    const pTierLimit = tierTradeLimit === Infinity ? -1 : tierTradeLimit
+
+    const { data: usageData, error: usageError } = await admin.rpc('increment_trade_usage', {
+      p_user_id: user.id,
+      p_tier_limit: pTierLimit,
+    })
+
+    if (usageError) {
+      console.error('[trade-request] Usage check error:', usageError.message)
+      // Don't block on usage tracking errors — log and continue
+    } else if (usageData && !usageData.allowed) {
+      return NextResponse.json(
+        { error: 'Você atingiu o limite de trocas do seu plano. Faça upgrade ou compre um pacote extra.', needsPack: true },
+        { status: 429 }
+      )
     }
 
     // 2. Check for existing pending request
@@ -137,6 +159,9 @@ export async function POST(req: NextRequest) {
     const token = randomBytes(24).toString('hex')
 
     // 6. Insert trade request
+    // Expire in 7 days
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
     const { data: tradeReq, error: insertError } = await admin
       .from('trade_requests')
       .insert({
@@ -148,6 +173,7 @@ export async function POST(req: NextRequest) {
         i_have: safeIHave,
         distance_km: distance,
         token,
+        expires_at: expiresAt,
       })
       .select('id')
       .single()
