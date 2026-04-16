@@ -425,10 +425,10 @@ function cleanupExpiredScans() {
   lastCleanup = now
 
   const supabase = getAdmin()
-  supabase
+  Promise.resolve(supabase
     .from('pending_scans')
     .delete()
-    .lt('expires_at', new Date().toISOString())
+    .lt('expires_at', new Date().toISOString()))
     .then(({ error, count }) => {
       if (error) console.error('[cleanup] Failed to delete expired scans:', error.message)
       else if (count && count > 0) console.log(`[cleanup] Deleted ${count} expired pending scans`)

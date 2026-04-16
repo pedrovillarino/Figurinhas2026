@@ -125,7 +125,7 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
   }
 
   // Extract unique country codes from sticker numbers (e.g., "BRA-17" → "BRA")
-  const validCodes = [...new Set(stickers.map((s) => s.number.split('-')[0].toUpperCase()))]
+  const validCodes = Array.from(new Set(stickers.map((s) => s.number.split('-')[0].toUpperCase())))
 
   stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, validCodes, loadedAt: Date.now() }
   console.log(`[scan] Cached ${allDbStickers.length} stickers (TTL: 1h)`)

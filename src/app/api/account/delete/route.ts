@@ -36,7 +36,8 @@ export async function POST() {
 
     const errors: string[] = []
 
-    async function del(table: string, filter: () => ReturnType<ReturnType<typeof admin.from>['delete']>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const del = async (table: string, filter: () => any) => {
       const { error } = await filter()
       if (error) {
         console.error(`[DELETE_ACCOUNT] Failed to delete from ${table}:`, error.message)

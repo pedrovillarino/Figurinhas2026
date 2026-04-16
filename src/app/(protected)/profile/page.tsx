@@ -17,6 +17,7 @@ type Profile = {
   scan_credits: number
   trade_credits: number
   referral_code: string | null
+  is_minor?: boolean
 }
 
 type Stats = {

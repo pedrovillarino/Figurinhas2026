@@ -188,7 +188,7 @@ export default function TradesHub({
           const newReq = payload.new as { id: string; requester_id: string; they_have: number; i_have: number; match_score: number; distance_km: number; created_at: string }
           const { data: profile } = await supabase
             .from('profiles')
-            .select('display_name')
+            .select('display_name, avatar_url')
             .eq('id', newReq.requester_id)
             .single()
 
@@ -196,6 +196,7 @@ export default function TradesHub({
             id: newReq.id,
             requester_id: newReq.requester_id,
             requester_name: profile?.display_name || 'Usuário',
+            requester_avatar: profile?.avatar_url || null,
             they_have: newReq.they_have,
             i_have: newReq.i_have,
             match_score: newReq.match_score,
@@ -604,7 +605,7 @@ export default function TradesHub({
                 // Pass radius directly to avoid stale closure
                 if (hasLocation) {
                   setLoadingMatches(true)
-                  supabase.rpc('get_trade_matches', { p_user_id: userId, p_radius_km: r })
+                  Promise.resolve(supabase.rpc('get_trade_matches', { p_user_id: userId, p_radius_km: r }))
                     .then(({ data }) => {
                       if (data) {
                         setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km || b.match_score - a.match_score))
