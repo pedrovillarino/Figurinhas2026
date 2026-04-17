@@ -52,6 +52,9 @@ export default async function PublicProfilePage({ params }: Props) {
     { p_ref_code: refcode }
   )
 
+  if (profileError) {
+    console.error('[/u] Profile stats error:', profileError.message, 'refcode:', refcode)
+  }
   if (profileError || !profileRows || profileRows.length === 0) {
     return <NotFound refcode={refcode} />
   }
