@@ -350,9 +350,20 @@ export default function AlbumClient({
           </span>
         )}
 
-        {/* Main area - tap to expand */}
+        {/* Main area - tap to mark as owned (if zero) or expand (if already owned) */}
         <button
-          onClick={() => setExpanded(isExpanded ? null : sticker.id)}
+          onClick={(e) => {
+            if (loading === sticker.id) return
+            const current = userMap[sticker.id]
+            const isMissing = !current || current.status === 'missing'
+            if (isMissing) {
+              // First click on empty sticker → mark as owned immediately
+              handleIncrement(e, sticker)
+            } else {
+              // Already owned → toggle expand for +/- controls
+              setExpanded(isExpanded ? null : sticker.id)
+            }
+          }}
           disabled={loading === sticker.id}
           aria-label={`${sticker.number} ${sticker.player_name || sticker.country}`}
           aria-expanded={isExpanded}
