@@ -32,9 +32,14 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const section = searchParams.get('section') || null
+    const rawSection = searchParams.get('section') || null
     const scope = searchParams.get('scope') || 'national'
-    const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 20)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10', 10), 1), 20)
+
+    // Sanitize section: only allow alphanumeric, spaces, and basic punctuation (max 60 chars)
+    const section = rawSection
+      ? rawSection.replace(/[<>"'&;]/g, '').trim().slice(0, 60) || null
+      : null
 
     const admin = getAdmin()
 

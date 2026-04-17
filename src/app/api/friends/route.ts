@@ -53,8 +53,13 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
     const { referral_code } = await req.json()
-    if (!referral_code || typeof referral_code !== 'string') {
-      return NextResponse.json({ error: 'Código inválido' }, { status: 400 })
+    if (!referral_code || typeof referral_code !== 'string' || referral_code.trim().length < 4 || referral_code.trim().length > 10) {
+      return NextResponse.json({ error: 'Código inválido (4-10 caracteres)' }, { status: 400 })
+    }
+
+    // Only allow alphanumeric codes
+    if (!/^[A-Za-z0-9]+$/.test(referral_code.trim())) {
+      return NextResponse.json({ error: 'Código deve conter apenas letras e números' }, { status: 400 })
     }
 
     const admin = getAdmin()

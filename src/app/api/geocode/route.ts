@@ -72,11 +72,13 @@ export async function POST(req: NextRequest) {
     // 3. Reverse geocode via Nominatim
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt`
 
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000) // 8s timeout
     const geoResponse = await fetch(url, {
-      headers: {
-        'User-Agent': 'CompleteAi/1.0 (contato@completeai.com.br)',
-      },
+      headers: { 'User-Agent': 'CompleteAi/1.0 (contato@completeai.com.br)' },
+      signal: controller.signal,
     })
+    clearTimeout(timeout)
 
     if (!geoResponse.ok) {
       console.error('[geocode] Nominatim error:', geoResponse.status, await geoResponse.text())
@@ -86,8 +88,12 @@ export async function POST(req: NextRequest) {
     const geoData = await geoResponse.json()
     const address: NominatimAddress = geoData.address || {}
 
-    const city = address.city || address.town || address.village || null
-    const state = address.state || null
+    // Sanitize: only allow alphanumeric, spaces, accents, hyphens (max 100 chars)
+    const sanitize = (s: string | undefined) =>
+      s ? s.replace(/[<>"'&;]/g, '').trim().slice(0, 100) || null : null
+
+    const city = sanitize(address.city || address.town || address.village)
+    const state = sanitize(address.state)
 
     // 4. Update profile with city and state
     const admin = getAdmin()
