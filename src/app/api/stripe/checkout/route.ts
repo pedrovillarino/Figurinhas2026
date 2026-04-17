@@ -101,19 +101,12 @@ export async function POST(req: NextRequest) {
         .from('discount_codes')
         .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active')
         .eq('code', discountCode)
+        .eq('tier', targetTier)
         .eq('active', true)
         .single()
 
       if (!discount) {
-        return NextResponse.json({ error: 'Código de desconto inválido' }, { status: 400 })
-      }
-
-      if (discount.tier !== targetTier) {
-        const tierLabel = TIER_CONFIG[discount.tier as Tier]?.label || discount.tier
-        return NextResponse.json(
-          { error: `Este código é válido apenas para o plano ${tierLabel}` },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Código de desconto inválido para este plano' }, { status: 400 })
       }
 
       if (discount.valid_until && new Date(discount.valid_until) < new Date()) {

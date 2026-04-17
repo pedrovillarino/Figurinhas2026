@@ -103,6 +103,25 @@ export default function TermosPage() {
             disponível de forma ininterrupta, livre de erros ou que os resultados do escaneamento
             por IA serão 100% precisos.
           </P>
+          <SubSection id="3.scan">
+            <P>
+              <strong>Scanner com IA:</strong> O escaneamento de figurinhas utiliza inteligência artificial
+              e está sujeito a falhas de identificação. Os resultados devem ser sempre conferidos e
+              confirmados pelo usuário antes de salvar. O Complete Aí não se responsabiliza por
+              figurinhas registradas incorretamente devido a erros do scanner.
+            </P>
+          </SubSection>
+          <SubSection id="3.trocas">
+            <P>
+              <strong>Trocas entre usuários:</strong> O Complete Aí facilita a conexão entre colecionadores
+              para trocas de figurinhas, mas <strong>não garante a efetivação de nenhuma troca</strong>.
+              A realização de trocas depende da existência de outros usuários com figurinhas compatíveis,
+              da proximidade geográfica e da aceitação voluntária de ambas as partes.
+              A troca é opcional e de responsabilidade exclusiva dos usuários envolvidos.
+              O Complete Aí não se responsabiliza por trocas não realizadas, canceladas ou por
+              qualquer desacordo entre as partes.
+            </P>
+          </SubSection>
           <SubSection id="3.1">
             <P>
               <strong>Vigência:</strong> O Complete Aí é um serviço temporário vinculado à edição 2026 do maior

@@ -35,24 +35,28 @@ export async function POST(req: NextRequest) {
 
     const admin = getAdminClient()
 
-    // Look up the code
+    // Look up the code for the selected tier
     const { data: discount, error: lookupError } = await admin
       .from('discount_codes')
       .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active')
       .eq('code', code)
+      .eq('tier', tier)
       .eq('active', true)
       .single()
 
     if (lookupError || !discount) {
-      return NextResponse.json({ error: 'Código inválido' }, { status: 404 })
-    }
+      // Try without tier filter to give better error message
+      const { data: anyCode } = await admin
+        .from('discount_codes')
+        .select('tier')
+        .eq('code', code)
+        .eq('active', true)
+        .limit(1)
 
-    // Check tier compatibility
-    if (discount.tier !== tier) {
-      return NextResponse.json(
-        { error: `Este código é válido apenas para o plano ${discount.tier}` },
-        { status: 400 }
-      )
+      if (anyCode && anyCode.length > 0) {
+        return NextResponse.json({ error: 'Este código não é válido para o plano selecionado' }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'Código inválido' }, { status: 404 })
     }
 
     // Check expiry

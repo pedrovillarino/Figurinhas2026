@@ -29,7 +29,7 @@ const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album W
 Given a user message in Portuguese, return ONLY valid JSON:
 
 {
-  "intent": "status|missing|duplicates|trades|ranking|help|unknown",
+  "intent": "status|missing|duplicates|trades|ranking|register|help|unknown",
   "confidence": 0.95,
   "response_hint": "brief note about what the user wants"
 }
@@ -40,6 +40,7 @@ Intent definitions:
 - duplicates: user wants list of sticker duplicates to trade
 - trades: user wants to see pending trade requests or trade status
 - ranking: user wants to see their ranking position
+- register: user is typing sticker codes/numbers to register them (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, bra 5, arg 3" or "BRA1 BRA5")
 - help: user wants to know what the bot can do, asks about pricing/plans/how it works, gives feedback/suggestions/bug reports, or greets
 - unknown: anything else
 
@@ -48,6 +49,7 @@ Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
 "o que tenho repetido" → duplicates, "repetidas" → duplicates, "duplicatas" → duplicates,
 "trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades,
 "ranking" → ranking, "posição" → ranking, "colocação" → ranking, "placar" → ranking,
+"BRA-1 ARG-3" → register, any list of sticker codes → register,
 "sugestão" → help, "ideia" → help, "bug" → help, "problema" → help, "faq" → help, "planos" → help, "preço" → help, "como funciona" → help.`
 
 // ─── Sticker scan prompt (same as /api/whatsapp/scan) ───
@@ -657,6 +659,9 @@ export async function POST(req: NextRequest) {
         intent = 'trades'
       } else if (/\b(ranking|posição|posicao|colocação|colocacao|placar)\b/.test(lower)) {
         intent = 'ranking'
+      } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && (text.match(/[a-z]{2,5}[\s\-]?\d{1,2}/gi) || []).length >= 1) {
+        // Looks like sticker codes: "BRA-1 ARG-3" or "bra 1, arg 3" or "BRA1"
+        intent = 'register'
       } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como|faq|perguntas?|dúvidas?|planos?|preços?|quanto custa|sugest|ideia|feedback|bug|problema|reclam|melhoria)\b/.test(lower)) {
         intent = 'help'
       } else {
@@ -765,6 +770,80 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        case 'register': {
+          // Parse sticker codes from text (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, arg 3")
+          const codePattern = /([a-z]{2,5})[\s\-]?(\d{1,2})/gi
+          const matches: string[] = []
+          let match
+          while ((match = codePattern.exec(text)) !== null) {
+            matches.push(`${match[1].toUpperCase()}-${match[2]}`)
+          }
+
+          if (matches.length === 0) {
+            await sendText(phone, '❌ Não consegui identificar códigos de figurinhas. Use o formato: BRA-1 ARG-3 FRA-10')
+            break
+          }
+
+          const supabaseAdmin = getAdmin()
+          // Look up stickers by number
+          const { data: foundStickers } = await supabaseAdmin
+            .from('stickers')
+            .select('id, number, player_name, country')
+            .in('number', matches)
+
+          if (!foundStickers || foundStickers.length === 0) {
+            await sendText(phone, `❌ Nenhuma figurinha encontrada para: ${matches.join(', ')}\nVerifique os códigos e tente novamente.`)
+            break
+          }
+
+          // Save as owned
+          let saved = 0
+          for (const sticker of foundStickers) {
+            const { data: existing } = await supabaseAdmin
+              .from('user_stickers')
+              .select('id, status, quantity')
+              .eq('user_id', user.id)
+              .eq('sticker_id', sticker.id)
+              .single()
+
+            if (existing) {
+              if (existing.status === 'owned') {
+                await supabaseAdmin.from('user_stickers')
+                  .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + 1, updated_at: new Date().toISOString() })
+                  .eq('id', existing.id)
+              } else if (existing.status === 'duplicate') {
+                await supabaseAdmin.from('user_stickers')
+                  .update({ quantity: (existing.quantity ?? 1) + 1, updated_at: new Date().toISOString() })
+                  .eq('id', existing.id)
+              } else {
+                await supabaseAdmin.from('user_stickers')
+                  .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() })
+                  .eq('id', existing.id)
+              }
+            } else {
+              await supabaseAdmin.from('user_stickers').insert({
+                user_id: user.id,
+                sticker_id: sticker.id,
+                status: 'owned',
+                quantity: 1,
+              })
+            }
+            saved++
+          }
+
+          const notFound = matches.filter(m => !foundStickers.some((s: { number: string }) => s.number === m))
+          const stickerList = foundStickers.map((s: { number: string; player_name: string }) => `${s.number} (${s.player_name || ''})`).join('\n')
+
+          let reply = `✅ *${saved} figurinha${saved > 1 ? 's' : ''} registrada${saved > 1 ? 's' : ''}!*\n\n${stickerList}`
+          if (notFound.length > 0) {
+            reply += `\n\n⚠️ Não encontradas: ${notFound.join(', ')}`
+          }
+          reply += `\n\n💡 Dica: mande uma *foto* para registrar mais rápido!`
+
+          await sendText(phone, reply)
+          break
+        }
+
         case 'ranking': {
           try {
             const { data: rankData } = await getAdmin().rpc('get_user_ranking', { p_user_id: user.id })
@@ -815,10 +894,11 @@ export async function POST(req: NextRequest) {
               `🔍 *faltando* — o que falta\n` +
               `🔁 *repetidas* — pra trocar\n` +
               `🔔 *trocas* — solicitações pendentes\n` +
-              `🏆 *ranking* — sua posição\n` +
-              `📸 Mande uma *foto* pra escanear!\n\n` +
+              `🏆 *ranking* — sua posição\n\n` +
+              `📸 Mande uma *foto* pra escanear!\n` +
+              `✏️ Ou *digite os códigos*: BRA-1 ARG-3 FRA-10\n\n` +
               `💡 Mande *sugestões* a qualquer momento\n` +
-              `❓ FAQ completo: ${APP_URL}/faq\n` +
+              `❓ FAQ: ${APP_URL}/faq\n` +
               `📱 App: ${APP_URL}`
           )
           break
