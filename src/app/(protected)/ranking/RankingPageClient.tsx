@@ -125,7 +125,7 @@ export default function RankingPageClient({
   }
 
   const tabs: { key: RankingTab; label: string; icon: string }[] = [
-    { key: 'national', label: 'Nacional', icon: '🇧🇷' },
+    { key: 'national', label: 'Geral', icon: '🌍' },
     { key: 'neighborhood', label: 'Bairro', icon: '📍' },
     { key: 'friends', label: 'Amigos', icon: '👥' },
   ]

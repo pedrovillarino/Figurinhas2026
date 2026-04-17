@@ -48,7 +48,7 @@ export default function StickerStats({
   }
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
-    { key: 'national', label: 'Nacional', icon: '🇧🇷' },
+    { key: 'national', label: 'Geral', icon: '🌍' },
     { key: 'neighborhood', label: 'Bairro', icon: '📍' },
     { key: 'team', label: 'Seleção', icon: '⚽' },
   ]
