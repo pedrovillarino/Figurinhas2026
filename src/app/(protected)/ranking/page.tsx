@@ -28,35 +28,49 @@ export default async function RankingPage() {
   const admin = getAdmin()
   const stickers = await getCachedStickers()
 
-  // Fetch ranking (v2 with premium boost + friends)
+  // Fetch profile for visibility + referral code
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('ranking_visibility, referral_code')
+    .eq('id', user.id)
+    .single()
+
+  // Fetch ranking summary
   let ranking = null
   try {
     const { data } = await admin.rpc('get_user_ranking_v2', { p_user_id: user.id })
     ranking = data?.[0] || null
-  } catch { /* ranking unavailable */ }
+  } catch { /* unavailable */ }
 
-  // Fetch friends ranking
-  let friendsRanking: any[] = []
+  // Fetch leaderboards in parallel
+  let nationalLeaderboard: any[] = []
+  let neighborhoodLeaderboard: any[] = []
+  let friendsLeaderboard: any[] = []
+
   try {
-    const { data } = await admin.rpc('get_friends_ranking', { p_user_id: user.id })
-    friendsRanking = data || []
-  } catch { /* friends unavailable */ }
+    const [natRes, neighRes, friendsRes] = await Promise.all([
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'national', p_limit: 20 }),
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'neighborhood', p_limit: 20 }),
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'friends', p_limit: 20 }),
+    ])
+    nationalLeaderboard = natRes.data || []
+    neighborhoodLeaderboard = neighRes.data || []
+    friendsLeaderboard = friendsRes.data || []
+  } catch { /* leaderboards unavailable */ }
 
-  // Fetch most wanted stickers (national)
+  // Fetch most wanted stickers
   let nationalStats: any[] = []
-  try {
-    const { data } = await admin.rpc('get_most_wanted_stickers', { p_section: null, p_limit: 10 })
-    nationalStats = data || []
-  } catch { /* stats unavailable */ }
-
-  // Fetch most wanted stickers (neighborhood 2.5km)
   let neighborhoodStats: any[] = []
   try {
-    const { data } = await admin.rpc('get_most_wanted_nearby', { p_user_id: user.id, p_radius_km: 2.5, p_limit: 10 })
-    neighborhoodStats = data || []
-  } catch { /* neighborhood stats unavailable */ }
+    const [ns, nbs] = await Promise.all([
+      admin.rpc('get_most_wanted_stickers', { p_section: null, p_limit: 10 }),
+      admin.rpc('get_most_wanted_nearby', { p_user_id: user.id, p_radius_km: 2.5, p_limit: 10 }),
+    ])
+    nationalStats = ns.data || []
+    neighborhoodStats = nbs.data || []
+  } catch { /* stats unavailable */ }
 
-  // Fetch user's own stats
+  // User stats
   const { data: userStickers } = await supabase
     .from('user_stickers')
     .select('status, quantity')
@@ -76,7 +90,9 @@ export default async function RankingPage() {
   return (
     <RankingPageClient
       ranking={ranking}
-      friendsRanking={friendsRanking}
+      nationalLeaderboard={nationalLeaderboard}
+      neighborhoodLeaderboard={neighborhoodLeaderboard}
+      friendsLeaderboard={friendsLeaderboard}
       nationalStats={nationalStats}
       neighborhoodStats={neighborhoodStats}
       sections={sections}
@@ -84,6 +100,8 @@ export default async function RankingPage() {
       duplicates={duplicates}
       total={stickers.length}
       userId={user.id}
+      rankingVisibility={profile?.ranking_visibility || 'public'}
+      referralCode={profile?.referral_code || ''}
     />
   )
 }
