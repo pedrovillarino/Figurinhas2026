@@ -1,0 +1,5 @@
+-- Migration 023: Friends system + premium ranking boost
+-- See execute_sql for full function definitions
+-- Tables: friends (user_id, friend_id, bidirectional)
+-- Functions: get_user_ranking_v2 (with premium boost + friends rank), get_friends_ranking
+-- Auto-populated friends from referral relationships

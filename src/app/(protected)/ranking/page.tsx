@@ -28,12 +28,19 @@ export default async function RankingPage() {
   const admin = getAdmin()
   const stickers = await getCachedStickers()
 
-  // Fetch ranking
+  // Fetch ranking (v2 with premium boost + friends)
   let ranking = null
   try {
-    const { data } = await admin.rpc('get_user_ranking', { p_user_id: user.id })
+    const { data } = await admin.rpc('get_user_ranking_v2', { p_user_id: user.id })
     ranking = data?.[0] || null
   } catch { /* ranking unavailable */ }
+
+  // Fetch friends ranking
+  let friendsRanking: any[] = []
+  try {
+    const { data } = await admin.rpc('get_friends_ranking', { p_user_id: user.id })
+    friendsRanking = data || []
+  } catch { /* friends unavailable */ }
 
   // Fetch most wanted stickers (national)
   let nationalStats: any[] = []
@@ -69,12 +76,14 @@ export default async function RankingPage() {
   return (
     <RankingPageClient
       ranking={ranking}
+      friendsRanking={friendsRanking}
       nationalStats={nationalStats}
       neighborhoodStats={neighborhoodStats}
       sections={sections}
       owned={owned}
       duplicates={duplicates}
       total={stickers.length}
+      userId={user.id}
     />
   )
 }
