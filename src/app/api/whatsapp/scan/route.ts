@@ -126,7 +126,12 @@ const WA_CACHE_TTL = 60 * 60 * 1000
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getWaCache(db: any) {
   if (waCache && Date.now() - waCache.at < WA_CACHE_TTL) return waCache
-  const { data } = await db.from('stickers').select('id, number, player_name, country, type')
+  // Fetch in pages to avoid Supabase 1000-row default limit
+  const [p1, p2] = await Promise.all([
+    db.from('stickers').select('id, number, player_name, country, type').range(0, 999),
+    db.from('stickers').select('id, number, player_name, country, type').range(1000, 1999),
+  ])
+  const data = [...(p1.data || []), ...(p2.data || [])]
   if (!data || data.length === 0) return null
 
   const stickers = data as DbSticker[]

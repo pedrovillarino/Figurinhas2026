@@ -129,7 +129,7 @@ async function getUserStats(userId: string) {
     .select('status, quantity')
     .eq('user_id', userId)
 
-  const total = totalStickers || 670
+  const total = totalStickers || 1028
   let owned = 0
   let duplicates = 0
 

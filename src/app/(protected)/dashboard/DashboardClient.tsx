@@ -146,7 +146,7 @@ export default function DashboardClient({
 }) {
   const [showAll, setShowAll] = useState(false)
 
-  const TOTAL = stickers.length || 670
+  const TOTAL = stickers.length || 1028
 
   // ─── Core Stats ───
   const stats = useMemo(() => {

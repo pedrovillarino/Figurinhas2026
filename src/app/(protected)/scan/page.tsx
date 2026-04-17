@@ -24,5 +24,5 @@ export default async function ScanPage() {
 
   const tier = (profile?.tier || 'free') as Tier
 
-  return <ScanHub userId={user.id} totalStickers={count || 670} tier={tier} />
+  return <ScanHub userId={user.id} totalStickers={count || 1028} tier={tier} />
 }

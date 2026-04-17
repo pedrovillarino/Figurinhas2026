@@ -28,7 +28,7 @@ export default function ExportPageClient({
   const [groupByCountry, setGroupByCountry] = useState(true)
   const [copied, setCopied] = useState(false)
 
-  const TOTAL = stickers.length || 670
+  const TOTAL = stickers.length || 1028
 
   const missingStickers = useMemo(
     () => stickers.filter((s) => {

@@ -93,9 +93,14 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
     return stickerCache
   }
 
-  const { data: allDbStickers, error: dbError } = await supabaseAdmin
-    .from('stickers')
-    .select('id, number, player_name, country, section, type')
+  // Fetch in pages to avoid Supabase 1000-row default limit
+  const [page1, page2] = await Promise.all([
+    supabaseAdmin.from('stickers').select('id, number, player_name, country, section, type').range(0, 999),
+    supabaseAdmin.from('stickers').select('id, number, player_name, country, section, type').range(1000, 1999),
+  ])
+
+  const dbError = page1.error || page2.error
+  const allDbStickers = [...(page1.data || []), ...(page2.data || [])]
 
   if (dbError) {
     console.error('[scan] DB error loading stickers:', dbError.message)

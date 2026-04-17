@@ -132,7 +132,7 @@ export default function ProfilePage() {
       .select('status')
       .eq('user_id', user.id)
 
-    const total = totalStickers || 670
+    const total = totalStickers || 1028
     let owned = 0, duplicates = 0
     userStickers?.forEach((us) => {
       if (us.status === 'owned') owned++

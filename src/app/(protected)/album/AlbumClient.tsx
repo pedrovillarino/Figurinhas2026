@@ -86,7 +86,7 @@ export default function AlbumClient({
     [stickers, collator]
   )
 
-  const TOTAL = sortedStickers.length || 670
+  const TOTAL = sortedStickers.length || 1028
 
   const stats = useMemo(() => {
     let owned = 0, duplicates = 0, totalDupeQty = 0
@@ -101,11 +101,11 @@ export default function AlbumClient({
     return { owned, missing: TOTAL - owned, duplicates, totalDupeQty }
   }, [userMap, TOTAL])
 
-  // Section stats
+  // Section stats (group by section name, not country — so special sections like Legends, Stadiums appear separately)
   const sectionStats = useMemo(() => {
     const sections: Record<string, { total: number; owned: number }> = {}
     sortedStickers.forEach((s) => {
-      const key = s.country
+      const key = s.section
       if (!sections[key]) sections[key] = { total: 0, owned: 0 }
       sections[key].total++
       const us = userMap[s.id]
@@ -144,12 +144,13 @@ export default function AlbumClient({
     return list
   }, [sortedStickers, activeTab, debouncedSearch, userMap, matchesSearch])
 
-  // Group by country for section view
+  // Group by section for accordion view
   const groupedByCountry = useMemo(() => {
     const groups: Record<string, Sticker[]> = {}
     filtered.forEach((s) => {
-      if (!groups[s.country]) groups[s.country] = []
-      groups[s.country].push(s)
+      const key = s.section
+      if (!groups[key]) groups[key] = []
+      groups[key].push(s)
     })
     return groups
   }, [filtered])

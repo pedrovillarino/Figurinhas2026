@@ -12,12 +12,19 @@ export const getCachedStickers = unstable_cache(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    const { data } = await supabase
+    // Supabase default limit is 1000 rows — fetch in pages for albums with 1000+ stickers
+    const page1 = await supabase
       .from('stickers')
       .select('id, number, player_name, country, section, type')
       .order('number')
-    return data || []
+      .range(0, 999)
+    const page2 = await supabase
+      .from('stickers')
+      .select('id, number, player_name, country, section, type')
+      .order('number')
+      .range(1000, 1999)
+    return [...(page1.data || []), ...(page2.data || [])]
   },
-  ['stickers-list-v2026'],
-  { revalidate: 3600 } // 1 hour (reduced from 24h for launch period)
+  ['stickers-list-v2026-full'],
+  { revalidate: 3600 }
 )
