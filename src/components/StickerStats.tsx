@@ -18,6 +18,8 @@ type StickerStat = {
 
 type Tab = 'national' | 'neighborhood' | 'team'
 
+const MIN_USERS_FOR_STATS = 5
+
 export default function StickerStats({
   nationalStats,
   neighborhoodStats,
@@ -56,6 +58,13 @@ export default function StickerStats({
     tab === 'neighborhood' ? neighborhoodStats :
     teamStats
 
+  // Check if we have enough data for meaningful stats
+  const sampleUsers = tab === 'neighborhood'
+    ? (activeStats[0]?.nearby_users ?? 0)
+    : (activeStats[0]?.total_users ?? 0)
+  const hasEnoughData = tab === 'team' || (activeStats.length > 0 && sampleUsers >= MIN_USERS_FOR_STATS)
+  const noLocation = tab === 'neighborhood' && sampleUsers === 0 && activeStats.length === 0
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Header */}
@@ -86,7 +95,7 @@ export default function StickerStats({
         ))}
       </div>
 
-      {/* Team selector (only for team tab) */}
+      {/* Team selector */}
       {tab === 'team' && (
         <div className="px-3 pb-2">
           <select
@@ -101,18 +110,31 @@ export default function StickerStats({
         </div>
       )}
 
-      {/* Stats list */}
+      {/* Content */}
       <div className="px-3 pb-3">
-        {(tab === 'team' && loadingTeam) ? (
+        {/* Loading */}
+        {tab === 'team' && loadingTeam ? (
           <div className="flex justify-center py-4">
             <div className="w-5 h-5 border-2 border-gray-200 border-t-brand rounded-full animate-spin" />
           </div>
-        ) : activeStats.length === 0 ? (
-          <p className="text-[11px] text-gray-400 text-center py-4">
-            {tab === 'neighborhood'
-              ? 'Ative sua localização para ver dados do bairro'
-              : 'Sem dados suficientes ainda'}
-          </p>
+
+        /* Insufficient data */
+        ) : !hasEnoughData ? (
+          <div className="text-center py-5">
+            <p className="text-2xl mb-2">{noLocation ? '📍' : '📊'}</p>
+            <p className="text-xs font-semibold text-gray-600 mb-1">
+              {noLocation ? 'Ative sua localização' : 'Poucos colecionadores ainda'}
+            </p>
+            <p className="text-[10px] text-gray-400 leading-relaxed max-w-[220px] mx-auto">
+              {noLocation
+                ? 'Precisamos da sua localização para mostrar dados do bairro.'
+                : `Precisamos de pelo menos ${MIN_USERS_FOR_STATS} colecionadores${tab === 'neighborhood' ? ' no seu bairro' : ''} para mostrar dados confiáveis.${
+                  sampleUsers > 0 ? ` Atualmente: ${sampleUsers}.` : ''
+                } Convide amigos!`}
+            </p>
+          </div>
+
+        /* Stats list */
         ) : (
           <div className="space-y-1">
             {activeStats.slice(0, 10).map((s, i) => {
@@ -126,7 +148,6 @@ export default function StickerStats({
                   key={s.sticker_id}
                   className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 transition"
                 >
-                  {/* Rank */}
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                     i === 0 ? 'bg-yellow-100 text-yellow-700' :
                     i === 1 ? 'bg-gray-100 text-gray-500' :
@@ -136,7 +157,6 @@ export default function StickerStats({
                     {i + 1}
                   </span>
 
-                  {/* Sticker info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
                       <span className="text-[10px] font-mono text-gray-400">{s.number}</span>
@@ -149,9 +169,8 @@ export default function StickerStats({
                     )}
                   </div>
 
-                  {/* Percentage bar */}
                   <div className="w-16 shrink-0">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end">
                       <span className={`text-[10px] font-semibold ${
                         (pct || 0) <= 20 ? 'text-red-500' :
                         (pct || 0) <= 50 ? 'text-amber-500' :
