@@ -9,6 +9,10 @@
     {
       "path": "/api/whatsapp/health",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/health/scale-check",
+      "schedule": "0 9 * * *"
     }
   ]
 }
