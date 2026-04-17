@@ -59,26 +59,29 @@ export default function PaywallModal({ feature, currentTier, onClose, isMinor = 
     return true
   })
 
-  async function validateCoupon(tier: string) {
+  async function validateCoupon() {
     if (!couponCode.trim()) return
     setValidating(true)
     setCouponStatus(null)
 
+    // Validate against the first available tier to get percent_off
+    const testTier = availableTiers[0] || 'estreante'
     try {
       const res = await fetch('/api/discount/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode.trim(), tier }),
+        body: JSON.stringify({ code: couponCode.trim(), tier: testTier }),
       })
       const data = await res.json()
 
       if (res.ok && data.valid) {
-        setCouponStatus({ valid: true, percent_off: data.percent_off, tier: data.tier })
+        // Mark as valid for ALL tiers (the code works for all tiers)
+        setCouponStatus({ valid: true, percent_off: data.percent_off, tier: 'all' })
       } else {
-        setCouponStatus({ valid: false, percent_off: 0, tier, error: data.error || 'Código inválido' })
+        setCouponStatus({ valid: false, percent_off: 0, tier: testTier, error: data.error || 'Código inválido' })
       }
     } catch {
-      setCouponStatus({ valid: false, percent_off: 0, tier, error: 'Erro ao validar' })
+      setCouponStatus({ valid: false, percent_off: 0, tier: testTier, error: 'Erro ao validar' })
     }
     setValidating(false)
   }
@@ -87,7 +90,7 @@ export default function PaywallModal({ feature, currentTier, onClose, isMinor = 
     setLoading(targetTier)
     try {
       const bodyData: Record<string, string> = { tier: targetTier }
-      if (couponStatus?.valid && couponStatus.tier === targetTier) {
+      if (couponStatus?.valid && (couponStatus.tier === targetTier || couponStatus.tier === 'all')) {
         bodyData.discountCode = couponCode.trim()
       }
 
@@ -110,7 +113,7 @@ export default function PaywallModal({ feature, currentTier, onClose, isMinor = 
   }
 
   function getDiscountedPrice(tier: string): string | null {
-    if (!couponStatus?.valid || couponStatus.tier !== tier) return null
+    if (!couponStatus?.valid || (couponStatus.tier !== tier && couponStatus.tier !== 'all')) return null
     const config = TIER_CONFIG[tier as Tier]
     const targetPrice = 'priceBrl' in config ? (config as { priceBrl: number }).priceBrl : 0
     if (!targetPrice) return null
@@ -178,7 +181,7 @@ export default function PaywallModal({ feature, currentTier, onClose, isMinor = 
                   className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs uppercase tracking-wider focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
                 />
                 <button
-                  onClick={() => validateCoupon(availableTiers[0] || 'estreante')}
+                  onClick={() => validateCoupon()}
                   disabled={validating || !couponCode.trim()}
                   className="bg-gray-900 text-white rounded-xl px-3 py-2 text-xs font-semibold hover:bg-gray-800 transition disabled:opacity-50"
                 >
