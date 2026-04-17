@@ -23,10 +23,15 @@ type UserStickerInfo = { status: string; quantity: number }
 type NearbyMatch = {
   user_id: string
   display_name: string | null
+  avatar_url?: string | null
   distance_km: number
   they_have: number
   i_have: number
   match_score: number
+  avg_rating?: number | null
+  review_count?: number
+  completed_trades?: number
+  composite_score?: number
 }
 
 type PendingRequest = {
@@ -443,12 +448,15 @@ export default function TradesHub({
   const loadMatchesFromServer = useCallback(async () => {
     setLoadingMatches(true)
     try {
-      const { data } = await supabase.rpc('get_trade_matches', {
+      const { data } = await supabase.rpc('get_trade_matches_v2', {
         p_user_id: userId,
         p_radius_km: radius,
+        p_limit: 10,
+        p_offset: 0,
       })
       if (data) {
-        setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km || b.match_score - a.match_score))
+        // v2 already returns sorted by composite_score
+        setMatches(data as NearbyMatch[])
         setNearbyCount(data.length)
       }
     } catch {
@@ -626,7 +634,7 @@ export default function TradesHub({
                 // Pass radius directly to avoid stale closure
                 if (hasLocation) {
                   setLoadingMatches(true)
-                  Promise.resolve(supabase.rpc('get_trade_matches', { p_user_id: userId, p_radius_km: r }))
+                  Promise.resolve(supabase.rpc('get_trade_matches_v2', { p_user_id: userId, p_radius_km: r, p_limit: 10, p_offset: 0 }))
                     .then(({ data }) => {
                       if (data) {
                         setMatches([...(data as NearbyMatch[])].sort((a, b) => a.distance_km - b.distance_km || b.match_score - a.match_score))
@@ -777,13 +785,13 @@ export default function TradesHub({
                     {/* Premium: expanded details */}
                     {isPremium && isExpanded && (
                       <div className="px-3 pb-3 border-t border-gray-100">
-                        {/* Reputation badges */}
-                        {userReputation[match.user_id] && (
+                        {/* Reputation badges (from v2 composite data or lazy-loaded) */}
+                        {(match.completed_trades != null || userReputation[match.user_id]) && (
                           <div className="flex items-center gap-2 py-2 flex-wrap">
-                            <TradeBadge completedTrades={userReputation[match.user_id].completedTrades} />
+                            <TradeBadge completedTrades={match.completed_trades ?? userReputation[match.user_id]?.completedTrades ?? 0} />
                             <UserRating
-                              avgRating={userReputation[match.user_id].avgRating}
-                              reviewCount={userReputation[match.user_id].reviewCount}
+                              avgRating={match.avg_rating ?? userReputation[match.user_id]?.avgRating ?? null}
+                              reviewCount={Number(match.review_count ?? userReputation[match.user_id]?.reviewCount ?? 0)}
                             />
                           </div>
                         )}

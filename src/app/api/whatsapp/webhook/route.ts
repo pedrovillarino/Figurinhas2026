@@ -29,7 +29,7 @@ const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album W
 Given a user message in Portuguese, return ONLY valid JSON:
 
 {
-  "intent": "status|missing|duplicates|trades|faq|suggestion|help|unknown",
+  "intent": "status|missing|duplicates|trades|ranking|help|unknown",
   "confidence": 0.95,
   "response_hint": "brief note about what the user wants"
 }
@@ -38,17 +38,17 @@ Intent definitions:
 - status: user wants their collection progress/stats
 - missing: user wants list of stickers they still need
 - duplicates: user wants list of sticker duplicates to trade
-- trades: user wants to see pending trade requests or trade status ("trocas", "aceitar", "pendentes", "solicitações")
-- faq: user asks about pricing, plans, how the app works, payment ("faq", "planos", "preço", "como funciona", "dúvidas")
-- suggestion: user wants to give feedback, report a bug, or suggest a feature ("sugestão", "ideia", "bug", "problema", "reclamação", "feedback", "melhoria")
-- help: user wants to know what the bot can do
-- unknown: anything else (greetings map to help)
+- trades: user wants to see pending trade requests or trade status
+- ranking: user wants to see their ranking position
+- help: user wants to know what the bot can do, asks about pricing/plans/how it works, gives feedback/suggestions/bug reports, or greets
+- unknown: anything else
 
 Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
 "quais me faltam" → missing, "faltando" → missing, "faltam" → missing,
 "o que tenho repetido" → duplicates, "repetidas" → duplicates, "duplicatas" → duplicates,
 "trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades,
-"sugestão" → suggestion, "ideia" → suggestion, "bug" → suggestion, "problema" → suggestion, "reclamação" → suggestion.`
+"ranking" → ranking, "posição" → ranking, "colocação" → ranking, "placar" → ranking,
+"sugestão" → help, "ideia" → help, "bug" → help, "problema" → help, "faq" → help, "planos" → help, "preço" → help, "como funciona" → help.`
 
 // ─── Sticker scan prompt (same as /api/whatsapp/scan) ───
 const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini da Copa do Mundo FIFA 2026 (edição USA/Canadá/México).
@@ -655,11 +655,9 @@ export async function POST(req: NextRequest) {
         intent = 'duplicates'
       } else if (/(troca|pendente|solicita|aceitar|minhas trocas|ver trocas)/.test(lower)) {
         intent = 'trades'
-      } else if (/\b(faq|perguntas?|dúvidas?|duvidas?|como funciona|planos?|preços?|precos?|quanto custa)\b/.test(lower)) {
-        intent = 'faq'
-      } else if (/\b(sugest|ideia|feedback|bug|problema|reclam|melhoria|opinião|opiniao)\b/.test(lower)) {
-        intent = 'suggestion'
-      } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como)\b/.test(lower)) {
+      } else if (/\b(ranking|posição|posicao|colocação|colocacao|placar)\b/.test(lower)) {
+        intent = 'ranking'
+      } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como|faq|perguntas?|dúvidas?|planos?|preços?|quanto custa|sugest|ideia|feedback|bug|problema|reclam|melhoria)\b/.test(lower)) {
         intent = 'help'
       } else {
         // Fallback to Gemini for ambiguous messages
@@ -767,59 +765,61 @@ export async function POST(req: NextRequest) {
           break
         }
 
-        case 'faq': {
-          await sendText(
-            phone,
-            `❓ *Perguntas Frequentes*\n\n` +
-              `📱 *O que é?* App com IA para organizar seu álbum de figurinhas\n\n` +
-              `📸 *Scanner:* Tire foto das figurinhas e a IA identifica automaticamente\n\n` +
-              `🔁 *Trocas:* Encontre colecionadores perto de você com aprovação segura\n\n` +
-              `💎 *Planos:*\n` +
-              `   • Grátis: 5 scans, 2 trocas\n` +
-              `   • Estreante R$9,90: 50 scans, 5 trocas\n` +
-              `   • Colecionador R$19,90: 150 scans, 15 trocas\n` +
-              `   • Copa Completa R$29,90: tudo ilimitado\n\n` +
-              `💳 Pagamento único (sem mensalidade)!\n\n` +
-              `Para o FAQ completo acesse:\n${APP_URL}/faq`
-          )
-          break
-        }
-
-        case 'suggestion': {
-          // Forward suggestion to admin WhatsApp
-          const adminPhone = process.env.ADMIN_PHONE
-          const userName = user.display_name?.split(' ')[0] || 'Usuário'
-          if (adminPhone) {
-            const fwdMsg =
-              `💡 *Sugestão/Feedback de ${userName}*\n` +
-              `📱 ${phone}\n\n` +
-              `"${text}"`
-            // Fire-and-forget
-            sendText(adminPhone, fwdMsg).catch((err) => console.error('[SUGGESTION] WhatsApp forward failed:', err))
+        case 'ranking': {
+          try {
+            const { data: rankData } = await getAdmin().rpc('get_user_ranking', { p_user_id: user.id })
+            const r = rankData?.[0]
+            if (r && r.national_rank) {
+              const cityLine = r.city ? `📍 *${r.city}:* #${r.city_rank} de ${r.city_total}\n` : ''
+              const stateLine = r.state ? `🗺️ *${r.state}:* #${r.state_rank} de ${r.state_total}\n` : ''
+              await sendText(
+                phone,
+                `🏆 *Seu Ranking*\n\n` +
+                `🇧🇷 *Nacional:* #${r.national_rank} de ${r.national_total} colecionadores\n` +
+                cityLine + stateLine +
+                `\n📊 ${r.owned_count} figurinhas coladas\n\n` +
+                `Veja detalhes: ${APP_URL}/ranking`
+              )
+            } else {
+              await sendText(phone, `🏆 Ative sua localização no app para ver seu ranking!\n\n${APP_URL}/ranking`)
+            }
+          } catch {
+            await sendText(phone, `🏆 Veja seu ranking no app:\n${APP_URL}/ranking`)
           }
-          await sendText(
-            phone,
-            `💡 Obrigado pelo feedback, *${userName}*!\n\n` +
-            `Sua mensagem foi encaminhada para nossa equipe. Vamos analisar com carinho! 🙏\n\n` +
-            `Se quiser falar mais, mande um email:\n📧 contato@completeai.com.br`
-          )
           break
         }
 
         case 'help':
         default: {
-          const greeting = user.display_name ? `Oi, *${user.display_name.split(' ')[0]}*! ` : ''
+          const helpName = user.display_name?.split(' ')[0] || ''
+          const greeting = helpName ? `Oi, *${helpName}*! ` : ''
+
+          // Check if message looks like feedback/suggestion and forward to admin
+          const isFeedback = /sugest|ideia|bug|problema|reclama|feedback|melhoria/i.test(text)
+          if (isFeedback && text.length > 5) {
+            const adminPhone = process.env.ADMIN_PHONE
+            if (adminPhone) {
+              sendText(adminPhone, `💡 *Feedback de ${helpName || 'Usuário'}*\n📱 ${phone}\n\n"${text}"`).catch(() => {})
+            }
+            await sendText(
+              phone,
+              `💡 Obrigado pelo feedback!\n\nSua mensagem foi encaminhada para nossa equipe. 🙏\n\nDúvidas: contato@completeai.com.br`
+            )
+            break
+          }
+
           await sendText(
             phone,
             `${greeting}⚽ *O que posso fazer:*\n\n` +
               `📊 *status* — seu progresso\n` +
               `🔍 *faltando* — o que falta\n` +
               `🔁 *repetidas* — pra trocar\n` +
-              `🔔 *trocas* — ver solicitações pendentes\n` +
-              `❓ *faq* — perguntas frequentes\n` +
-              `💡 *sugestão* — enviar feedback ou ideia\n` +
-              `📸 Mande uma *foto* pra eu escanear!\n\n` +
-              `Acesse o app: ${APP_URL}`
+              `🔔 *trocas* — solicitações pendentes\n` +
+              `🏆 *ranking* — sua posição\n` +
+              `📸 Mande uma *foto* pra escanear!\n\n` +
+              `💡 Mande *sugestões* a qualquer momento\n` +
+              `❓ FAQ completo: ${APP_URL}/faq\n` +
+              `📱 App: ${APP_URL}`
           )
           break
         }

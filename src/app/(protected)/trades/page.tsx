@@ -38,10 +38,15 @@ export default async function TradesPage() {
   type NearbyMatch = {
     user_id: string
     display_name: string | null
+    avatar_url?: string | null
     distance_km: number
     they_have: number
     i_have: number
     match_score: number
+    avg_rating?: number | null
+    review_count?: number
+    completed_trades?: number
+    composite_score?: number
   }
   type PendingRequest = {
     id: string
@@ -62,7 +67,7 @@ export default async function TradesPage() {
   const [matchesResult, pendingResult, sentResult, approvedResult] = await Promise.all([
     // Nearby matches (only if has location)
     hasLocation
-      ? safe(supabase.rpc('get_trade_matches', { p_user_id: user.id, p_radius_km: 50 }))
+      ? safe(supabase.rpc('get_trade_matches_v2', { p_user_id: user.id, p_radius_km: 50, p_limit: 10, p_offset: 0 }))
       : Promise.resolve({ data: null }),
     // Pending trade requests
     safe(supabase.rpc('get_pending_trade_requests', { p_user_id: user.id })),
