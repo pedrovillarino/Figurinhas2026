@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
+import TradeBadge from '@/components/TradeBadge'
+import UserRating from '@/components/UserRating'
 import { canTrade, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, TIER_CONFIG, getTradeLimit, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 import TradeRequestsBanner from '@/components/TradeRequestsBanner'
@@ -455,16 +457,35 @@ export default function TradesHub({
     setLoadingMatches(false)
   }, [supabase, userId, radius])
 
+  // User reputation data (rating + completed trades)
+  const [userReputation, setUserReputation] = useState<Record<string, { avgRating: number | null; reviewCount: number; completedTrades: number }>>({})
+
   async function loadDetails(otherId: string) {
     if (details[otherId]) return
     setLoadingDetails(otherId)
-    const { data, error } = await supabase.rpc('get_trade_details', {
-      p_user_id: userId,
-      p_other_id: otherId,
-    })
-    if (!error && data) {
-      setDetails((prev) => ({ ...prev, [otherId]: data as TradeDetail[] }))
+
+    // Fetch trade details + reputation in parallel
+    const [detailsResult, ratingResult, tradesCountResult] = await Promise.all([
+      supabase.rpc('get_trade_details', { p_user_id: userId, p_other_id: otherId }),
+      supabase.rpc('get_user_rating', { p_user_id: otherId }),
+      supabase.rpc('get_completed_trades_count', { p_user_id: otherId }),
+    ])
+
+    if (!detailsResult.error && detailsResult.data) {
+      setDetails((prev) => ({ ...prev, [otherId]: detailsResult.data as TradeDetail[] }))
     }
+
+    const rating = ratingResult.data?.[0]
+    const tradesCount = typeof tradesCountResult.data === 'number' ? tradesCountResult.data : (tradesCountResult.data as number) || 0
+    setUserReputation((prev) => ({
+      ...prev,
+      [otherId]: {
+        avgRating: rating?.avg_rating ?? null,
+        reviewCount: Number(rating?.review_count || 0),
+        completedTrades: tradesCount,
+      },
+    }))
+
     setLoadingDetails(null)
   }
 
@@ -756,6 +777,16 @@ export default function TradesHub({
                     {/* Premium: expanded details */}
                     {isPremium && isExpanded && (
                       <div className="px-3 pb-3 border-t border-gray-100">
+                        {/* Reputation badges */}
+                        {userReputation[match.user_id] && (
+                          <div className="flex items-center gap-2 py-2 flex-wrap">
+                            <TradeBadge completedTrades={userReputation[match.user_id].completedTrades} />
+                            <UserRating
+                              avgRating={userReputation[match.user_id].avgRating}
+                              reviewCount={userReputation[match.user_id].reviewCount}
+                            />
+                          </div>
+                        )}
                         {isLoadingDetail ? (
                           <div className="flex justify-center py-3">
                             <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
