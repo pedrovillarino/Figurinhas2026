@@ -251,6 +251,8 @@ export async function POST(req: NextRequest) {
             await sendText(phone, msg)
             whatsappSent = true
             didNotify = true
+            // Throttle: 1 msg/sec to avoid Z-API rate limiting
+            await new Promise(r => setTimeout(r, 1100))
           } catch (err) {
             console.error(`WhatsApp failed for ${nearby.id}:`, err)
           }

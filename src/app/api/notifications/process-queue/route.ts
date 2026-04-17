@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
   let sent = 0
   let failed = 0
 
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
   for (const notif of pending) {
     let success = false
 
@@ -63,6 +65,8 @@ export async function POST(req: NextRequest) {
       if (notif.channel === 'whatsapp') {
         await sendText(notif.recipient, notif.message)
         success = true
+        // Throttle WhatsApp: 1 msg/sec to avoid Z-API rate limiting
+        await sleep(1100)
       } else if (notif.channel === 'email') {
         success = await sendEmail(notif.recipient, notif.subject || 'Complete Aí', notif.message)
       }
