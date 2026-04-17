@@ -1,17 +1,30 @@
 export const countryFlags: Record<string, string> = {
-  'Argentina': '🇦🇷', 'Australia': '🇦🇺', 'Belgium': '🇧🇪', 'Brazil': '🇧🇷',
-  'Cameroon': '🇨🇲', 'Canada': '🇨🇦', 'Chile': '🇨🇱', 'Colombia': '🇨🇴',
-  'Costa Rica': '🇨🇷', 'Croatia': '🇭🇷', 'Denmark': '🇩🇰', 'Ecuador': '🇪🇨',
-  'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Ghana': '🇬🇭',
-  'Iran': '🇮🇷', 'Italy': '🇮🇹', 'Japan': '🇯🇵', 'Mexico': '🇲🇽',
-  'Morocco': '🇲🇦', 'Netherlands': '🇳🇱', 'Nigeria': '🇳🇬', 'Paraguay': '🇵🇾',
-  'Peru': '🇵🇪', 'Poland': '🇵🇱', 'Portugal': '🇵🇹', 'Qatar': '🇶🇦',
-  'Saudi Arabia': '🇸🇦', 'Senegal': '🇸🇳', 'Serbia': '🇷🇸', 'South Korea': '🇰🇷',
-  'Spain': '🇪🇸', 'Switzerland': '🇨🇭', 'Tunisia': '🇹🇳', 'Turkey': '🇹🇷',
-  'USA': '🇺🇸', 'Uruguay': '🇺🇾', 'Wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
-  'FWC': '🏆', 'Special': '⭐', 'Stadiums': '🏟️',
+  // Teams (2026 World Cup — 48 teams)
+  'Algeria': '🇩🇿', 'Argentina': '🇦🇷', 'Australia': '🇦🇺', 'Austria': '🇦🇹',
+  'Belgium': '🇧🇪', 'Bosnia and Herzegovina': '🇧🇦', 'Brazil': '🇧🇷',
+  'Canada': '🇨🇦', 'Cape Verde': '🇨🇻', 'Colombia': '🇨🇴', 'Croatia': '🇭🇷',
+  'Curacao': '🇨🇼', 'Czech Republic': '🇨🇿', 'DR Congo': '🇨🇩',
+  'Ecuador': '🇪🇨', 'Egypt': '🇪🇬', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'France': '🇫🇷', 'Germany': '🇩🇪', 'Ghana': '🇬🇭',
+  'Haiti': '🇭🇹', 'Iran': '🇮🇷', 'Iraq': '🇮🇶', 'Ivory Coast': '🇨🇮',
+  'Japan': '🇯🇵', 'Jordan': '🇯🇴',
+  'Mexico': '🇲🇽', 'Morocco': '🇲🇦',
+  'Netherlands': '🇳🇱', 'New Zealand': '🇳🇿', 'Norway': '🇳🇴',
+  'Panama': '🇵🇦', 'Paraguay': '🇵🇾', 'Portugal': '🇵🇹',
+  'Qatar': '🇶🇦',
+  'Saudi Arabia': '🇸🇦', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Senegal': '🇸🇳',
+  'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Spain': '🇪🇸',
+  'Sweden': '🇸🇪', 'Switzerland': '🇨🇭',
+  'Tunisia': '🇹🇳', 'Turkey': '🇹🇷',
+  'Uruguay': '🇺🇾', 'USA': '🇺🇸', 'Uzbekistan': '🇺🇿',
+
+  // Special sections
+  'Introduction': '📖', 'Stadiums': '🏟️',
+  'Legends': '👑', 'FIFA World Cup': '🏆',
+  'Golden Stickers': '✨', 'Memorable Moments': '📸',
+  'FIFA': '⚽',
 }
 
-export function getFlag(country: string): string {
-  return countryFlags[country] || '🏳️'
+export function getFlag(section: string): string {
+  return countryFlags[section] || '🏳️'
 }
