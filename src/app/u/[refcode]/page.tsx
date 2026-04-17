@@ -6,6 +6,8 @@ import TradeBadge from '@/components/TradeBadge'
 import UserRating from '@/components/UserRating'
 import ComparatorClient from './ComparatorClient'
 
+export const dynamic = 'force-dynamic'
+
 type Props = {
   params: { refcode: string }
 }
