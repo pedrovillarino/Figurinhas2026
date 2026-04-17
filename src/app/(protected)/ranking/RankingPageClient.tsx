@@ -128,7 +128,7 @@ export default function RankingPageClient({
             </p>
             {isPremium && (
               <span className="inline-flex items-center gap-1 mt-1 bg-yellow-50 text-yellow-700 rounded-full px-2 py-0.5 text-[9px] font-bold">
-                ⭐ Boost +5% no ranking
+                ⭐ Prioridade nas trocas
               </span>
             )}
           </div>
