@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, isPaid } from '@/lib/tiers'
 import type { Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
+import ProfileQRCode from '@/components/ProfileQRCode'
 
 type Profile = {
   display_name: string | null
@@ -404,6 +405,11 @@ export default function ProfilePage() {
             </svg>
             Compartilhar via WhatsApp
           </a>
+
+          {/* QR Code */}
+          <div className="mb-3">
+            <ProfileQRCode referralCode={profile.referral_code!} />
+          </div>
 
           {/* Referral stats */}
           <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3">
