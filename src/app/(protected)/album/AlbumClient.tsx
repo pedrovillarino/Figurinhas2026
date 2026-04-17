@@ -144,6 +144,17 @@ export default function AlbumClient({
     return list
   }, [sortedStickers, activeTab, debouncedSearch, userMap, matchesSearch])
 
+  // Custom section ordering: Intro → Stadiums → Teams (alphabetical) → Legends → FWC → Gold → Moments
+  const SECTION_ORDER: Record<string, number> = {
+    'Introduction': 1,
+    'Stadiums': 2,
+    // Teams get order 100 (sorted alphabetically among themselves)
+    'Legends': 200,
+    'FIFA World Cup': 201,
+    'Golden Stickers': 202,
+    'Memorable Moments': 203,
+  }
+
   // Group by section for accordion view
   const groupedByCountry = useMemo(() => {
     const groups: Record<string, Sticker[]> = {}
@@ -152,7 +163,18 @@ export default function AlbumClient({
       if (!groups[key]) groups[key] = []
       groups[key].push(s)
     })
-    return groups
+
+    // Sort sections by custom order
+    const sorted: Record<string, Sticker[]> = {}
+    const keys = Object.keys(groups).sort((a, b) => {
+      const orderA = SECTION_ORDER[a] ?? 100
+      const orderB = SECTION_ORDER[b] ?? 100
+      if (orderA !== orderB) return orderA - orderB
+      // Both are teams (order 100) → alphabetical
+      return a.localeCompare(b, 'en')
+    })
+    keys.forEach((k) => { sorted[k] = groups[k] })
+    return sorted
   }, [filtered])
 
   function toggleSection(country: string) {
