@@ -10,6 +10,8 @@ interface RankingData {
   state: string | null
   state_rank: number | null
   state_total: number | null
+  friends_rank?: number | null
+  friends_total?: number | null
 }
 
 interface RankingCardProps {
@@ -56,26 +58,26 @@ export default function RankingCard({ ranking }: RankingCardProps) {
           </span>
         </div>
 
-        {/* City */}
+        {/* Neighborhood (2.5km — uses city_rank data from the bounding box query) */}
         {ranking.city && ranking.city_rank != null && ranking.city_total != null && (
           <div className="flex items-center gap-2 text-sm">
             <span>{'\u{1F4CD}'}</span>
             <span>
               <span className="font-bold text-navy">#{ranking.city_rank}</span>
-              <span className="text-gray-500"> em {ranking.city}</span>
+              <span className="text-gray-500"> no seu bairro</span>
               <span className="text-gray-400"> ({ranking.city_total.toLocaleString('pt-BR')})</span>
             </span>
           </div>
         )}
 
-        {/* State */}
-        {ranking.state && ranking.state_rank != null && ranking.state_total != null && (
+        {/* Friends */}
+        {ranking.friends_rank != null && ranking.friends_total != null && ranking.friends_total > 1 && (
           <div className="flex items-center gap-2 text-sm">
-            <span>{'\u{1F5FA}\u{FE0F}'}</span>
+            <span>{'\u{1F465}'}</span>
             <span>
-              <span className="font-bold text-navy">#{ranking.state_rank}</span>
-              <span className="text-gray-500"> em {ranking.state}</span>
-              <span className="text-gray-400"> ({ranking.state_total.toLocaleString('pt-BR')})</span>
+              <span className="font-bold text-navy">#{ranking.friends_rank}</span>
+              <span className="text-gray-500"> entre amigos</span>
+              <span className="text-gray-400"> ({ranking.friends_total.toLocaleString('pt-BR')})</span>
             </span>
           </div>
         )}
