@@ -18,6 +18,6 @@ export const getCachedStickers = unstable_cache(
       .order('number')
     return data || []
   },
-  ['stickers-list'],
-  { revalidate: 86400 } // 24 hours
+  ['stickers-list-v2026'],
+  { revalidate: 3600 } // 1 hour (reduced from 24h for launch period)
 )
