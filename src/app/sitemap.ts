@@ -23,6 +23,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${APP_URL}/quanto-custa-completar-album-copa-2026`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${APP_URL}/como-trocar-figurinhas-copa-2026`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: `${APP_URL}/termos`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
