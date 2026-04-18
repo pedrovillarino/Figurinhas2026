@@ -5,6 +5,7 @@ import PushPermission from '@/components/PushPermission'
 import ReferralApplier from '@/components/ReferralApplier'
 import AuthRefresh from '@/components/AuthRefresh'
 import ClientHealthCheck from '@/components/ClientHealthCheck'
+import LaunchPromoModal from '@/components/LaunchPromoModal'
 
 export default function ProtectedLayout({
   children,
@@ -20,6 +21,7 @@ export default function ProtectedLayout({
       <ReferralApplier />
       <AuthRefresh />
       <ClientHealthCheck />
+      <LaunchPromoModal />
       <footer>
         <BottomNav />
       </footer>
