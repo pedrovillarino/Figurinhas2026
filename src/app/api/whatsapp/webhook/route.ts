@@ -9,7 +9,7 @@ import { backgroundHealthPing } from '@/lib/health-ping'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br').trim()
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br').trim()
 
 // ─── Admin Supabase client (service role) ───
 function getAdmin() {
@@ -717,7 +717,7 @@ export async function POST(req: NextRequest) {
             await sendText(
               phone,
               `🔁 *Minhas repetidas* (${dupes.length} figurinhas):\n\n${list}\n\n` +
-              `📲 Lista gerada pelo *Complete Aí* — completeai.com.br\n` +
+              `📲 Lista gerada pelo *Complete Aí* — www.completeai.com.br\n` +
               `Escaneie suas figurinhas com IA e complete seu álbum mais rápido!`
             )
           }

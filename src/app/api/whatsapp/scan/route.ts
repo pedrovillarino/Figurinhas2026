@@ -7,7 +7,7 @@ import { getScanLimit, type Tier } from '@/lib/tiers'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br').trim()
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br').trim()
 
 function getAdmin() {
   return createClient(

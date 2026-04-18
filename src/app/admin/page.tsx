@@ -15,7 +15,7 @@ function supabaseAdmin() {
 async function getHealthCheck() {
   try {
     const start = Date.now()
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br'}/api/health`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'}/api/health`, {
       cache: 'no-store',
     })
     const data = await res.json()
@@ -29,7 +29,7 @@ async function getWhatsAppHealth() {
   try {
     const cronSecret = process.env.CRON_SECRET
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br'}/api/whatsapp/health`,
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'}/api/whatsapp/health`,
       {
         cache: 'no-store',
         headers: cronSecret ? { Authorization: `Bearer ${cronSecret}` } : {},

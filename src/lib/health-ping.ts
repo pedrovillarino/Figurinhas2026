@@ -12,7 +12,7 @@
 let lastPingAt = 0
 const PING_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://completeai.com.br').trim()
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br').trim()
 const CRON_SECRET = process.env.CRON_SECRET
 
 export function backgroundHealthPing() {

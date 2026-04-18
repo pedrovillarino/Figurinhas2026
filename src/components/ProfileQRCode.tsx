@@ -9,7 +9,7 @@ type ProfileQRCodeProps = {
 export default function ProfileQRCode({ referralCode }: ProfileQRCodeProps) {
   const [copied, setCopied] = useState(false)
 
-  const url = `https://completeai.com.br/u/${referralCode}`
+  const url = `https://www.completeai.com.br/u/${referralCode}`
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=200x200&color=0A1628&bgcolor=FFFFFF`
 
   async function handleCopy() {

@@ -19,7 +19,7 @@ const env = Object.fromEntries(
     .filter(([k, v]) => k && v)
 )
 
-const PROD_URL = 'https://completeai.com.br'
+const PROD_URL = 'https://www.completeai.com.br'
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY

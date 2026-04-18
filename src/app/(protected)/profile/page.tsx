@@ -376,11 +376,11 @@ export default function ProfilePage() {
           {/* Referral link */}
           <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 truncate font-mono">
-              completeai.com.br/?ref={profile.referral_code}
+              www.completeai.com.br/?ref={profile.referral_code}
             </div>
             <button
               onClick={() => {
-                navigator.clipboard.writeText(`https://completeai.com.br/?ref=${profile.referral_code}`)
+                navigator.clipboard.writeText(`https://www.completeai.com.br/?ref=${profile.referral_code}`)
                 setCopied(true)
                 setTimeout(() => setCopied(false), 2000)
               }}
@@ -393,7 +393,7 @@ export default function ProfilePage() {
           {/* WhatsApp share */}
           <a
             href={`https://wa.me/?text=${encodeURIComponent(
-              `Estou usando o Complete Aí para organizar meu álbum de figurinhas! Escaneia figurinhas com IA e encontra trocas perto de você. Crie sua conta com meu link e a gente ganha créditos: https://completeai.com.br/?ref=${profile.referral_code}`
+              `Estou usando o Complete Aí para organizar meu álbum de figurinhas! Escaneia figurinhas com IA e encontra trocas perto de você. Crie sua conta com meu link e a gente ganha créditos: https://www.completeai.com.br/?ref=${profile.referral_code}`
             )}`}
             target="_blank"
             rel="noopener noreferrer"

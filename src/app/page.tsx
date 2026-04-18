@@ -126,6 +126,38 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ── About / SEO content ── */}
+      <section className="px-6 py-10 max-w-md mx-auto border-t border-gray-100">
+        <h2 className="text-base font-bold text-navy mb-4">
+          Sobre o Complete Aí
+        </h2>
+        <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+          <p>
+            O Complete Aí é o aplicativo brasileiro que usa inteligência artificial
+            para ajudar colecionadores a completar o álbum da{' '}
+            <strong className="font-semibold text-navy">Copa do Mundo 2026</strong>.
+            Em vez de gastar centenas de reais em pacotes e acumular figurinhas
+            repetidas sem controle, você escaneia sua coleção com a câmera do
+            celular e a IA identifica automaticamente quais figurinhas você já tem,
+            quais faltam e quais estão repetidas.
+          </p>
+          <p>
+            Com sua lista organizada, o app conecta você a outros colecionadores
+            próximos para{' '}
+            <strong className="font-semibold text-navy">trocar figurinhas</strong>{' '}
+            sem precisar caçar grupos no WhatsApp ou montar planilhas. O Complete
+            Aí encontra trocas compatíveis perto de você automaticamente e avisa
+            por WhatsApp quando aparece um match na sua região.
+          </p>
+          <p>
+            Funciona 100% pelo navegador, sem precisar baixar nada. Tem plano
+            grátis para começar e planos pagos a partir de R$ 9,90 (pagamento
+            único, sem mensalidade) para desbloquear scans e trocas ilimitadas
+            durante toda a Copa 2026.
+          </p>
+        </div>
+      </section>
+
       {/* ── Bottom CTA ── */}
       <section className="px-6 pt-6 pb-10 bg-gradient-to-b from-white to-brand-light/40">
         <div className="max-w-xs mx-auto text-center">
