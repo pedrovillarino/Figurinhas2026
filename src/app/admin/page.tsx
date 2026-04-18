@@ -41,6 +41,75 @@ async function getWhatsAppHealth() {
   }
 }
 
+// ─── Time-series helpers ───
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function dateLabels(days: number): string[] {
+  const now = new Date()
+  return Array.from({ length: days }, (_, i) => {
+    const d = new Date(now)
+    d.setUTCHours(0, 0, 0, 0)
+    d.setUTCDate(d.getUTCDate() - (days - 1 - i))
+    return d.toISOString().split('T')[0]
+  })
+}
+
+function bucketByCreatedAt(items: { created_at: string }[], days: number): number[] {
+  const labels = dateLabels(days)
+  const indexByDate = new Map(labels.map((label, i) => [label, i]))
+  const buckets = new Array(days).fill(0)
+  for (const item of items) {
+    const dayKey = item.created_at.slice(0, 10)
+    const idx = indexByDate.get(dayKey)
+    if (idx !== undefined) buckets[idx]++
+  }
+  return buckets
+}
+
+function bucketScansByDate(items: { scan_date: string; scan_count: number }[], days: number): number[] {
+  const labels = dateLabels(days)
+  const indexByDate = new Map(labels.map((label, i) => [label, i]))
+  const buckets = new Array(days).fill(0)
+  for (const item of items) {
+    const idx = indexByDate.get(item.scan_date)
+    if (idx !== undefined) buckets[idx] += item.scan_count
+  }
+  return buckets
+}
+
+function sumRange(buckets: number[], from: number, count: number): number {
+  return buckets.slice(from, from + count).reduce((s, v) => s + v, 0)
+}
+
+async function getEvolutionMetrics() {
+  const sb = supabaseAdmin()
+  const thirtyDaysAgo = new Date(Date.now() - 30 * DAY_MS).toISOString()
+  const thirtyDaysAgoStr = thirtyDaysAgo.split('T')[0]
+
+  const [signupsRes, scansRes, tradesRes] = await Promise.all([
+    sb.from('profiles').select('created_at').gte('created_at', thirtyDaysAgo),
+    sb.from('scan_usage').select('scan_date, scan_count').gte('scan_date', thirtyDaysAgoStr),
+    sb.from('trade_requests').select('created_at').gte('created_at', thirtyDaysAgo),
+  ])
+
+  const signupsBuckets = bucketByCreatedAt(signupsRes.data ?? [], 30)
+  const scansBuckets = bucketScansByDate(scansRes.data ?? [], 30)
+  const tradesBuckets = bucketByCreatedAt(tradesRes.data ?? [], 30)
+
+  // Week-over-week: [23..29] = this week, [16..22] = last week
+  const wow = (b: number[]) => ({
+    thisWeek: sumRange(b, 23, 7),
+    lastWeek: sumRange(b, 16, 7),
+  })
+
+  return {
+    signups: { buckets: signupsBuckets, ...wow(signupsBuckets) },
+    scans: { buckets: scansBuckets, ...wow(scansBuckets) },
+    trades: { buckets: tradesBuckets, ...wow(tradesBuckets) },
+  }
+}
+
 async function getMetrics() {
   const sb = supabaseAdmin()
   const now = new Date()
@@ -193,6 +262,80 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-semibold mt-8 mb-4" style={{ color: '#0A1628' }}>{children}</h2>
 }
 
+function WoWCard({
+  label,
+  thisWeek,
+  lastWeek,
+  buckets,
+  color,
+}: {
+  label: string
+  thisWeek: number
+  lastWeek: number
+  buckets: number[]
+  color: string
+}) {
+  const delta = lastWeek === 0 ? (thisWeek > 0 ? 100 : 0) : ((thisWeek - lastWeek) / lastWeek) * 100
+  const positive = delta >= 0
+  const arrow = positive ? '▲' : '▼'
+  const deltaColor = positive ? 'text-emerald-600' : 'text-red-500'
+  const deltaText = lastWeek === 0 && thisWeek === 0 ? '—' : `${arrow} ${Math.abs(delta).toFixed(0)}%`
+  const compareText = lastWeek === 0 && thisWeek === 0 ? 'sem dados' : `vs ${lastWeek} sem. anterior`
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+      <div className="flex items-baseline justify-between mb-2">
+        <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+        <span className={`text-xs font-bold ${deltaColor}`}>{deltaText}</span>
+      </div>
+      <p className="text-3xl font-bold" style={{ color: '#0A1628' }}>{thisWeek}</p>
+      <p className="text-xs text-gray-400 mb-3">esta semana · {compareText}</p>
+      <TimeChart buckets={buckets} color={color} />
+    </div>
+  )
+}
+
+function TimeChart({ buckets, color }: { buckets: number[]; color: string }) {
+  const max = Math.max(...buckets, 1)
+  const width = 280
+  const height = 50
+  const barW = width / buckets.length
+  const labels = dateLabels(buckets.length)
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height + 14}`} preserveAspectRatio="none" className="w-full h-16">
+      {buckets.map((v, i) => {
+        const h = (v / max) * height
+        const x = i * barW
+        const y = height - h
+        const dateLabel = labels[i]
+        const dayPart = dateLabel.split('-').slice(1).reverse().join('/')
+        return (
+          <g key={i}>
+            <rect
+              x={x + 0.5}
+              y={y}
+              width={Math.max(barW - 1, 1)}
+              height={h}
+              fill={color}
+              opacity={v === 0 ? 0.15 : 0.95}
+              rx={1}
+            >
+              <title>{`${dayPart}: ${v}`}</title>
+            </rect>
+          </g>
+        )
+      })}
+      <text x={0} y={height + 12} fontSize={9} fill="#9CA3AF">
+        {labels[0].split('-').slice(1).reverse().join('/')}
+      </text>
+      <text x={width} y={height + 12} fontSize={9} fill="#9CA3AF" textAnchor="end">
+        hoje
+      </text>
+    </svg>
+  )
+}
+
 // ─── Login form ───
 
 function LoginForm() {
@@ -237,7 +380,12 @@ export default async function AdminPage({
     return <LoginForm />
   }
 
-  const [m, health, waHealth] = await Promise.all([getMetrics(), getHealthCheck(), getWhatsAppHealth()])
+  const [m, health, waHealth, evo] = await Promise.all([
+    getMetrics(),
+    getHealthCheck(),
+    getWhatsAppHealth(),
+    getEvolutionMetrics(),
+  ])
 
   const refreshUrl = `/admin?secret=${ADMIN_SECRET}`
 
@@ -289,6 +437,32 @@ export default async function AdminPage({
         <StatCard label="Novos cadastros" value={m.signups7d} />
         <StatCard label="Total de scans" value={m.scans7d} />
         <StatCard label="Pedidos de troca" value={m.trades7d} />
+      </div>
+
+      {/* Evolution - last 30 days + WoW */}
+      <SectionTitle>Evolucao (ultimos 30 dias)</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <WoWCard
+          label="Cadastros"
+          thisWeek={evo.signups.thisWeek}
+          lastWeek={evo.signups.lastWeek}
+          buckets={evo.signups.buckets}
+          color="#00C896"
+        />
+        <WoWCard
+          label="Scans"
+          thisWeek={evo.scans.thisWeek}
+          lastWeek={evo.scans.lastWeek}
+          buckets={evo.scans.buckets}
+          color="#FFB800"
+        />
+        <WoWCard
+          label="Pedidos de troca"
+          thisWeek={evo.trades.thisWeek}
+          lastWeek={evo.trades.lastWeek}
+          buckets={evo.trades.buckets}
+          color="#0A1628"
+        />
       </div>
 
       {/* Health / Status */}
@@ -447,6 +621,10 @@ export default async function AdminPage({
         <a href="https://vercel.com" target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-100 transition">
           <span>▲</span> Vercel (Deploy)
+        </a>
+        <a href="https://vercel.com/pedrovillarinos-projects/figurinhas2026/analytics" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium hover:bg-blue-100 transition">
+          <span>📊</span> Vercel Analytics (Visitas)
         </a>
         <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition">
