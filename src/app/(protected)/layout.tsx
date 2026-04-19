@@ -6,6 +6,7 @@ import ReferralApplier from '@/components/ReferralApplier'
 import AuthRefresh from '@/components/AuthRefresh'
 import ClientHealthCheck from '@/components/ClientHealthCheck'
 import LaunchPromoModal from '@/components/LaunchPromoModal'
+import AuthCompletionTracker from '@/components/AuthCompletionTracker'
 
 export default function ProtectedLayout({
   children,
@@ -22,6 +23,7 @@ export default function ProtectedLayout({
       <AuthRefresh />
       <ClientHealthCheck />
       <LaunchPromoModal />
+      <AuthCompletionTracker />
       <footer>
         <BottomNav />
       </footer>

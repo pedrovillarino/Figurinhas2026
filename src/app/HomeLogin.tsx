@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { track } from '@vercel/analytics'
 
 // ─── helpers visuais ──────────────────────────────────────────────────────────
 
@@ -198,6 +199,7 @@ export default function HomeLogin() {
   }
 
   async function handleGoogle() {
+    track('auth_started', { method: 'google' })
     setError(null)
     setLoading(true)
     try {
@@ -266,6 +268,7 @@ export default function HomeLogin() {
       return
     }
     setFieldErrors({})
+    track('auth_started', { method: isSignUp ? 'email_signup' : 'email_login' })
     setLoading(true)
 
     if (isSignUp) {
@@ -312,7 +315,10 @@ export default function HomeLogin() {
         </button>
 
         <button
-          onClick={() => setMode('email')}
+          onClick={() => {
+            track('auth_started', { method: 'email_form_open' })
+            setMode('email')
+          }}
           className="w-full text-xs text-gray-500 hover:text-brand transition py-1.5 font-medium underline underline-offset-2 decoration-gray-300 hover:decoration-brand"
         >
           Entrar ou cadastrar com e-mail
