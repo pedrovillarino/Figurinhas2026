@@ -84,14 +84,22 @@ Retorne APENAS JSON:
 function getWelcomeMessage(phone: string) {
   return `Olá! 👋 Sou o assistente do *Complete Aí* ⚽
 
-Posso te ajudar com:
-📊 *status* — seu progresso atual
-🔍 *faltando* — o que você ainda precisa
-🔁 *repetidas* — suas figurinhas para trocar
-📸 Mande uma *foto* de qualquer folha para eu registrar!
+📲 *Antes de começar, crie sua conta gratuita:*
+👉 ${APP_URL}/register?phone=${phone}
 
-Para começar, acesse: ${APP_URL}/register?phone=${phone}
-e crie sua conta gratuita 🎉`
+(login rápido com Google ou e-mail — 1 toque)
+
+━━━━━━━━━━━━━━━
+
+✨ *Depois de cadastrado, aqui no WhatsApp você pode:*
+
+📊 *status* — ver seu progresso
+🔍 *faltando* — figurinhas que faltam
+🔁 *repetidas* — suas repetidas pra trocar
+📸 Mandar *foto* de qualquer folha — IA registra automaticamente
+🎁 Receber alertas de *trocas* perto de você
+
+Te espero do outro lado! 🚀`
 }
 
 // ─── Find user by phone ───

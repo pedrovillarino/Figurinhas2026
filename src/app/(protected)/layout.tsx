@@ -7,6 +7,7 @@ import AuthRefresh from '@/components/AuthRefresh'
 import ClientHealthCheck from '@/components/ClientHealthCheck'
 import LaunchPromoModal from '@/components/LaunchPromoModal'
 import AuthCompletionTracker from '@/components/AuthCompletionTracker'
+import PendingPhoneSync from '@/components/PendingPhoneSync'
 
 export default function ProtectedLayout({
   children,
@@ -24,6 +25,7 @@ export default function ProtectedLayout({
       <ClientHealthCheck />
       <LaunchPromoModal />
       <AuthCompletionTracker />
+      <PendingPhoneSync />
       <footer>
         <BottomNav />
       </footer>
