@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import HomeLogin from "./HomeLogin";
 import { LogoFull, LogoMark } from "@/components/Logo";
+import InstagramWebViewPromo from "@/components/InstagramWebViewPromo";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,8 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-white text-navy overflow-hidden">
+      <InstagramWebViewPromo />
+
       {/* ── Hero Section ── */}
       <section id="main-content" className="relative px-6 pt-10 pb-8">
         {/* Subtle gradient bg */}
