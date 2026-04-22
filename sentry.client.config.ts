@@ -32,6 +32,11 @@ Sentry.init({
     "Can't find variable: gtag",
     "Can't find variable: fbq",
     'Script error',
+    // In-app browser hooks (Instagram/Facebook iOS WebKit + Android FB bridge)
+    'window.webkit.messageHandlers',
+    'webkit.messageHandlers',
+    'enableDidUserTypeOnKeyboardLogging',
+    'Java object is gone',
   ],
 
   // Drop errors that originate from known third-party domains
@@ -46,13 +51,19 @@ Sentry.init({
     /^chrome-extension:\/\//,
     /^moz-extension:\/\//,
     /^safari-extension:\/\//,
+    /^app:\/\//,
   ],
 
   beforeSend(event) {
-    // Drop pure-anonymous errors (typically eval'd third-party code with no
-    // useful stacktrace — Google Ads tag, ad blockers injecting code, etc).
+    // Drop errors whose stacktrace contains only injected/synthetic frames —
+    // <anonymous> (eval'd third-party code) or app:/// (in-app browser hooks
+    // from Instagram/Facebook). These are never our code.
     const frames = event.exception?.values?.[0]?.stacktrace?.frames
-    if (frames && frames.length > 0 && frames.every((f) => f.filename === '<anonymous>')) {
+    if (
+      frames &&
+      frames.length > 0 &&
+      frames.every((f) => f.filename === '<anonymous>' || f.filename?.startsWith('app:///'))
+    ) {
       return null
     }
     return event
