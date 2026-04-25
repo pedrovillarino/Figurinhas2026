@@ -33,6 +33,9 @@ type LeaderboardEntry = {
 type RankingTab = 'national' | 'neighborhood' | 'friends'
 type Visibility = 'public' | 'friends' | 'private'
 
+const INITIAL_LEADERBOARD_COUNT = 15
+const STATS_USER_THRESHOLD = 100
+
 export default function RankingPageClient({
   ranking,
   nationalLeaderboard,
@@ -45,6 +48,9 @@ export default function RankingPageClient({
   duplicates,
   total,
   userId,
+  userDisplayName,
+  userAvatar,
+  totalUsers,
   rankingVisibility,
   referralCode,
 }: {
@@ -59,6 +65,9 @@ export default function RankingPageClient({
   duplicates: number
   total: number
   userId: string
+  userDisplayName: string | null
+  userAvatar: string | null
+  totalUsers: number
   rankingVisibility: string
   referralCode: string
 }) {
@@ -68,6 +77,13 @@ export default function RankingPageClient({
 
   // Ranking tab
   const [tab, setTab] = useState<RankingTab>('national')
+
+  // Expand/collapse leaderboard (per-tab so switching tabs resets)
+  const [expanded, setExpanded] = useState<Record<RankingTab, boolean>>({
+    national: false,
+    neighborhood: false,
+    friends: false,
+  })
 
   // Privacy
   const [visibility, setVisibility] = useState<Visibility>(rankingVisibility as Visibility)
@@ -130,16 +146,26 @@ export default function RankingPageClient({
     { key: 'friends', label: 'Amigos', icon: '👥' },
   ]
 
-  const activeLeaderboard =
+  const fullLeaderboard =
     tab === 'national' ? nationalLeaderboard :
     tab === 'neighborhood' ? neighborhoodLeaderboard :
     friends
 
-  const myRankLabel =
-    tab === 'national' && ranking ? `#${ranking.national_rank} de ${ranking.national_total}` :
-    tab === 'neighborhood' && ranking?.city_rank ? `#${ranking.city_rank} de ${ranking.city_total}` :
-    tab === 'friends' && ranking?.friends_rank ? `#${ranking.friends_rank} de ${ranking.friends_total}` :
+  const isExpanded = expanded[tab]
+  const visibleLeaderboard = isExpanded
+    ? fullLeaderboard
+    : fullLeaderboard.slice(0, INITIAL_LEADERBOARD_COUNT)
+  const hiddenCount = Math.max(fullLeaderboard.length - INITIAL_LEADERBOARD_COUNT, 0)
+
+  const myRank =
+    tab === 'national' && ranking ? { rank: ranking.national_rank, total: ranking.national_total } :
+    tab === 'neighborhood' && ranking?.city_rank ? { rank: ranking.city_rank, total: ranking.city_total ?? 0 } :
+    tab === 'friends' && ranking?.friends_rank ? { rank: ranking.friends_rank, total: ranking.friends_total ?? 0 } :
     null
+
+  const myInitial = (userDisplayName || '?')[0].toUpperCase()
+  const myFirstName = userDisplayName?.split(' ')[0] || 'Você'
+  const showStats = totalUsers >= STATS_USER_THRESHOLD
 
   return (
     <main className="min-h-screen bg-gray-50 px-5 py-6 max-w-md mx-auto space-y-4">
@@ -206,16 +232,38 @@ export default function RankingPageClient({
           ))}
         </div>
 
-        {/* My position */}
-        {myRankLabel && (
-          <div className="px-3 pb-1">
-            <p className="text-[11px] text-gray-500">Sua posição: <span className="font-bold text-brand">{myRankLabel}</span></p>
+        {/* My position — destaque card */}
+        {myRank && (
+          <div className="px-3 pb-2">
+            <div className="bg-gradient-to-r from-brand-light/70 to-brand-light/30 border border-brand/30 rounded-xl p-3 flex items-center gap-2.5">
+              {/* Avatar */}
+              {userAvatar ? (
+                <img src={userAvatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-brand/40" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold shrink-0">
+                  {myInitial}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold text-brand-dark uppercase tracking-wider leading-none">
+                  Sua posição
+                </p>
+                <p className="text-lg font-black text-navy leading-tight mt-0.5">
+                  #{myRank.rank}
+                  <span className="text-xs text-gray-500 font-medium ml-1">/ {myRank.total}</span>
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xl font-black text-brand leading-none">{pct}%</p>
+                <p className="text-[9px] text-gray-500 mt-1">{owned}/{total}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Leaderboard */}
         <div className="px-3 pb-3">
-          {activeLeaderboard.length === 0 ? (
+          {fullLeaderboard.length === 0 ? (
             <p className="text-[11px] text-gray-400 text-center py-6">
               {tab === 'neighborhood' ? 'Ative sua localização para ver o ranking do bairro' :
                tab === 'friends' ? 'Adicione amigos para comparar progresso!' :
@@ -223,7 +271,7 @@ export default function RankingPageClient({
             </p>
           ) : (
             <div className="space-y-1 mt-1">
-              {activeLeaderboard.map((entry) => {
+              {visibleLeaderboard.map((entry) => {
                 const isMe = entry.user_id === userId
                 const initial = (entry.display_name || '?')[0].toUpperCase()
                 const entryPct = entry.pct ?? (entry.total_stickers ? Math.round((entry.owned_count / entry.total_stickers) * 100) : 0)
@@ -280,6 +328,16 @@ export default function RankingPageClient({
                   </a>
                 )
               })}
+
+              {/* Ver mais / Mostrar menos */}
+              {hiddenCount > 0 && (
+                <button
+                  onClick={() => setExpanded((prev) => ({ ...prev, [tab]: !isExpanded }))}
+                  className="w-full mt-2 text-xs font-semibold text-brand hover:text-brand-dark transition py-2 rounded-xl bg-gray-50 hover:bg-gray-100"
+                >
+                  {isExpanded ? '↑ Mostrar menos' : `↓ Ver mais (+${hiddenCount})`}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -337,12 +395,15 @@ export default function RankingPageClient({
         )}
       </div>
 
-      {/* Most wanted stickers */}
-      <StickerStats
-        nationalStats={nationalStats}
-        neighborhoodStats={neighborhoodStats}
-        sections={sections}
-      />
+      {/* Most wanted stickers — only shown when the user base is large enough
+          for the data to be statistically meaningful */}
+      {showStats && (
+        <StickerStats
+          nationalStats={nationalStats}
+          neighborhoodStats={neighborhoodStats}
+          sections={sections}
+        />
+      )}
     </main>
   )
 }

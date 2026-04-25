@@ -28,12 +28,17 @@ export default async function RankingPage() {
   const admin = getAdmin()
   const stickers = await getCachedStickers()
 
-  // Fetch profile for visibility + referral code
+  // Fetch profile for visibility + referral code + identity (for "VOCÊ" card)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('ranking_visibility, referral_code')
+    .select('ranking_visibility, referral_code, display_name, avatar_url')
     .eq('id', user.id)
     .single()
+
+  // Total user count drives whether StickerStats is shown at all
+  const { count: totalUsers } = await admin
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
 
   // Fetch ranking summary
   let ranking = null
@@ -49,9 +54,9 @@ export default async function RankingPage() {
 
   try {
     const [natRes, neighRes, friendsRes] = await Promise.all([
-      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'national', p_limit: 20 }),
-      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'neighborhood', p_limit: 20 }),
-      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'friends', p_limit: 20 }),
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'national', p_limit: 30 }),
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'neighborhood', p_limit: 30 }),
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'friends', p_limit: 30 }),
     ])
     nationalLeaderboard = natRes.data || []
     neighborhoodLeaderboard = neighRes.data || []
@@ -100,6 +105,9 @@ export default async function RankingPage() {
       duplicates={duplicates}
       total={stickers.length}
       userId={user.id}
+      userDisplayName={profile?.display_name || null}
+      userAvatar={profile?.avatar_url || null}
+      totalUsers={totalUsers ?? 0}
       rankingVisibility={profile?.ranking_visibility || 'public'}
       referralCode={profile?.referral_code || ''}
     />
