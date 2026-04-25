@@ -1,18 +1,30 @@
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import HomeLogin from "./HomeLogin";
 import { LogoFull, LogoMark } from "@/components/Logo";
 import InstagramWebViewPromo from "@/components/InstagramWebViewPromo";
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+// Anonymous landing-page traffic skips the Supabase auth roundtrip entirely:
+// without an sb-*-auth-token cookie there's no session to validate, so we
+// render directly. Logged-in users still pay one auth call to get the redirect
+// to /album.
+const AUTH_COOKIE_RE = /^sb-.+-auth-token(\.\d+)?$/;
 
-  if (user) {
-    redirect("/album");
+export default async function Home() {
+  const hasAuthCookie = cookies()
+    .getAll()
+    .some((c) => AUTH_COOKIE_RE.test(c.name));
+
+  if (hasAuthCookie) {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) redirect("/album");
   }
 
   return (
