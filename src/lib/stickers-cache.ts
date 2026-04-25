@@ -13,16 +13,18 @@ export const getCachedStickers = unstable_cache(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     // Supabase default limit is 1000 rows — fetch in pages for albums with 1000+ stickers
-    const page1 = await supabase
-      .from('stickers')
-      .select('id, number, player_name, country, section, type')
-      .order('number')
-      .range(0, 999)
-    const page2 = await supabase
-      .from('stickers')
-      .select('id, number, player_name, country, section, type')
-      .order('number')
-      .range(1000, 1999)
+    const [page1, page2] = await Promise.all([
+      supabase
+        .from('stickers')
+        .select('id, number, player_name, country, section, type')
+        .order('number')
+        .range(0, 999),
+      supabase
+        .from('stickers')
+        .select('id, number, player_name, country, section, type')
+        .order('number')
+        .range(1000, 1999),
+    ])
     return [...(page1.data || []), ...(page2.data || [])]
   },
   ['stickers-list-v2026-launch'],
