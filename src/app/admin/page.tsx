@@ -110,6 +110,36 @@ async function getEvolutionMetrics() {
   }
 }
 
+async function getGeoDistribution() {
+  const sb = supabaseAdmin()
+  const { data, error } = await sb
+    .from('profiles')
+    .select('city, state')
+  if (error || !data) return { cities: [], withCity: 0, withoutCity: 0 }
+
+  const counts = new Map<string, { city: string; state: string; users: number }>()
+  let withCity = 0
+  let withoutCity = 0
+  for (const row of data as { city: string | null; state: string | null }[]) {
+    if (!row.city) {
+      withoutCity++
+      continue
+    }
+    withCity++
+    const key = `${row.city}|${row.state ?? ''}`
+    const existing = counts.get(key)
+    if (existing) {
+      existing.users++
+    } else {
+      counts.set(key, { city: row.city, state: row.state ?? '', users: 1 })
+    }
+  }
+  const cities = Array.from(counts.values()).sort(
+    (a, b) => b.users - a.users || a.city.localeCompare(b.city, 'pt-BR'),
+  )
+  return { cities, withCity, withoutCity }
+}
+
 async function getMetrics() {
   const sb = supabaseAdmin()
   const now = new Date()
@@ -380,11 +410,12 @@ export default async function AdminPage({
     return <LoginForm />
   }
 
-  const [m, health, waHealth, evo] = await Promise.all([
+  const [m, health, waHealth, evo, geo] = await Promise.all([
     getMetrics(),
     getHealthCheck(),
     getWhatsAppHealth(),
     getEvolutionMetrics(),
+    getGeoDistribution(),
   ])
 
   const refreshUrl = `/admin?secret=${ADMIN_SECRET}`
@@ -511,6 +542,41 @@ export default async function AdminPage({
           </div>
         </>
       )}
+
+      {/* Geographic distribution */}
+      <SectionTitle>Distribuicao geografica</SectionTitle>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-baseline justify-between">
+          <p className="text-sm font-medium text-gray-500">
+            <span className="font-bold text-[#0A1628]">{geo.withCity}</span> com cidade
+            {' · '}
+            <span className="font-bold text-gray-500">{geo.withoutCity}</span> sem cidade
+          </p>
+          <p className="text-xs text-gray-400">{geo.cities.length} cidades</p>
+        </div>
+        {geo.cities.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-gray-400 text-center">Sem dados de cidade ainda.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left">
+                <th className="px-4 py-2.5 font-medium text-gray-500">Cidade</th>
+                <th className="px-4 py-2.5 font-medium text-gray-500">Estado</th>
+                <th className="px-4 py-2.5 font-medium text-gray-500 text-right">Usuarios</th>
+              </tr>
+            </thead>
+            <tbody>
+              {geo.cities.slice(0, 30).map((c) => (
+                <tr key={`${c.city}|${c.state}`} className="border-t border-gray-100">
+                  <td className="px-4 py-2.5 font-medium" style={{ color: '#0A1628' }}>{c.city}</td>
+                  <td className="px-4 py-2.5 text-gray-500">{c.state || '—'}</td>
+                  <td className="px-4 py-2.5 text-right font-semibold">{c.users}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {/* System Monitor */}
       <SectionTitle>Monitor do Sistema</SectionTitle>

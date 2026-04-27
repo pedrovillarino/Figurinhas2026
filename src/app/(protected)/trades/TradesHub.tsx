@@ -433,6 +433,13 @@ export default function TradesHub({
           })
           .eq('id', userId)
 
+        // Fire-and-forget reverse geocode to populate city/state.
+        fetch('/api/geocode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng }),
+        }).catch(() => {})
+
         setHasLocation(true)
         setRequestingLocation(false)
         loadMatchesFromServer()
