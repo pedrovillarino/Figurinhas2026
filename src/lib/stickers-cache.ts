@@ -27,6 +27,6 @@ export const getCachedStickers = unstable_cache(
     ])
     return [...(page1.data || []), ...(page2.data || [])]
   },
-  ['stickers-list-v2026-launch'],
+  ['stickers-list-v2026-launch-r1'],
   { revalidate: 3600 }
 )
