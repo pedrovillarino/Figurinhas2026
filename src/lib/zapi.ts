@@ -28,6 +28,18 @@ export function formatPhone(raw: string): string {
   return raw.replace(/\D/g, '')
 }
 
+/**
+ * Mask a phone for logs: keep DDI + DDD + last 4 digits, redact the middle.
+ * "5521997838210" → "552199****8210". Returns "" for empty/short inputs.
+ * Use anywhere a phone might end up in Vercel logs / Sentry to align with LGPD.
+ */
+export function maskPhone(raw: string | null | undefined): string {
+  if (!raw) return ''
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length < 9) return digits.replace(/.(?=.{2})/g, '*')
+  return digits.slice(0, 4) + '****' + digits.slice(-4)
+}
+
 // ─── Interactive messages (buttons / option list) ─────────────────────────────
 //
 // WhatsApp interactive messages are documented as unstable across WhatsApp

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { randomBytes } from 'crypto'
 
 // Validate `next` against open-redirect: must be a single-leading-slash internal
 // path. Reject protocol-relative ("//evil.com"), backslash variants, or anything
@@ -67,11 +68,17 @@ export async function GET(request: Request) {
             .single()
 
           if (profile && !profile.referral_code) {
-            // Generate a random 6-char alphanumeric code
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+            // Crypto-secure random 6-char code from a confusion-free alphabet
+            // (no 0/O/1/I). Uses rejection sampling so each char is uniform —
+            // no modulo bias.
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // 32 chars
+            const max = 256 - (256 % chars.length) // 256 % 32 = 0, so max = 256
             let referralCode = ''
-            for (let i = 0; i < 6; i++) {
-              referralCode += chars[Math.floor(Math.random() * chars.length)]
+            while (referralCode.length < 6) {
+              const buf = randomBytes(8)
+              for (let i = 0; i < buf.length && referralCode.length < 6; i++) {
+                if (buf[i] < max) referralCode += chars[buf[i] % chars.length]
+              }
             }
             await supabaseAdmin
               .from('profiles')

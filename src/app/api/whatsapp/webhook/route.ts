@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { sendText, sendButtonList, formatPhone, type ButtonOption } from '@/lib/zapi'
+import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
 
@@ -581,7 +581,7 @@ export async function POST(req: NextRequest) {
       : hasText ? 'text'
       : rawType
 
-    console.log('[WhatsApp webhook]', { phone, rawType, messageType, hasImage, hasText, bodyKeys: Object.keys(body) })
+    console.log('[WhatsApp webhook]', { phone: maskPhone(phone), rawType, messageType, hasImage, hasText, bodyKeys: Object.keys(body) })
 
     // Find user by phone
     const user = await findUserByPhone(phone)
