@@ -3,10 +3,21 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
+// Validate `next` against open-redirect: must be a single-leading-slash internal
+// path. Reject protocol-relative ("//evil.com"), backslash variants, or anything
+// that doesn't start with "/". Falls back to /album when invalid.
+function safeNext(raw: string | null): string {
+  const fallback = '/album'
+  if (!raw) return fallback
+  if (!raw.startsWith('/')) return fallback
+  if (raw.startsWith('//') || raw.startsWith('/\\')) return fallback
+  return raw
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/album'
+  const next = safeNext(searchParams.get('next'))
 
   if (code) {
     const cookieStore = cookies()
