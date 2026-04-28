@@ -1,0 +1,3438 @@
+[
+  {
+    "number": "MEX-3",
+    "player_name": "Luis Malagón"
+  },
+  {
+    "number": "MEX-4",
+    "player_name": "Johan Vásquez"
+  },
+  {
+    "number": "MEX-5",
+    "player_name": "Jorge Sánchez"
+  },
+  {
+    "number": "MEX-6",
+    "player_name": "César Montes"
+  },
+  {
+    "number": "MEX-7",
+    "player_name": "Jesús Gallardo"
+  },
+  {
+    "number": "MEX-8",
+    "player_name": "Israel Reyes"
+  },
+  {
+    "number": "MEX-9",
+    "player_name": "Diego Lainez"
+  },
+  {
+    "number": "MEX-10",
+    "player_name": "Carlos Rodríguez"
+  },
+  {
+    "number": "MEX-11",
+    "player_name": "Edson Álvarez"
+  },
+  {
+    "number": "MEX-12",
+    "player_name": "Orbelín Pineda"
+  },
+  {
+    "number": "MEX-13",
+    "player_name": "Marcel Ruiz"
+  },
+  {
+    "number": "MEX-14",
+    "player_name": "Érick Sánchez"
+  },
+  {
+    "number": "MEX-15",
+    "player_name": "Hirving Lozano"
+  },
+  {
+    "number": "MEX-16",
+    "player_name": "Santiago Giménez"
+  },
+  {
+    "number": "MEX-17",
+    "player_name": "Raúl Jiménez"
+  },
+  {
+    "number": "MEX-18",
+    "player_name": "Alexis Vega"
+  },
+  {
+    "number": "MEX-19",
+    "player_name": "Roberto Alvarado"
+  },
+  {
+    "number": "MEX-20",
+    "player_name": "César Huerta"
+  },
+  {
+    "number": "RSA-3",
+    "player_name": "Ronwen Williams"
+  },
+  {
+    "number": "RSA-4",
+    "player_name": "Sipho Chaine"
+  },
+  {
+    "number": "RSA-5",
+    "player_name": "Aubrey Modiba"
+  },
+  {
+    "number": "RSA-6",
+    "player_name": "Samukele Kabini"
+  },
+  {
+    "number": "RSA-7",
+    "player_name": "Mbekezeli Mbokazi"
+  },
+  {
+    "number": "RSA-8",
+    "player_name": "Khulumani Ndamane"
+  },
+  {
+    "number": "RSA-9",
+    "player_name": "Siyabonga Ngezana"
+  },
+  {
+    "number": "RSA-10",
+    "player_name": "Khuliso Mudau"
+  },
+  {
+    "number": "RSA-11",
+    "player_name": "Nkosinathi Sibisi"
+  },
+  {
+    "number": "RSA-12",
+    "player_name": "Teboho Mokoena"
+  },
+  {
+    "number": "RSA-13",
+    "player_name": "Thalente Mbatha"
+  },
+  {
+    "number": "RSA-14",
+    "player_name": "Bathuisi Aubaas"
+  },
+  {
+    "number": "RSA-15",
+    "player_name": "Yaya Sithole"
+  },
+  {
+    "number": "RSA-16",
+    "player_name": "Sipho Mbule"
+  },
+  {
+    "number": "RSA-17",
+    "player_name": "Lyle Foster"
+  },
+  {
+    "number": "RSA-18",
+    "player_name": "Ioraam Rayners"
+  },
+  {
+    "number": "RSA-19",
+    "player_name": "Mohau Nkota"
+  },
+  {
+    "number": "RSA-20",
+    "player_name": "Oswin Appolis"
+  },
+  {
+    "number": "KOR-3",
+    "player_name": "Hyeon-woo Jo"
+  },
+  {
+    "number": "KOR-4",
+    "player_name": "Seung-Gyu Kim"
+  },
+  {
+    "number": "KOR-5",
+    "player_name": "Min-jae Kim"
+  },
+  {
+    "number": "KOR-6",
+    "player_name": "Yu-min Cho"
+  },
+  {
+    "number": "KOR-7",
+    "player_name": "Young-woo Seol"
+  },
+  {
+    "number": "KOR-8",
+    "player_name": "Han-beom Lee"
+  },
+  {
+    "number": "KOR-9",
+    "player_name": "Tae-seok Lee"
+  },
+  {
+    "number": "KOR-10",
+    "player_name": "Myung-jae Lee"
+  },
+  {
+    "number": "KOR-11",
+    "player_name": "Jae-sung Lee"
+  },
+  {
+    "number": "KOR-12",
+    "player_name": "In-beom Hwang"
+  },
+  {
+    "number": "KOR-13",
+    "player_name": "Kang-in Lee"
+  },
+  {
+    "number": "KOR-14",
+    "player_name": "Seung-ho Paik"
+  },
+  {
+    "number": "KOR-15",
+    "player_name": "Jens Castrop"
+  },
+  {
+    "number": "KOR-16",
+    "player_name": "Dong-gyeong Lee"
+  },
+  {
+    "number": "KOR-17",
+    "player_name": "Gue-sung Cho"
+  },
+  {
+    "number": "KOR-18",
+    "player_name": "Heung-min Son"
+  },
+  {
+    "number": "KOR-19",
+    "player_name": "Hee-chan Hwang"
+  },
+  {
+    "number": "KOR-20",
+    "player_name": "Hyeon-Gyu Oh"
+  },
+  {
+    "number": "CZE-3",
+    "player_name": "Matěj Kovář"
+  },
+  {
+    "number": "CZE-4",
+    "player_name": "Jindřich Staněk"
+  },
+  {
+    "number": "CZE-5",
+    "player_name": "Ladislav Krejčí"
+  },
+  {
+    "number": "CZE-6",
+    "player_name": "Vladimír Coufal"
+  },
+  {
+    "number": "CZE-7",
+    "player_name": "Jaroslav Zelený"
+  },
+  {
+    "number": "CZE-8",
+    "player_name": "Tomáš Holeš"
+  },
+  {
+    "number": "CZE-9",
+    "player_name": "David Zima"
+  },
+  {
+    "number": "CZE-10",
+    "player_name": "Michal Sadílek"
+  },
+  {
+    "number": "CZE-11",
+    "player_name": "Lukáš Provod"
+  },
+  {
+    "number": "CZE-12",
+    "player_name": "Lukáš Červ"
+  },
+  {
+    "number": "CZE-13",
+    "player_name": "Tomáš Souček"
+  },
+  {
+    "number": "CZE-14",
+    "player_name": "Pavel Šulc"
+  },
+  {
+    "number": "CZE-15",
+    "player_name": "Matěj Vydra"
+  },
+  {
+    "number": "CZE-16",
+    "player_name": "Vasil Kušej"
+  },
+  {
+    "number": "CZE-17",
+    "player_name": "Tomáš Chorý"
+  },
+  {
+    "number": "CZE-18",
+    "player_name": "Václav Černý"
+  },
+  {
+    "number": "CZE-19",
+    "player_name": "Adam Hložek"
+  },
+  {
+    "number": "CZE-20",
+    "player_name": "Patrik Schick"
+  },
+  {
+    "number": "CAN-3",
+    "player_name": "Dayne St. Clair"
+  },
+  {
+    "number": "CAN-4",
+    "player_name": "Alphonso Davies"
+  },
+  {
+    "number": "CAN-5",
+    "player_name": "Alistair Johnston"
+  },
+  {
+    "number": "CAN-6",
+    "player_name": "Samuel Adekugbe"
+  },
+  {
+    "number": "CAN-7",
+    "player_name": "Richie Laryea"
+  },
+  {
+    "number": "CAN-8",
+    "player_name": "Derek Cornelius"
+  },
+  {
+    "number": "CAN-9",
+    "player_name": "Moïse Bombito"
+  },
+  {
+    "number": "CAN-10",
+    "player_name": "Kamal Miller"
+  },
+  {
+    "number": "CAN-11",
+    "player_name": "Stephen Eustáquio"
+  },
+  {
+    "number": "CAN-12",
+    "player_name": "Ismaël Koné"
+  },
+  {
+    "number": "CAN-13",
+    "player_name": "Jonathan Osorio"
+  },
+  {
+    "number": "CAN-14",
+    "player_name": "Jacob Shaffelburg"
+  },
+  {
+    "number": "CAN-15",
+    "player_name": "Mathieu Choinière"
+  },
+  {
+    "number": "CAN-16",
+    "player_name": "Niko Sigur"
+  },
+  {
+    "number": "CAN-17",
+    "player_name": "Tajon Buchanan"
+  },
+  {
+    "number": "CAN-18",
+    "player_name": "Liam Millar"
+  },
+  {
+    "number": "CAN-19",
+    "player_name": "Cyle Larin"
+  },
+  {
+    "number": "CAN-20",
+    "player_name": "Jonathan David"
+  },
+  {
+    "number": "BIH-3",
+    "player_name": "Nikola Vasilj"
+  },
+  {
+    "number": "BIH-4",
+    "player_name": "Amar Dedić"
+  },
+  {
+    "number": "BIH-5",
+    "player_name": "Sead Kolašinac"
+  },
+  {
+    "number": "BIH-6",
+    "player_name": "Tarik Muharemović"
+  },
+  {
+    "number": "BIH-7",
+    "player_name": "Nihad Mujakić"
+  },
+  {
+    "number": "BIH-8",
+    "player_name": "Nikola Katić"
+  },
+  {
+    "number": "BIH-9",
+    "player_name": "Amir Hadžiahmetović"
+  },
+  {
+    "number": "BIH-10",
+    "player_name": "Benjamin Tahirović"
+  },
+  {
+    "number": "BIH-11",
+    "player_name": "Armin Gigović"
+  },
+  {
+    "number": "BIH-12",
+    "player_name": "Ivan Šunjić"
+  },
+  {
+    "number": "BIH-13",
+    "player_name": "Ivan Bašić"
+  },
+  {
+    "number": "BIH-14",
+    "player_name": "Dženis Burnić"
+  },
+  {
+    "number": "BIH-15",
+    "player_name": "Esmir Bajraktarević"
+  },
+  {
+    "number": "BIH-16",
+    "player_name": "Amar Memić"
+  },
+  {
+    "number": "BIH-17",
+    "player_name": "Ermedin Demirović"
+  },
+  {
+    "number": "BIH-18",
+    "player_name": "Edin Džeko"
+  },
+  {
+    "number": "BIH-19",
+    "player_name": "Samed Baždar"
+  },
+  {
+    "number": "BIH-20",
+    "player_name": "Haris Tabaković"
+  },
+  {
+    "number": "QAT-3",
+    "player_name": "Meshaal Barsham"
+  },
+  {
+    "number": "QAT-4",
+    "player_name": "Sultan Albrake"
+  },
+  {
+    "number": "QAT-5",
+    "player_name": "Lucas Mendes"
+  },
+  {
+    "number": "QAT-6",
+    "player_name": "Homam Ahmed"
+  },
+  {
+    "number": "QAT-7",
+    "player_name": "Boualem Khoukhi"
+  },
+  {
+    "number": "QAT-8",
+    "player_name": "Pedro Miguel"
+  },
+  {
+    "number": "QAT-9",
+    "player_name": "Tarek Salman"
+  },
+  {
+    "number": "QAT-10",
+    "player_name": "Mohamed Al-Mannai"
+  },
+  {
+    "number": "QAT-11",
+    "player_name": "Karim Boudiaf"
+  },
+  {
+    "number": "QAT-12",
+    "player_name": "Assim Madibo"
+  },
+  {
+    "number": "QAT-13",
+    "player_name": "Ahmed Fatehi"
+  },
+  {
+    "number": "QAT-14",
+    "player_name": "Mohammed Waad"
+  },
+  {
+    "number": "QAT-15",
+    "player_name": "Abdulaziz Hatem"
+  },
+  {
+    "number": "QAT-16",
+    "player_name": "Hassan Al-Haydos"
+  },
+  {
+    "number": "QAT-17",
+    "player_name": "Edmilson Junior"
+  },
+  {
+    "number": "QAT-18",
+    "player_name": "Akram Hassan Afif"
+  },
+  {
+    "number": "QAT-19",
+    "player_name": "Ahmed Al Ganehi"
+  },
+  {
+    "number": "QAT-20",
+    "player_name": "Almoez Ali"
+  },
+  {
+    "number": "SUI-3",
+    "player_name": "Gregor Kobel"
+  },
+  {
+    "number": "SUI-4",
+    "player_name": "Yvon Mvogo"
+  },
+  {
+    "number": "SUI-5",
+    "player_name": "Manuel Akanji"
+  },
+  {
+    "number": "SUI-6",
+    "player_name": "Ricardo Rodriguez"
+  },
+  {
+    "number": "SUI-7",
+    "player_name": "Nico Elvedi"
+  },
+  {
+    "number": "SUI-8",
+    "player_name": "Aurèle Amenda"
+  },
+  {
+    "number": "SUI-9",
+    "player_name": "Silvan Widmer"
+  },
+  {
+    "number": "SUI-10",
+    "player_name": "Granit Xhaka"
+  },
+  {
+    "number": "SUI-11",
+    "player_name": "Denis Zakaria"
+  },
+  {
+    "number": "SUI-12",
+    "player_name": "Remo Freuler"
+  },
+  {
+    "number": "SUI-13",
+    "player_name": "Fabian Rieder"
+  },
+  {
+    "number": "SUI-14",
+    "player_name": "Ardon Jashari"
+  },
+  {
+    "number": "SUI-15",
+    "player_name": "Johan Manzambi"
+  },
+  {
+    "number": "SUI-16",
+    "player_name": "Michel Aebischer"
+  },
+  {
+    "number": "SUI-17",
+    "player_name": "Breel Embolo"
+  },
+  {
+    "number": "SUI-18",
+    "player_name": "Ruben Vargas"
+  },
+  {
+    "number": "SUI-19",
+    "player_name": "Dan Ndoye"
+  },
+  {
+    "number": "SUI-20",
+    "player_name": "Zeki Amdouni"
+  },
+  {
+    "number": "BRA-3",
+    "player_name": "Alisson"
+  },
+  {
+    "number": "BRA-4",
+    "player_name": "Bento"
+  },
+  {
+    "number": "BRA-5",
+    "player_name": "Marquinhos"
+  },
+  {
+    "number": "BRA-6",
+    "player_name": "Éder Militão"
+  },
+  {
+    "number": "BRA-7",
+    "player_name": "Gabriel Magalhães"
+  },
+  {
+    "number": "BRA-8",
+    "player_name": "Danilo"
+  },
+  {
+    "number": "BRA-9",
+    "player_name": "Wesley"
+  },
+  {
+    "number": "BRA-10",
+    "player_name": "Lucas Paquetá"
+  },
+  {
+    "number": "BRA-11",
+    "player_name": "Casemiro"
+  },
+  {
+    "number": "BRA-12",
+    "player_name": "Bruno Guimarães"
+  },
+  {
+    "number": "BRA-13",
+    "player_name": "Luiz Henrique"
+  },
+  {
+    "number": "BRA-14",
+    "player_name": "Vinícius Júnior"
+  },
+  {
+    "number": "BRA-15",
+    "player_name": "Rodrygo"
+  },
+  {
+    "number": "BRA-16",
+    "player_name": "João Pedro"
+  },
+  {
+    "number": "BRA-17",
+    "player_name": "Matheus Cunha"
+  },
+  {
+    "number": "BRA-18",
+    "player_name": "Gabriel Martinelli"
+  },
+  {
+    "number": "BRA-19",
+    "player_name": "Raphinha"
+  },
+  {
+    "number": "BRA-20",
+    "player_name": "Estêvão"
+  },
+  {
+    "number": "MAR-3",
+    "player_name": "Yassine Bounou"
+  },
+  {
+    "number": "MAR-4",
+    "player_name": "Munir El Kajoui"
+  },
+  {
+    "number": "MAR-5",
+    "player_name": "Achraf Hakimi"
+  },
+  {
+    "number": "MAR-6",
+    "player_name": "Noussair Mazraoui"
+  },
+  {
+    "number": "MAR-7",
+    "player_name": "Nayef Aguerd"
+  },
+  {
+    "number": "MAR-8",
+    "player_name": "Romain Saïss"
+  },
+  {
+    "number": "MAR-9",
+    "player_name": "Jawad El Yamiq"
+  },
+  {
+    "number": "MAR-10",
+    "player_name": "Adam Masina"
+  },
+  {
+    "number": "MAR-11",
+    "player_name": "Sofyan Amrabat"
+  },
+  {
+    "number": "MAR-12",
+    "player_name": "Azzedine Ounahi"
+  },
+  {
+    "number": "MAR-13",
+    "player_name": "Eliesse Ben Seghir"
+  },
+  {
+    "number": "MAR-14",
+    "player_name": "Bilal El Khannouss"
+  },
+  {
+    "number": "MAR-15",
+    "player_name": "Ismael Saibari"
+  },
+  {
+    "number": "MAR-16",
+    "player_name": "Youssef En-Nesyri"
+  },
+  {
+    "number": "MAR-17",
+    "player_name": "Abde Ezzalzouli"
+  },
+  {
+    "number": "MAR-18",
+    "player_name": "Soufiane Rahimi"
+  },
+  {
+    "number": "MAR-19",
+    "player_name": "Brahim Díaz"
+  },
+  {
+    "number": "MAR-20",
+    "player_name": "Ayoub El Kaabi"
+  },
+  {
+    "number": "HAI-3",
+    "player_name": "Johny Placide"
+  },
+  {
+    "number": "HAI-4",
+    "player_name": "Carlens Arcus"
+  },
+  {
+    "number": "HAI-5",
+    "player_name": "Martin Expérience"
+  },
+  {
+    "number": "HAI-6",
+    "player_name": "Jean-Kevin Duverne"
+  },
+  {
+    "number": "HAI-7",
+    "player_name": "Ricardo Adé"
+  },
+  {
+    "number": "HAI-8",
+    "player_name": "Duke Lacroix"
+  },
+  {
+    "number": "HAI-9",
+    "player_name": "Garven Metusala"
+  },
+  {
+    "number": "HAI-10",
+    "player_name": "Hannes Delcroix"
+  },
+  {
+    "number": "HAI-11",
+    "player_name": "Leverton Pierre"
+  },
+  {
+    "number": "HAI-12",
+    "player_name": "Danley Jean Jacques"
+  },
+  {
+    "number": "HAI-13",
+    "player_name": "Jean-Ricner Bellegarde"
+  },
+  {
+    "number": "HAI-14",
+    "player_name": "Christopher Attys"
+  },
+  {
+    "number": "HAI-15",
+    "player_name": "Derrick Etienne Jr."
+  },
+  {
+    "number": "HAI-16",
+    "player_name": "Josué Casimir"
+  },
+  {
+    "number": "HAI-17",
+    "player_name": "Ruben Providence"
+  },
+  {
+    "number": "HAI-18",
+    "player_name": "Duckens Nazon"
+  },
+  {
+    "number": "HAI-19",
+    "player_name": "Louicius Deedson"
+  },
+  {
+    "number": "HAI-20",
+    "player_name": "Frantzdy Pierrot"
+  },
+  {
+    "number": "SCO-3",
+    "player_name": "Angus Gunn"
+  },
+  {
+    "number": "SCO-4",
+    "player_name": "Jack Hendry"
+  },
+  {
+    "number": "SCO-5",
+    "player_name": "Kieran Tierney"
+  },
+  {
+    "number": "SCO-6",
+    "player_name": "Aaron Hickey"
+  },
+  {
+    "number": "SCO-7",
+    "player_name": "Andrew Robertson"
+  },
+  {
+    "number": "SCO-8",
+    "player_name": "Scott McKenna"
+  },
+  {
+    "number": "SCO-9",
+    "player_name": "John Souttar"
+  },
+  {
+    "number": "SCO-10",
+    "player_name": "Anthony Ralston"
+  },
+  {
+    "number": "SCO-11",
+    "player_name": "Grant Hanley"
+  },
+  {
+    "number": "SCO-12",
+    "player_name": "Scott McTominay"
+  },
+  {
+    "number": "SCO-13",
+    "player_name": "Billy Gilmour"
+  },
+  {
+    "number": "SCO-14",
+    "player_name": "Lewis Ferguson"
+  },
+  {
+    "number": "SCO-15",
+    "player_name": "Ryan Christie"
+  },
+  {
+    "number": "SCO-16",
+    "player_name": "Kenny McLean"
+  },
+  {
+    "number": "SCO-17",
+    "player_name": "John McGinn"
+  },
+  {
+    "number": "SCO-18",
+    "player_name": "Lyndon Dykes"
+  },
+  {
+    "number": "SCO-19",
+    "player_name": "Che Adams"
+  },
+  {
+    "number": "SCO-20",
+    "player_name": "Ben Gannon-Doak"
+  },
+  {
+    "number": "USA-3",
+    "player_name": "Math Freese"
+  },
+  {
+    "number": "USA-4",
+    "player_name": "Chris Richards"
+  },
+  {
+    "number": "USA-5",
+    "player_name": "Tim Ream"
+  },
+  {
+    "number": "USA-6",
+    "player_name": "Mark McKenzie"
+  },
+  {
+    "number": "USA-7",
+    "player_name": "Alex Freeman"
+  },
+  {
+    "number": "USA-8",
+    "player_name": "Antonee Robinson"
+  },
+  {
+    "number": "USA-9",
+    "player_name": "Tyler Adams"
+  },
+  {
+    "number": "USA-10",
+    "player_name": "Tanner Tessmann"
+  },
+  {
+    "number": "USA-11",
+    "player_name": "Weston McKenny"
+  },
+  {
+    "number": "USA-12",
+    "player_name": "Christian Roldan"
+  },
+  {
+    "number": "USA-13",
+    "player_name": "Timothy Weah"
+  },
+  {
+    "number": "USA-14",
+    "player_name": "Diego Luna"
+  },
+  {
+    "number": "USA-15",
+    "player_name": "Malim Tillman"
+  },
+  {
+    "number": "USA-16",
+    "player_name": "Christian Pulisic"
+  },
+  {
+    "number": "USA-17",
+    "player_name": "Brenden Aaronson"
+  },
+  {
+    "number": "USA-18",
+    "player_name": "Ricardo Pepi"
+  },
+  {
+    "number": "USA-19",
+    "player_name": "Haji Wright"
+  },
+  {
+    "number": "USA-20",
+    "player_name": "Folarin Balogun"
+  },
+  {
+    "number": "PAR-3",
+    "player_name": "Roberto Fernández"
+  },
+  {
+    "number": "PAR-4",
+    "player_name": "Orlando Gill"
+  },
+  {
+    "number": "PAR-5",
+    "player_name": "Gustavo Gómez"
+  },
+  {
+    "number": "PAR-6",
+    "player_name": "Fabián Balbuena"
+  },
+  {
+    "number": "PAR-7",
+    "player_name": "Juan José Cáceres"
+  },
+  {
+    "number": "PAR-8",
+    "player_name": "Omar Alderete"
+  },
+  {
+    "number": "PAR-9",
+    "player_name": "Junior Alonso"
+  },
+  {
+    "number": "PAR-10",
+    "player_name": "Mathías Villasanti"
+  },
+  {
+    "number": "PAR-11",
+    "player_name": "Diego Gómez"
+  },
+  {
+    "number": "PAR-12",
+    "player_name": "Damián Bobadilla"
+  },
+  {
+    "number": "PAR-13",
+    "player_name": "Andrés Cubas"
+  },
+  {
+    "number": "PAR-14",
+    "player_name": "Matías Galarza Fonda"
+  },
+  {
+    "number": "PAR-15",
+    "player_name": "Julio Enciso"
+  },
+  {
+    "number": "AUS-3",
+    "player_name": "Mathew Ryan"
+  },
+  {
+    "number": "AUS-4",
+    "player_name": "Joe Gauci"
+  },
+  {
+    "number": "AUS-5",
+    "player_name": "Harry Souttar"
+  },
+  {
+    "number": "AUS-6",
+    "player_name": "Alessandro Circati"
+  },
+  {
+    "number": "AUS-7",
+    "player_name": "Jordan Bos"
+  },
+  {
+    "number": "AUS-8",
+    "player_name": "Aziz Behich"
+  },
+  {
+    "number": "AUS-9",
+    "player_name": "Cameron Burgess"
+  },
+  {
+    "number": "AUS-10",
+    "player_name": "Lewis Miller"
+  },
+  {
+    "number": "AUS-11",
+    "player_name": "Milos Degenek"
+  },
+  {
+    "number": "AUS-12",
+    "player_name": "Jackson Irvine"
+  },
+  {
+    "number": "AUS-13",
+    "player_name": "Riley McGree"
+  },
+  {
+    "number": "AUS-14",
+    "player_name": "Aiden O’Neill"
+  },
+  {
+    "number": "AUS-15",
+    "player_name": "Connor Metcalfe"
+  },
+  {
+    "number": "AUS-16",
+    "player_name": "Patrick Yazbek"
+  },
+  {
+    "number": "AUS-17",
+    "player_name": "Craig Goodwin"
+  },
+  {
+    "number": "AUS-18",
+    "player_name": "Kusini Yengi"
+  },
+  {
+    "number": "AUS-19",
+    "player_name": "Nestory Irankunda"
+  },
+  {
+    "number": "AUS-20",
+    "player_name": "Mohamed Touré"
+  },
+  {
+    "number": "TUR-3",
+    "player_name": "Ugurcan Cakir"
+  },
+  {
+    "number": "TUR-4",
+    "player_name": "Mert Muldur"
+  },
+  {
+    "number": "TUR-5",
+    "player_name": "Zeki Celik"
+  },
+  {
+    "number": "TUR-6",
+    "player_name": "Abdulkerim Bardakci"
+  },
+  {
+    "number": "TUR-7",
+    "player_name": "Caglar Soyunku"
+  },
+  {
+    "number": "TUR-8",
+    "player_name": "Merih Demiral"
+  },
+  {
+    "number": "TUR-9",
+    "player_name": "Ferdi Kadioglu"
+  },
+  {
+    "number": "TUR-10",
+    "player_name": "Kaan Ayhan"
+  },
+  {
+    "number": "TUR-11",
+    "player_name": "Ismail Yuksek"
+  },
+  {
+    "number": "TUR-12",
+    "player_name": "Hakan Calhanoglu"
+  },
+  {
+    "number": "TUR-13",
+    "player_name": "Orkun Kokcu"
+  },
+  {
+    "number": "TUR-14",
+    "player_name": "Arda Güler"
+  },
+  {
+    "number": "TUR-15",
+    "player_name": "Irfan Can Kahvecu"
+  },
+  {
+    "number": "TUR-16",
+    "player_name": "Yunus Akgun"
+  },
+  {
+    "number": "TUR-17",
+    "player_name": "Can Uzun"
+  },
+  {
+    "number": "TUR-18",
+    "player_name": "Baris Alper Yilmaz"
+  },
+  {
+    "number": "TUR-19",
+    "player_name": "Kerem Akturkoglu"
+  },
+  {
+    "number": "TUR-20",
+    "player_name": "Kenan Yildiz"
+  },
+  {
+    "number": "GER-3",
+    "player_name": "Marc-André ter Stegen"
+  },
+  {
+    "number": "GER-4",
+    "player_name": "Jonathan Tah"
+  },
+  {
+    "number": "GER-5",
+    "player_name": "David Raum"
+  },
+  {
+    "number": "GER-6",
+    "player_name": "Nico Schlotterbeck"
+  },
+  {
+    "number": "GER-7",
+    "player_name": "Antonio Rüdiger"
+  },
+  {
+    "number": "GER-8",
+    "player_name": "Waldemar Anton"
+  },
+  {
+    "number": "GER-9",
+    "player_name": "Ridle Baku"
+  },
+  {
+    "number": "GER-10",
+    "player_name": "Maximilian Mittelstädt"
+  },
+  {
+    "number": "GER-11",
+    "player_name": "Joshua Kimmich"
+  },
+  {
+    "number": "GER-12",
+    "player_name": "Florian Wirtz"
+  },
+  {
+    "number": "GER-13",
+    "player_name": "Felix Nmecha"
+  },
+  {
+    "number": "GER-14",
+    "player_name": "Leon Goretzka"
+  },
+  {
+    "number": "GER-15",
+    "player_name": "Jamal Musiala"
+  },
+  {
+    "number": "GER-16",
+    "player_name": "Serge Gnabry"
+  },
+  {
+    "number": "GER-17",
+    "player_name": "Kai Havertz"
+  },
+  {
+    "number": "GER-18",
+    "player_name": "Leroy Sané"
+  },
+  {
+    "number": "GER-19",
+    "player_name": "Karim Adeyemi"
+  },
+  {
+    "number": "GER-20",
+    "player_name": "Nick Woltemade"
+  },
+  {
+    "number": "CUR-3",
+    "player_name": "Eloy Room"
+  },
+  {
+    "number": "CUR-4",
+    "player_name": "Armando Obispo"
+  },
+  {
+    "number": "CUR-5",
+    "player_name": "Sherel Floranus"
+  },
+  {
+    "number": "CUR-6",
+    "player_name": "Jurien Gaari"
+  },
+  {
+    "number": "CUR-7",
+    "player_name": "Joshua Brenet"
+  },
+  {
+    "number": "CUR-8",
+    "player_name": "Roshon Van Eijma"
+  },
+  {
+    "number": "CUR-9",
+    "player_name": "Shurandy Sambo"
+  },
+  {
+    "number": "CUR-10",
+    "player_name": "Livano Comenencia"
+  },
+  {
+    "number": "CUR-11",
+    "player_name": "Godfried Roemeratoe"
+  },
+  {
+    "number": "CUR-12",
+    "player_name": "Juninho Bacuna"
+  },
+  {
+    "number": "CUR-13",
+    "player_name": "Leandro Bacuna"
+  },
+  {
+    "number": "CUR-14",
+    "player_name": "Tahith Chong"
+  },
+  {
+    "number": "CUR-15",
+    "player_name": "Kenji Gorré"
+  },
+  {
+    "number": "CUR-16",
+    "player_name": "Jearl Margaritha"
+  },
+  {
+    "number": "CUR-17",
+    "player_name": "Jurgen Locadia"
+  },
+  {
+    "number": "CUR-18",
+    "player_name": "Jeremy Antonisse"
+  },
+  {
+    "number": "CUR-19",
+    "player_name": "Gervane Kastaneer"
+  },
+  {
+    "number": "CUR-20",
+    "player_name": "Sontje Hansen"
+  },
+  {
+    "number": "CIV-3",
+    "player_name": "Yahia Fofana"
+  },
+  {
+    "number": "CIV-4",
+    "player_name": "Ghislain Konan"
+  },
+  {
+    "number": "CIV-5",
+    "player_name": "Wilfried Singo"
+  },
+  {
+    "number": "CIV-6",
+    "player_name": "Odilon Kossounou"
+  },
+  {
+    "number": "CIV-7",
+    "player_name": "Evan Ndicka"
+  },
+  {
+    "number": "CIV-8",
+    "player_name": "Willy Boly"
+  },
+  {
+    "number": "CIV-9",
+    "player_name": "Emmanuel Agbadou"
+  },
+  {
+    "number": "CIV-10",
+    "player_name": "Ousmane Diomande"
+  },
+  {
+    "number": "CIV-11",
+    "player_name": "Franck Kessié"
+  },
+  {
+    "number": "CIV-12",
+    "player_name": "Seko Fofana"
+  },
+  {
+    "number": "CIV-13",
+    "player_name": "Ibrahim Sangaré"
+  },
+  {
+    "number": "CIV-14",
+    "player_name": "Jean-Philippe Gbamin"
+  },
+  {
+    "number": "CIV-15",
+    "player_name": "Amad Diallo"
+  },
+  {
+    "number": "CIV-16",
+    "player_name": "Sébastien Haller"
+  },
+  {
+    "number": "CIV-17",
+    "player_name": "Simon Adingra"
+  },
+  {
+    "number": "CIV-18",
+    "player_name": "Yan Diomande"
+  },
+  {
+    "number": "CIV-19",
+    "player_name": "Evann Guessand"
+  },
+  {
+    "number": "CIV-20",
+    "player_name": "Oumar Diakité"
+  },
+  {
+    "number": "ECU-3",
+    "player_name": "Hernán Galíndez"
+  },
+  {
+    "number": "ECU-4",
+    "player_name": "Gonzalo Valle"
+  },
+  {
+    "number": "ECU-5",
+    "player_name": "Piero Hincapié"
+  },
+  {
+    "number": "ECU-6",
+    "player_name": "Pervis Estupiñán"
+  },
+  {
+    "number": "ECU-7",
+    "player_name": "Willian Pacho"
+  },
+  {
+    "number": "ECU-8",
+    "player_name": "Ángelo Preciado"
+  },
+  {
+    "number": "ECU-9",
+    "player_name": "Joel Ordóñez"
+  },
+  {
+    "number": "ECU-10",
+    "player_name": "Moisés Caicedo"
+  },
+  {
+    "number": "ECU-11",
+    "player_name": "Alan Franco"
+  },
+  {
+    "number": "ECU-12",
+    "player_name": "Kendry Páez"
+  },
+  {
+    "number": "ECU-13",
+    "player_name": "Pedro Vite"
+  },
+  {
+    "number": "ECU-14",
+    "player_name": "John Veboah"
+  },
+  {
+    "number": "ECU-15",
+    "player_name": "Leonardo Campana"
+  },
+  {
+    "number": "ECU-16",
+    "player_name": "Gonzalo Plata"
+  },
+  {
+    "number": "ECU-17",
+    "player_name": "Nilson Angulo"
+  },
+  {
+    "number": "ECU-18",
+    "player_name": "Alan Minda"
+  },
+  {
+    "number": "ECU-19",
+    "player_name": "Kevin Rodríguez"
+  },
+  {
+    "number": "ECU-20",
+    "player_name": "Enner Valencia"
+  },
+  {
+    "number": "NED-3",
+    "player_name": "Bart Verbruggen"
+  },
+  {
+    "number": "NED-4",
+    "player_name": "Virgil van Dijk"
+  },
+  {
+    "number": "NED-5",
+    "player_name": "Micky van de Ven"
+  },
+  {
+    "number": "NED-6",
+    "player_name": "Jurriën Timber"
+  },
+  {
+    "number": "NED-7",
+    "player_name": "Denzel Dumfries"
+  },
+  {
+    "number": "NED-8",
+    "player_name": "Nathan Aké"
+  },
+  {
+    "number": "NED-9",
+    "player_name": "Jeremie Frimpong"
+  },
+  {
+    "number": "NED-10",
+    "player_name": "Jan Paul van Hecke"
+  },
+  {
+    "number": "NED-11",
+    "player_name": "Tijjani Reijnders"
+  },
+  {
+    "number": "NED-12",
+    "player_name": "Ryan Gravenberch"
+  },
+  {
+    "number": "NED-13",
+    "player_name": "Teun Koopmeiners"
+  },
+  {
+    "number": "NED-14",
+    "player_name": "Frenkie de Jong"
+  },
+  {
+    "number": "NED-15",
+    "player_name": "Xavi Simons"
+  },
+  {
+    "number": "NED-16",
+    "player_name": "Justin Kluivert"
+  },
+  {
+    "number": "NED-17",
+    "player_name": "Memphis Depay"
+  },
+  {
+    "number": "NED-18",
+    "player_name": "Donyell Malen"
+  },
+  {
+    "number": "NED-19",
+    "player_name": "Wout Weghorst"
+  },
+  {
+    "number": "NED-20",
+    "player_name": "Cody Gakpo"
+  },
+  {
+    "number": "JPN-3",
+    "player_name": "Zion Suzuki"
+  },
+  {
+    "number": "JPN-4",
+    "player_name": "Henry Heroki Mochizuki"
+  },
+  {
+    "number": "JPN-5",
+    "player_name": "Ayumu Seko"
+  },
+  {
+    "number": "JPN-6",
+    "player_name": "Junnosuke Suzuki"
+  },
+  {
+    "number": "JPN-7",
+    "player_name": "Shogo Taniguchi"
+  },
+  {
+    "number": "JPN-8",
+    "player_name": "Tsuyoshi Watanabe"
+  },
+  {
+    "number": "JPN-9",
+    "player_name": "Kaishu Sano"
+  },
+  {
+    "number": "JPN-10",
+    "player_name": "Yuki Soma"
+  },
+  {
+    "number": "JPN-11",
+    "player_name": "Ao Tanaka"
+  },
+  {
+    "number": "JPN-12",
+    "player_name": "Daichi Kamada"
+  },
+  {
+    "number": "JPN-13",
+    "player_name": "Takefusa Kubo"
+  },
+  {
+    "number": "JPN-14",
+    "player_name": "Ritsu Doan"
+  },
+  {
+    "number": "JPN-15",
+    "player_name": "Keito Nakamura"
+  },
+  {
+    "number": "JPN-16",
+    "player_name": "Takumi Minamino"
+  },
+  {
+    "number": "JPN-17",
+    "player_name": "Shuto Machino"
+  },
+  {
+    "number": "JPN-18",
+    "player_name": "Junya Ito"
+  },
+  {
+    "number": "JPN-19",
+    "player_name": "Koki Ogawa"
+  },
+  {
+    "number": "JPN-20",
+    "player_name": "Ayase Ueda"
+  },
+  {
+    "number": "SWE-3",
+    "player_name": "Victor Johansson"
+  },
+  {
+    "number": "SWE-4",
+    "player_name": "Isak Hien"
+  },
+  {
+    "number": "SWE-5",
+    "player_name": "Gabriel Gudmundsson"
+  },
+  {
+    "number": "SWE-6",
+    "player_name": "Emil Holm"
+  },
+  {
+    "number": "SWE-7",
+    "player_name": "Victor Nilsson Lindelöf"
+  },
+  {
+    "number": "SWE-8",
+    "player_name": "Gustaf Lagerbielke"
+  },
+  {
+    "number": "SWE-9",
+    "player_name": "Lucas Bergvall"
+  },
+  {
+    "number": "SWE-10",
+    "player_name": "Hugo Larsson"
+  },
+  {
+    "number": "SWE-11",
+    "player_name": "Jesper Karlström"
+  },
+  {
+    "number": "SWE-12",
+    "player_name": "Yasin Ayari"
+  },
+  {
+    "number": "SWE-13",
+    "player_name": "Mattias Svanberg"
+  },
+  {
+    "number": "SWE-14",
+    "player_name": "Daniel Svensson"
+  },
+  {
+    "number": "SWE-15",
+    "player_name": "Ken Sema"
+  },
+  {
+    "number": "SWE-16",
+    "player_name": "Roony Bardghji"
+  },
+  {
+    "number": "SWE-17",
+    "player_name": "Dejan Kulusevski"
+  },
+  {
+    "number": "SWE-18",
+    "player_name": "Anthony Elanga"
+  },
+  {
+    "number": "SWE-19",
+    "player_name": "Alexander Isak"
+  },
+  {
+    "number": "SWE-20",
+    "player_name": "Viktor Gyökeres"
+  },
+  {
+    "number": "TUN-3",
+    "player_name": "Bechir Ben Said"
+  },
+  {
+    "number": "TUN-4",
+    "player_name": "Aymen Dahmen"
+  },
+  {
+    "number": "TUN-5",
+    "player_name": "Van Valery"
+  },
+  {
+    "number": "TUN-6",
+    "player_name": "Montassar Talbi"
+  },
+  {
+    "number": "TUN-7",
+    "player_name": "Yassine Meriah"
+  },
+  {
+    "number": "TUN-8",
+    "player_name": "Ali Abdi"
+  },
+  {
+    "number": "TUN-9",
+    "player_name": "Dylan Bronn"
+  },
+  {
+    "number": "TUN-10",
+    "player_name": "Ellyes Skhiri"
+  },
+  {
+    "number": "TUN-11",
+    "player_name": "Aissa Laidouni"
+  },
+  {
+    "number": "TUN-12",
+    "player_name": "Ferjani Sassi"
+  },
+  {
+    "number": "TUN-13",
+    "player_name": "Mohamed Ali Ben Romdhane"
+  },
+  {
+    "number": "TUN-14",
+    "player_name": "Hannibal Mejbri"
+  },
+  {
+    "number": "TUN-15",
+    "player_name": "Elias Achouri"
+  },
+  {
+    "number": "TUN-16",
+    "player_name": "Elias Saad"
+  },
+  {
+    "number": "TUN-17",
+    "player_name": "Hazem Mastouri"
+  },
+  {
+    "number": "TUN-18",
+    "player_name": "Ismael Gharbi"
+  },
+  {
+    "number": "TUN-19",
+    "player_name": "Sayfallah Ltaief"
+  },
+  {
+    "number": "TUN-20",
+    "player_name": "Naim Sliti"
+  },
+  {
+    "number": "BEL-3",
+    "player_name": "Thibaut Courtois"
+  },
+  {
+    "number": "BEL-4",
+    "player_name": "Arthur Theate"
+  },
+  {
+    "number": "BEL-5",
+    "player_name": "Timothy Castagne"
+  },
+  {
+    "number": "BEL-6",
+    "player_name": "Zeno Debast"
+  },
+  {
+    "number": "BEL-7",
+    "player_name": "Brandon Mechele"
+  },
+  {
+    "number": "BEL-8",
+    "player_name": "Maxim De Cuyper"
+  },
+  {
+    "number": "BEL-9",
+    "player_name": "Thomas Meunier"
+  },
+  {
+    "number": "BEL-10",
+    "player_name": "Youri Tielemans"
+  },
+  {
+    "number": "BEL-11",
+    "player_name": "Amadou Onana"
+  },
+  {
+    "number": "BEL-12",
+    "player_name": "Nicolas Raskin"
+  },
+  {
+    "number": "BEL-13",
+    "player_name": "Alexis Saelemaekers"
+  },
+  {
+    "number": "BEL-14",
+    "player_name": "Hans Vanaken"
+  },
+  {
+    "number": "BEL-15",
+    "player_name": "Kevin De Bruyne"
+  },
+  {
+    "number": "BEL-16",
+    "player_name": "Jérémy Doku"
+  },
+  {
+    "number": "BEL-17",
+    "player_name": "Charles De Ketelaere"
+  },
+  {
+    "number": "BEL-18",
+    "player_name": "Leandro Trossard"
+  },
+  {
+    "number": "BEL-19",
+    "player_name": "Loïs Openda"
+  },
+  {
+    "number": "BEL-20",
+    "player_name": "Romelu Lukaku"
+  },
+  {
+    "number": "EGY-3",
+    "player_name": "Mohamed El Shenawy"
+  },
+  {
+    "number": "EGY-4",
+    "player_name": "Mohamed Hany"
+  },
+  {
+    "number": "EGY-5",
+    "player_name": "Mohamed Hamdy"
+  },
+  {
+    "number": "EGY-6",
+    "player_name": "Yasser Ibrahim"
+  },
+  {
+    "number": "EGY-7",
+    "player_name": "Khaled Sobhi"
+  },
+  {
+    "number": "EGY-8",
+    "player_name": "Ramy Rabia"
+  },
+  {
+    "number": "EGY-9",
+    "player_name": "Hossam Abdelmaguid"
+  },
+  {
+    "number": "EGY-10",
+    "player_name": "Ahmed Fatouh"
+  },
+  {
+    "number": "EGY-11",
+    "player_name": "Marwan Attia"
+  },
+  {
+    "number": "EGY-12",
+    "player_name": "Zizo"
+  },
+  {
+    "number": "EGY-13",
+    "player_name": "Hamdy Fathy"
+  },
+  {
+    "number": "EGY-14",
+    "player_name": "Mohamed Lasheen"
+  },
+  {
+    "number": "EGY-15",
+    "player_name": "Emam Ashour"
+  },
+  {
+    "number": "EGY-16",
+    "player_name": "Osama Faisal"
+  },
+  {
+    "number": "EGY-17",
+    "player_name": "Mohamed Salah"
+  },
+  {
+    "number": "EGY-18",
+    "player_name": "Mostafa Mohamed"
+  },
+  {
+    "number": "EGY-19",
+    "player_name": "Trezeguet"
+  },
+  {
+    "number": "EGY-20",
+    "player_name": "Omar Marmoush"
+  },
+  {
+    "number": "IRN-3",
+    "player_name": "Alireza Beiranvand"
+  },
+  {
+    "number": "IRN-4",
+    "player_name": "Morteza Pouraliganji"
+  },
+  {
+    "number": "IRN-5",
+    "player_name": "Ehsan Hajsafi"
+  },
+  {
+    "number": "IRN-6",
+    "player_name": "Milad Mohammadi"
+  },
+  {
+    "number": "IRN-7",
+    "player_name": "Shoja Khalilzadeh"
+  },
+  {
+    "number": "IRN-8",
+    "player_name": "Ramin Rezaeian"
+  },
+  {
+    "number": "IRN-9",
+    "player_name": "Hossein Kanaani"
+  },
+  {
+    "number": "IRN-10",
+    "player_name": "Sadegh Moharrami"
+  },
+  {
+    "number": "IRN-11",
+    "player_name": "Saleh Hardani"
+  },
+  {
+    "number": "IRN-12",
+    "player_name": "Saeed Ezatolahi"
+  },
+  {
+    "number": "IRN-13",
+    "player_name": "Saman Ghoddos"
+  },
+  {
+    "number": "IRN-14",
+    "player_name": "Omid Noorafkan"
+  },
+  {
+    "number": "IRN-15",
+    "player_name": "Roozbeh Cheshmi"
+  },
+  {
+    "number": "IRN-16",
+    "player_name": "Mohammad Mohebi"
+  },
+  {
+    "number": "IRN-17",
+    "player_name": "Sardar Azmoun"
+  },
+  {
+    "number": "IRN-18",
+    "player_name": "Mehdi Taremi"
+  },
+  {
+    "number": "IRN-19",
+    "player_name": "Alireza Jahanbakhsh"
+  },
+  {
+    "number": "IRN-20",
+    "player_name": "Ali Gholizadeh"
+  },
+  {
+    "number": "NZL-3",
+    "player_name": "Max Crocombe-Payne"
+  },
+  {
+    "number": "NZL-4",
+    "player_name": "Alex Paulsen"
+  },
+  {
+    "number": "NZL-5",
+    "player_name": "Michael Boxall"
+  },
+  {
+    "number": "NZL-6",
+    "player_name": "Liberato Cacace"
+  },
+  {
+    "number": "NZL-7",
+    "player_name": "Tim Payne"
+  },
+  {
+    "number": "NZL-8",
+    "player_name": "Tyler Bindon"
+  },
+  {
+    "number": "NZL-9",
+    "player_name": "Francis de Vries"
+  },
+  {
+    "number": "NZL-10",
+    "player_name": "Finn Surman"
+  },
+  {
+    "number": "NZL-11",
+    "player_name": "Joe Bell"
+  },
+  {
+    "number": "NZL-12",
+    "player_name": "Sarpreet Singh"
+  },
+  {
+    "number": "NZL-13",
+    "player_name": "Ryan Thomas"
+  },
+  {
+    "number": "NZL-14",
+    "player_name": "Matthew Garbett"
+  },
+  {
+    "number": "NZL-15",
+    "player_name": "Marko Stamenić"
+  },
+  {
+    "number": "NZL-16",
+    "player_name": "Ben Old"
+  },
+  {
+    "number": "NZL-17",
+    "player_name": "Chris Wood"
+  },
+  {
+    "number": "NZL-18",
+    "player_name": "Elijah Just"
+  },
+  {
+    "number": "NZL-19",
+    "player_name": "Callum McCowatt"
+  },
+  {
+    "number": "NZL-20",
+    "player_name": "Kosta Barbarouses"
+  },
+  {
+    "number": "ESP-3",
+    "player_name": "Unai Simón"
+  },
+  {
+    "number": "ESP-4",
+    "player_name": "Robin Le Normand"
+  },
+  {
+    "number": "ESP-5",
+    "player_name": "Aymeric Laporte"
+  },
+  {
+    "number": "ESP-6",
+    "player_name": "Dean Huijsen"
+  },
+  {
+    "number": "ESP-7",
+    "player_name": "Pedro Porro"
+  },
+  {
+    "number": "ESP-8",
+    "player_name": "Dani Carvajal"
+  },
+  {
+    "number": "ESP-9",
+    "player_name": "Marc Cucurella"
+  },
+  {
+    "number": "ESP-10",
+    "player_name": "Martín Zubimendi"
+  },
+  {
+    "number": "ESP-11",
+    "player_name": "Rodri"
+  },
+  {
+    "number": "ESP-12",
+    "player_name": "Pedri"
+  },
+  {
+    "number": "ESP-13",
+    "player_name": "Fabián Ruiz"
+  },
+  {
+    "number": "ESP-14",
+    "player_name": "Mikel Merino"
+  },
+  {
+    "number": "ESP-15",
+    "player_name": "Lamine Yamal"
+  },
+  {
+    "number": "ESP-16",
+    "player_name": "Dani Olmo"
+  },
+  {
+    "number": "ESP-17",
+    "player_name": "Nico Williams"
+  },
+  {
+    "number": "ESP-18",
+    "player_name": "Ferran Torres"
+  },
+  {
+    "number": "ESP-19",
+    "player_name": "Álvaro Morata"
+  },
+  {
+    "number": "ESP-20",
+    "player_name": "Mikel Oyarzabal"
+  },
+  {
+    "number": "CPV-3",
+    "player_name": "Vozinha"
+  },
+  {
+    "number": "CPV-4",
+    "player_name": "Logan Costa"
+  },
+  {
+    "number": "CPV-5",
+    "player_name": "Pico"
+  },
+  {
+    "number": "CPV-6",
+    "player_name": "Diney"
+  },
+  {
+    "number": "CPV-7",
+    "player_name": "Steven Moreira"
+  },
+  {
+    "number": "CPV-8",
+    "player_name": "Wagner Pina"
+  },
+  {
+    "number": "CPV-9",
+    "player_name": "João Paulo"
+  },
+  {
+    "number": "CPV-10",
+    "player_name": "Yannick Semedo"
+  },
+  {
+    "number": "CPV-11",
+    "player_name": "Kevin Pina"
+  },
+  {
+    "number": "CPV-12",
+    "player_name": "Patrick Andrade"
+  },
+  {
+    "number": "CPV-13",
+    "player_name": "Jamiro Monteiro"
+  },
+  {
+    "number": "CPV-14",
+    "player_name": "Deroy Duarte"
+  },
+  {
+    "number": "CPV-15",
+    "player_name": "Garry Rodrigues"
+  },
+  {
+    "number": "CPV-16",
+    "player_name": "Jovane Cabral"
+  },
+  {
+    "number": "CPV-17",
+    "player_name": "Ryan Mendes"
+  },
+  {
+    "number": "CPV-18",
+    "player_name": "Dailon Livramento"
+  },
+  {
+    "number": "CPV-19",
+    "player_name": "Willy Semedo"
+  },
+  {
+    "number": "CPV-20",
+    "player_name": "Bebé"
+  },
+  {
+    "number": "KSA-3",
+    "player_name": "Nawaf Alaqidi"
+  },
+  {
+    "number": "KSA-4",
+    "player_name": "Abdulrahman Al-Sanbi"
+  },
+  {
+    "number": "KSA-5",
+    "player_name": "Saud Abdulhamid"
+  },
+  {
+    "number": "KSA-6",
+    "player_name": "Nawaf Boushal"
+  },
+  {
+    "number": "KSA-7",
+    "player_name": "Jihad Thakri"
+  },
+  {
+    "number": "KSA-8",
+    "player_name": "Moteb Al-Harbi"
+  },
+  {
+    "number": "KSA-9",
+    "player_name": "Hassan Altambakti"
+  },
+  {
+    "number": "KSA-10",
+    "player_name": "Musab Aljuwayr"
+  },
+  {
+    "number": "KSA-11",
+    "player_name": "Ziyad Aljohani"
+  },
+  {
+    "number": "KSA-12",
+    "player_name": "Abdullah Alkhaibari"
+  },
+  {
+    "number": "KSA-13",
+    "player_name": "Nasser Aldawsari"
+  },
+  {
+    "number": "KSA-14",
+    "player_name": "Saleh Abu Alshamat"
+  },
+  {
+    "number": "KSA-15",
+    "player_name": "Marwan Alsahafi"
+  },
+  {
+    "number": "KSA-16",
+    "player_name": "Salem Aldawsari"
+  },
+  {
+    "number": "KSA-17",
+    "player_name": "Abdulrahman Al-Aboud"
+  },
+  {
+    "number": "KSA-18",
+    "player_name": "Feras Albrikan"
+  },
+  {
+    "number": "KSA-19",
+    "player_name": "Saleh Alshehri"
+  },
+  {
+    "number": "KSA-20",
+    "player_name": "Abdullah Al-Hamdan"
+  },
+  {
+    "number": "URU-3",
+    "player_name": "Sergio Rochet"
+  },
+  {
+    "number": "URU-4",
+    "player_name": "Santiago Mele"
+  },
+  {
+    "number": "URU-5",
+    "player_name": "Ronald Araujo"
+  },
+  {
+    "number": "URU-6",
+    "player_name": "José María Giménez"
+  },
+  {
+    "number": "URU-7",
+    "player_name": "Sebastian Caceres"
+  },
+  {
+    "number": "URU-8",
+    "player_name": "Mathias Olivera"
+  },
+  {
+    "number": "URU-9",
+    "player_name": "Guillermo Varela"
+  },
+  {
+    "number": "URU-10",
+    "player_name": "Nahitan Nandez"
+  },
+  {
+    "number": "URU-11",
+    "player_name": "Federico Valverde"
+  },
+  {
+    "number": "URU-12",
+    "player_name": "Giorgian De Arrascaeta"
+  },
+  {
+    "number": "URU-13",
+    "player_name": "Rodrigo Bentancur"
+  },
+  {
+    "number": "URU-14",
+    "player_name": "Manuel Ugarte"
+  },
+  {
+    "number": "URU-15",
+    "player_name": "Nicolás de la Cruz"
+  },
+  {
+    "number": "URU-16",
+    "player_name": "Maxi Araujo"
+  },
+  {
+    "number": "URU-17",
+    "player_name": "Darwin Núñez"
+  },
+  {
+    "number": "URU-18",
+    "player_name": "Federico Viñas"
+  },
+  {
+    "number": "URU-19",
+    "player_name": "Rodrigo Aguirre"
+  },
+  {
+    "number": "URU-20",
+    "player_name": "Facundo Pellistri"
+  },
+  {
+    "number": "FRA-3",
+    "player_name": "Mike Maignan"
+  },
+  {
+    "number": "FRA-4",
+    "player_name": "Theo Hernández"
+  },
+  {
+    "number": "FRA-5",
+    "player_name": "William Saliba"
+  },
+  {
+    "number": "FRA-6",
+    "player_name": "Jules Koundé"
+  },
+  {
+    "number": "FRA-7",
+    "player_name": "Ibrahima Konaté"
+  },
+  {
+    "number": "FRA-8",
+    "player_name": "Dayot Upamecano"
+  },
+  {
+    "number": "FRA-9",
+    "player_name": "Lucas Digne"
+  },
+  {
+    "number": "FRA-10",
+    "player_name": "Aurélien Tchouaméni"
+  },
+  {
+    "number": "FRA-11",
+    "player_name": "Eduardo Camavinga"
+  },
+  {
+    "number": "FRA-12",
+    "player_name": "Manu Koné"
+  },
+  {
+    "number": "FRA-13",
+    "player_name": "Adrien Rabiot"
+  },
+  {
+    "number": "FRA-14",
+    "player_name": "Michael Olise"
+  },
+  {
+    "number": "FRA-15",
+    "player_name": "Ousmane Dembélé"
+  },
+  {
+    "number": "FRA-16",
+    "player_name": "Bradley Barcola"
+  },
+  {
+    "number": "FRA-17",
+    "player_name": "Désiré Doué"
+  },
+  {
+    "number": "FRA-18",
+    "player_name": "Kingsley Coman"
+  },
+  {
+    "number": "FRA-19",
+    "player_name": "Hugo Ekitike"
+  },
+  {
+    "number": "FRA-20",
+    "player_name": "Kylian Mbappé"
+  },
+  {
+    "number": "SEN-3",
+    "player_name": "Eduardo Mendy"
+  },
+  {
+    "number": "SEN-4",
+    "player_name": "Yehvann Diouf"
+  },
+  {
+    "number": "SEN-5",
+    "player_name": "Moussa Niakhaté"
+  },
+  {
+    "number": "SEN-6",
+    "player_name": "Abdoulaye Seck"
+  },
+  {
+    "number": "SEN-7",
+    "player_name": "Ismail Jakobs"
+  },
+  {
+    "number": "SEN-8",
+    "player_name": "El Hadji Malick Diouf"
+  },
+  {
+    "number": "SEN-9",
+    "player_name": "Kalidou Koulibaly"
+  },
+  {
+    "number": "SEN-10",
+    "player_name": "Idrissa Gana Gueye"
+  },
+  {
+    "number": "SEN-11",
+    "player_name": "Pape Matar Sarr"
+  },
+  {
+    "number": "SEN-12",
+    "player_name": "Pape Gueye"
+  },
+  {
+    "number": "SEN-13",
+    "player_name": "Habib Diarra"
+  },
+  {
+    "number": "SEN-14",
+    "player_name": "Lamine Camara"
+  },
+  {
+    "number": "SEN-15",
+    "player_name": "Sadio Mane"
+  },
+  {
+    "number": "SEN-16",
+    "player_name": "Ismaïla Sarr"
+  },
+  {
+    "number": "SEN-17",
+    "player_name": "Boulaye Dia"
+  },
+  {
+    "number": "SEN-18",
+    "player_name": "Iliman Ndiaye"
+  },
+  {
+    "number": "SEN-19",
+    "player_name": "Nicolas Jackson"
+  },
+  {
+    "number": "SEN-20",
+    "player_name": "Krepin Diatta"
+  },
+  {
+    "number": "IRQ-3",
+    "player_name": "Jalal Hassan"
+  },
+  {
+    "number": "IRQ-4",
+    "player_name": "Rebin Sulaka"
+  },
+  {
+    "number": "IRQ-5",
+    "player_name": "Hussein Ali"
+  },
+  {
+    "number": "IRQ-6",
+    "player_name": "Akam Hashem"
+  },
+  {
+    "number": "IRQ-7",
+    "player_name": "Merchas Doski"
+  },
+  {
+    "number": "IRQ-8",
+    "player_name": "Zaid Tahseen"
+  },
+  {
+    "number": "IRQ-9",
+    "player_name": "Manaf Younis"
+  },
+  {
+    "number": "IRQ-10",
+    "player_name": "Zidane Iqbal"
+  },
+  {
+    "number": "IRQ-11",
+    "player_name": "Amir Al-Ammari"
+  },
+  {
+    "number": "IRQ-12",
+    "player_name": "Ibrahim Bayesh"
+  },
+  {
+    "number": "IRQ-13",
+    "player_name": "Ali Jasim"
+  },
+  {
+    "number": "IRQ-14",
+    "player_name": "Youssef Amyn"
+  },
+  {
+    "number": "IRQ-15",
+    "player_name": "Aimar Sher"
+  },
+  {
+    "number": "IRQ-16",
+    "player_name": "Marko Farji"
+  },
+  {
+    "number": "IRQ-17",
+    "player_name": "Osama Rashid"
+  },
+  {
+    "number": "IRQ-18",
+    "player_name": "Ali Al-Hamadi"
+  },
+  {
+    "number": "IRQ-19",
+    "player_name": "Aymen Hussein"
+  },
+  {
+    "number": "IRQ-20",
+    "player_name": "Mohanad Ali"
+  },
+  {
+    "number": "NOR-3",
+    "player_name": "Ørjan Nyland"
+  },
+  {
+    "number": "NOR-4",
+    "player_name": "Julian Ryerson"
+  },
+  {
+    "number": "NOR-5",
+    "player_name": "Leo Østigård"
+  },
+  {
+    "number": "NOR-6",
+    "player_name": "Kristoffer Ajer"
+  },
+  {
+    "number": "NOR-7",
+    "player_name": "Marcus Holmgren Pedersen"
+  },
+  {
+    "number": "NOR-8",
+    "player_name": "David Møller Wolfe"
+  },
+  {
+    "number": "NOR-9",
+    "player_name": "Torbjørn Heggem"
+  },
+  {
+    "number": "NOR-10",
+    "player_name": "Morten Thorsby"
+  },
+  {
+    "number": "NOR-11",
+    "player_name": "Martin Ødegaard"
+  },
+  {
+    "number": "NOR-12",
+    "player_name": "Sander Berge"
+  },
+  {
+    "number": "NOR-13",
+    "player_name": "Andreas Schjelderup"
+  },
+  {
+    "number": "NOR-14",
+    "player_name": "Patrick Berg"
+  },
+  {
+    "number": "NOR-15",
+    "player_name": "Erling Haaland"
+  },
+  {
+    "number": "NOR-16",
+    "player_name": "Alexander Sørloth"
+  },
+  {
+    "number": "NOR-17",
+    "player_name": "Aron Dønnum"
+  },
+  {
+    "number": "NOR-18",
+    "player_name": "Jørgen Strand Larsen"
+  },
+  {
+    "number": "NOR-19",
+    "player_name": "Antonio Nusa"
+  },
+  {
+    "number": "NOR-20",
+    "player_name": "Oscar Bobb"
+  },
+  {
+    "number": "ARG-3",
+    "player_name": "Emiliano Martínez"
+  },
+  {
+    "number": "ARG-4",
+    "player_name": "Nahuel Molina"
+  },
+  {
+    "number": "ARG-5",
+    "player_name": "Cristian Romero"
+  },
+  {
+    "number": "ARG-6",
+    "player_name": "Nicolás Otamendi"
+  },
+  {
+    "number": "ARG-7",
+    "player_name": "Nicolás Tagliafico"
+  },
+  {
+    "number": "ARG-8",
+    "player_name": "Leonardo Balerdi"
+  },
+  {
+    "number": "ARG-9",
+    "player_name": "Enzo Fernández"
+  },
+  {
+    "number": "ARG-10",
+    "player_name": "Alexis Mac Allister"
+  },
+  {
+    "number": "ARG-11",
+    "player_name": "Rodrigo De Paul"
+  },
+  {
+    "number": "ARG-12",
+    "player_name": "Exequiel Palacios"
+  },
+  {
+    "number": "ARG-13",
+    "player_name": "Leandro Paredes"
+  },
+  {
+    "number": "ARG-14",
+    "player_name": "Nico Paz"
+  },
+  {
+    "number": "ARG-15",
+    "player_name": "Franco Mastantuono"
+  },
+  {
+    "number": "ARG-16",
+    "player_name": "Nico González"
+  },
+  {
+    "number": "ARG-17",
+    "player_name": "Lionel Messi"
+  },
+  {
+    "number": "ARG-18",
+    "player_name": "Lautaro Martínez"
+  },
+  {
+    "number": "ARG-19",
+    "player_name": "Julián Álvarez"
+  },
+  {
+    "number": "ARG-20",
+    "player_name": "Giuliano Simeone"
+  },
+  {
+    "number": "ALG-3",
+    "player_name": "Alexis Guendouz"
+  },
+  {
+    "number": "ALG-4",
+    "player_name": "Ramy Bensebaini"
+  },
+  {
+    "number": "ALG-5",
+    "player_name": "Youcef Atal"
+  },
+  {
+    "number": "ALG-6",
+    "player_name": "Rayan Aït-Nouri"
+  },
+  {
+    "number": "ALG-7",
+    "player_name": "Mohamed Amine Tougai"
+  },
+  {
+    "number": "ALG-8",
+    "player_name": "Aïssa Mandi"
+  },
+  {
+    "number": "ALG-9",
+    "player_name": "Ismael Bennacer"
+  },
+  {
+    "number": "ALG-10",
+    "player_name": "Houssem Aouar"
+  },
+  {
+    "number": "ALG-11",
+    "player_name": "Hicham Boudaoui"
+  },
+  {
+    "number": "ALG-12",
+    "player_name": "Ramiz Zerrouki"
+  },
+  {
+    "number": "ALG-13",
+    "player_name": "Nabil Bentaleb"
+  },
+  {
+    "number": "ALG-14",
+    "player_name": "Farés Chaibi"
+  },
+  {
+    "number": "ALG-15",
+    "player_name": "Riyad Mahrez"
+  },
+  {
+    "number": "ALG-16",
+    "player_name": "Said Benrahma"
+  },
+  {
+    "number": "ALG-17",
+    "player_name": "Anis Hadj Moussa"
+  },
+  {
+    "number": "ALG-18",
+    "player_name": "Amine Gouiri"
+  },
+  {
+    "number": "ALG-19",
+    "player_name": "Baghdad Bounedjah"
+  },
+  {
+    "number": "ALG-20",
+    "player_name": "Mohammed Amoura"
+  },
+  {
+    "number": "AUT-3",
+    "player_name": "Alexander Schlager"
+  },
+  {
+    "number": "AUT-4",
+    "player_name": "Patrick Pentz"
+  },
+  {
+    "number": "AUT-5",
+    "player_name": "David Alaba"
+  },
+  {
+    "number": "AUT-6",
+    "player_name": "Kevin Danso"
+  },
+  {
+    "number": "AUT-7",
+    "player_name": "Philipp Lienhart"
+  },
+  {
+    "number": "AUT-8",
+    "player_name": "Stefan Posch"
+  },
+  {
+    "number": "AUT-9",
+    "player_name": "Phillipp Mwene"
+  },
+  {
+    "number": "AUT-10",
+    "player_name": "Alexander Prass"
+  },
+  {
+    "number": "AUT-11",
+    "player_name": "Xaver Schlager"
+  },
+  {
+    "number": "AUT-12",
+    "player_name": "Marcel Sabitzer"
+  },
+  {
+    "number": "AUT-13",
+    "player_name": "Konrad Laimer"
+  },
+  {
+    "number": "AUT-14",
+    "player_name": "Florian Grillitsch"
+  },
+  {
+    "number": "AUT-15",
+    "player_name": "Nicolas Seiwald"
+  },
+  {
+    "number": "AUT-16",
+    "player_name": "Romano Schmid"
+  },
+  {
+    "number": "AUT-17",
+    "player_name": "Patrick Wimmer"
+  },
+  {
+    "number": "AUT-18",
+    "player_name": "Christoph Baumgartner"
+  },
+  {
+    "number": "AUT-19",
+    "player_name": "Michael Gregoritsch"
+  },
+  {
+    "number": "AUT-20",
+    "player_name": "Marko Arnautović"
+  },
+  {
+    "number": "JOR-3",
+    "player_name": "Yazeed Abulaila"
+  },
+  {
+    "number": "JOR-4",
+    "player_name": "Ihsan Haddad"
+  },
+  {
+    "number": "JOR-5",
+    "player_name": "Mohammad Abu Hashish"
+  },
+  {
+    "number": "JOR-6",
+    "player_name": "Yazan Al-Arab"
+  },
+  {
+    "number": "JOR-7",
+    "player_name": "Abdallah Nasib"
+  },
+  {
+    "number": "JOR-8",
+    "player_name": "Saleem Obaid"
+  },
+  {
+    "number": "JOR-9",
+    "player_name": "Mohammad Abualnadi"
+  },
+  {
+    "number": "JOR-10",
+    "player_name": "Ibrahim Saadeh"
+  },
+  {
+    "number": "JOR-11",
+    "player_name": "Nizar Al-Rashdan"
+  },
+  {
+    "number": "JOR-12",
+    "player_name": "Noor Al-Rawabdeh"
+  },
+  {
+    "number": "JOR-13",
+    "player_name": "Mohannad Abu Taha"
+  },
+  {
+    "number": "JOR-14",
+    "player_name": "Amer Jamous"
+  },
+  {
+    "number": "JOR-15",
+    "player_name": "Musa Al-Taamari"
+  },
+  {
+    "number": "JOR-16",
+    "player_name": "Yazan Al-Naimat"
+  },
+  {
+    "number": "JOR-17",
+    "player_name": "Mahmoud Al-Mardi"
+  },
+  {
+    "number": "JOR-18",
+    "player_name": "Ali Olwan"
+  },
+  {
+    "number": "JOR-19",
+    "player_name": "Mohammad Abu Zrayq"
+  },
+  {
+    "number": "JOR-20",
+    "player_name": "Ibrahim Sabra"
+  },
+  {
+    "number": "POR-3",
+    "player_name": "Diogo Costa"
+  },
+  {
+    "number": "POR-4",
+    "player_name": "Jose Sa"
+  },
+  {
+    "number": "POR-5",
+    "player_name": "Ruben Dias"
+  },
+  {
+    "number": "POR-6",
+    "player_name": "João Cancelo"
+  },
+  {
+    "number": "POR-7",
+    "player_name": "Diogo Dalot"
+  },
+  {
+    "number": "POR-8",
+    "player_name": "Nuno Mendes"
+  },
+  {
+    "number": "POR-9",
+    "player_name": "Gonçalo Inácio"
+  },
+  {
+    "number": "POR-10",
+    "player_name": "Bernardo Silva"
+  },
+  {
+    "number": "POR-11",
+    "player_name": "Bruno Fernandes"
+  },
+  {
+    "number": "POR-12",
+    "player_name": "Ruben Neves"
+  },
+  {
+    "number": "POR-13",
+    "player_name": "Vitinha"
+  },
+  {
+    "number": "POR-14",
+    "player_name": "João Neves"
+  },
+  {
+    "number": "POR-15",
+    "player_name": "Cristiano Ronaldo"
+  },
+  {
+    "number": "POR-16",
+    "player_name": "Francisco Trincão"
+  },
+  {
+    "number": "POR-17",
+    "player_name": "João Felix"
+  },
+  {
+    "number": "POR-18",
+    "player_name": "Gonçalo Ramos"
+  },
+  {
+    "number": "POR-19",
+    "player_name": "Pedro Neto"
+  },
+  {
+    "number": "POR-20",
+    "player_name": "Rafael Leão"
+  },
+  {
+    "number": "COD-3",
+    "player_name": "Lionel Mpasi"
+  },
+  {
+    "number": "COD-4",
+    "player_name": "Aaron Wan-Bissaka"
+  },
+  {
+    "number": "COD-5",
+    "player_name": "Axel Tuanzebe"
+  },
+  {
+    "number": "COD-6",
+    "player_name": "Arthur Masuaku"
+  },
+  {
+    "number": "COD-7",
+    "player_name": "Chancel Mbemba"
+  },
+  {
+    "number": "COD-8",
+    "player_name": "Joris Kayembe"
+  },
+  {
+    "number": "COD-9",
+    "player_name": "Charles Pickel"
+  },
+  {
+    "number": "COD-10",
+    "player_name": "Ngal’ayel Mukau"
+  },
+  {
+    "number": "COD-11",
+    "player_name": "Edo Kayembe"
+  },
+  {
+    "number": "COD-12",
+    "player_name": "Samuel Moutoussamy"
+  },
+  {
+    "number": "COD-13",
+    "player_name": "Noah Sadiki"
+  },
+  {
+    "number": "COD-14",
+    "player_name": "Théo Bongonda"
+  },
+  {
+    "number": "COD-15",
+    "player_name": "Meschack Elia"
+  },
+  {
+    "number": "COD-16",
+    "player_name": "Yoane Wissa"
+  },
+  {
+    "number": "COD-17",
+    "player_name": "Brian Cipenga"
+  },
+  {
+    "number": "COD-18",
+    "player_name": "Fiston Mayele"
+  },
+  {
+    "number": "COD-19",
+    "player_name": "Cédric Bakambu"
+  },
+  {
+    "number": "COD-20",
+    "player_name": "Nathanaël Mbuku"
+  },
+  {
+    "number": "UZB-3",
+    "player_name": "Utkir Yusupov"
+  },
+  {
+    "number": "UZB-4",
+    "player_name": "Farrukh Savfiev"
+  },
+  {
+    "number": "UZB-5",
+    "player_name": "Sherzod Nasrullaev"
+  },
+  {
+    "number": "UZB-6",
+    "player_name": "Umar Eshmurodov"
+  },
+  {
+    "number": "UZB-7",
+    "player_name": "Husniddin Aliqulov"
+  },
+  {
+    "number": "UZB-8",
+    "player_name": "Rustamjon Ashurmatov"
+  },
+  {
+    "number": "UZB-9",
+    "player_name": "Khojiakbar Alijonov"
+  },
+  {
+    "number": "UZB-10",
+    "player_name": "Abdukodir Khusanov"
+  },
+  {
+    "number": "UZB-11",
+    "player_name": "Odiljon Hamrobekov"
+  },
+  {
+    "number": "UZB-12",
+    "player_name": "Otabek Shukurov"
+  },
+  {
+    "number": "UZB-13",
+    "player_name": "Jamshid Iskanderov"
+  },
+  {
+    "number": "UZB-14",
+    "player_name": "Azizbek Turgunboev"
+  },
+  {
+    "number": "UZB-15",
+    "player_name": "Khojimat Erkinov"
+  },
+  {
+    "number": "UZB-16",
+    "player_name": "Eldor Shomurodov"
+  },
+  {
+    "number": "UZB-17",
+    "player_name": "Oston Urunov"
+  },
+  {
+    "number": "UZB-18",
+    "player_name": "Jaloliddin Masharipov"
+  },
+  {
+    "number": "UZB-19",
+    "player_name": "Igor Sergeev"
+  },
+  {
+    "number": "UZB-20",
+    "player_name": "Abbosbek Fayzullaev"
+  },
+  {
+    "number": "COL-3",
+    "player_name": "Camilo Vargas"
+  },
+  {
+    "number": "COL-4",
+    "player_name": "David Ospina"
+  },
+  {
+    "number": "COL-5",
+    "player_name": "Dávinson Sánchez"
+  },
+  {
+    "number": "COL-6",
+    "player_name": "Yerry Mina"
+  },
+  {
+    "number": "COL-7",
+    "player_name": "Daniel Muñoz"
+  },
+  {
+    "number": "COL-8",
+    "player_name": "Johan Mojica"
+  },
+  {
+    "number": "COL-9",
+    "player_name": "Jhon Lucumí"
+  },
+  {
+    "number": "COL-10",
+    "player_name": "Santiago Arias"
+  },
+  {
+    "number": "COL-11",
+    "player_name": "Jefferson Lerma"
+  },
+  {
+    "number": "COL-12",
+    "player_name": "Kevin Castaño"
+  },
+  {
+    "number": "COL-13",
+    "player_name": "Richard Ríos"
+  },
+  {
+    "number": "COL-14",
+    "player_name": "James Rodríguez"
+  },
+  {
+    "number": "COL-15",
+    "player_name": "Juan Fernando Quintero"
+  },
+  {
+    "number": "COL-16",
+    "player_name": "Jorge Carrascal"
+  },
+  {
+    "number": "COL-17",
+    "player_name": "Jhon Arias"
+  },
+  {
+    "number": "COL-18",
+    "player_name": "Jhon Córdoba"
+  },
+  {
+    "number": "COL-19",
+    "player_name": "Luis Suárez"
+  },
+  {
+    "number": "COL-20",
+    "player_name": "Luis Díaz"
+  },
+  {
+    "number": "ENG-3",
+    "player_name": "Jordan Pickford"
+  },
+  {
+    "number": "ENG-4",
+    "player_name": "John Stones"
+  },
+  {
+    "number": "ENG-5",
+    "player_name": "Marc Guéhi"
+  },
+  {
+    "number": "ENG-6",
+    "player_name": "Ezri Konsa"
+  },
+  {
+    "number": "ENG-7",
+    "player_name": "Trent Alexander-Arnold"
+  },
+  {
+    "number": "ENG-8",
+    "player_name": "Reece James"
+  },
+  {
+    "number": "ENG-9",
+    "player_name": "Dan Burn"
+  },
+  {
+    "number": "ENG-10",
+    "player_name": "Jordan Henderson"
+  },
+  {
+    "number": "ENG-11",
+    "player_name": "Declan Rice"
+  },
+  {
+    "number": "ENG-12",
+    "player_name": "Jude Bellingham"
+  },
+  {
+    "number": "ENG-13",
+    "player_name": "Cole Palmer"
+  },
+  {
+    "number": "ENG-14",
+    "player_name": "Morgan Rogers"
+  },
+  {
+    "number": "ENG-15",
+    "player_name": "Anthony Gordon"
+  },
+  {
+    "number": "ENG-16",
+    "player_name": "Phil Foden"
+  },
+  {
+    "number": "ENG-17",
+    "player_name": "Bukayo Saka"
+  },
+  {
+    "number": "ENG-18",
+    "player_name": "Harry Kane"
+  },
+  {
+    "number": "ENG-19",
+    "player_name": "Marcus Rashford"
+  },
+  {
+    "number": "ENG-20",
+    "player_name": "Ollie Watkins"
+  },
+  {
+    "number": "CRO-3",
+    "player_name": "Dominik Livaković"
+  },
+  {
+    "number": "CRO-4",
+    "player_name": "Duje Ćaleta-Car"
+  },
+  {
+    "number": "CRO-5",
+    "player_name": "Joško Gvardiol"
+  },
+  {
+    "number": "CRO-6",
+    "player_name": "Josip Stanišić"
+  },
+  {
+    "number": "CRO-7",
+    "player_name": "Luka Vušković"
+  },
+  {
+    "number": "CRO-8",
+    "player_name": "Josip Šutalo"
+  },
+  {
+    "number": "CRO-9",
+    "player_name": "Kristijan Jakić"
+  },
+  {
+    "number": "CRO-10",
+    "player_name": "Luka Modrić"
+  },
+  {
+    "number": "CRO-11",
+    "player_name": "Mateo Kovačić"
+  },
+  {
+    "number": "CRO-12",
+    "player_name": "Martin Baturina"
+  },
+  {
+    "number": "CRO-13",
+    "player_name": "Lovro Majer"
+  },
+  {
+    "number": "CRO-14",
+    "player_name": "Mario Pašalić"
+  },
+  {
+    "number": "CRO-15",
+    "player_name": "Petar Sučić"
+  },
+  {
+    "number": "CRO-16",
+    "player_name": "Ivan Perišić"
+  },
+  {
+    "number": "CRO-17",
+    "player_name": "Marco Pašalić"
+  },
+  {
+    "number": "CRO-18",
+    "player_name": "Ante Budimir"
+  },
+  {
+    "number": "CRO-19",
+    "player_name": "Andrej Kramarić"
+  },
+  {
+    "number": "CRO-20",
+    "player_name": "Franjo Ivanović"
+  },
+  {
+    "number": "GHA-3",
+    "player_name": "Lawrence Ati Zigi"
+  },
+  {
+    "number": "GHA-4",
+    "player_name": "Tariq Lamptey"
+  },
+  {
+    "number": "GHA-5",
+    "player_name": "Mohammed Salisu"
+  },
+  {
+    "number": "GHA-6",
+    "player_name": "Alidu Seidu"
+  },
+  {
+    "number": "GHA-7",
+    "player_name": "Alexander Djiku"
+  },
+  {
+    "number": "GHA-8",
+    "player_name": "Gideon Mensah"
+  },
+  {
+    "number": "GHA-9",
+    "player_name": "Caleb Yirenkyi"
+  },
+  {
+    "number": "GHA-10",
+    "player_name": "Abdul Fatawu Issahaku"
+  },
+  {
+    "number": "GHA-11",
+    "player_name": "Thomas Partey"
+  },
+  {
+    "number": "GHA-12",
+    "player_name": "Salis Abdul Samed"
+  },
+  {
+    "number": "GHA-13",
+    "player_name": "Kamaldeen Sulemana"
+  },
+  {
+    "number": "GHA-14",
+    "player_name": "Mohammed Kudus"
+  },
+  {
+    "number": "GHA-15",
+    "player_name": "Iñaki Williams"
+  },
+  {
+    "number": "GHA-16",
+    "player_name": "Jordan Ayew"
+  },
+  {
+    "number": "GHA-17",
+    "player_name": "André Ayew"
+  },
+  {
+    "number": "GHA-18",
+    "player_name": "Joseph Paintsil"
+  },
+  {
+    "number": "GHA-19",
+    "player_name": "Osman Bukari"
+  },
+  {
+    "number": "GHA-20",
+    "player_name": "Antoine Semenyo"
+  },
+  {
+    "number": "PAN-3",
+    "player_name": "Orlando Mosquera"
+  },
+  {
+    "number": "PAN-4",
+    "player_name": "Luis Mejía"
+  },
+  {
+    "number": "PAN-5",
+    "player_name": "Fidel Escobar"
+  },
+  {
+    "number": "PAN-6",
+    "player_name": "Andrés Andrade"
+  },
+  {
+    "number": "PAN-7",
+    "player_name": "Michael Amir Murillo"
+  },
+  {
+    "number": "PAN-8",
+    "player_name": "Eric Davis"
+  },
+  {
+    "number": "PAN-9",
+    "player_name": "José Córdoba"
+  },
+  {
+    "number": "PAN-10",
+    "player_name": "César Blackman"
+  },
+  {
+    "number": "PAN-11",
+    "player_name": "Cristian Martínez"
+  },
+  {
+    "number": "PAN-12",
+    "player_name": "Aníbal Godoy"
+  },
+  {
+    "number": "PAN-13",
+    "player_name": "Adalberto Carrasquilla"
+  },
+  {
+    "number": "PAN-14",
+    "player_name": "Édgar Bárcenas"
+  },
+  {
+    "number": "PAN-15",
+    "player_name": "Carlos Harvey"
+  },
+  {
+    "number": "PAN-16",
+    "player_name": "Ismael Díaz"
+  },
+  {
+    "number": "PAN-17",
+    "player_name": "José Fajardo"
+  },
+  {
+    "number": "PAN-18",
+    "player_name": "Cecilio Waterman"
+  },
+  {
+    "number": "PAN-19",
+    "player_name": "José Luis Rodríguez"
+  },
+  {
+    "number": "PAN-20",
+    "player_name": "Alberto Quintero"
+  }
+]
