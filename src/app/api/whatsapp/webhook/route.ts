@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { sendText, formatPhone } from '@/lib/zapi'
+import { sendText, sendButtonList, formatPhone, type ButtonOption } from '@/lib/zapi'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
 
@@ -25,9 +25,13 @@ function getGemini() {
 }
 
 // ─── Intent detection prompt (Gemini instead of GPT-4o mini) ───
-const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album WhatsApp bot.
-Given a user message in Portuguese, return ONLY valid JSON:
+const INTENT_SYSTEM = `You are an intent classifier for a Panini sticker album WhatsApp bot. Users
+write informally in Brazilian Portuguese: abbreviations ("vc", "tb", "obg"),
+slang ("massa", "show", "dahora", "blz"), typos ("falando" for "faltando"),
+and missing accents are normal. Be VERY generous when matching intents — only
+return "unknown" if you genuinely cannot guess.
 
+Return ONLY valid JSON:
 {
   "intent": "status|missing|duplicates|trades|ranking|register|help|unknown",
   "confidence": 0.95,
@@ -35,22 +39,31 @@ Given a user message in Portuguese, return ONLY valid JSON:
 }
 
 Intent definitions:
-- status: user wants their collection progress/stats
-- missing: user wants list of stickers they still need
-- duplicates: user wants list of sticker duplicates to trade
-- trades: user wants to see pending trade requests or trade status
-- ranking: user wants to see their ranking position
-- register: user is typing sticker codes/numbers to register them (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, bra 5, arg 3" or "BRA1 BRA5")
-- help: user wants to know what the bot can do, asks about pricing/plans/how it works, gives feedback/suggestions/bug reports, or greets
-- unknown: anything else
-
-Be generous: "oi" → help, "quanto tenho" → status, "progresso" → status,
-"quais me faltam" → missing, "faltando" → missing, "faltam" → missing,
-"o que tenho repetido" → duplicates, "repetidas" → duplicates, "duplicatas" → duplicates,
-"trocas pendentes" → trades, "aceitar troca" → trades, "trocas" → trades,
-"ranking" → ranking, "posição" → ranking, "colocação" → ranking, "placar" → ranking,
-"BRA-1 ARG-3" → register, any list of sticker codes → register,
-"sugestão" → help, "ideia" → help, "bug" → help, "problema" → help, "faq" → help, "planos" → help, "preço" → help, "como funciona" → help.`
+- status: user wants their collection progress/stats. Examples:
+  "status", "progresso", "quanto tenho", "quanto ja completei", "quanto que ta",
+  "ja peguei quanto", "meu album", "como ta", "como esta", "ta como"
+- missing: user wants list of stickers they still need. Examples:
+  "faltando", "faltam", "que falta", "o que falta", "oque ta faltando", "preciso",
+  "necessito", "minhas faltantes", "tô precisando", "cade o que falta"
+- duplicates: user wants list of sticker duplicates. Examples:
+  "repetidas", "minhas repe", "minhas dupes", "duplicatas", "que sobrou",
+  "pra trocar", "o que tenho a mais", "as repetidinhas", "tenho repetida"
+- trades: user wants to see pending trade requests/notifications. Examples:
+  "trocas", "trocas pendentes", "pendentes", "alguem quer trocar",
+  "tem solicitação", "minhas trocas", "novas trocas", "recebi pedido"
+- ranking: user wants ranking position. Examples:
+  "ranking", "posicao", "colocacao", "placar", "como to no ranking",
+  "qual minha posicao", "to em qual lugar"
+- register: user is typing sticker codes to register. Examples:
+  "BRA-1 BRA-5 ARG-3", "bra 1, bra 5, arg 3", "BRA1 BRA5", "FRA10 ESP3 POR1".
+  Triggers when message contains a sequence of country-code + number.
+- help: greetings, questions about how the bot works, asking for plans/pricing,
+  giving feedback/suggestions/bug reports. Examples:
+  "oi", "ola", "olá", "bom dia", "ajuda", "me ajuda", "menu", "comandos", "o que vc faz",
+  "como funciona", "qual o preço", "tem plano", "sugestão", "ideia", "bug", "problema",
+  "obrigado", "valeu", "thanks", "show de bola"
+- unknown: ONLY if the message is unrelated (e.g. a random URL, a question about
+  a totally different topic). When in doubt, prefer "help" so the user gets a menu.`
 
 // ─── Sticker scan prompt (same as /api/whatsapp/scan) ───
 const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini da Copa do Mundo FIFA 2026 (edição USA/Canadá/México).
@@ -233,6 +246,28 @@ async function detectIntent(text: string): Promise<{ intent: string; confidence:
     console.error('Intent detection error:', err)
   }
   return { intent: 'unknown', confidence: 0 }
+}
+
+// ─── Transcribe an audio message via Gemini ───
+async function transcribeAudio(audioBase64: string, mimeType: string): Promise<string | null> {
+  try {
+    const genAI = getGemini()
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction:
+        'You receive a Portuguese audio message from a Panini sticker album user. Transcribe it verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
+    })
+    const result = await model.generateContent([
+      { inlineData: { mimeType, data: audioBase64 } },
+      { text: 'Transcreva este áudio em português.' },
+    ])
+    const text = result.response.text().trim()
+    if (!text || text.toUpperCase().includes('UNINTELLIGIBLE')) return null
+    return text
+  } catch (err) {
+    console.error('[WhatsApp] Audio transcription failed:', err)
+    return null
+  }
 }
 
 // ─── Scan image via Gemini ───
@@ -446,6 +481,27 @@ function cleanupExpiredScans() {
     .catch(() => {}) // fire-and-forget
 }
 
+// ─── Interactive button definitions ──────────────────────────────────────────
+// Each command surfaces both as a button (one-tap) and as a text the user can
+// type freely. Button IDs map to canonical command words so the rest of the
+// pipeline can treat the click as if the user typed that word.
+
+const BUTTON_ID_TO_TEXT: Record<string, string> = {
+  cmd_status: 'status',
+  cmd_missing: 'faltando',
+  cmd_duplicates: 'repetidas',
+  cmd_trades: 'trocas',
+  cmd_ranking: 'ranking',
+  cmd_help: 'ajuda',
+}
+
+// Common 3-button menu shown in welcome/help/unknown.
+const MAIN_MENU_BUTTONS: ButtonOption[] = [
+  { id: 'cmd_status', label: '📊 Progresso' },
+  { id: 'cmd_missing', label: '🔍 O que falta' },
+  { id: 'cmd_duplicates', label: '🔁 Repetidas' },
+]
+
 // ─── Dedup: avoid processing same message twice (Map with TTL) ───
 const recentMessages = new Map<string, number>()
 const DEDUP_TTL_MS = 5 * 60 * 1000 // 5 minutes
@@ -502,13 +558,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // ─── Interactive responses (button click / list pick) ──────────────────
+    // Z-API delivers button clicks as `buttonsResponseMessage.buttonId` and
+    // list picks as `listResponseMessage.selectedRowId`. Translate either into
+    // the equivalent command word and inject as a text message so the rest of
+    // the pipeline (intent detection + switch) handles it uniformly.
+    const buttonId: string | undefined =
+      body.buttonsResponseMessage?.buttonId || body.listResponseMessage?.selectedRowId
+    if (buttonId && BUTTON_ID_TO_TEXT[buttonId]) {
+      body.text = { message: BUTTON_ID_TO_TEXT[buttonId] }
+      console.log(`[WhatsApp] Button ${buttonId} → "${BUTTON_ID_TO_TEXT[buttonId]}"`)
+    }
+
     // Z-API may send type in different formats — detect by content
     const rawType = body.type || ''
     const hasImage = !!(body.image?.imageUrl || body.image?.url || body.imageUrl)
     const hasText = !!(body.text?.message || body.body || body.message || '').toString().trim()
     const hasAudio = !!(body.audio?.audioUrl || body.audio?.url)
 
-    const messageType = hasImage ? 'image'
+    let messageType = hasImage ? 'image'
       : (rawType === 'audio' || rawType === 'ptt' || hasAudio) ? 'audio'
       : hasText ? 'text'
       : rawType
@@ -525,9 +593,43 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Audio ───
+    // Download → transcribe via Gemini → re-route as text. Falls back to a
+    // helpful menu if transcription fails so the user always has a path forward.
     if (messageType === 'audio') {
-      await sendText(phone, 'Ainda não processo áudios 😅 Manda texto ou foto!')
-      return NextResponse.json({ ok: true })
+      const audioUrl = body.audio?.audioUrl || body.audio?.url
+      const audioBase64Inline = body.audio?.base64 || null
+
+      let audio: { base64: string; mimeType: string } | null = null
+      if (audioBase64Inline) {
+        audio = { base64: audioBase64Inline, mimeType: body.audio?.mimetype || 'audio/ogg' }
+      } else if (audioUrl) {
+        audio = await downloadImage(audioUrl, msgId) // same Z-API media flow works for audio
+      }
+
+      if (!audio) {
+        await sendButtonList(
+          phone,
+          '🎤 Não consegui baixar seu áudio. Tenta mandar de novo, ou escolhe uma opção:',
+          MAIN_MENU_BUTTONS,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      const transcribed = await transcribeAudio(audio.base64, audio.mimeType)
+      if (!transcribed) {
+        await sendButtonList(
+          phone,
+          '🎤 Não consegui entender o áudio. Tenta de novo (mais claro) ou escolhe uma opção:',
+          MAIN_MENU_BUTTONS,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      console.log(`[WhatsApp] Audio transcribed (${transcribed.length} chars): "${transcribed.slice(0, 100)}"`)
+      // Inject transcribed text into body, retype as text, and let the text
+      // handler below take over naturally.
+      body.text = { message: transcribed }
+      messageType = 'text'
     }
 
     // ─── Image ───
@@ -681,13 +783,29 @@ export async function POST(req: NextRequest) {
       switch (intent) {
         case 'status': {
           const stats = await getUserStats(user.id)
-          await sendText(
+          // Suggest the most useful next action based on collection state.
+          const nextButtons: ButtonOption[] =
+            stats.duplicates > 0 && stats.missing > 0
+              ? [
+                  { id: 'cmd_missing', label: '🔍 O que falta' },
+                  { id: 'cmd_duplicates', label: '🔁 Minhas repetidas' },
+                  { id: 'cmd_trades', label: '🔔 Trocas pendentes' },
+                ]
+              : stats.missing > 0
+                ? [
+                    { id: 'cmd_missing', label: '🔍 O que falta' },
+                    { id: 'cmd_trades', label: '🔔 Trocas pendentes' },
+                    { id: 'cmd_help', label: '❓ Ajuda' },
+                  ]
+                : MAIN_MENU_BUTTONS
+          await sendButtonList(
             phone,
             `📊 *Seu álbum:*\n\n` +
               `✅ Coladas: *${stats.owned}*\n` +
               `❌ Faltam: *${stats.missing}*\n` +
               `🔁 Repetidas: *${stats.duplicates}*\n` +
-              `📈 Progresso: *${stats.pct}%* (${stats.owned}/${stats.total})`
+              `📈 Progresso: *${stats.pct}%* (${stats.owned}/${stats.total})`,
+            nextButtons,
           )
           break
         }
@@ -695,17 +813,26 @@ export async function POST(req: NextRequest) {
         case 'missing': {
           const missing = await getMissingStickers(user.id, 30)
           if (missing.length === 0) {
-            await sendText(phone, '🎉 Você completou o álbum! Parabéns!')
+            await sendButtonList(phone, '🎉 *Você completou o álbum!* Parabéns! 🏆', [
+              { id: 'cmd_status', label: '📊 Ver progresso' },
+              { id: 'cmd_ranking', label: '🏆 Meu ranking' },
+              { id: 'cmd_trades', label: '🔁 Trocas' },
+            ])
           } else {
             const list = missing
               .map((s) => `${s.number}${s.player_name ? ' ' + s.player_name : ''}`)
               .join('\n')
             const stats = await getUserStats(user.id)
-            await sendText(
+            await sendButtonList(
               phone,
               `🔍 *Figurinhas que faltam* (${stats.missing} total):\n\n${list}${
                 stats.missing > 30 ? `\n\n... e mais ${stats.missing - 30}` : ''
-              }`
+              }\n\n👉 *Próximo passo:* mande uma *foto* do que você já tem ou veja repetidas pra trocar.`,
+              [
+                { id: 'cmd_duplicates', label: '🔁 Repetidas' },
+                { id: 'cmd_trades', label: '🔔 Trocas perto' },
+                { id: 'cmd_status', label: '📊 Progresso' },
+              ],
             )
           }
           break
@@ -714,7 +841,11 @@ export async function POST(req: NextRequest) {
         case 'duplicates': {
           const dupes = await getDuplicateStickers(user.id)
           if (dupes.length === 0) {
-            await sendText(phone, 'Você não tem figurinhas repetidas ainda.')
+            await sendButtonList(
+              phone,
+              'Você ainda não tem repetidas. 📸 Mande uma *foto* do que coletou pra eu detectar.',
+              MAIN_MENU_BUTTONS,
+            )
           } else {
             const list = dupes
               .map(
@@ -722,11 +853,16 @@ export async function POST(req: NextRequest) {
                   `${d.number}${d.player_name ? ' ' + d.player_name : ''} (x${d.quantity})`
               )
               .join('\n')
-            await sendText(
+            await sendButtonList(
               phone,
               `🔁 *Minhas repetidas* (${dupes.length} figurinhas):\n\n${list}\n\n` +
-              `📲 Lista gerada pelo *Complete Aí* — www.completeai.com.br\n` +
-              `Escaneie suas figurinhas com IA e complete seu álbum mais rápido!`
+                `📲 Lista pra trocar — gerada pelo *Complete Aí* (www.completeai.com.br)\n\n` +
+                `👉 *Próximo passo:* abre as trocas pra ver quem perto de você precisa do que você tem.`,
+              [
+                { id: 'cmd_trades', label: '🔔 Ver trocas' },
+                { id: 'cmd_missing', label: '🔍 O que falta' },
+                { id: 'cmd_status', label: '📊 Progresso' },
+              ],
             )
           }
           break
@@ -745,9 +881,14 @@ export async function POST(req: NextRequest) {
             .limit(5)
 
           if (!pending || pending.length === 0) {
-            await sendText(
+            await sendButtonList(
               phone,
-              `📋 Nenhuma solicitação de troca pendente.\n\nAbra o app para encontrar trocas:\n${APP_URL}/trades`
+              `📋 *Nenhuma solicitação pendente.*\n\nQuer buscar trocas perto de você? Abra o app:\n${APP_URL}/trades`,
+              [
+                { id: 'cmd_duplicates', label: '🔁 Minhas repetidas' },
+                { id: 'cmd_missing', label: '🔍 O que falta' },
+                { id: 'cmd_status', label: '📊 Progresso' },
+              ],
             )
           } else {
             // Get requester names
@@ -788,7 +929,15 @@ export async function POST(req: NextRequest) {
           }
 
           if (matches.length === 0) {
-            await sendText(phone, '❌ Não consegui identificar códigos de figurinhas. Use o formato: BRA-1 ARG-3 FRA-10')
+            await sendButtonList(
+              phone,
+              '🤔 Não consegui ler códigos de figurinhas aí. O formato é assim:\n\n' +
+                '✅ `BRA-1 ARG-3 FRA-10`\n' +
+                '✅ `bra 1, arg 3`\n' +
+                '✅ `BRA1 BRA5`\n\n' +
+                '📸 Ou simplesmente *manda uma foto* — eu identifico tudo automaticamente!',
+              MAIN_MENU_BUTTONS,
+            )
             break
           }
 
@@ -800,7 +949,13 @@ export async function POST(req: NextRequest) {
             .in('number', matches)
 
           if (!foundStickers || foundStickers.length === 0) {
-            await sendText(phone, `❌ Nenhuma figurinha encontrada para: ${matches.join(', ')}\nVerifique os códigos e tente novamente.`)
+            await sendButtonList(
+              phone,
+              `🤔 Nenhum desses códigos existe no álbum: *${matches.join(', ')}*\n\n` +
+                `Confere se digitou certo (ex: BRA-1, não BR-1).\n` +
+                `📸 Se preferir, manda uma *foto* — funciona bem melhor!`,
+              MAIN_MENU_BUTTONS,
+            )
             break
           }
 
@@ -895,19 +1050,24 @@ export async function POST(req: NextRequest) {
             break
           }
 
-          await sendText(
+          // intent === 'help' is the friendly menu; intent === 'unknown' falls
+          // here too because of the `default:` — distinguish the lead line.
+          const isUnknown = intent === 'unknown'
+          const lead = isUnknown
+            ? `${greeting}🤔 Hmm, não peguei essa. O que você queria?`
+            : `${greeting}⚽ *O que posso fazer:*`
+          await sendButtonList(
             phone,
-            `${greeting}⚽ *O que posso fazer:*\n\n` +
-              `📊 *status* — seu progresso\n` +
-              `🔍 *faltando* — o que falta\n` +
-              `🔁 *repetidas* — pra trocar\n` +
+            `${lead}\n\n` +
+              `📸 *Foto* — eu identifico as figurinhas com IA\n` +
+              `🎤 *Áudio* — eu transcrevo e respondo\n` +
+              `✏️ *Códigos* — ex: BRA-1 ARG-3 FRA-10\n` +
               `🔔 *trocas* — solicitações pendentes\n` +
               `🏆 *ranking* — sua posição\n\n` +
-              `📸 Mande uma *foto* pra escanear!\n` +
-              `✏️ Ou *digite os códigos*: BRA-1 ARG-3 FRA-10\n\n` +
               `💡 Mande *sugestões* a qualquer momento\n` +
               `❓ FAQ: ${APP_URL}/faq\n` +
-              `📱 App: ${APP_URL}`
+              `📱 App: ${APP_URL}`,
+            MAIN_MENU_BUTTONS,
           )
           break
         }

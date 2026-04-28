@@ -28,6 +28,127 @@ export function formatPhone(raw: string): string {
   return raw.replace(/\D/g, '')
 }
 
+// ─── Interactive messages (buttons / option list) ─────────────────────────────
+//
+// WhatsApp interactive messages are documented as unstable across WhatsApp
+// updates (Z-API "Button status" page) and we confirmed empirically (2026-04-28)
+// that Z-API accepts a send-button-list request and returns a messageId, but
+// the WhatsApp client silently drops the message — so the user receives
+// nothing. Because we never see an error, our error fallback never fires.
+//
+// To avoid that silent-drop trap, the helpers below default to PLAIN-TEXT
+// numbered lists. The interactive payload path stays implemented but is
+// gated behind WHATSAPP_INTERACTIVE_ENABLED=true so we can flip it on later
+// without a code change once Z-API/WhatsApp stabilize.
+//
+// Either way, the message body always contains the same numbered options so
+// the user can reply with the number or with the keyword. The bot accepts
+// both (see /api/whatsapp/webhook).
+
+export type ButtonOption = { id: string; label: string }
+export type ListOption = { id: string; title: string; description?: string }
+
+function interactiveEnabled(): boolean {
+  return process.env.WHATSAPP_INTERACTIVE_ENABLED === 'true'
+}
+
+function inlineOptionsText(options: { id: string; label?: string; title?: string }[]): string {
+  // Render as visible "tap targets" — emoji + bold label. No numbering, since
+  // we can't reliably map "1"/"2"/"3" back to the right command without
+  // per-user state. The user reads the labels and types the keyword (or any
+  // natural variation — Gemini handles typos and slang).
+  return options
+    .map((o) => {
+      const label = o.label ?? o.title ?? o.id
+      return `▸ *${label}*`
+    })
+    .join('\n')
+}
+
+function plainTextWithOptions(message: string, options: { id: string; label?: string; title?: string }[]): string {
+  if (options.length === 0) return message
+  return `${message}\n\n👇 *Próximo passo:*\n${inlineOptionsText(options)}`
+}
+
+/**
+ * Send a message with up to 3 quick-reply options.
+ *
+ * Default path: plain numbered text (reliable on every WhatsApp client).
+ * Interactive path (env WHATSAPP_INTERACTIVE_ENABLED=true): tries the Z-API
+ * interactive payload first, falls back to plain text on any error.
+ */
+export async function sendButtonList(
+  phone: string,
+  message: string,
+  buttons: ButtonOption[],
+): Promise<boolean> {
+  if (buttons.length === 0) return sendText(phone, message)
+  const limited = buttons.slice(0, 3) // WhatsApp hard limit for buttons
+  const enrichedMessage = plainTextWithOptions(message, limited)
+
+  if (!interactiveEnabled()) {
+    return sendText(phone, enrichedMessage)
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/send-button-list`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        phone,
+        message: enrichedMessage,
+        buttonList: { buttons: limited },
+      }),
+    })
+    if (res.ok) return true
+    console.error('Z-API send-button-list error:', await res.text())
+  } catch (err) {
+    console.error('Z-API send-button-list exception:', err)
+  }
+  return sendText(phone, enrichedMessage)
+}
+
+/**
+ * Send a message with up to 10 selectable options (interactive list).
+ * Same env-gated semantics as sendButtonList.
+ */
+export async function sendOptionList(
+  phone: string,
+  message: string,
+  buttonLabel: string,
+  options: ListOption[],
+  listTitle = 'Escolha uma opção',
+): Promise<boolean> {
+  if (options.length === 0) return sendText(phone, message)
+  const limited = options.slice(0, 10)
+  const enrichedMessage = plainTextWithOptions(message, limited)
+
+  if (!interactiveEnabled()) {
+    return sendText(phone, enrichedMessage)
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/send-option-list`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        phone,
+        message: enrichedMessage,
+        optionList: {
+          title: listTitle,
+          buttonLabel,
+          options: limited,
+        },
+      }),
+    })
+    if (res.ok) return true
+    console.error('Z-API send-option-list error:', await res.text())
+  } catch (err) {
+    console.error('Z-API send-option-list exception:', err)
+  }
+  return sendText(phone, enrichedMessage)
+}
+
 // ─── Connection Health ───
 
 export type ZApiStatus = {
