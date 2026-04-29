@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { REFERRAL_CONSTANTS } from '@/lib/referrals'
 
 const tabs = [
   {
@@ -52,11 +53,28 @@ const tabs = [
       </svg>
     ),
   },
+  {
+    // Embaixadores campaign — 6th tab during the launch (2026 Q2). The label
+    // "Prêmios" sells the value (gift icon = obvious benefit) better than
+    // "Campanha" or "Embaixadores", and fits the 6-tab cramped width.
+    href: '/campanha',
+    label: 'Prêmios',
+    icon: (active: boolean) => (
+      <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+      </svg>
+    ),
+  },
 ]
 
 export default function BottomNav() {
   const pathname = usePathname()
   const [pendingCount, setPendingCount] = useState(0)
+
+  // Hide the "Prêmios" tab automatically once the Embaixadores campaign ends
+  // (no need for a deploy to take it down). After that date, only 5 tabs show.
+  const campaignActive = Date.now() < new Date(REFERRAL_CONSTANTS.CAMPAIGN_END_DATE_ISO).getTime()
+  const visibleTabs = campaignActive ? tabs : tabs.filter((t) => t.href !== '/campanha')
 
   useEffect(() => {
     fetch('/api/trade-requests-count')
@@ -80,7 +98,7 @@ export default function BottomNav() {
       <div className="absolute inset-0 bg-white/90 backdrop-blur-xl border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]" />
 
       <div className="relative flex justify-around items-center h-14 max-w-lg mx-auto px-1">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href)
           const showBadge = 'badge' in tab && tab.badge && pendingCount > 0
           return (

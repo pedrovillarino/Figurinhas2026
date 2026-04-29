@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Look up the code for the selected tier
     const { data: discount, error: lookupError } = await admin
       .from('discount_codes')
-      .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active')
+      .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active, restricted_to_user_id')
       .eq('code', code)
       .eq('tier', tier)
       .eq('active', true)
@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
     // Check expiry
     if (discount.valid_until && new Date(discount.valid_until) < new Date()) {
       return NextResponse.json({ error: 'Código expirado' }, { status: 410 })
+    }
+
+    // Non-transferable coupon (issued by Embaixadores campaign) — only the
+    // user it was issued to can redeem.
+    if (discount.restricted_to_user_id && discount.restricted_to_user_id !== user.id) {
+      return NextResponse.json({ error: 'Este código é pessoal e não pode ser transferido' }, { status: 403 })
     }
 
     // Check max uses

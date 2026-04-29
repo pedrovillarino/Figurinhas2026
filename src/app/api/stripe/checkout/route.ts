@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
       const { data: discount } = await admin
         .from('discount_codes')
-        .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active')
+        .select('id, code, tier, percent_off, valid_until, max_uses, times_used, active, restricted_to_user_id')
         .eq('code', discountCode)
         .eq('tier', targetTier)
         .eq('active', true)
@@ -115,6 +115,11 @@ export async function POST(req: NextRequest) {
 
       if (discount.max_uses !== null && discount.times_used >= discount.max_uses) {
         return NextResponse.json({ error: 'Código esgotado' }, { status: 400 })
+      }
+
+      // Non-transferable coupon (Embaixadores campaign): only the owner can use
+      if (discount.restricted_to_user_id && discount.restricted_to_user_id !== user.id) {
+        return NextResponse.json({ error: 'Este código é pessoal e não pode ser transferido' }, { status: 403 })
       }
 
       // Check if user already used this code

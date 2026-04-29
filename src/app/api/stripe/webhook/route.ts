@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { TIER_CONFIG } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -67,45 +68,101 @@ async function addTradeCredits(userId: string, credits: number) {
   return true
 }
 
-async function grantReferralUpgradeReward(userId: string) {
+async function grantReferralUpgradeReward(userId: string, amountPaid: number, tier?: string) {
+  // ── Embaixadores campaign (2026-04-29) ──
+  // When a referred friend purchases a paid tier:
+  //   - Update existing 'confirmed' reward to 'paid_upgrade'
+  //   - Bump points from 1 → 5 (REPLACES, not additive — Pedro's call)
+  //   - Notify referrer via WhatsApp
+  // We require a real payment (amount_paid > 0) so 100% off coupons don't count.
+  if (amountPaid <= 0) {
+    console.log(`Referral upgrade skipped: amount_paid=${amountPaid} (zero-cost upgrade)`)
+    return
+  }
+
   const supabase = getAdminClient()
 
-  // Check if user was referred by someone
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('referred_by')
-    .eq('id', userId)
-    .single()
-
-  if (!profile?.referred_by) return
-
-  const referrerId = profile.referred_by
-
-  // Check if upgrade reward already granted for this pair
+  // Find the existing signup reward for this user
   const { data: existing } = await supabase
     .from('referral_rewards')
-    .select('id')
-    .eq('referrer_id', referrerId)
+    .select('id, referrer_id, status')
     .eq('referred_id', userId)
-    .eq('reward_type', 'upgrade')
+    .eq('reward_type', 'signup')
     .maybeSingle()
 
-  if (existing) return // Already rewarded
+  if (!existing) {
+    // User wasn't referred (or signup reward never created) — nothing to do
+    return
+  }
 
-  // Grant +5 trade credits and +10 scan credits to referrer
-  await addTradeCredits(referrerId, 5)
-  await addScanCredits(referrerId, 10)
+  const reward = existing as { id: number; referrer_id: string; status: string }
+  if (reward.status === 'paid_upgrade') {
+    return // Already rewarded for upgrade
+  }
 
-  // Record the reward
-  await supabase.from('referral_rewards').insert({
-    referrer_id: referrerId,
-    referred_id: userId,
-    reward_type: 'upgrade',
-    trade_credits: 5,
-    scan_credits: 10,
-  })
+  // Check if the referrer is excluded from the campaign (owner/team) — they
+  // still get the row updated to paid_upgrade (audit trail) but with 0 points.
+  const { data: referrerProfile } = await supabase
+    .from('profiles')
+    .select('excluded_from_campaign')
+    .eq('id', reward.referrer_id)
+    .maybeSingle()
+  const referrerExcluded = !!(referrerProfile as { excluded_from_campaign?: boolean } | null)?.excluded_from_campaign
 
-  console.log(`Referral upgrade reward: referrer ${referrerId} got +5 trades +10 scans from ${userId}`)
+  // Update reward to paid_upgrade with 5 points (replaces the +1 from confirmation)
+  await supabase
+    .from('referral_rewards')
+    .update({
+      status: 'paid_upgrade',
+      points: referrerExcluded ? 0 : 5,
+      upgraded_at: new Date().toISOString(),
+    })
+    .eq('id', reward.id)
+
+  if (referrerExcluded) {
+    console.log(`Referrer ${reward.referrer_id} is excluded from campaign — no points awarded`)
+    return
+  }
+
+  console.log(`Referral upgrade: referrer ${reward.referrer_id} earned 5 ranking points from ${userId} (tier: ${tier})`)
+
+  // Notify referrer via WhatsApp (fire-and-forget)
+  notifyReferrerOfUpgrade(reward.referrer_id, userId, tier).catch((err) =>
+    console.error('Failed to notify referrer of upgrade:', err),
+  )
+}
+
+async function notifyReferrerOfUpgrade(referrerId: string, friendId: string, tier?: string) {
+  const supabase = getAdminClient()
+  const [{ data: referrer }, { data: friend }] = await Promise.all([
+    supabase.from('profiles').select('phone, notify_channel, display_name').eq('id', referrerId).single(),
+    supabase.from('profiles').select('display_name').eq('id', friendId).single(),
+  ])
+
+  const r = referrer as { phone: string | null; notify_channel: string | null; display_name: string | null } | null
+  const f = friend as { display_name: string | null } | null
+  if (!r) return
+
+  const friendName = f?.display_name?.split(' ')[0] || 'Seu amigo'
+  // Friendly plan label — fall back gracefully if tier is missing
+  const planLabel =
+    tier && tier in TIER_CONFIG
+      ? TIER_CONFIG[tier as keyof typeof TIER_CONFIG].label
+      : 'pagante'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
+  const message =
+    `🚀 *${friendName} se tornou ${planLabel}!*\n\n` +
+    `Ele te rendeu *5 pontos* no ranking da campanha Embaixadores.\n\n` +
+    `Veja como está: ${appUrl}/campanha`
+
+  if (r.notify_channel === 'whatsapp' && r.phone) {
+    try {
+      const { sendText } = await import('@/lib/zapi')
+      await sendText(r.phone, message)
+    } catch (err) {
+      console.error('Upgrade notification WhatsApp send failed:', err)
+    }
+  }
 }
 
 async function recordDiscountRedemption(metadata: Record<string, string>, userId: string) {
@@ -210,8 +267,10 @@ export async function POST(req: NextRequest) {
         if (session.metadata) {
           await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
         }
-        // Grant referral upgrade reward if applicable
-        await grantReferralUpgradeReward(userId)
+        // Grant referral upgrade reward if applicable. amount_total is in cents
+        // and EXCLUDES discount — so a 100% off coupon results in amount_total=0
+        // and the referrer correctly does NOT earn the +5 points.
+        await grantReferralUpgradeReward(userId, session.amount_total || 0, tier)
       }
     }
   }
@@ -234,8 +293,9 @@ export async function POST(req: NextRequest) {
       if (session.metadata) {
         await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
       }
-      // Grant referral upgrade reward if applicable
-      await grantReferralUpgradeReward(userId)
+      // Grant referral upgrade reward if applicable (async payment path —
+      // amount_total reflects net amount paid, so 100% off won't trigger reward)
+      await grantReferralUpgradeReward(userId, session.amount_total || 0, tier)
     }
   }
 

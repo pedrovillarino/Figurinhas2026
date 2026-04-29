@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { TIER_CONFIG, type Tier } from '@/lib/tiers'
+import EmbaixadoresAdminSection from './EmbaixadoresAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -546,6 +547,9 @@ export default async function AdminPage({
           sub="mensal"
         />
       </div>
+
+      {/* Embaixadores campaign — read-only summary (ranking + counters) */}
+      <EmbaixadoresAdminSection />
 
       {/* Tier breakdown */}
       <SectionTitle>Usuarios por plano</SectionTitle>
