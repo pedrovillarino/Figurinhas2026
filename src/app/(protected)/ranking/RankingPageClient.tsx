@@ -157,11 +157,29 @@ export default function RankingPageClient({
     : fullLeaderboard.slice(0, INITIAL_LEADERBOARD_COUNT)
   const hiddenCount = Math.max(fullLeaderboard.length - INITIAL_LEADERBOARD_COUNT, 0)
 
-  const myRank =
+  // Hide "Sua posição" when the rank is meaningless: total of 0 (no one in the
+  // scope) or rank > total (happens when the user has 0 stickers and gets
+  // appended after everyone with at least one sticker).
+  const rawRank =
     tab === 'national' && ranking ? { rank: ranking.national_rank, total: ranking.national_total } :
-    tab === 'neighborhood' && ranking?.city_rank ? { rank: ranking.city_rank, total: ranking.city_total ?? 0 } :
-    tab === 'friends' && ranking?.friends_rank ? { rank: ranking.friends_rank, total: ranking.friends_total ?? 0 } :
+    tab === 'neighborhood' && ranking?.city_rank != null ? { rank: ranking.city_rank, total: ranking.city_total ?? 0 } :
+    tab === 'friends' && ranking?.friends_rank != null ? { rank: ranking.friends_rank, total: ranking.friends_total ?? 0 } :
     null
+  const myRank = rawRank && rawRank.total > 0 && rawRank.rank <= rawRank.total ? rawRank : null
+
+  // Whatsapp share text for the friends-invite card.
+  const inviteUrl = referralCode
+    ? `https://www.completeai.com.br/?ref=${referralCode}`
+    : 'https://www.completeai.com.br'
+  const inviteMessage = `Bora completar o álbum da Copa 2026 juntos? 🇧🇷⚽\n\nUsei o Complete Aí pra organizar e achar trocas perto. Cria sua conta com meu link e a gente ganha créditos:\n${inviteUrl}`
+  const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(inviteMessage)}`
+
+  const [copiedInvite, setCopiedInvite] = useState(false)
+  function copyInvite() {
+    navigator.clipboard.writeText(inviteUrl).catch(() => {})
+    setCopiedInvite(true)
+    setTimeout(() => setCopiedInvite(false), 2000)
+  }
 
   const myInitial = (userDisplayName || '?')[0].toUpperCase()
   const myFirstName = userDisplayName?.split(' ')[0] || 'Você'
@@ -264,11 +282,23 @@ export default function RankingPageClient({
         {/* Leaderboard */}
         <div className="px-3 pb-3">
           {fullLeaderboard.length === 0 ? (
-            <p className="text-[11px] text-gray-400 text-center py-6">
-              {tab === 'neighborhood' ? 'Ative sua localização para ver o ranking do bairro' :
-               tab === 'friends' ? 'Adicione amigos para comparar progresso!' :
-               'Nenhum colecionador encontrado'}
-            </p>
+            <div className="text-center py-6 px-2">
+              {tab === 'neighborhood' ? (
+                <>
+                  <p className="text-2xl mb-2">📍</p>
+                  <p className="text-xs font-semibold text-navy">Você é o pioneiro do bairro!</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Sem outros colecionadores num raio de 2,5km. Convide vizinhos pra começar a competição.</p>
+                </>
+              ) : tab === 'friends' ? (
+                <>
+                  <p className="text-2xl mb-2">👥</p>
+                  <p className="text-xs font-semibold text-navy">Sem amigos no ranking ainda</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Compartilhe seu código abaixo pra começar a comparar progresso.</p>
+                </>
+              ) : (
+                <p className="text-[11px] text-gray-400">Nenhum colecionador encontrado</p>
+              )}
+            </div>
           ) : (
             <div className="space-y-1 mt-1">
               {visibleLeaderboard.map((entry) => {
@@ -342,11 +372,47 @@ export default function RankingPageClient({
           )}
         </div>
 
-        {/* Add friend (only on friends tab) */}
+        {/* Invite friends — referral card. Always shown on friends tab so users
+            can grab their own code/link without leaving the ranking page. */}
+        {tab === 'friends' && referralCode && (
+          <div className="mx-3 mb-3 mt-1 rounded-2xl p-3.5 bg-gradient-to-br from-brand-light to-brand-light/40 border border-brand/30">
+            <div className="flex items-start gap-2 mb-2.5">
+              <span className="text-xl leading-none">🎁</span>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-navy">Convide amigos pra trocar</p>
+                <p className="text-[10px] text-gray-500 leading-snug mt-0.5">
+                  Vocês ganham <span className="font-semibold text-brand-dark">+5 trocas e +10 scans</span> quando seu amigo fizer upgrade.
+                </p>
+              </div>
+            </div>
+            <div className="bg-white border border-brand/20 rounded-xl px-3 py-2 mb-2 flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-[9px] text-gray-400 uppercase tracking-wider">Seu código</p>
+                <p className="text-sm font-mono font-bold text-navy">{referralCode}</p>
+              </div>
+              <button
+                onClick={copyInvite}
+                className="shrink-0 text-[10px] font-semibold text-brand-dark bg-brand/10 hover:bg-brand/20 transition rounded-lg px-2.5 py-1.5"
+              >
+                {copiedInvite ? '✓ Copiado' : 'Copiar link'}
+              </button>
+            </div>
+            <a
+              href={whatsappShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center bg-[#25D366] text-white rounded-xl py-2.5 text-xs font-bold hover:opacity-90 transition shadow-sm shadow-[#25D366]/30"
+            >
+              📱 Compartilhar no WhatsApp
+            </a>
+          </div>
+        )}
+
+        {/* Add friend by code (only on friends tab) */}
         {tab === 'friends' && (
           <div className="px-3 pb-3 border-t border-gray-100 pt-3">
             <p className="text-[10px] text-gray-400 mb-2">
-              O código do amigo está no <span className="font-semibold text-gray-500">Perfil</span> dele, na seção "Indique amigos"
+              Já tem o código de um amigo? Cola aqui:
             </p>
             <div className="flex gap-2">
               <input

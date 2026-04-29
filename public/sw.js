@@ -1,4 +1,4 @@
-const CACHE_NAME = 'figurinhas-v10'
+const CACHE_NAME = 'figurinhas-v11'
 const SCAN_QUEUE_STORE = 'scan-offline-queue'
 const STATIC_ASSETS = [
   '/',
@@ -40,7 +40,9 @@ self.addEventListener('fetch', (event) => {
   // Next.js data/RSC requests: network first, no cache
   if (url.pathname.startsWith('/_next/data/') || url.searchParams.has('_rsc')) return
 
-  // Static assets (_next/static): cache first
+  // Static assets (_next/static): cache first. These bundles have content-hashed
+  // filenames so they are safe to cache forever; clients always fetch the new
+  // hash when the deploy changes.
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.match(request).then((cached) =>
@@ -54,16 +56,13 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // HTML pages: network first, fallback to cache
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        const clone = response.clone()
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-        return response
-      })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
-  )
+  // HTML pages: network ONLY (no caching). HTML embeds the RSC payload + JS
+  // bundle URLs for the current deploy. If we serve a cached HTML against a new
+  // JS bundle (or vice-versa) after a deploy, React hydration fails silently
+  // and onClick handlers never attach — buttons render but do nothing. Letting
+  // pages always come from the network avoids that mismatch entirely.
+  // (Trade-off: no offline fallback for pages, but the offline scan queue and
+  //  push notifications still work because they use their own handlers below.)
 })
 
 // ── Offline Scan Queue (IndexedDB) ──
