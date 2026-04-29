@@ -118,7 +118,7 @@ export default function LaunchPromoModal() {
           <PromoLine icon="🎁" text="A cada amigo cadastrado: +1 scan grátis" />
           <PromoLine icon="🎫" text="A cada 5 amigos: cupom 50% off (48h)" />
           <PromoLine icon="💎" text="Amigo que assina = 5 pontos pra você" />
-          <PromoLine icon="🥇" text="Top 3 da semana ganha pacotes em casa" />
+          <PromoLine icon="🥇" text="Top 3 da campanha ganha pacotes em casa" />
 
           <div className="rounded-2xl border-2 border-[#00C896] bg-[#E6FAF4] p-3 text-center">
             <p className="text-xs font-bold text-[#0A1628]">

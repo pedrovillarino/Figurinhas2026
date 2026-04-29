@@ -19,11 +19,16 @@ const FRIENDS_FOR_COUPON = 5
 const POINTS_CONFIRMED = 1
 const POINTS_PAID_UPGRADE = 5
 
-// Campaign end: 2026-05-12 23:59:59 in America/Sao_Paulo (UTC-3) =
-// 2026-05-13 02:59:59 UTC. After this moment:
+// Single-cycle campaign: 2026-04-29 00:00 BRT → 2026-05-12 23:59:59 BRT
+// (= 2026-04-29 03:00 UTC → 2026-05-13 02:59:59 UTC).
+//
+// The ranking is CUMULATIVE across the whole period — there is no weekly
+// reset. Top 3 is decided at the campaign end. After the end:
 //   - The "/campanha" page still loads but switches to a "campaign ended" view
 //   - The launch-promo modal stops appearing
 //   - The "Prêmios" tab in BottomNav auto-hides
+//   - Cron jobs no-op
+const CAMPAIGN_START_DATE_ISO = '2026-04-29T03:00:00.000Z'
 const CAMPAIGN_END_DATE_ISO = '2026-05-13T02:59:59.000Z'
 
 export const REFERRAL_CONSTANTS = {
@@ -32,11 +37,14 @@ export const REFERRAL_CONSTANTS = {
   FRIENDS_FOR_COUPON,
   POINTS_CONFIRMED,
   POINTS_PAID_UPGRADE,
+  CAMPAIGN_START_DATE_ISO,
   CAMPAIGN_END_DATE_ISO,
 } as const
 
 export function isCampaignActive(now: Date = new Date()): boolean {
-  return now.getTime() < new Date(CAMPAIGN_END_DATE_ISO).getTime()
+  const t = now.getTime()
+  return t >= new Date(CAMPAIGN_START_DATE_ISO).getTime()
+    && t < new Date(CAMPAIGN_END_DATE_ISO).getTime()
 }
 
 function getAdmin(): SupabaseClient {

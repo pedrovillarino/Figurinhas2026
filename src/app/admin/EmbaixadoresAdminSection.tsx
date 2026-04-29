@@ -103,15 +103,15 @@ export default async function EmbaixadoresAdminSection() {
         <AdminStat label="Cupons já redimidos" value={redeemedCoupons} />
       </div>
 
-      {/* Weekly ranking */}
+      {/* Cumulative campaign ranking */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <p className="text-sm font-semibold text-gray-700">Ranking da semana (top 30)</p>
-          <p className="text-[10px] text-gray-500">Segunda 00h → domingo 23h59 (BRT)</p>
+          <p className="text-sm font-semibold text-gray-700">Ranking da campanha (top 30)</p>
+          <p className="text-[10px] text-gray-500">Acumulado desde 29/04 — fecha em 12/05 às 23h59 (BRT)</p>
         </div>
         {ranking.length === 0 ? (
           <p className="text-sm text-gray-500 px-4 py-8 text-center">
-            Nenhuma indicação confirmada esta semana ainda.
+            Nenhuma indicação confirmada na campanha ainda.
           </p>
         ) : (
           <div className="divide-y divide-gray-100">

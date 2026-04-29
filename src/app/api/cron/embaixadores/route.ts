@@ -11,10 +11,11 @@ export const maxDuration = 60
 //
 // Two responsibilities, one endpoint to stay within Vercel cron limits:
 //
-//   1) WEEKLY DIGEST (Wed + Sun at 11h BRT)
-//      Sends each active ambassador a personalized summary:
-//      "This week you signed up X friends, Y paid, you have Z points,
+//   1) PROGRESS DIGEST (Wed + Sun at 11h BRT)
+//      Sends each active ambassador their CUMULATIVE campaign progress:
+//      "You've signed up X friends, Y paid, you have Z points,
 //       you're at position #N. Top 3 wins ..."
+//      Note: ranking is cumulative for the whole campaign, NOT weekly.
 //
 //   2) COUPON EXPIRY REMINDER (every day at 11h BRT)
 //      Finds active coupons that expire in 11-13h window, sends
@@ -50,15 +51,15 @@ export async function GET(req: NextRequest) {
     coupons: { sent: 0, skipped: 0, errors: 0 },
   }
 
-  // ── Weekly digest (Wed=3 / Sun=0 in São Paulo TZ) ──
-  // 7-day campaign cycle, midweek + weekend cadence to catch users at
-  // different moments of activity.
+  // ── Progress digest (Wed=3 / Sun=0 in São Paulo TZ) ──
+  // Single-cycle campaign — midweek + weekend cadence to remind ambassadors
+  // of their cumulative progress and how to climb the ranking.
   const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
   const dayOfWeek = nowSP.getDay() // 0=Sun, 1=Mon, ..., 3=Wed
   const isDigestDay = dayOfWeek === 0 || dayOfWeek === 3
 
   if (isDigestDay) {
-    const digestResult = await sendWeeklyDigest()
+    const digestResult = await sendProgressDigest()
     result.digest = digestResult
   }
 
@@ -69,8 +70,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, ...result })
 }
 
-// ─── Weekly digest sender ───────────────────────────────────────────────────
-async function sendWeeklyDigest() {
+// ─── Cumulative-progress digest sender ──────────────────────────────────────
+async function sendProgressDigest() {
   const out = { sent: 0, skipped: 0, errors: 0 }
   const admin = getAdmin()
 
@@ -147,7 +148,7 @@ async function sendWeeklyDigest() {
       try {
         sent = await sendEmail(
           p.email,
-          'Sua semana na campanha Embaixadores',
+          'Seu progresso na campanha Embaixadores',
           buildDigestEmailHtml(firstName, r),
         )
       } catch {
@@ -177,15 +178,15 @@ function buildDigestMessage(firstName: string, row: {
   rank: number; confirmed_count: number; paid_upgrade_count: number; total_points: number
 }): string {
   return (
-    `📊 *${firstName}, seu resumo da semana*\n\n` +
-    `👥 Cadastros: *${row.confirmed_count}*\n` +
-    `💎 Pagantes: *${row.paid_upgrade_count}* _(valem 5 pts cada)_\n` +
+    `📊 *${firstName}, seu progresso na campanha*\n\n` +
+    `👥 Cadastros confirmados: *${row.confirmed_count}*\n` +
+    `💎 Viraram pagantes: *${row.paid_upgrade_count}* _(valem 5 pts cada)_\n` +
     `⭐ Pontos totais: *${row.total_points}*\n` +
     `🏆 Posição no ranking: *#${row.rank}*\n\n` +
     `${
       row.rank <= 3
         ? `🎉 Você está no Top 3! Continue assim pra garantir o prêmio.`
-        : `Top 3 ganha pacotes em casa. Faltam só ${Math.max(1, row.rank - 3)} pontos pra subir!`
+        : `Top 3 ganha pacotes em casa. Faltam só ${Math.max(1, row.rank - 3)} ponto(s) pra subir!`
     }\n\n` +
     `Veja sua área: ${APP_URL}/campanha`
   )
@@ -196,10 +197,10 @@ function buildDigestEmailHtml(firstName: string, row: {
 }): string {
   return `
     <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h1 style="color:#0A1628;font-size:20px;margin:0 0 16px">📊 Seu resumo da semana, ${firstName}</h1>
+      <h1 style="color:#0A1628;font-size:20px;margin:0 0 16px">📊 Seu progresso na campanha, ${firstName}</h1>
       <div style="background:#f8fafc;border-radius:12px;padding:20px">
-        <p style="margin:0 0 8px;color:#374151">👥 Cadastros: <strong>${row.confirmed_count}</strong></p>
-        <p style="margin:0 0 8px;color:#374151">💎 Pagantes: <strong>${row.paid_upgrade_count}</strong> <small style="color:#6B7280">(5 pts cada)</small></p>
+        <p style="margin:0 0 8px;color:#374151">👥 Cadastros confirmados: <strong>${row.confirmed_count}</strong></p>
+        <p style="margin:0 0 8px;color:#374151">💎 Viraram pagantes: <strong>${row.paid_upgrade_count}</strong> <small style="color:#6B7280">(5 pts cada)</small></p>
         <p style="margin:0 0 8px;color:#374151">⭐ Pontos totais: <strong>${row.total_points}</strong></p>
         <p style="margin:0 0 8px;color:#374151">🏆 Posição: <strong>#${row.rank}</strong></p>
       </div>

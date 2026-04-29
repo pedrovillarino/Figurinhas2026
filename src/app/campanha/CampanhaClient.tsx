@@ -119,7 +119,7 @@ export default function CampanhaClient({
         </h1>
         <p className="text-base text-gray-600 leading-relaxed">
           {campaignActive ? (
-            <>Indique amigos, ganhe figurinhas e cupons. <strong>Top 3 da semana</strong> recebe pacotes Panini e porta-figurinha em casa.</>
+            <>Indique amigos, ganhe figurinhas e cupons. <strong>Top 3 da campanha</strong> recebe pacotes Panini e porta-figurinha em casa.</>
           ) : (
             <>A campanha de lançamento foi encerrada em <strong>{campaignEndDateLabel} às {campaignEndTimeLabel}</strong>. Obrigado por participar!</>
           )}
@@ -286,17 +286,17 @@ export default function CampanhaClient({
             <span className="text-[11px] text-gray-500">Cupons não acumulam — usar/expirar libera o próximo.</span>
           </RuleStep>
 
-          <RuleStep number={5} title="Top 3 da semana ganha kit físico">
+          <RuleStep number={5} title="Top 3 da campanha ganha kit físico">
             <ul className="text-sm text-gray-700 space-y-1 mt-1">
               <li>🥇 <strong>1º:</strong> Porta-figurinha + 10 pacotes + 5 trocas extras (70 figs)</li>
               <li>🥈 <strong>2º:</strong> Porta-figurinha + 8 pacotes + 5 trocas extras (56 figs)</li>
               <li>🥉 <strong>3º:</strong> 5 pacotes + 5 trocas extras (35 figs)</li>
             </ul>
-            <p className="text-[11px] text-gray-500 mt-2">Semana = segunda 00h até domingo 23h59 (horário de Brasília).</p>
+            <p className="text-[11px] text-gray-500 mt-2">Pontuação acumula durante todo o período da campanha — ranking final fecha em {campaignEndDateLabel} às {campaignEndTimeLabel}.</p>
           </RuleStep>
 
           <RuleStep number={6} title={`Campanha vai até ${campaignEndDateLabel} às ${campaignEndTimeLabel}`}>
-            Após esse prazo: <strong>cupons param de ser concedidos</strong>, prêmios físicos do top 3 da última semana são enviados, e a página de campanha sai do app. Cupons já emitidos seguem suas próprias datas de validade (48h cada).
+            Após esse prazo: <strong>cupons param de ser concedidos</strong>, prêmios físicos do top 3 são enviados pelos Correios, e a página de campanha sai do app. Cupons já emitidos seguem suas próprias datas de validade (48h cada).
           </RuleStep>
         </ol>
 
@@ -311,7 +311,7 @@ export default function CampanhaClient({
 
       {/* ── Prêmios visualmente ── */}
       <section className="px-4 max-w-2xl mx-auto mb-10">
-        <h2 className="text-xl font-black text-navy mb-4">🏆 Prêmios da semana</h2>
+        <h2 className="text-xl font-black text-navy mb-4">🏆 Prêmios do Top 3</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <PrizeCard
             place="🥇"
