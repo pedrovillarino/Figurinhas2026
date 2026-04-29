@@ -11,6 +11,14 @@ import { REFERRAL_CONSTANTS } from '@/lib/referrals'
 // of any tier — pagantes also win pontos no ranking, então faz sentido pra
 // todos. Auto-stops appearing after the campaign end date.
 const PROMO_END_DATE = new Date(REFERRAL_CONSTANTS.CAMPAIGN_END_DATE_ISO)
+// Friendly "DD/MM" + "HHhMM" labels in Brazilian locale, derived from the
+// canonical end-date constant so we never drift out of sync again.
+const CAMPAIGN_END_DAY = PROMO_END_DATE.toLocaleDateString('pt-BR', {
+  timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit',
+})
+const CAMPAIGN_END_TIME = PROMO_END_DATE.toLocaleTimeString('pt-BR', {
+  timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit',
+}).replace(':', 'h')
 const STORAGE_KEY = 'embaixadores-promo-last-shown'
 // Show once every 3 days (campaign is short — don't burn out users)
 const REPEAT_MS = 3 * 24 * 60 * 60 * 1000
@@ -122,7 +130,7 @@ export default function LaunchPromoModal() {
 
           <div className="rounded-2xl border-2 border-[#00C896] bg-[#E6FAF4] p-3 text-center">
             <p className="text-xs font-bold text-[#0A1628]">
-              Campanha vai até <span className="text-[#00A67D]">08/05 às 23h59</span>
+              Campanha vai até <span className="text-[#00A67D]">{CAMPAIGN_END_DAY} às {CAMPAIGN_END_TIME}</span>
             </p>
             <p className="text-[10px] text-gray-600 mt-0.5">Bora começar agora?</p>
           </div>
