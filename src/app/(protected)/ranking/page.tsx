@@ -49,16 +49,19 @@ export default async function RankingPage() {
 
   // Fetch leaderboards in parallel
   let nationalLeaderboard: any[] = []
+  let cityLeaderboard: any[] = []
   let neighborhoodLeaderboard: any[] = []
   let friendsLeaderboard: any[] = []
 
   try {
-    const [natRes, neighRes, friendsRes] = await Promise.all([
+    const [natRes, cityRes, neighRes, friendsRes] = await Promise.all([
       admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'national', p_limit: 30 }),
+      admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'city', p_limit: 30 }),
       admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'neighborhood', p_limit: 30 }),
       admin.rpc('get_ranking_leaderboard', { p_user_id: user.id, p_scope: 'friends', p_limit: 30 }),
     ])
     nationalLeaderboard = natRes.data || []
+    cityLeaderboard = cityRes.data || []
     neighborhoodLeaderboard = neighRes.data || []
     friendsLeaderboard = friendsRes.data || []
   } catch { /* leaderboards unavailable */ }
@@ -96,6 +99,7 @@ export default async function RankingPage() {
     <RankingPageClient
       ranking={ranking}
       nationalLeaderboard={nationalLeaderboard}
+      cityLeaderboard={cityLeaderboard}
       neighborhoodLeaderboard={neighborhoodLeaderboard}
       friendsLeaderboard={friendsLeaderboard}
       nationalStats={nationalStats}

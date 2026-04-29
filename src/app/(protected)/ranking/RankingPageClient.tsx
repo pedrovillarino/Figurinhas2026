@@ -12,8 +12,10 @@ type RankingData = {
   national_rank: number
   national_total: number
   city: string | null
-  city_rank: number | null
+  city_rank: number | null         // 2.5km radius (neighborhood tab)
   city_total: number | null
+  city_match_rank?: number | null  // same-city string match (city tab)
+  city_match_total?: number | null
   friends_rank?: number | null
   friends_total?: number | null
   [key: string]: unknown
@@ -30,7 +32,7 @@ type LeaderboardEntry = {
   rank: number
 }
 
-type RankingTab = 'national' | 'neighborhood' | 'friends'
+type RankingTab = 'national' | 'city' | 'neighborhood' | 'friends'
 type Visibility = 'public' | 'friends' | 'private'
 
 const INITIAL_LEADERBOARD_COUNT = 15
@@ -39,6 +41,7 @@ const STATS_USER_THRESHOLD = 100
 export default function RankingPageClient({
   ranking,
   nationalLeaderboard,
+  cityLeaderboard,
   neighborhoodLeaderboard,
   friendsLeaderboard,
   nationalStats,
@@ -56,6 +59,7 @@ export default function RankingPageClient({
 }: {
   ranking: RankingData
   nationalLeaderboard: LeaderboardEntry[]
+  cityLeaderboard: LeaderboardEntry[]
   neighborhoodLeaderboard: LeaderboardEntry[]
   friendsLeaderboard: LeaderboardEntry[]
   nationalStats: any[]
@@ -81,6 +85,7 @@ export default function RankingPageClient({
   // Expand/collapse leaderboard (per-tab so switching tabs resets)
   const [expanded, setExpanded] = useState<Record<RankingTab, boolean>>({
     national: false,
+    city: false,
     neighborhood: false,
     friends: false,
   })
@@ -142,12 +147,14 @@ export default function RankingPageClient({
 
   const tabs: { key: RankingTab; label: string; icon: string }[] = [
     { key: 'national', label: 'Geral', icon: '🌍' },
+    { key: 'city', label: 'Cidade', icon: '🏙️' },
     { key: 'neighborhood', label: 'Bairro', icon: '📍' },
     { key: 'friends', label: 'Amigos', icon: '👥' },
   ]
 
   const fullLeaderboard =
     tab === 'national' ? nationalLeaderboard :
+    tab === 'city' ? cityLeaderboard :
     tab === 'neighborhood' ? neighborhoodLeaderboard :
     friends
 
@@ -162,6 +169,7 @@ export default function RankingPageClient({
   // appended after everyone with at least one sticker).
   const rawRank =
     tab === 'national' && ranking ? { rank: ranking.national_rank, total: ranking.national_total } :
+    tab === 'city' && ranking?.city_match_rank != null ? { rank: ranking.city_match_rank, total: ranking.city_match_total ?? 0 } :
     tab === 'neighborhood' && ranking?.city_rank != null ? { rank: ranking.city_rank, total: ranking.city_total ?? 0 } :
     tab === 'friends' && ranking?.friends_rank != null ? { rank: ranking.friends_rank, total: ranking.friends_total ?? 0 } :
     null
@@ -281,25 +289,77 @@ export default function RankingPageClient({
 
         {/* Leaderboard */}
         <div className="px-3 pb-3">
-          {fullLeaderboard.length === 0 ? (
-            <div className="text-center py-6 px-2">
-              {tab === 'neighborhood' ? (
-                <>
+          {(() => {
+            // Provocação contextual: quando o user não preencheu o pré-requisito
+            // pra entrar na tab, mostre um CTA que leva ao /profile (onde ele
+            // ativa GPS ou digita cidade/bairro). Mais útil que "vazio".
+            const userHasGeo = ranking?.city_rank != null
+            const userHasCity = ranking?.city_match_total != null
+            const showGeoPrompt = tab === 'neighborhood' && !userHasGeo
+            const showCityPrompt = tab === 'city' && !userHasCity
+
+            if (showGeoPrompt) {
+              return (
+                <div className="mx-2 my-3 p-4 rounded-2xl bg-gradient-to-br from-brand-light to-brand-light/40 border border-brand/30 text-center">
                   <p className="text-2xl mb-2">📍</p>
-                  <p className="text-xs font-semibold text-navy">Você é o pioneiro do bairro!</p>
-                  <p className="text-[11px] text-gray-400 mt-1">Sem outros colecionadores num raio de 2,5km. Convide vizinhos pra começar a competição.</p>
-                </>
-              ) : tab === 'friends' ? (
-                <>
-                  <p className="text-2xl mb-2">👥</p>
-                  <p className="text-xs font-semibold text-navy">Sem amigos no ranking ainda</p>
-                  <p className="text-[11px] text-gray-400 mt-1">Compartilhe seu código abaixo pra começar a comparar progresso.</p>
-                </>
-              ) : (
-                <p className="text-[11px] text-gray-400">Nenhum colecionador encontrado</p>
-              )}
-            </div>
-          ) : (
+                  <p className="text-sm font-bold text-navy mb-1">Você ainda não aparece no ranking do bairro</p>
+                  <p className="text-[11px] text-gray-600 mb-3 leading-snug">
+                    Pra competir com vizinhos num raio de 2,5km, ative o GPS ou preencha cidade + bairro precisos no seu perfil.
+                  </p>
+                  <a
+                    href="/profile"
+                    className="inline-block bg-brand text-white rounded-xl px-4 py-2 text-xs font-bold hover:bg-brand-dark transition"
+                  >
+                    Ajustar localização no perfil
+                  </a>
+                </div>
+              )
+            }
+            if (showCityPrompt) {
+              return (
+                <div className="mx-2 my-3 p-4 rounded-2xl bg-gradient-to-br from-brand-light to-brand-light/40 border border-brand/30 text-center">
+                  <p className="text-2xl mb-2">🏙️</p>
+                  <p className="text-sm font-bold text-navy mb-1">Você ainda não aparece no ranking da cidade</p>
+                  <p className="text-[11px] text-gray-600 mb-3 leading-snug">
+                    Pra entrar nesse ranking, defina sua cidade no perfil. Leva 10 segundos.
+                  </p>
+                  <a
+                    href="/profile"
+                    className="inline-block bg-brand text-white rounded-xl px-4 py-2 text-xs font-bold hover:bg-brand-dark transition"
+                  >
+                    Definir cidade no perfil
+                  </a>
+                </div>
+              )
+            }
+            if (fullLeaderboard.length === 0) {
+              return (
+                <div className="text-center py-6 px-2">
+                  {tab === 'neighborhood' ? (
+                    <>
+                      <p className="text-2xl mb-2">📍</p>
+                      <p className="text-xs font-semibold text-navy">Você é o pioneiro do bairro!</p>
+                      <p className="text-[11px] text-gray-400 mt-1">Sem outros colecionadores num raio de 2,5km. Convide vizinhos pra começar a competição.</p>
+                    </>
+                  ) : tab === 'city' ? (
+                    <>
+                      <p className="text-2xl mb-2">🏙️</p>
+                      <p className="text-xs font-semibold text-navy">Você é o pioneiro da cidade!</p>
+                      <p className="text-[11px] text-gray-400 mt-1">Ainda não tem outros colecionadores na sua cidade. Convide amigos!</p>
+                    </>
+                  ) : tab === 'friends' ? (
+                    <>
+                      <p className="text-2xl mb-2">👥</p>
+                      <p className="text-xs font-semibold text-navy">Sem amigos no ranking ainda</p>
+                      <p className="text-[11px] text-gray-400 mt-1">Compartilhe seu código abaixo pra começar a comparar progresso.</p>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-gray-400">Nenhum colecionador encontrado</p>
+                  )}
+                </div>
+              )
+            }
+            return (
             <div className="space-y-1 mt-1">
               {visibleLeaderboard.map((entry) => {
                 const isMe = entry.user_id === userId
@@ -369,7 +429,8 @@ export default function RankingPageClient({
                 </button>
               )}
             </div>
-          )}
+            )
+          })()}
         </div>
 
         {/* Invite friends — referral card. Always shown on friends tab so users
