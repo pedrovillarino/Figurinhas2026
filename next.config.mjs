@@ -53,6 +53,19 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // The page used to live at /regulamentosorteio. Renamed to
+      // /regulamentoconcurso when we relabeled the mechanic from "sorteio"
+      // to "concurso de engajamento". Permanent redirect (308) so any link
+      // shared externally (Instagram bio, prints, etc) still lands correctly.
+      {
+        source: '/regulamentosorteio',
+        destination: '/regulamentoconcurso',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
