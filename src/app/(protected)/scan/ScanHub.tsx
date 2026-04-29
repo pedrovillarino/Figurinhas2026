@@ -23,6 +23,9 @@ type ScanResponse = {
   unmatched: string[]
   warnings: string[]
   confidence: string
+  /** PK of the scan_results row created by /api/scan, used by handleSave to
+   *  PATCH back the user's confirmation count for accuracy tracking. */
+  scanResultId?: number | null
   scanUsage?: { remaining: number; limit: number }
   needsUpgrade?: boolean
   needsPack?: boolean
@@ -354,6 +357,22 @@ export default function ScanHub({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, sticker_ids: savedIds }),
+        }).catch(() => {})
+      }
+
+      // Track Gemini accuracy: tell the server which stickers the user kept vs
+      // unchecked. Best-effort, never blocks the success UI.
+      if (scanResult.scanResultId) {
+        const rejectedIds = scanResult.matched
+          .filter((s) => !checked[s.sticker_id])
+          .map((s) => s.sticker_id)
+        fetch(`/api/scan/${scanResult.scanResultId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            confirmed_count: toSave.length,
+            rejected_sticker_ids: rejectedIds,
+          }),
         }).catch(() => {})
       }
     } catch (err) {

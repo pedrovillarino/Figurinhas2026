@@ -110,6 +110,81 @@ async function getEvolutionMetrics() {
   }
 }
 
+async function getScanAccuracy() {
+  const sb = supabaseAdmin()
+  const sevenDaysAgo = new Date(Date.now() - 7 * DAY_MS).toISOString()
+
+  const [scansRes, rejectedRes] = await Promise.all([
+    sb.from('scan_results')
+      .select('gemini_detected, matched_count, user_confirmed_count, model_used, image_quality')
+      .gte('created_at', sevenDaysAgo),
+    // Pull every rejected_sticker_ids array from the last 7 days so we can
+    // unnest + count client-side. Cap at 1000 rows for safety on large sets.
+    sb.from('scan_results')
+      .select('rejected_sticker_ids')
+      .gte('created_at', sevenDaysAgo)
+      .not('rejected_sticker_ids', 'is', null)
+      .limit(1000),
+  ])
+
+  // Aggregate rejections per sticker and join player names from stickers table.
+  const rejectionCounts = new Map<number, number>()
+  for (const row of (rejectedRes.data ?? []) as Array<{ rejected_sticker_ids: number[] | null }>) {
+    for (const sid of row.rejected_sticker_ids ?? []) {
+      rejectionCounts.set(sid, (rejectionCounts.get(sid) ?? 0) + 1)
+    }
+  }
+  const topIds = Array.from(rejectionCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+  let topRejected: Array<{ sticker_id: number; rejections: number; player_name: string | null; number: string }> = []
+  if (topIds.length > 0) {
+    const { data: stickerInfo } = await sb
+      .from('stickers')
+      .select('id, number, player_name')
+      .in('id', topIds.map(([id]) => id))
+    const byId = new Map((stickerInfo ?? []).map((s) => [s.id, s]))
+    topRejected = topIds.map(([id, count]) => ({
+      sticker_id: id,
+      rejections: count,
+      player_name: byId.get(id)?.player_name ?? null,
+      number: byId.get(id)?.number ?? `#${id}`,
+    }))
+  }
+
+  const rows = scansRes.data ?? []
+  const total = rows.length
+  const detected = rows.reduce((sum, r) => sum + (r.gemini_detected || 0), 0)
+  const matched = rows.reduce((sum, r) => sum + (r.matched_count || 0), 0)
+  const confirmed = rows
+    .filter((r) => r.user_confirmed_count !== null && r.user_confirmed_count !== undefined)
+    .reduce((sum, r) => sum + (r.user_confirmed_count || 0), 0)
+  const confirmable = rows
+    .filter((r) => r.user_confirmed_count !== null && r.user_confirmed_count !== undefined)
+    .reduce((sum, r) => sum + (r.matched_count || 0), 0)
+
+  const matchRate = detected > 0 ? Math.round((matched / detected) * 100) : 0
+  const confirmRate = confirmable > 0 ? Math.round((confirmed / confirmable) * 100) : 0
+
+  // Quality breakdown
+  const byQuality: Record<string, number> = { high: 0, medium: 0, low: 0 }
+  rows.forEach((r) => {
+    const q = (r.image_quality || 'high') as string
+    byQuality[q] = (byQuality[q] || 0) + 1
+  })
+
+  return {
+    totalScans: total,
+    detected,
+    matched,
+    confirmed,
+    matchRate,
+    confirmRate,
+    byQuality,
+    topRejected,
+  }
+}
+
 async function getGeoDistribution() {
   const sb = supabaseAdmin()
   const { data, error } = await sb
@@ -239,6 +314,23 @@ async function getMetrics() {
     ? scans7dRes.data.reduce((sum: number, r: { scan_count: number }) => sum + r.scan_count, 0)
     : 0
 
+  // Enrich top scanners with tier + display_name from profiles in one extra query.
+  const topScannerRows = (topScannersRes.data ?? []) as Array<{ user_id: string; scan_count: number }>
+  let topScanners: Array<{ user_id: string; scan_count: number; tier: string; display_name: string | null }> = []
+  if (topScannerRows.length > 0) {
+    const { data: scannerProfiles } = await sb
+      .from('profiles')
+      .select('id, tier, display_name')
+      .in('id', topScannerRows.map((r) => r.user_id))
+    const byId = new Map((scannerProfiles ?? []).map((p) => [p.id, p]))
+    topScanners = topScannerRows.map((r) => ({
+      user_id: r.user_id,
+      scan_count: r.scan_count,
+      tier: (byId.get(r.user_id)?.tier as string) || 'free',
+      display_name: byId.get(r.user_id)?.display_name ?? null,
+    }))
+  }
+
   return {
     totalUsers: totalUsersRes.count ?? 0,
     tierCounts,
@@ -251,7 +343,7 @@ async function getMetrics() {
     pendingTrades: pendingTradesRes.count ?? 0,
     rejectedTrades: rejectedTradesRes.count ?? 0,
     expiredTrades: expiredTradesRes.count ?? 0,
-    topScanners: topScannersRes.data ?? [],
+    topScanners,
   }
 }
 
@@ -410,12 +502,13 @@ export default async function AdminPage({
     return <LoginForm />
   }
 
-  const [m, health, waHealth, evo, geo] = await Promise.all([
+  const [m, health, waHealth, evo, geo, scanAcc] = await Promise.all([
     getMetrics(),
     getHealthCheck(),
     getWhatsAppHealth(),
     getEvolutionMetrics(),
     getGeoDistribution(),
+    getScanAccuracy(),
   ])
 
   const refreshUrl = `/admin?secret=${ADMIN_SECRET}`
@@ -525,21 +618,100 @@ export default async function AdminPage({
               <thead>
                 <tr className="bg-gray-50 text-left">
                   <th className="px-4 py-3 font-medium text-gray-500">#</th>
-                  <th className="px-4 py-3 font-medium text-gray-500">User ID</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">Usuario</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">Plano</th>
                   <th className="px-4 py-3 font-medium text-gray-500 text-right">Scans</th>
                 </tr>
               </thead>
               <tbody>
-                {m.topScanners.map((s: { user_id: string; scan_count: number }, i: number) => (
-                  <tr key={s.user_id} className="border-t border-gray-100">
-                    <td className="px-4 py-2.5 text-gray-400">{i + 1}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-gray-600">{s.user_id.slice(0, 8)}...</td>
-                    <td className="px-4 py-2.5 text-right font-semibold">{s.scan_count}</td>
-                  </tr>
-                ))}
+                {m.topScanners.map((s, i) => {
+                  const tierColors: Record<string, string> = {
+                    free: 'bg-gray-100 text-gray-600',
+                    estreante: 'bg-green-50 text-green-700',
+                    colecionador: 'bg-amber-50 text-amber-700',
+                    copa_completa: 'bg-indigo-50 text-indigo-700',
+                  }
+                  const tierLabels: Record<string, string> = {
+                    free: 'Free',
+                    estreante: 'Estreante',
+                    colecionador: 'Colecionador',
+                    copa_completa: 'Copa Completa',
+                  }
+                  return (
+                    <tr key={s.user_id} className="border-t border-gray-100">
+                      <td className="px-4 py-2.5 text-gray-400">{i + 1}</td>
+                      <td className="px-4 py-2.5 text-xs">
+                        <div className="font-medium text-gray-700">{s.display_name || '—'}</div>
+                        <div className="font-mono text-[10px] text-gray-400">{s.user_id.slice(0, 8)}...</div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${tierColors[s.tier] || tierColors.free}`}>
+                          {tierLabels[s.tier] || s.tier}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold">{s.scan_count}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
+        </>
+      )}
+
+      {/* Scan accuracy (last 7 days) */}
+      <SectionTitle>Acuracia do scan (ultimos 7 dias)</SectionTitle>
+      {scanAcc.totalScans === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm text-gray-400">
+          Sem scans nos ultimos 7 dias.
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <StatCard label="Scans 7d" value={scanAcc.totalScans} />
+            <StatCard
+              label="Match rate"
+              value={`${scanAcc.matchRate}%`}
+              sub={`${scanAcc.matched}/${scanAcc.detected} detectadas`}
+            />
+            <StatCard
+              label="Confirmadas"
+              value={`${scanAcc.confirmRate}%`}
+              sub={`apos clique em salvar`}
+            />
+            <StatCard
+              label="Qualidade"
+              value={`${scanAcc.byQuality.high}/${scanAcc.byQuality.medium}/${scanAcc.byQuality.low}`}
+              sub="alta / media / baixa"
+            />
+          </div>
+
+          {scanAcc.topRejected.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-4">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-700">Figurinhas mais desmarcadas (Gemini errou)</p>
+                <p className="text-[11px] text-gray-400">Candidatas a melhorar prompt ou imagem de treino</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left">
+                    <th className="px-4 py-2.5 font-medium text-gray-500">Numero</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-500">Jogador</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-500 text-right">Desmarcadas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scanAcc.topRejected.map((r) => (
+                    <tr key={r.sticker_id} className="border-t border-gray-100">
+                      <td className="px-4 py-2.5 font-mono text-xs text-gray-600">{r.number}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{r.player_name || '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold">{r.rejections}x</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
 

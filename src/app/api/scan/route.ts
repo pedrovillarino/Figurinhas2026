@@ -139,6 +139,7 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
 
 export async function POST(request: NextRequest) {
   backgroundHealthPing() // fire-and-forget system monitor
+  const requestStart = Date.now()
   const perf = createPerfLogger('scan')
 
   // Rate limit
@@ -554,12 +555,38 @@ export async function POST(request: NextRequest) {
     }, {} as Record<string, number>)
     console.log(`[scan] Confidence: ${JSON.stringify(confDist)}, imageQuality: ${serverQuality} (${imageSizeKB.toFixed(0)}KB)`)
 
+    // Persist a scan_results row so we can compute Gemini accuracy later.
+    // The PATCH /api/scan/[id] endpoint fills in user_confirmed_count and
+    // rejected_sticker_ids when the user actually saves. Fire-and-forget so
+    // a tracking failure never breaks the scan response.
+    let scanResultId: number | null = null
+    try {
+      const { data: inserted } = await supabaseAdmin
+        .from('scan_results')
+        .insert({
+          user_id: user.id,
+          gemini_detected: stickersArr.length,
+          matched_count: matched.length,
+          unmatched_count: unmatched.length,
+          model_used: usedModel,
+          image_quality: serverQuality,
+          gemini_ms: geminiMs,
+          total_ms: Date.now() - requestStart,
+        })
+        .select('id')
+        .single()
+      scanResultId = inserted?.id ?? null
+    } catch (trackErr) {
+      console.error('[scan] scan_results insert failed (non-blocking):', trackErr)
+    }
+
     return NextResponse.json({
       matched,
       unmatched,
       warnings,
       confidence: serverQuality,
       imageQuality: serverQuality,
+      scanResultId,
       scanUsage: scansRemaining !== null
         ? { remaining: scansRemaining, limit: usageData?.limit ?? tierScanLimit }
         : undefined,
