@@ -177,8 +177,178 @@ async function getUserStats(userId: string) {
   return { owned, missing, duplicates, total, pct }
 }
 
+// ─── Section name resolver (PT/EN, fuzzy, multi-input) ────────────────────
+//
+// Maps user input like "brasil", "brazil", "bra", "argetina" (typo),
+// "coca cola", "intro" → the canonical `section` value used in the stickers
+// table ("Brazil", "Argentina", "Coca-Cola", "FIFA World Cup", ...).
+// Returns the unique list of resolved sections (skips unknowns silently).
+
+const SECTION_ALIASES: Record<string, string> = {
+  // Selecoes — PT, EN e codigo de 3 letras
+  brasil: 'Brazil', brazil: 'Brazil', bra: 'Brazil',
+  argentina: 'Argentina', arg: 'Argentina',
+  franca: 'France', france: 'France', fra: 'France',
+  alemanha: 'Germany', germany: 'Germany', ger: 'Germany',
+  espanha: 'Spain', spain: 'Spain', esp: 'Spain',
+  inglaterra: 'England', england: 'England', eng: 'England',
+  portugal: 'Portugal', por: 'Portugal',
+  holanda: 'Netherlands', netherlands: 'Netherlands', ned: 'Netherlands',
+  italia: 'Italy', italy: 'Italy', ita: 'Italy', // não está no álbum mas mantém por robustez
+  croacia: 'Croatia', croatia: 'Croatia', cro: 'Croatia',
+  belgica: 'Belgium', belgium: 'Belgium', bel: 'Belgium',
+  uruguai: 'Uruguay', uruguay: 'Uruguay', uru: 'Uruguay',
+  colombia: 'Colombia', col: 'Colombia',
+  equador: 'Ecuador', ecuador: 'Ecuador', ecu: 'Ecuador',
+  paraguai: 'Paraguay', paraguay: 'Paraguay', par: 'Paraguay',
+  chile: 'Chile',
+  peru: 'Peru',
+  mexico: 'Mexico', mex: 'Mexico',
+  canada: 'Canada', can: 'Canada',
+  estadosunidos: 'USA', eua: 'USA', usa: 'USA',
+  marrocos: 'Morocco', morocco: 'Morocco', mar: 'Morocco',
+  egito: 'Egypt', egypt: 'Egypt', egy: 'Egypt',
+  senegal: 'Senegal', sen: 'Senegal',
+  argelia: 'Algeria', algeria: 'Algeria', alg: 'Algeria',
+  tunisia: 'Tunisia', tun: 'Tunisia',
+  capeverde: 'Cape Verde', caboverde: 'Cape Verde', cpv: 'Cape Verde',
+  costadomarfim: 'Ivory Coast', costademarfim: 'Ivory Coast', civ: 'Ivory Coast',
+  ghana: 'Ghana', gana: 'Ghana', gha: 'Ghana',
+  rdcongo: 'DR Congo', drcongo: 'DR Congo', cod: 'DR Congo',
+  africadosul: 'South Africa', southafrica: 'South Africa', rsa: 'South Africa',
+  arabiasaudita: 'Saudi Arabia', saudiarabia: 'Saudi Arabia', ksa: 'Saudi Arabia',
+  ira: 'Iran', iran: 'Iran', irn: 'Iran',
+  iraque: 'Iraq', iraq: 'Iraq', irq: 'Iraq',
+  jordania: 'Jordan', jordan: 'Jordan', jor: 'Jordan',
+  catar: 'Qatar', qatar: 'Qatar', qat: 'Qatar',
+  uzbequistao: 'Uzbekistan', uzbekistan: 'Uzbekistan', uzb: 'Uzbekistan',
+  japao: 'Japan', japan: 'Japan', jpn: 'Japan',
+  coreiadosul: 'South Korea', coreia: 'South Korea', southkorea: 'South Korea', kor: 'South Korea',
+  australia: 'Australia', aus: 'Australia',
+  novazelandia: 'New Zealand', newzealand: 'New Zealand', nzl: 'New Zealand',
+  turquia: 'Turkey', turkey: 'Turkey', tur: 'Turkey',
+  republicatcheca: 'Czech Republic', tcheca: 'Czech Republic', cze: 'Czech Republic', czechia: 'Czech Republic',
+  bosnia: 'Bosnia and Herzegovina', bih: 'Bosnia and Herzegovina',
+  noruega: 'Norway', norway: 'Norway', nor: 'Norway',
+  suecia: 'Sweden', sweden: 'Sweden', swe: 'Sweden',
+  suica: 'Switzerland', switzerland: 'Switzerland', sui: 'Switzerland',
+  austria: 'Austria', aut: 'Austria',
+  escocia: 'Scotland', scotland: 'Scotland', sco: 'Scotland',
+  panama: 'Panama', pan: 'Panama',
+  haiti: 'Haiti', hai: 'Haiti',
+  curacao: 'Curacao', curacau: 'Curacao', cur: 'Curacao',
+  capeverde2: 'Cape Verde',
+  // Special sections
+  cocacola: 'Coca-Cola', coca: 'Coca-Cola', cocola: 'Coca-Cola', cc: 'Coca-Cola',
+  intro: 'FIFA World Cup', introducao: 'FIFA World Cup', introduction: 'FIFA World Cup',
+  fifa: 'FIFA World Cup', troféu: 'FIFA World Cup', trofeu: 'FIFA World Cup',
+  history: 'FIFA World Cup', historia: 'FIFA World Cup',
+  estadios: 'FIFA World Cup', estadio: 'FIFA World Cup',
+  bola: 'FIFA World Cup', mascote: 'FIFA World Cup',
+  extras: 'PANINI Extras', extra: 'PANINI Extras', lendas: 'PANINI Extras',
+  lendarias: 'PANINI Extras', lendaria: 'PANINI Extras', panini: 'PANINI Extras',
+}
+
+const ALIAS_KEYS = Object.keys(SECTION_ALIASES)
+
+function normalizeKey(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+/** Levenshtein distance, capped early when over `maxDistance`. */
+function levenshtein(a: string, b: string, maxDistance = 2): number {
+  if (a === b) return 0
+  if (Math.abs(a.length - b.length) > maxDistance) return maxDistance + 1
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    const curr = [i]
+    let rowMin = i
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      const v = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
+      curr.push(v)
+      if (v < rowMin) rowMin = v
+    }
+    if (rowMin > maxDistance) return maxDistance + 1
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j]
+  }
+  return prev[b.length]
+}
+
+/**
+ * Parse the user message and return the list of canonical section names the
+ * user wants to filter by. Tolerates PT/EN, missing accents, common typos
+ * (Levenshtein <= 2). Multi-country supported: split on whitespace/commas/+.
+ *
+ *   "faltando brasil"             → ['Brazil']
+ *   "faltando brasil argentina"   → ['Brazil','Argentina']
+ *   "faltam franca, espanha"      → ['France','Spain']
+ *   "faltando coca cola"          → ['Coca-Cola']
+ *   "faltam argetina"             → ['Argentina']  (typo absorved)
+ */
+function parseSectionFilters(text: string): string[] {
+  // Strip the leading verb so we only look at the country tokens.
+  const stripped = text.toLowerCase()
+    .replace(/^(faltam|faltando|missing|preciso|necessito|que me falta|o que falta|quais faltam|falta)\s*/i, '')
+    .trim()
+  if (!stripped) return []
+
+  // Tokenize. Treat "coca cola" / "africa do sul" / "rd congo" as compound:
+  // strip whitespace before lookup.
+  const tokens = stripped.split(/[\s,;+/]+/).filter(Boolean)
+  if (tokens.length === 0) return []
+
+  // Try greedy 3-then-2-then-1 token matching (handles "africa do sul").
+  const found = new Set<string>()
+  let i = 0
+  while (i < tokens.length) {
+    let matched = false
+    for (const span of [3, 2, 1]) {
+      if (i + span > tokens.length) continue
+      const candidate = normalizeKey(tokens.slice(i, i + span).join(''))
+      if (!candidate) continue
+      // Exact alias hit
+      if (SECTION_ALIASES[candidate]) {
+        found.add(SECTION_ALIASES[candidate])
+        i += span
+        matched = true
+        break
+      }
+      // Fuzzy fallback — only for span=1 to avoid spurious matches.
+      if (span === 1) {
+        let best: { key: string; dist: number } | null = null
+        for (const key of ALIAS_KEYS) {
+          if (Math.abs(key.length - candidate.length) > 2) continue
+          const d = levenshtein(candidate, key, 2)
+          if (d <= 2 && (!best || d < best.dist)) best = { key, dist: d }
+        }
+        if (best && best.dist <= 2) {
+          found.add(SECTION_ALIASES[best.key])
+          i += 1
+          matched = true
+          break
+        }
+      }
+    }
+    if (!matched) i += 1
+  }
+  return Array.from(found)
+}
+
 // ─── Get missing sticker list ───
-async function getMissingStickers(userId: string, limit = 30) {
+//
+// Returns at most `limit` missing stickers in physical-album order
+// (display_order asc). When `sectionFilters` is non-empty, only stickers
+// belonging to those sections are returned.
+async function getMissingStickers(
+  userId: string,
+  limit = 150,
+  sectionFilters: string[] = [],
+) {
   const supabase = getAdmin()
 
   const { data: owned } = await supabase
@@ -189,21 +359,18 @@ async function getMissingStickers(userId: string, limit = 30) {
 
   const ownedIds = (owned || []).map((o) => o.sticker_id)
 
-  const query = supabase
+  let query = supabase
     .from('stickers')
-    .select('number, player_name, country')
-    .order('number')
+    .select('number, player_name, country, section, display_order')
+    .eq('counts_for_completion', true)
+    .order('display_order')
     .limit(limit)
 
+  if (sectionFilters.length > 0) {
+    query = query.in('section', sectionFilters)
+  }
   if (ownedIds.length > 0) {
-    // Get stickers NOT in owned list
-    const { data } = await supabase
-      .from('stickers')
-      .select('number, player_name, country')
-      .not('id', 'in', `(${ownedIds.join(',')})`)
-      .order('number')
-      .limit(limit)
-    return data || []
+    query = query.not('id', 'in', `(${ownedIds.join(',')})`)
   }
 
   const { data } = await query
@@ -214,19 +381,22 @@ async function getMissingStickers(userId: string, limit = 30) {
 async function getDuplicateStickers(userId: string) {
   const supabase = getAdmin()
 
+  // Order by display_order on the JOINed stickers row so the duplicates list
+  // matches the physical album order (intro → groups A–L → history → coca →
+  // extras), not the insertion order in user_stickers.
   const { data } = await supabase
     .from('user_stickers')
-    .select('quantity, sticker_id, stickers(number, player_name, country)')
+    .select('quantity, sticker_id, stickers(number, player_name, country, display_order)')
     .eq('user_id', userId)
     .eq('status', 'duplicate')
-    .order('sticker_id')
+    .order('display_order', { foreignTable: 'stickers' })
 
   return (data || []).map((d: Record<string, unknown>) => {
-    const sticker = d.stickers as Record<string, string> | null
+    const sticker = d.stickers as Record<string, string | number> | null
     return {
-      number: sticker?.number || '?',
-      player_name: sticker?.player_name || '',
-      country: sticker?.country || '',
+      number: (sticker?.number as string) || '?',
+      player_name: (sticker?.player_name as string) || '',
+      country: (sticker?.country as string) || '',
       quantity: (d.quantity as number) || 2,
     }
   })
@@ -818,30 +988,64 @@ export async function POST(req: NextRequest) {
         }
 
         case 'missing': {
-          const missing = await getMissingStickers(user.id, 30)
-          if (missing.length === 0) {
+          // Parse country/section filters from the user's actual text (not
+          // just the canonical command word). Handles PT/EN/typos/multi.
+          const filters = parseSectionFilters(text)
+          const MISSING_LIMIT = 150
+          const missing = await getMissingStickers(user.id, MISSING_LIMIT, filters)
+          const stats = await getUserStats(user.id)
+
+          if (stats.missing === 0) {
             await sendButtonList(phone, '🎉 *Você completou o álbum!* Parabéns! 🏆', [
               { id: 'cmd_status', label: '📊 Ver progresso' },
               { id: 'cmd_ranking', label: '🏆 Meu ranking' },
               { id: 'cmd_trades', label: '🔁 Trocas' },
             ])
-          } else {
-            const list = missing
-              .map((s) => `${s.number}${s.player_name ? ' ' + s.player_name : ''}`)
-              .join('\n')
-            const stats = await getUserStats(user.id)
-            await sendButtonList(
-              phone,
-              `🔍 *Figurinhas que faltam* (${stats.missing} total):\n\n${list}${
-                stats.missing > 30 ? `\n\n... e mais ${stats.missing - 30}` : ''
-              }\n\n👉 *Próximo passo:* mande uma *foto* do que você já tem ou veja repetidas pra trocar.`,
-              [
-                { id: 'cmd_duplicates', label: '🔁 Repetidas' },
-                { id: 'cmd_trades', label: '🔔 Trocas perto' },
-                { id: 'cmd_status', label: '📊 Progresso' },
-              ],
-            )
+            break
           }
+
+          // Group consecutive items by section so the listing is scannable.
+          const lines: string[] = []
+          let lastSection: string | null = null
+          for (const s of missing as Array<{ number: string; player_name: string; section?: string }>) {
+            const section = s.section || ''
+            if (section !== lastSection) {
+              if (lastSection !== null) lines.push('')
+              lines.push(`*${section || '—'}*`)
+              lastSection = section
+            }
+            const name = s.player_name || ''
+            lines.push(`• ${s.number}${name ? ' — ' + name : ''}`)
+          }
+          const list = lines.join('\n')
+
+          // Header reflects whether we filtered or showed the global top-N.
+          let header: string
+          if (filters.length > 0) {
+            header = `🔍 *Faltam de ${filters.join(' / ')}* (${missing.length} listadas)`
+          } else {
+            const shown = Math.min(MISSING_LIMIT, stats.missing)
+            header = `🔍 *Faltam ${stats.missing}* — primeiras *${shown}* na ordem do álbum`
+          }
+
+          // Suggestions: when no filter applied AND there's more than what we
+          // showed, prompt user to filter. When filter was applied, suggest
+          // returning to the global view.
+          const moreHint = filters.length === 0 && stats.missing > MISSING_LIMIT
+            ? `\n\n_Pra ver mais, peça por seleção ou seção: *faltando brasil*, *faltando coca cola*, *faltando intro*. Pode pedir várias: *faltando brasil argentina franca*._`
+            : filters.length > 0
+              ? `\n\n_Quer ver outra? *faltando <pais>* ou *faltando* (geral)._`
+              : ''
+
+          await sendButtonList(
+            phone,
+            `${header}:\n\n${list}${moreHint}\n\n👉 *Próximo passo:* mande uma *foto* do que você tem ou veja repetidas pra trocar.`,
+            [
+              { id: 'cmd_duplicates', label: '🔁 Repetidas' },
+              { id: 'cmd_trades', label: '🔔 Trocas perto' },
+              { id: 'cmd_status', label: '📊 Progresso' },
+            ],
+          )
           break
         }
 

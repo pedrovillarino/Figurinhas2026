@@ -27,7 +27,7 @@ type Sticker = {
 
 type UserStickerInfo = { status: string; quantity: number }
 
-type Tab = 'all' | 'missing' | 'duplicates'
+type Tab = 'all' | 'missing' | 'duplicates' | 'extras'
 type ViewMode = 'grid' | 'sections'
 
 export default function AlbumClient({
@@ -155,13 +155,24 @@ export default function AlbumClient({
   const filtered = useMemo(() => {
     let list = sortedStickers
 
-    if (activeTab === 'missing') {
-      list = list.filter((s) => {
-        const us = userMap[s.id]
-        return !us || us.status === 'missing'
-      })
-    } else if (activeTab === 'duplicates') {
-      list = list.filter((s) => userMap[s.id]?.status === 'duplicate')
+    // The four tabs partition the album into disjoint slices:
+    //  - all:        the 980 album stickers (counts_for_completion === true)
+    //  - missing:    of those 980, the ones not yet owned/duplicate
+    //  - duplicates: of those 980, the ones marked duplicate
+    //  - extras:     the decorative collections (Coca-Cola + PANINI Extras)
+    //                that don't move the X/980 bar
+    if (activeTab === 'extras') {
+      list = list.filter((s) => s.counts_for_completion === false)
+    } else {
+      list = list.filter((s) => s.counts_for_completion !== false)
+      if (activeTab === 'missing') {
+        list = list.filter((s) => {
+          const us = userMap[s.id]
+          return !us || us.status === 'missing'
+        })
+      } else if (activeTab === 'duplicates') {
+        list = list.filter((s) => userMap[s.id]?.status === 'duplicate')
+      }
     }
 
     if (debouncedSearch.trim()) {
@@ -172,16 +183,20 @@ export default function AlbumClient({
     return list
   }, [sortedStickers, activeTab, debouncedSearch, userMap, matchesSearch])
 
-  // Section ordering follows the physical album: Intro (FWC 1-8) → Teams (by
-  // group A-L) → FIFA World Cup History (FWC 9-19) → PANINI Extras (separate,
-  // doesn't count for completion). Teams get order 100 (sorted alphabetically
-  // among themselves for now; group-aware ordering comes in a later pass).
-  const SECTION_ORDER: Record<string, number> = {
-    'Introduction': 1,
-    // Teams get order 100
-    'FIFA World Cup': 200,
-    'PANINI Extras': 300,
-  }
+  // Section ordering uses the display_order from each section's first sticker
+  // — so sections appear in physical-album order: Intro (FWC-0..8) → teams in
+  // FIFA group order (A → L) → FIFA History (FWC-9..19) → Coca-Cola →
+  // PANINI Extras. No more alphabetical-by-default ordering of teams.
+  const sectionOrderMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    sortedStickers.forEach((s) => {
+      const order = s.display_order ?? 999_999
+      if (map[s.section] === undefined || order < map[s.section]) {
+        map[s.section] = order
+      }
+    })
+    return map
+  }, [sortedStickers])
 
   // Group by section for accordion view
   const groupedByCountry = useMemo(() => {
@@ -192,18 +207,16 @@ export default function AlbumClient({
       groups[key].push(s)
     })
 
-    // Sort sections by custom order
     const sorted: Record<string, Sticker[]> = {}
     const keys = Object.keys(groups).sort((a, b) => {
-      const orderA = SECTION_ORDER[a] ?? 100
-      const orderB = SECTION_ORDER[b] ?? 100
+      const orderA = sectionOrderMap[a] ?? 999_999
+      const orderB = sectionOrderMap[b] ?? 999_999
       if (orderA !== orderB) return orderA - orderB
-      // Both are teams (order 100) → alphabetical
-      return a.localeCompare(b, 'en')
+      return a.localeCompare(b, 'pt-BR')
     })
     keys.forEach((k) => { sorted[k] = groups[k] })
     return sorted
-  }, [filtered])
+  }, [filtered, sectionOrderMap])
 
   function toggleSection(country: string) {
     setOpenSections((prev) => {
@@ -322,13 +335,23 @@ export default function AlbumClient({
 
   function getCardStyle(stickerId: number) {
     const us = userMap[stickerId]
+    // Missing cards used to render with opacity 0.4, which made the number /
+    // player name nearly impossible to read in bright light. Now we just dim
+    // the background and keep the text fully opaque (handled in the text
+    // colors below) so the user can scan the album visually even before
+    // marking anything.
     if (!us || us.status === 'missing')
-      return 'bg-gray-50 border-gray-100 opacity-40 hover:opacity-60'
+      return 'bg-gray-50 border-dashed border-gray-300 hover:bg-white'
     if (us.status === 'owned')
       return 'bg-white border-gray-200 shadow-sm'
     if (us.status === 'duplicate')
       return 'bg-white border-blue-200 shadow-sm'
     return 'bg-white border-gray-200'
+  }
+
+  function isStickerMissing(stickerId: number): boolean {
+    const us = userMap[stickerId]
+    return !us || us.status === 'missing'
   }
 
   function getQuantity(stickerId: number): number {
@@ -339,20 +362,37 @@ export default function AlbumClient({
 
   // Contadores das tabs — atualizam quando há busca ativa
   const tabCounts = useMemo(() => {
+    // Counts for the four tabs:
+    //  - all/missing/duplicates restrict to the 980 completable stickers
+    //  - extras counts only decorative stickers (Coca-Cola + PANINI Extras)
+    const completable = sortedStickers.filter((s) => s.counts_for_completion !== false)
+    const extrasAll = sortedStickers.filter((s) => s.counts_for_completion === false)
     if (!debouncedSearch.trim()) {
-      return { all: sortedStickers.length, missing: stats.missing, duplicates: stats.duplicates }
+      return {
+        all: completable.length,
+        missing: stats.missing,
+        duplicates: stats.duplicates,
+        extras: extrasAll.length,
+      }
     }
     const q = debouncedSearch.toLowerCase()
-    const searched = sortedStickers.filter((s) => matchesSearch(s, q))
+    const searched = completable.filter((s) => matchesSearch(s, q))
     const searchMissing = searched.filter((s) => { const us = userMap[s.id]; return !us || us.status === 'missing' })
     const searchDupes = searched.filter((s) => userMap[s.id]?.status === 'duplicate')
-    return { all: searched.length, missing: searchMissing.length, duplicates: searchDupes.length }
+    const searchExtras = extrasAll.filter((s) => matchesSearch(s, q))
+    return {
+      all: searched.length,
+      missing: searchMissing.length,
+      duplicates: searchDupes.length,
+      extras: searchExtras.length,
+    }
   }, [sortedStickers, debouncedSearch, userMap, stats, matchesSearch])
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'all', label: 'Todas', count: tabCounts.all },
     { key: 'missing', label: 'Faltam', count: tabCounts.missing },
     { key: 'duplicates', label: 'Repetidas', count: tabCounts.duplicates },
+    { key: 'extras', label: 'Extras', count: tabCounts.extras },
   ]
 
   function renderCard(sticker: Sticker) {
@@ -397,9 +437,11 @@ export default function AlbumClient({
           aria-expanded={isExpanded}
           className="w-full p-2 active:scale-95 transition-transform"
         >
-          <p className="text-xl leading-none">{getFlag(sticker.country)}</p>
-          <p className="text-[10px] font-bold text-gray-600 mt-1.5 tracking-tight">{sticker.number}</p>
-          <p className="text-[8px] text-gray-500 truncate leading-tight mt-0.5">
+          <p className={`text-xl leading-none ${isStickerMissing(sticker.id) ? 'opacity-50' : ''}`}>
+            {getFlag(sticker.country)}
+          </p>
+          <p className="text-[11px] font-bold text-navy mt-1.5 tracking-tight">{sticker.number}</p>
+          <p className="text-[9px] font-medium text-gray-700 truncate leading-tight mt-0.5">
             {sticker.player_name || sticker.type}
           </p>
         </button>
@@ -577,6 +619,7 @@ export default function AlbumClient({
             <span className={`ml-1 ${activeTab === tab.key
               ? tab.key === 'missing' ? 'text-orange-400'
               : tab.key === 'duplicates' ? 'text-blue-500'
+              : tab.key === 'extras' ? 'text-amber-500'
               : 'text-brand'
               : 'text-gray-400'}`}>
               {tab.count}

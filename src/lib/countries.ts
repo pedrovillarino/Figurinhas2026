@@ -21,6 +21,7 @@ export const countryFlags: Record<string, string> = {
   // Special sections
   'Introduction': '📖',
   'FIFA World Cup': '🏆',
+  'Coca-Cola': '🥤',         // TODO: substituir por SVG do logo da Coca-Cola
   'PANINI Extras': '⭐',
   'FIFA': '⚽',
 }
