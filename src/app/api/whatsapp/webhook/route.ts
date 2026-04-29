@@ -180,11 +180,16 @@ async function getUserStats(userId: string) {
       if (us.status === 'owned') owned++
       if (us.status === 'duplicate') { owned++; duplicates++ }
     } else {
+      // Extras (Coca-Cola + PANINI variants) — track presence per category for
+      // the ranking tiebreak, AND count duplicates as tradeable inventory so
+      // /status mirrors the album's "Repetidas" tab (which now shows ALL
+      // duplicate stickers, not just album-completable ones).
       if (s.variant === 'gold') extrasGold++
       else if (s.variant === 'silver') extrasSilver++
       else if (s.variant === 'bronze') extrasBronze++
       else if (s.variant === 'regular') extrasRegular++
       else if (s.section === 'Coca-Cola') extrasCocacola++
+      if (us.status === 'duplicate') duplicates++
     }
   })
 

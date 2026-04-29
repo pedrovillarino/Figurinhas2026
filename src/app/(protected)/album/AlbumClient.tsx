@@ -116,12 +116,17 @@ export default function AlbumClient({
   const stats = useMemo(() => {
     let owned = 0, duplicates = 0, totalDupeQty = 0
     Object.entries(userMap).forEach(([id, us]) => {
-      // Don't let a Coca-Cola or PANINI Extra sticker the user happens to own
-      // bump the progress bar past 100%.
-      if (!completableIds.has(Number(id))) return
-      if (us.status === 'owned') owned++
+      const isCompletable = completableIds.has(Number(id))
+      // Owned only counts the 980 completable stickers — Coca-Cola and PANINI
+      // Extras don't move X/980, so they don't bump the progress bar past 100%.
+      if (isCompletable) {
+        if (us.status === 'owned') owned++
+        if (us.status === 'duplicate') owned++
+      }
+      // Duplicates count EVERY duplicate sticker the user has, including
+      // Coca-Cola and PANINI Extras — they're tradeable inventory just like
+      // any other extra, so they belong in the "Repetidas" tab and stat card.
       if (us.status === 'duplicate') {
-        owned++
         duplicates++
         totalDupeQty += us.quantity - 1
       }
@@ -155,14 +160,19 @@ export default function AlbumClient({
   const filtered = useMemo(() => {
     let list = sortedStickers
 
-    // The four tabs partition the album into disjoint slices:
+    // The four tabs partition the album like this:
     //  - all:        the 980 album stickers (counts_for_completion === true)
     //  - missing:    of those 980, the ones not yet owned/duplicate
-    //  - duplicates: of those 980, the ones marked duplicate
+    //  - duplicates: ANY sticker marked duplicate — includes Coca-Cola and
+    //                PANINI Extras, since duplicates of those are tradeable
+    //                inventory the user wants visible
     //  - extras:     the decorative collections (Coca-Cola + PANINI Extras)
     //                that don't move the X/980 bar
     if (activeTab === 'extras') {
       list = list.filter((s) => s.counts_for_completion === false)
+    } else if (activeTab === 'duplicates') {
+      // Show duplicates from ALL sections (album + extras)
+      list = list.filter((s) => userMap[s.id]?.status === 'duplicate')
     } else {
       list = list.filter((s) => s.counts_for_completion !== false)
       if (activeTab === 'missing') {
@@ -170,8 +180,6 @@ export default function AlbumClient({
           const us = userMap[s.id]
           return !us || us.status === 'missing'
         })
-      } else if (activeTab === 'duplicates') {
-        list = list.filter((s) => userMap[s.id]?.status === 'duplicate')
       }
     }
 
@@ -363,7 +371,9 @@ export default function AlbumClient({
   // Contadores das tabs — atualizam quando há busca ativa
   const tabCounts = useMemo(() => {
     // Counts for the four tabs:
-    //  - all/missing/duplicates restrict to the 980 completable stickers
+    //  - all/missing restrict to the 980 completable stickers
+    //  - duplicates spans the WHOLE album (completable + extras) because
+    //    duplicates of Coca-Cola / PANINI Extras are also tradeable
     //  - extras counts only decorative stickers (Coca-Cola + PANINI Extras)
     const completable = sortedStickers.filter((s) => s.counts_for_completion !== false)
     const extrasAll = sortedStickers.filter((s) => s.counts_for_completion === false)
@@ -378,7 +388,10 @@ export default function AlbumClient({
     const q = debouncedSearch.toLowerCase()
     const searched = completable.filter((s) => matchesSearch(s, q))
     const searchMissing = searched.filter((s) => { const us = userMap[s.id]; return !us || us.status === 'missing' })
-    const searchDupes = searched.filter((s) => userMap[s.id]?.status === 'duplicate')
+    // Duplicates search spans the entire album, not just completable
+    const searchDupes = sortedStickers.filter(
+      (s) => matchesSearch(s, q) && userMap[s.id]?.status === 'duplicate',
+    )
     const searchExtras = extrasAll.filter((s) => matchesSearch(s, q))
     return {
       all: searched.length,
