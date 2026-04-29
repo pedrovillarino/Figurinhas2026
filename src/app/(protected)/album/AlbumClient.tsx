@@ -144,15 +144,15 @@ export default function AlbumClient({
     return list
   }, [sortedStickers, activeTab, debouncedSearch, userMap, matchesSearch])
 
-  // Custom section ordering: Intro → Stadiums → Teams (alphabetical) → Legends → FWC → Gold → Moments
+  // Section ordering follows the physical album: Intro (FWC 1-8) → Teams (by
+  // group A-L) → FIFA World Cup History (FWC 9-19) → PANINI Extras (separate,
+  // doesn't count for completion). Teams get order 100 (sorted alphabetically
+  // among themselves for now; group-aware ordering comes in a later pass).
   const SECTION_ORDER: Record<string, number> = {
     'Introduction': 1,
-    'Stadiums': 2,
-    // Teams get order 100 (sorted alphabetically among themselves)
-    'Legends': 200,
-    'FIFA World Cup': 201,
-    'Golden Stickers': 202,
-    'Memorable Moments': 203,
+    // Teams get order 100
+    'FIFA World Cup': 200,
+    'PANINI Extras': 300,
   }
 
   // Group by section for accordion view

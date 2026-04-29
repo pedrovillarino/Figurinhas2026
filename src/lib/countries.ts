@@ -19,9 +19,9 @@ export const countryFlags: Record<string, string> = {
   'Uruguay': '🇺🇾', 'USA': '🇺🇸', 'Uzbekistan': '🇺🇿',
 
   // Special sections
-  'Introduction': '📖', 'Stadiums': '🏟️',
-  'Legends': '👑', 'FIFA World Cup': '🏆',
-  'Golden Stickers': '✨', 'Memorable Moments': '📸',
+  'Introduction': '📖',
+  'FIFA World Cup': '🏆',
+  'PANINI Extras': '⭐',
   'FIFA': '⚽',
 }
 

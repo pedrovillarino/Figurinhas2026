@@ -90,7 +90,7 @@ export default async function RankingPage() {
     if (us.status === 'duplicate') { owned++; duplicates++ }
   })
 
-  const specialSections = ['Introduction', 'Stadiums', 'Legends', 'FIFA World Cup', 'Golden Stickers', 'Memorable Moments']
+  const specialSections = ['Introduction', 'FIFA World Cup', 'PANINI Extras']
   const sections = Array.from(new Set(stickers.map((s: { section: string }) => s.section)))
     .filter((s): s is string => !specialSections.includes(s as string))
     .sort()
