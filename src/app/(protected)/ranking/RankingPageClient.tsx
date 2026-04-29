@@ -412,7 +412,10 @@ export default function RankingPageClient({
         {tab === 'friends' && (
           <div className="px-3 pb-3 border-t border-gray-100 pt-3">
             <p className="text-[10px] text-gray-400 mb-2">
-              Já tem o código de um amigo? Cola aqui:
+              Já tem o código de um amigo? Cola aqui.{' '}
+              <span className="text-gray-500">
+                (O código fica no <span className="font-semibold">Perfil</span> dele, na seção <span className="font-semibold">"Indique amigos"</span>.)
+              </span>
             </p>
             <div className="flex gap-2">
               <input

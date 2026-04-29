@@ -23,13 +23,21 @@ interface NominatimAddress {
 /**
  * POST /api/geocode
  *
- * Reverse-geocodes lat/lng to city and state using Nominatim,
- * then updates the user's profile.
+ * Two modes, picked by what's in the body:
  *
- * Body: { lat: number, lng: number }
+ * 1. REVERSE — body { lat, lng }: turn coordinates into city/state. Used
+ *    after the browser geolocation grant. Updates city/state.
+ *
+ * 2. FORWARD — body { city, neighborhood?, state? }: turn a typed
+ *    cidade/bairro into approximate lat/lng (centroid of the named place
+ *    via Nominatim) so the user shows up in proximity-based rankings and
+ *    trades even without granting GPS. Updates city/state AND
+ *    location_lat/location_lng (overwriting any DDD-only city).
+ *
+ * Both modes share auth, rate limiting, sanitization, and the Nominatim
+ * timeout. Either lat+lng OR city must be provided.
  */
 export async function POST(req: NextRequest) {
-  // Rate limit
   const rlResponse = await checkRateLimit(getIp(req), generalLimiter)
   if (rlResponse) return rlResponse
 
@@ -57,23 +65,68 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    // 2. Parse and validate body
     const body = await req.json()
-    const { lat, lng } = body
+    const { lat, lng, city: bodyCity, neighborhood: bodyNeighborhood, state: bodyState } = body
 
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      return NextResponse.json({ error: 'lat e lng devem ser números.' }, { status: 400 })
+    const sanitize = (s: string | undefined) =>
+      s ? s.replace(/[<>"'&;]/g, '').trim().slice(0, 100) || null : null
+
+    const admin = getAdmin()
+
+    // ── REVERSE: lat/lng → city/state ─────────────────────────────────
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return NextResponse.json({ error: 'Coordenadas fora do intervalo válido.' }, { status: 400 })
+      }
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt`
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 8000)
+      const geoResponse = await fetch(url, {
+        headers: { 'User-Agent': 'CompleteAi/1.0 (contato@completeai.com.br)' },
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+      if (!geoResponse.ok) {
+        console.error('[geocode] Nominatim reverse error:', geoResponse.status, await geoResponse.text())
+        return NextResponse.json({ error: 'Erro ao buscar localização.' }, { status: 502 })
+      }
+      const geoData = await geoResponse.json()
+      const address: NominatimAddress = geoData.address || {}
+      const city = sanitize(address.city || address.town || address.village)
+      const state = sanitize(address.state)
+      const { error: updateError } = await admin
+        .from('profiles')
+        .update({ city, state })
+        .eq('id', user.id)
+      if (updateError) {
+        console.error('[geocode] Profile update error (reverse):', updateError)
+        return NextResponse.json({ error: 'Erro ao atualizar perfil.' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true, mode: 'reverse', city, state })
     }
 
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return NextResponse.json({ error: 'Coordenadas fora do intervalo válido.' }, { status: 400 })
+    // ── FORWARD: city (+ neighborhood) → lat/lng ──────────────────────
+    const cleanCity = sanitize(bodyCity)
+    if (!cleanCity) {
+      return NextResponse.json({ error: 'Informe lat/lng OU cidade.' }, { status: 400 })
     }
+    const cleanNeighborhood = sanitize(bodyNeighborhood)
+    const cleanState = sanitize(bodyState)
 
-    // 3. Reverse geocode via Nominatim
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=pt`
+    // Build Nominatim structured query: country=br + city + optional state/neighborhood.
+    const params = new URLSearchParams({
+      format: 'json',
+      country: 'Brazil',
+      city: cleanCity,
+      'accept-language': 'pt',
+      limit: '1',
+    })
+    if (cleanState) params.set('state', cleanState)
+
+    const url = `https://nominatim.openstreetmap.org/search?${params.toString()}${cleanNeighborhood ? `&q=${encodeURIComponent(`${cleanNeighborhood}, ${cleanCity}, Brasil`)}` : ''}`
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000) // 8s timeout
+    const timeout = setTimeout(() => controller.abort(), 8000)
     const geoResponse = await fetch(url, {
       headers: { 'User-Agent': 'CompleteAi/1.0 (contato@completeai.com.br)' },
       signal: controller.signal,
@@ -81,34 +134,50 @@ export async function POST(req: NextRequest) {
     clearTimeout(timeout)
 
     if (!geoResponse.ok) {
-      console.error('[geocode] Nominatim error:', geoResponse.status, await geoResponse.text())
+      console.error('[geocode] Nominatim forward error:', geoResponse.status, await geoResponse.text())
       return NextResponse.json({ error: 'Erro ao buscar localização.' }, { status: 502 })
     }
 
-    const geoData = await geoResponse.json()
-    const address: NominatimAddress = geoData.address || {}
+    const results = await geoResponse.json()
+    if (!Array.isArray(results) || results.length === 0) {
+      return NextResponse.json(
+        { error: 'Não encontramos esse endereço. Confira a grafia da cidade e do bairro.' },
+        { status: 404 },
+      )
+    }
 
-    // Sanitize: only allow alphanumeric, spaces, accents, hyphens (max 100 chars)
-    const sanitize = (s: string | undefined) =>
-      s ? s.replace(/[<>"'&;]/g, '').trim().slice(0, 100) || null : null
+    const top = results[0]
+    const lat2 = parseFloat(top.lat)
+    const lng2 = parseFloat(top.lon)
+    if (!Number.isFinite(lat2) || !Number.isFinite(lng2)) {
+      return NextResponse.json({ error: 'Endereço sem coordenadas válidas.' }, { status: 502 })
+    }
 
-    const city = sanitize(address.city || address.town || address.village)
-    const state = sanitize(address.state)
-
-    // 4. Update profile with city and state
-    const admin = getAdmin()
+    const update: Record<string, unknown> = {
+      city: cleanCity,
+      state: cleanState ?? null,
+      location_lat: lat2,
+      location_lng: lng2,
+    }
 
     const { error: updateError } = await admin
       .from('profiles')
-      .update({ city, state })
+      .update(update)
       .eq('id', user.id)
-
     if (updateError) {
-      console.error('[geocode] Profile update error:', updateError)
+      console.error('[geocode] Profile update error (forward):', updateError)
       return NextResponse.json({ error: 'Erro ao atualizar perfil.' }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, city, state })
+    return NextResponse.json({
+      ok: true,
+      mode: 'forward',
+      city: cleanCity,
+      state: cleanState,
+      neighborhood: cleanNeighborhood,
+      lat: lat2,
+      lng: lng2,
+    })
   } catch (err) {
     console.error('[geocode] Error:', err)
     return NextResponse.json({ error: 'Erro ao processar localização.' }, { status: 500 })

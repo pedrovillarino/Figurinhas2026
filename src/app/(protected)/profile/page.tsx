@@ -37,6 +37,17 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Localização (cidade + bairro). Source = how the location was set:
+  //  'gps' (granted geolocation), 'manual' (typed below),
+  //  'phone' (inferred from DDD), or null.
+  const [locCity, setLocCity] = useState('')
+  const [locNeighborhood, setLocNeighborhood] = useState('') // not persisted, only for forward-geocoding precision
+  const [locSavedCity, setLocSavedCity] = useState<string | null>(null)
+  const [locSource, setLocSource] = useState<'gps' | 'manual' | 'phone' | null>(null)
+  const [locSaving, setLocSaving] = useState(false)
+  const [locMsg, setLocMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [locRequestingGps, setLocRequestingGps] = useState(false)
   const [buyingScans, setBuyingScans] = useState(false)
   const [buyingTrades, setBuyingTrades] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
@@ -64,7 +75,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, referral_code, is_minor')
+      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, referral_code, is_minor, city, state, location_lat')
       .eq('id', user.id)
       .single()
 
@@ -79,6 +90,14 @@ export default function ProfilePage() {
       setPhone(data.phone || '')
       setDisplayName(data.display_name || '')
       setEmail(data.email || user.email || '')
+      setLocCity(data.city || '')
+      setLocSavedCity(data.city || null)
+      // Source heuristic: lat present → GPS or manual forward-geocode;
+      // city without lat → DDD inference (the only code path that does that);
+      // nothing → never set.
+      setLocSource(
+        data.location_lat != null ? 'gps' : data.city ? 'phone' : null,
+      )
     }
 
     // Fetch total scans used
@@ -143,6 +162,90 @@ export default function ProfilePage() {
     })
 
     setStats({ owned, missing: total - owned, duplicates, total })
+  }
+
+  async function saveLocation() {
+    setLocMsg(null)
+    if (!locCity.trim()) {
+      setLocMsg({ type: 'err', text: 'Informe pelo menos a cidade.' })
+      return
+    }
+    setLocSaving(true)
+    try {
+      const res = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: locCity.trim(),
+          neighborhood: locNeighborhood.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setLocMsg({ type: 'err', text: data.error || 'Erro ao salvar localização.' })
+      } else {
+        setLocSavedCity(data.city)
+        setLocSource('manual')
+        setLocMsg({
+          type: 'ok',
+          text: `Salvo! Você aparece nas trocas em ${data.city}${
+            locNeighborhood.trim() ? ` / ${locNeighborhood.trim()}` : ''
+          }.`,
+        })
+      }
+    } catch {
+      setLocMsg({ type: 'err', text: 'Erro de conexão.' })
+    }
+    setLocSaving(false)
+  }
+
+  function requestGps() {
+    if (!navigator.geolocation) {
+      setLocMsg({ type: 'err', text: 'Seu navegador não suporta GPS.' })
+      return
+    }
+    setLocMsg(null)
+    setLocRequestingGps(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        try {
+          // Save lat/lng + reverse-geocode in one shot. Use admin route
+          // through the service role isn't needed here — the geocode endpoint
+          // does the profile update server-side after auth.
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            await supabase
+              .from('profiles')
+              .update({ location_lat: lat, location_lng: lng })
+              .eq('id', user.id)
+          }
+          const res = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng }),
+          })
+          const data = await res.json()
+          if (res.ok) {
+            setLocCity(data.city || '')
+            setLocSavedCity(data.city || null)
+            setLocSource('gps')
+            setLocMsg({ type: 'ok', text: `Localização capturada: ${data.city}.` })
+          } else {
+            setLocMsg({ type: 'err', text: data.error || 'Erro ao capturar localização.' })
+          }
+        } catch {
+          setLocMsg({ type: 'err', text: 'Erro ao salvar localização.' })
+        }
+        setLocRequestingGps(false)
+      },
+      () => {
+        setLocMsg({ type: 'err', text: 'Não conseguimos obter sua localização. Verifique as permissões.' })
+        setLocRequestingGps(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
   }
 
   async function savePhone() {
@@ -482,6 +585,79 @@ export default function ProfilePage() {
         >
           {saving ? '...' : saved ? 'Salvo!' : 'Salvar alterações'}
         </button>
+      </div>
+
+      {/* Localização — pra aparecer nas trocas perto */}
+      <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-brand-light flex items-center justify-center">
+            <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Localização</p>
+            <p className="text-[11px] text-gray-500">Pra você aparecer nas trocas perto</p>
+          </div>
+        </div>
+
+        {locSavedCity && (
+          <div className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-3 text-xs">
+            <p className="text-gray-500">
+              Você aparece como <span className="font-semibold text-gray-800">{locSavedCity}</span>
+              {locSource === 'gps' && <span className="ml-1.5 text-[10px] text-emerald-600 font-semibold">📍 GPS</span>}
+              {locSource === 'manual' && <span className="ml-1.5 text-[10px] text-brand font-semibold">✏️ Manual</span>}
+              {locSource === 'phone' && <span className="ml-1.5 text-[10px] text-amber-600 font-semibold">📱 Pelo DDD</span>}
+            </p>
+            {locSource === 'phone' && (
+              <p className="text-[10px] text-gray-400 mt-1">
+                Detectado pelo DDD do seu telefone. Confirme ou ajuste abaixo pra precisar nas trocas.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={locCity}
+            onChange={(e) => { setLocCity(e.target.value); setLocMsg(null) }}
+            placeholder="Cidade (ex: São Paulo)"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
+          />
+          <input
+            type="text"
+            value={locNeighborhood}
+            onChange={(e) => { setLocNeighborhood(e.target.value); setLocMsg(null) }}
+            placeholder="Bairro (opcional, mais preciso)"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none"
+          />
+        </div>
+
+        {locMsg && (
+          <p className={`text-[11px] mt-2 ${locMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-500'}`}>
+            {locMsg.text}
+          </p>
+        )}
+
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={saveLocation}
+            disabled={locSaving || !locCity.trim()}
+            className="flex-1 bg-brand text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50"
+          >
+            {locSaving ? '...' : 'Salvar localização'}
+          </button>
+          <button
+            onClick={requestGps}
+            disabled={locRequestingGps}
+            className="bg-gray-50 border border-gray-200 text-gray-700 rounded-lg px-3 py-2 text-xs font-medium hover:bg-gray-100 transition disabled:opacity-50"
+            title="Usar GPS (mais preciso)"
+          >
+            {locRequestingGps ? '...' : '📍 GPS'}
+          </button>
+        </div>
       </div>
 
       {/* WhatsApp Bot */}
