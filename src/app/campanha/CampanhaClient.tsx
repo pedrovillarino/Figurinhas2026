@@ -520,6 +520,14 @@ export default function CampanhaClient({
         )}
       </section>
 
+      {/* ── Footer note: separate Instagram concurso ── */}
+      <section className="px-4 max-w-2xl mx-auto mb-10">
+        <p className="text-[11px] text-gray-400 text-center">
+          Tem também o <Link href="/regulamentosorteio" className="text-brand underline hover:text-brand-dark">Concurso de Engajamento no Instagram</Link>{' '}
+          (29/04 a 02/05) — sorteio de álbum + porta-figurinhas.
+        </p>
+      </section>
+
       {/* ── CTA fixo no rodapé ── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 sm:hidden">
         {isLoggedIn && !userExcluded && referralCode ? (
