@@ -18,6 +18,17 @@ const COUPON_VALIDITY_HOURS = 48
 const FRIENDS_FOR_COUPON = 5
 const POINTS_CONFIRMED = 1
 const POINTS_PAID_UPGRADE = 5
+const POINTS_SELF_UPGRADE = 5
+// Retroactive lookback at opt-in: referrals/self-upgrade up to N days before
+// the user clicked "Começar a participar" still count toward their ranking.
+const OPTIN_LOOKBACK_DAYS = 3
+// Minimum participants threshold — Complete Aí may extend the campaign end
+// date if not met, per the official rules.
+const MIN_PARTICIPANTS = 50
+// Minimum participants before the public ranking + counters become visible.
+// Below this we show a "warming up" placeholder instead, so a quiet first
+// few hours don't feel deserted.
+const MIN_PARTICIPANTS_FOR_DISPLAY = 8
 
 // Single-cycle campaign: 2026-04-29 00:00 BRT → 2026-05-12 23:59:59 BRT
 // (= 2026-04-29 03:00 UTC → 2026-05-13 02:59:59 UTC).
@@ -37,6 +48,10 @@ export const REFERRAL_CONSTANTS = {
   FRIENDS_FOR_COUPON,
   POINTS_CONFIRMED,
   POINTS_PAID_UPGRADE,
+  POINTS_SELF_UPGRADE,
+  OPTIN_LOOKBACK_DAYS,
+  MIN_PARTICIPANTS,
+  MIN_PARTICIPANTS_FOR_DISPLAY,
   CAMPAIGN_START_DATE_ISO,
   CAMPAIGN_END_DATE_ISO,
 } as const
@@ -258,6 +273,15 @@ export async function issueReferrerCoupon(userId: string): Promise<{
  */
 export async function shouldIssueCouponNow(referrerId: string): Promise<boolean> {
   const admin = getAdmin()
+
+  // Coupons gated on opt-in — non-participants don't earn campaign rewards.
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('opted_into_campaign_at, excluded_from_campaign')
+    .eq('id', referrerId)
+    .single()
+  const prof = profile as { opted_into_campaign_at: string | null; excluded_from_campaign: boolean | null } | null
+  if (!prof || !prof.opted_into_campaign_at || prof.excluded_from_campaign) return false
 
   // Confirmed + upgraded both count as "this friend was a real win"
   const { count: confirmedCount } = await admin

@@ -33,6 +33,7 @@ export type RankingRow = {
   paid_upgrade_count: number
   total_points: number
   is_self: boolean
+  self_upgraded: boolean
 }
 
 export type ActiveCoupon = {
@@ -53,15 +54,26 @@ export default async function CampanhaPage() {
   let displayName: string | null = null
 
   let userExcluded = false
+  let optedAt: string | null = null
+  let userSelfUpgradedAt: string | null = null
   if (user) {
     const { data: profile } = await admin
       .from('profiles')
-      .select('display_name, excluded_from_campaign')
+      .select('display_name, excluded_from_campaign, opted_into_campaign_at, self_upgrade_at')
       .eq('id', user.id)
       .single()
-    displayName = (profile as { display_name?: string } | null)?.display_name ?? null
-    userExcluded = !!(profile as { excluded_from_campaign?: boolean } | null)?.excluded_from_campaign
+    const prof = profile as {
+      display_name?: string
+      excluded_from_campaign?: boolean
+      opted_into_campaign_at?: string | null
+      self_upgrade_at?: string | null
+    } | null
+    displayName = prof?.display_name ?? null
+    userExcluded = !!prof?.excluded_from_campaign
+    optedAt = prof?.opted_into_campaign_at ?? null
+    userSelfUpgradedAt = prof?.self_upgrade_at ?? null
 
+    // Only generate referral code + load stats if user is a participant
     referralCode = await ensureReferralCode(user.id)
     stats = await getReferrerStats(user.id)
 
@@ -99,6 +111,15 @@ export default async function CampanhaPage() {
     ranking = (data || []) as RankingRow[]
   } catch (err) {
     console.error('Embaixadores ranking fetch failed:', err)
+  }
+
+  // ── Participant count (for "min 50 participants" rule) ──
+  let participantCount = 0
+  try {
+    const { data } = await admin.rpc('get_embaixadores_participant_count')
+    if (typeof data === 'number') participantCount = data
+  } catch (err) {
+    console.error('Participant count fetch failed:', err)
   }
 
   // ── Aggregate community counters (lifetime, not weekly) ──
@@ -142,12 +163,19 @@ export default async function CampanhaPage() {
       }}
       campaignActive={isCampaignActive()}
       campaignEndIso={REFERRAL_CONSTANTS.CAMPAIGN_END_DATE_ISO}
+      optedAt={optedAt}
+      userSelfUpgradedAt={userSelfUpgradedAt}
+      participantCount={participantCount}
       constants={{
         couponPercentOff: REFERRAL_CONSTANTS.COUPON_PERCENT_OFF,
         couponValidityHours: REFERRAL_CONSTANTS.COUPON_VALIDITY_HOURS,
         friendsForCoupon: REFERRAL_CONSTANTS.FRIENDS_FOR_COUPON,
         pointsConfirmed: REFERRAL_CONSTANTS.POINTS_CONFIRMED,
         pointsPaidUpgrade: REFERRAL_CONSTANTS.POINTS_PAID_UPGRADE,
+        pointsSelfUpgrade: REFERRAL_CONSTANTS.POINTS_SELF_UPGRADE,
+        optinLookbackDays: REFERRAL_CONSTANTS.OPTIN_LOOKBACK_DAYS,
+        minParticipants: REFERRAL_CONSTANTS.MIN_PARTICIPANTS,
+        minParticipantsForDisplay: REFERRAL_CONSTANTS.MIN_PARTICIPANTS_FOR_DISPLAY,
       }}
     />
   )

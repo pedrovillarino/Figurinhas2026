@@ -70,11 +70,12 @@ async function addTradeCredits(userId: string, credits: number) {
 
 async function grantReferralUpgradeReward(userId: string, amountPaid: number, tier?: string) {
   // ── Embaixadores campaign (2026-04-29) ──
-  // When a referred friend purchases a paid tier:
-  //   - Update existing 'confirmed' reward to 'paid_upgrade'
-  //   - Bump points from 1 → 5 (REPLACES, not additive — Pedro's call)
-  //   - Notify referrer via WhatsApp
-  // We require a real payment (amount_paid > 0) so 100% off coupons don't count.
+  // When a paid tier is purchased:
+  //   1. SELF: stamp profiles.self_upgrade_at so the user gets +5 in their
+  //      OWN ranking position (only counted by the RPC if they opted in).
+  //   2. REFERRER (if any): update existing 'confirmed' reward to
+  //      'paid_upgrade', bump points 1 → 5, notify via WhatsApp.
+  // Both gated on amount_paid > 0 so 100% off coupons don't count.
   if (amountPaid <= 0) {
     console.log(`Referral upgrade skipped: amount_paid=${amountPaid} (zero-cost upgrade)`)
     return
@@ -82,6 +83,24 @@ async function grantReferralUpgradeReward(userId: string, amountPaid: number, ti
 
   const supabase = getAdminClient()
 
+  // ── 1. SELF — stamp self_upgrade_at if not already set ──
+  // Idempotent: only the FIRST paid upgrade counts. Subsequent upgrades
+  // (e.g. Estreante → Colecionador) don't add more points.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('self_upgrade_at')
+    .eq('id', userId)
+    .single()
+  const profileSelfUpgradedAt = (profile as { self_upgrade_at: string | null } | null)?.self_upgrade_at
+  if (!profileSelfUpgradedAt) {
+    await supabase
+      .from('profiles')
+      .update({ self_upgrade_at: new Date().toISOString() })
+      .eq('id', userId)
+    console.log(`Self-upgrade stamped for user ${userId} (tier: ${tier})`)
+  }
+
+  // ── 2. REFERRER (if user was referred) ──
   // Find the existing signup reward for this user
   const { data: existing } = await supabase
     .from('referral_rewards')

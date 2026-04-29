@@ -54,7 +54,10 @@ function assert(cond: boolean, msg: string) {
   else { fail++; failures.push(msg); console.log(`  ❌ ${msg}`) }
 }
 
-async function createTestUser(label: string, opts?: { email?: string; excluded?: boolean }) {
+async function createTestUser(
+  label: string,
+  opts?: { email?: string; excluded?: boolean; optedIn?: boolean; selfUpgradedAt?: string },
+) {
   const email = opts?.email || `${TEST_PREFIX}${label}_${Date.now()}@completeai.test`
   const { data, error } = await admin.auth.admin.createUser({
     email, password: 'test123!T', email_confirm: true,
@@ -65,6 +68,8 @@ async function createTestUser(label: string, opts?: { email?: string; excluded?:
     email,
     display_name: `Smoke ${label}`,
     excluded_from_campaign: !!opts?.excluded,
+    opted_into_campaign_at: opts?.optedIn ? new Date().toISOString() : null,
+    self_upgrade_at: opts?.selfUpgradedAt || null,
   }, { onConflict: 'id' })
   return data.user.id
 }
@@ -153,8 +158,12 @@ async function runTests() {
   assert(refScanDelta === 1, `Referrer got +1 scan credit`)
   assert(friendTradeDelta === 1, `Indicated friend got +1 trade credit`)
 
-  // ── 5. Coupon at 5 friends ──
+  // ── 5. Coupon at 5 friends (requires opt-in now) ──
   header('5. Coupon at 5 friends')
+  // Coupons are gated on opt-in — set it for the referrer BEFORE the check
+  await admin.from('profiles')
+    .update({ opted_into_campaign_at: new Date().toISOString() })
+    .eq('id', referrerId)
   for (let i = 2; i <= 5; i++) {
     const fId = await createTestUser(`friend${i}`)
     await admin.from('referral_rewards').insert({
@@ -163,7 +172,11 @@ async function runTests() {
       confirmed_at: new Date().toISOString(),
     })
   }
-  assert(await shouldIssueCouponNow(referrerId), `should issue at 5 friends`)
+  assert(await shouldIssueCouponNow(referrerId), `should issue at 5 friends (after opt-in)`)
+  // Reset to NOT opted-in so test 9 (ranking gating) starts clean
+  await admin.from('profiles')
+    .update({ opted_into_campaign_at: null })
+    .eq('id', referrerId)
   const issued = await issueReferrerCoupon(referrerId)
   assert(issued !== null && /^REF-[A-Z0-9]{5}$/.test(issued.code), `Coupon issued (${issued?.code})`)
 
@@ -229,26 +242,114 @@ async function runTests() {
   const nullIp = await checkReferralIpRateLimit(null)
   assert(nullIp.allowed === true, `null IP never rate-limited`)
 
-  // ── 9. Weekly ranking RPC ──
-  header('9. Weekly ranking RPC')
-  const { data: ranking } = await admin.rpc('get_embaixadores_weekly_ranking', {
+  // ── 9. Ranking RPC: requires opt-in ──
+  header('9. Ranking RPC (opt-in gating)')
+
+  // referrerId from earlier tests is NOT opted-in yet — should be invisible
+  const { data: rankingNoOpt } = await admin.rpc('get_embaixadores_weekly_ranking', {
     p_user_id: referrerId, p_limit: 50,
   })
-  const rankRows = (ranking || []) as Array<{ user_id: string; rank: number; total_points: number }>
-  const referrerRow = rankRows.find((r) => r.user_id === referrerId)
-  assert(referrerRow !== undefined, `referrer appears in ranking`)
-  assert(referrerRow!.total_points === 10, `referrer points = 10 in ranking`)
+  const rowsNoOpt = (rankingNoOpt || []) as Array<{ user_id: string; rank: number; total_points: number; self_upgraded: boolean }>
+  const beforeOptInRow = rowsNoOpt.find((r) => r.user_id === referrerId)
+  assert(beforeOptInRow === undefined, `referrer NOT in ranking before opting in`)
+
+  // Opt-in the referrer manually
+  await admin.from('profiles')
+    .update({ opted_into_campaign_at: new Date().toISOString() })
+    .eq('id', referrerId)
+
+  const { data: rankingOpted } = await admin.rpc('get_embaixadores_weekly_ranking', {
+    p_user_id: referrerId, p_limit: 50,
+  })
+  const rowsOpted = (rankingOpted || []) as Array<{ user_id: string; rank: number; total_points: number; self_upgraded: boolean }>
+  const afterOptInRow = rowsOpted.find((r) => r.user_id === referrerId)
+  assert(afterOptInRow !== undefined, `referrer appears in ranking AFTER opt-in`)
+  assert(afterOptInRow!.total_points === 10, `referrer points = 10 (5 confirmed × 1 + 1 paid × 5)`)
 
   // Excluded user must NOT appear
-  const excludedRow = rankRows.find((r) => r.user_id === excludedId)
-  assert(excludedRow === undefined, `excluded user does NOT appear in public ranking`)
+  const excludedRow = rowsOpted.find((r) => r.user_id === excludedId)
+  assert(excludedRow === undefined, `excluded user does NOT appear in ranking`)
 
   // Pedro (excluded) shouldn't appear either
   const { data: pedroProf } = await admin.from('profiles').select('id').eq('phone', '21997838210').single()
   if (pedroProf) {
-    const pedroRow = rankRows.find((r) => r.user_id === (pedroProf as { id: string }).id)
-    assert(pedroRow === undefined, `Pedro does NOT appear in public ranking`)
+    const pedroRow = rowsOpted.find((r) => r.user_id === (pedroProf as { id: string }).id)
+    assert(pedroRow === undefined, `Pedro does NOT appear in ranking`)
   }
+
+  // ── 9b. Self-upgrade adds +5 ──
+  header('9b. Self-upgrade bonus')
+  const selfUpgradedId = await createTestUser('selfup', { optedIn: true, selfUpgradedAt: new Date().toISOString() })
+  const { data: rankingSelfUp } = await admin.rpc('get_embaixadores_weekly_ranking', {
+    p_user_id: selfUpgradedId, p_limit: 100,
+  })
+  const selfUpRows = (rankingSelfUp || []) as Array<{ user_id: string; total_points: number; self_upgraded: boolean }>
+  const selfUpRow = selfUpRows.find((r) => r.user_id === selfUpgradedId)
+  assert(selfUpRow !== undefined, `self-upgrade user appears in ranking`)
+  assert(selfUpRow!.self_upgraded === true, `self_upgraded flag is true`)
+  assert(selfUpRow!.total_points === 5, `self-upgrade alone = 5 points`)
+
+  // ── 9c. Pre-opt-in referrals count, pre-campaign referrals don't ──
+  header('9c. Lookback boundary')
+  const lateOptedInId = await createTestUser('late_optin')
+
+  // Friend confirmed NOW (within campaign + lookback window)
+  const friendInsideWindow = await createTestUser('friend_inside')
+  await admin.from('referral_rewards').insert({
+    referrer_id: lateOptedInId, referred_id: friendInsideWindow, reward_type: 'signup',
+    status: 'confirmed', points: 1, trade_credits: 1, scan_credits: 1,
+    confirmed_at: new Date().toISOString(),
+  })
+
+  // Friend confirmed BEFORE campaign_start (must NOT count even with lookback,
+  // because earliest_eligible is clamped to campaign_start)
+  const friendBeforeCampaign = await createTestUser('friend_before')
+  await admin.from('referral_rewards').insert({
+    referrer_id: lateOptedInId, referred_id: friendBeforeCampaign, reward_type: 'signup',
+    status: 'confirmed', points: 1, trade_credits: 1, scan_credits: 1,
+    confirmed_at: '2026-04-20T00:00:00Z',  // 9 days before campaign_start
+  })
+
+  // Now opt in (NOW is within campaign window)
+  await admin.from('profiles')
+    .update({ opted_into_campaign_at: new Date().toISOString() })
+    .eq('id', lateOptedInId)
+
+  const { data: rankingLate } = await admin.rpc('get_embaixadores_weekly_ranking', {
+    p_user_id: lateOptedInId, p_limit: 100,
+  })
+  const lateRows = (rankingLate || []) as Array<{ user_id: string; total_points: number }>
+  const lateRow = lateRows.find((r) => r.user_id === lateOptedInId)
+  assert(lateRow !== undefined, `late-opted-in user appears`)
+  assert(lateRow!.total_points === 1,
+    `only the in-window referral counts; pre-campaign one excluded (got ${lateRow?.total_points})`)
+
+  // ── 9d. Cupom requires opt-in ──
+  header('9d. Coupon issuance gated on opt-in')
+  const noOptId = await createTestUser('no_optin') // NOT opted in
+  for (let i = 0; i < 5; i++) {
+    const fId = await createTestUser(`no_optin_friend${i}`)
+    await admin.from('referral_rewards').insert({
+      referrer_id: noOptId, referred_id: fId, reward_type: 'signup',
+      status: 'confirmed', points: 1, trade_credits: 1, scan_credits: 1,
+      confirmed_at: new Date().toISOString(),
+    })
+  }
+  const shouldIssueWithoutOptIn = await shouldIssueCouponNow(noOptId)
+  assert(!shouldIssueWithoutOptIn, `5 friends but NOT opted in → no coupon`)
+
+  // Now opt in
+  await admin.from('profiles')
+    .update({ opted_into_campaign_at: new Date().toISOString() })
+    .eq('id', noOptId)
+  const shouldIssueAfterOptIn = await shouldIssueCouponNow(noOptId)
+  assert(shouldIssueAfterOptIn, `same user, after opt-in → cupon CAN be issued`)
+
+  // ── 9e. participant count helper ──
+  header('9e. Participant count')
+  const { data: participantCount } = await admin.rpc('get_embaixadores_participant_count')
+  assert(typeof participantCount === 'number', `participant count returns a number`)
+  assert((participantCount as number) >= 3, `participant count includes our test opt-ins (got ${participantCount})`)
 
   // ── 10. Coupon validation cross-user check ──
   header('10. Coupon non-transferability')

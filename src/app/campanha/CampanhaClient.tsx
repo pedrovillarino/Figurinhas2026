@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { RankingRow, ActiveCoupon } from './page'
 
 type Stats = {
@@ -19,6 +20,10 @@ type Constants = {
   friendsForCoupon: number
   pointsConfirmed: number
   pointsPaidUpgrade: number
+  pointsSelfUpgrade: number
+  optinLookbackDays: number
+  minParticipants: number
+  minParticipantsForDisplay: number
 }
 
 type Totals = {
@@ -38,6 +43,9 @@ export default function CampanhaClient({
   campaignActive,
   campaignEndIso,
   userExcluded,
+  optedAt,
+  userSelfUpgradedAt,
+  participantCount,
   constants,
 }: {
   isLoggedIn: boolean
@@ -51,8 +59,44 @@ export default function CampanhaClient({
   campaignActive: boolean
   campaignEndIso: string
   userExcluded: boolean
+  optedAt: string | null
+  userSelfUpgradedAt: string | null
+  participantCount: number
   constants: Constants
 }) {
+  const router = useRouter()
+  const [optingIn, setOptingIn] = useState(false)
+  const [optInError, setOptInError] = useState<string | null>(null)
+  const isParticipating = !!optedAt
+  const showOptInCard = isLoggedIn && !userExcluded && !isParticipating && campaignActive
+  const minParticipantsMet = participantCount >= constants.minParticipants
+  // Public ranking + numeric counters only render once we cross the display
+  // threshold. Below that, "warming up" placeholders avoid making the page
+  // feel deserted in the first hours.
+  const canShowPublicNumbers = participantCount >= constants.minParticipantsForDisplay
+
+  async function handleOptIn() {
+    setOptingIn(true)
+    setOptInError(null)
+    try {
+      const res = await fetch('/api/campanha/opt-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setOptInError(data.error || 'Erro ao participar')
+        setOptingIn(false)
+        return
+      }
+      // Reload to fetch fresh state (referral code, stats, possible coupon)
+      router.refresh()
+    } catch {
+      setOptInError('Erro de conexão')
+      setOptingIn(false)
+    }
+  }
   const campaignEndDateLabel = new Date(campaignEndIso).toLocaleDateString('pt-BR', {
     timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric',
   })
@@ -101,7 +145,10 @@ export default function CampanhaClient({
     }
   }
 
-  const showRanking = ranking.length >= 1
+  // Show the actual ranking only once we've crossed the public display
+  // threshold (avoids "1 participant ranking" weirdness in the first hours).
+  // Logged-in user always sees their OWN row even before the threshold.
+  const showRanking = canShowPublicNumbers && ranking.length >= 1
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-amber-50 pb-32">
@@ -154,8 +201,36 @@ export default function CampanhaClient({
         </section>
       )}
 
-      {/* ── Member area (logged in, NOT excluded) ── */}
-      {isLoggedIn && !userExcluded && referralCode && stats && (
+      {/* ── Opt-in card (logged in, NOT excluded, NOT yet opted in) ── */}
+      {showOptInCard && (
+        <section className="px-4 max-w-2xl mx-auto mb-8">
+          <div className="bg-white rounded-2xl border-2 border-brand shadow-lg p-6 text-center">
+            <div className="text-5xl mb-3">🎯</div>
+            <h2 className="text-xl font-black text-navy mb-2">Pronto pra participar?</h2>
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+              Clique abaixo pra entrar oficialmente na campanha.
+              <br />
+              Você vai receber seu link único, aparecer no ranking e poder ganhar cupons + prêmios.
+            </p>
+            <button
+              onClick={handleOptIn}
+              disabled={optingIn}
+              className="w-full max-w-xs mx-auto bg-brand text-white font-bold py-3.5 rounded-xl hover:bg-brand-dark active:scale-95 transition disabled:opacity-50"
+            >
+              {optingIn ? 'Entrando…' : '🚀 Começar a participar'}
+            </button>
+            {optInError && (
+              <p className="mt-3 text-xs text-red-500">{optInError}</p>
+            )}
+            <p className="text-[11px] text-gray-400 mt-3">
+              Indicações + upgrade que você fez nos últimos {constants.optinLookbackDays} dias entram retroativamente.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ── Member area (logged in, NOT excluded, opted in) ── */}
+      {isLoggedIn && !userExcluded && isParticipating && referralCode && stats && (
         <section className="px-4 max-w-2xl mx-auto mb-10">
           <div className="bg-white rounded-2xl border-2 border-brand/20 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
@@ -169,11 +244,27 @@ export default function CampanhaClient({
             </div>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-3 gap-2 mb-5">
+            <div className="grid grid-cols-3 gap-2 mb-3">
               <StatBox label="Confirmados" value={stats.confirmed} color="text-emerald-600" />
               <StatBox label="Pagantes" value={stats.paidUpgrade} color="text-amber-600" sub="vale 5 pts cada" />
               <StatBox label="Pendentes" value={stats.pending} color="text-gray-500" />
             </div>
+
+            {/* Self-upgrade bonus indicator */}
+            {userSelfUpgradedAt && (
+              <div className="mb-5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                <p className="text-xs text-emerald-700">
+                  💎 <strong>+{constants.pointsSelfUpgrade} pts</strong> por ter assinado um plano pago
+                </p>
+              </div>
+            )}
+            {!userSelfUpgradedAt && (
+              <div className="mb-5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                <Link href="/upgrade" className="text-xs text-amber-700 font-medium hover:underline">
+                  💡 Assine qualquer plano e ganhe <strong>+{constants.pointsSelfUpgrade} pts</strong> bônus
+                </Link>
+              </div>
+            )}
 
             {/* Referral link */}
             <div className="mb-4">
@@ -268,25 +359,33 @@ export default function CampanhaClient({
         <h2 className="text-xl font-black text-navy mb-4">📖 Como funciona</h2>
 
         <ol className="space-y-3">
-          <RuleStep number={1} title="Compartilhe seu link de indicação">
+          <RuleStep number={1} title='Clique em "Começar a participar"'>
+            Pra entrar no ranking e ganhar cupons, você precisa fazer opt-in clicando no botão acima. <strong>Indicações + upgrade que você fez nos últimos {constants.optinLookbackDays} dias antes do clique entram retroativamente.</strong>
+          </RuleStep>
+
+          <RuleStep number={2} title="Compartilhe seu link de indicação">
             Cada amigo que se cadastrar pelo seu link entra no sistema. Funciona pra qualquer canal: WhatsApp, Instagram, e-mail, link direto.
           </RuleStep>
 
-          <RuleStep number={2} title={`Amigo confirma cadastro = +${constants.pointsConfirmed} ponto pra você`}>
-            Você ganha <strong>{constants.pointsConfirmed} ponto no ranking semanal</strong> e <strong>+1 scan grátis</strong> (~20 figurinhas reconhecidas) imediatamente. O amigo ganha <strong>+1 troca extra</strong>.
+          <RuleStep number={3} title={`Amigo confirma cadastro = +${constants.pointsConfirmed} ponto pra você`}>
+            Você ganha <strong>{constants.pointsConfirmed} ponto no ranking</strong> e <strong>+1 scan grátis</strong> (~20 figurinhas reconhecidas) imediatamente. O amigo ganha <strong>+1 troca extra</strong>.
           </RuleStep>
 
-          <RuleStep number={3} title={`Amigo assina plano pago = +${constants.pointsPaidUpgrade} pontos pra você`}>
+          <RuleStep number={4} title={`Amigo assina plano pago = +${constants.pointsPaidUpgrade} pontos pra você`}>
             Quando o amigo faz upgrade pra qualquer plano pago (Estreante, Colecionador ou Copa Completa), seus pontos sobem de {constants.pointsConfirmed} → <strong>{constants.pointsPaidUpgrade}</strong> nessa indicação. Substitui, não soma.
           </RuleStep>
 
-          <RuleStep number={4} title={`A cada ${constants.friendsForCoupon} amigos confirmados = cupom ${constants.couponPercentOff}% off`}>
+          <RuleStep number={5} title={`Você assinar um plano = +${constants.pointsSelfUpgrade} pontos pra você`}>
+            Se você mesmo assinar qualquer plano pago durante a campanha, ganha <strong>+{constants.pointsSelfUpgrade} pontos bônus</strong> no seu ranking. Vale uma vez por usuário (a primeira assinatura conta).
+          </RuleStep>
+
+          <RuleStep number={6} title={`A cada ${constants.friendsForCoupon} amigos confirmados = cupom ${constants.couponPercentOff}% off`}>
             Você recebe um cupom <strong>{constants.couponPercentOff}% off</strong> pessoal e válido por <strong>{constants.couponValidityHours} horas</strong>. Não-transferível. Use no upgrade do seu plano.
             <br />
             <span className="text-[11px] text-gray-500">Cupons não acumulam — usar/expirar libera o próximo.</span>
           </RuleStep>
 
-          <RuleStep number={5} title="Top 3 da campanha ganha kit físico">
+          <RuleStep number={7} title="Top 3 da campanha ganha kit físico">
             <ul className="text-sm text-gray-700 space-y-1 mt-1">
               <li>🥇 <strong>1º:</strong> Porta-figurinha + 10 pacotes + 5 trocas extras (70 figs)</li>
               <li>🥈 <strong>2º:</strong> Porta-figurinha + 8 pacotes + 5 trocas extras (56 figs)</li>
@@ -295,7 +394,11 @@ export default function CampanhaClient({
             <p className="text-[11px] text-gray-500 mt-2">Pontuação acumula durante todo o período da campanha — ranking final fecha em {campaignEndDateLabel} às {campaignEndTimeLabel}.</p>
           </RuleStep>
 
-          <RuleStep number={6} title={`Campanha vai até ${campaignEndDateLabel} às ${campaignEndTimeLabel}`}>
+          <RuleStep number={8} title={`Mínimo de ${constants.minParticipants} participantes`}>
+            Se a campanha não atingir <strong>{constants.minParticipants} participantes</strong> que fizeram opt-in, a Complete Aí pode <strong>prorrogar a data final</strong> a seu critério. Avisaremos por aqui caso isso aconteça.
+          </RuleStep>
+
+          <RuleStep number={9} title={`Campanha vai até ${campaignEndDateLabel} às ${campaignEndTimeLabel}`}>
             Após esse prazo: <strong>cupons param de ser concedidos</strong>, prêmios físicos do top 3 são enviados pelos Correios, e a página de campanha sai do app. Cupons já emitidos seguem suas próprias datas de validade (48h cada).
           </RuleStep>
         </ol>
@@ -349,9 +452,13 @@ export default function CampanhaClient({
         {!showRanking ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
             <p className="text-sm text-gray-500">
-              Ranking aparece assim que <strong>os primeiros embaixadores</strong> entrarem na disputa.
+              Ranking aparece quando <strong>{constants.minParticipantsForDisplay} embaixadores</strong> entrarem na disputa.
             </p>
-            <p className="text-xs text-gray-400 mt-2">Você pode ser o primeiro!</p>
+            <p className="text-xs text-gray-400 mt-2">
+              {participantCount === 0
+                ? 'Seja o primeiro!'
+                : `Já temos ${participantCount} — faltam ${Math.max(0, constants.minParticipantsForDisplay - participantCount)}.`}
+            </p>
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
@@ -371,11 +478,46 @@ export default function CampanhaClient({
       {/* ── Live community counters ── */}
       <section className="px-4 max-w-2xl mx-auto mb-10">
         <h2 className="text-xl font-black text-navy mb-4">🌍 Comunidade ao vivo</h2>
-        <div className="grid grid-cols-3 gap-2">
-          <CounterCard label="Embaixadores" value={totals.ambassadors} icon="🚀" />
-          <CounterCard label="Cadastros via indicação" value={totals.confirmed} icon="✅" />
-          <CounterCard label="Já fizeram upgrade" value={totals.paidUpgrades} icon="💎" />
+
+        {/* Participant progress (min 50 rule) — always visible */}
+        <div className={`mb-3 rounded-2xl border p-4 ${
+          minParticipantsMet ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <p className={`text-xs font-bold ${minParticipantsMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+              👥 Participantes confirmados
+            </p>
+            <p className={`text-sm font-black ${minParticipantsMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {participantCount} / {constants.minParticipants}
+            </p>
+          </div>
+          <div className="h-2 bg-white rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-700 ${minParticipantsMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
+              style={{ width: `${Math.min(100, (participantCount / constants.minParticipants) * 100)}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-gray-600 mt-2 leading-tight">
+            {minParticipantsMet
+              ? '✅ Mínimo atingido — campanha rola na data prevista.'
+              : `Faltam ${Math.max(0, constants.minParticipants - participantCount)} pra atingir o mínimo. Se não chegar lá, a Complete Aí pode prorrogar a data final.`}
+          </p>
         </div>
+
+        {/* Numeric counters — only after we cross the display threshold */}
+        {canShowPublicNumbers ? (
+          <div className="grid grid-cols-3 gap-2">
+            <CounterCard label="Embaixadores" value={totals.ambassadors} icon="🚀" />
+            <CounterCard label="Cadastros via indicação" value={totals.confirmed} icon="✅" />
+            <CounterCard label="Já fizeram upgrade" value={totals.paidUpgrades} icon="💎" />
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 text-center">
+            <p className="text-xs text-gray-500">
+              Números aparecem quando <strong>{constants.minParticipantsForDisplay} participantes</strong> entrarem.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* ── CTA fixo no rodapé ── */}
@@ -464,6 +606,7 @@ function RankingRowItem({ row }: { row: RankingRow }) {
       <span className="flex-1 text-sm font-medium text-gray-800 truncate">
         {row.is_self && <span className="text-brand">VOCÊ · </span>}
         {name}
+        {row.self_upgraded && <span className="ml-1" title="Assinou plano pago — +5 pts bônus">⭐</span>}
       </span>
       <div className="text-right">
         <p className="text-sm font-black text-brand">{row.total_points} pts</p>
