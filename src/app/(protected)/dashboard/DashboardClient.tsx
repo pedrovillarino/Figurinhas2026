@@ -11,6 +11,8 @@ type Sticker = {
   country: string
   section: string
   type: string
+  counts_for_completion?: boolean
+  display_order?: number
 }
 
 type UserStickerInfo = { status: string; quantity: number; updated_at: string | null }
@@ -146,12 +148,24 @@ export default function DashboardClient({
 }) {
   const [showAll, setShowAll] = useState(false)
 
-  const TOTAL = stickers.length || 1028
+  // Only completable stickers (counts_for_completion=true) move the X/980
+  // bar. Coca-Cola and PANINI Extras render in the album but don't count.
+  const completableStickers = useMemo(
+    () => stickers.filter((s) => s.counts_for_completion !== false),
+    [stickers],
+  )
+  const completableIds = useMemo(
+    () => new Set(completableStickers.map((s) => s.id)),
+    [completableStickers],
+  )
+
+  const TOTAL = completableStickers.length || 980
 
   // ─── Core Stats ───
   const stats = useMemo(() => {
     let owned = 0, duplicates = 0, totalExtras = 0
-    Object.values(userStickersMap).forEach((us) => {
+    Object.entries(userStickersMap).forEach(([id, us]) => {
+      if (!completableIds.has(Number(id))) return
       if (us.status === 'owned') owned++
       if (us.status === 'duplicate') {
         owned++
@@ -166,7 +180,7 @@ export default function DashboardClient({
       totalExtras,
       pct: TOTAL > 0 ? Math.round((owned / TOTAL) * 100) : 0,
     }
-  }, [userStickersMap, TOTAL])
+  }, [userStickersMap, TOTAL, completableIds])
 
   // ─── Country Breakdown ───
   const countryData = useMemo(() => {

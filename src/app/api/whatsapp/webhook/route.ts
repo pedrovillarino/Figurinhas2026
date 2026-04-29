@@ -140,19 +140,26 @@ async function findUserByPhone(phone: string) {
 }
 
 // ─── Get user stats ───
+// Only stickers with counts_for_completion=true are part of the X/980 album
+// progress. Decorative collections (Coca-Cola, PANINI Extras) appear in the
+// app but don't move the percentage.
 async function getUserStats(userId: string) {
   const supabase = getAdmin()
 
   const { count: totalStickers } = await supabase
     .from('stickers')
     .select('*', { count: 'exact', head: true })
+    .eq('counts_for_completion', true)
 
+  // Inner join via embedded select so user_stickers rows that hit a
+  // non-completable sticker (Coca-Cola, Extras) are filtered out server-side.
   const { data: userStickers } = await supabase
     .from('user_stickers')
-    .select('status, quantity')
+    .select('status, quantity, stickers!inner(counts_for_completion)')
     .eq('user_id', userId)
+    .eq('stickers.counts_for_completion', true)
 
-  const total = totalStickers || 1028
+  const total = totalStickers || 980
   let owned = 0
   let duplicates = 0
 

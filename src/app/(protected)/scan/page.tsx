@@ -19,10 +19,13 @@ export default async function ScanPage() {
 
   const [{ data: profile }, { count }] = await Promise.all([
     supabase.from('profiles').select('tier').eq('id', user.id).single(),
-    supabase.from('stickers').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('stickers')
+      .select('id', { count: 'exact', head: true })
+      .eq('counts_for_completion', true),
   ])
 
   const tier = (profile?.tier || 'free') as Tier
 
-  return <ScanHub userId={user.id} totalStickers={count || 1028} tier={tier} />
+  return <ScanHub userId={user.id} totalStickers={count || 980} tier={tier} />
 }

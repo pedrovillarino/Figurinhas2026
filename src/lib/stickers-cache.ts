@@ -16,17 +16,17 @@ export const getCachedStickers = unstable_cache(
     const [page1, page2] = await Promise.all([
       supabase
         .from('stickers')
-        .select('id, number, player_name, country, section, type')
-        .order('number')
+        .select('id, number, player_name, country, section, type, counts_for_completion, display_order')
+        .order('display_order')
         .range(0, 999),
       supabase
         .from('stickers')
-        .select('id, number, player_name, country, section, type')
-        .order('number')
+        .select('id, number, player_name, country, section, type, counts_for_completion, display_order')
+        .order('display_order')
         .range(1000, 1999),
     ])
     return [...(page1.data || []), ...(page2.data || [])]
   },
-  ['stickers-list-v2026-launch-r2'],
+  ['stickers-list-v2026-launch-r3'],
   { revalidate: 3600 }
 )

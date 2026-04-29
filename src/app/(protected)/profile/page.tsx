@@ -142,16 +142,19 @@ export default function ProfilePage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Only completable stickers move the X/980 progress.
     const { count: totalStickers } = await supabase
       .from('stickers')
       .select('*', { count: 'exact', head: true })
+      .eq('counts_for_completion', true)
 
     const { data: userStickers } = await supabase
       .from('user_stickers')
-      .select('status')
+      .select('status, stickers!inner(counts_for_completion)')
       .eq('user_id', user.id)
+      .eq('stickers.counts_for_completion', true)
 
-    const total = totalStickers || 1028
+    const total = totalStickers || 980
     let owned = 0, duplicates = 0
     userStickers?.forEach((us) => {
       if (us.status === 'owned') owned++

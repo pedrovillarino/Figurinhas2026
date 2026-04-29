@@ -78,19 +78,28 @@ export default async function RankingPage() {
     neighborhoodStats = nbs.data || []
   } catch { /* stats unavailable */ }
 
-  // User stats
+  // Only completable stickers count for the X/980 progress shown on the
+  // ranking card. Coca-Cola and PANINI Extras (counts_for_completion=false)
+  // appear in the album but don't move the bar.
+  const completableStickers = stickers.filter(
+    (s: { counts_for_completion?: boolean }) => s.counts_for_completion !== false,
+  )
+  const completableIds = new Set(completableStickers.map((s: { id: number }) => s.id))
+
+  // User stats — only count user_stickers that hit a completable sticker.
   const { data: userStickers } = await supabase
     .from('user_stickers')
-    .select('status, quantity')
+    .select('sticker_id, status, quantity')
     .eq('user_id', user.id)
 
   let owned = 0, duplicates = 0
   userStickers?.forEach((us) => {
+    if (!completableIds.has(us.sticker_id)) return
     if (us.status === 'owned') owned++
     if (us.status === 'duplicate') { owned++; duplicates++ }
   })
 
-  const specialSections = ['Introduction', 'FIFA World Cup', 'PANINI Extras']
+  const specialSections = ['Coca-Cola', 'FIFA World Cup', 'PANINI Extras']
   const sections = Array.from(new Set(stickers.map((s: { section: string }) => s.section)))
     .filter((s): s is string => !specialSections.includes(s as string))
     .sort()
@@ -107,7 +116,7 @@ export default async function RankingPage() {
       sections={sections}
       owned={owned}
       duplicates={duplicates}
-      total={stickers.length}
+      total={completableStickers.length}
       userId={user.id}
       userDisplayName={profile?.display_name || null}
       userAvatar={profile?.avatar_url || null}

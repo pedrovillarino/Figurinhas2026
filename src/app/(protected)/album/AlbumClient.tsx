@@ -18,6 +18,11 @@ type Sticker = {
   country: string
   section: string
   type: string
+  /** False for decorative collections (Coca-Cola, PANINI Extras) — they
+   *  appear in the album but don't move the X/980 progress bar. */
+  counts_for_completion?: boolean
+  /** Order in the physical album (intro → groups A-L → history → coca → extras). */
+  display_order?: number
 }
 
 type UserStickerInfo = { status: string; quantity: number }
@@ -79,27 +84,50 @@ export default function AlbumClient({
     setOpenSections(new Set())
   }, [activeTab, debouncedSearch])
 
-  // Sort numérico natural (ARG-1, ARG-2, ..., ARG-10 em vez de ARG-1, ARG-10, ARG-2)
+  // Sort by display_order (physical album order) when available; fall back to
+  // natural number sort for legacy data. The album opens at intro (FWC-0..8),
+  // then teams in group order A-L, then FIFA history, then Coca-Cola, then
+  // PANINI Extras at the bottom.
   const collator = useMemo(() => new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' }), [])
   const sortedStickers = useMemo(
-    () => [...stickers].sort((a, b) => collator.compare(a.number, b.number)),
+    () => [...stickers].sort((a, b) => {
+      const aOrder = a.display_order ?? -1
+      const bOrder = b.display_order ?? -1
+      if (aOrder !== bOrder) return aOrder - bOrder
+      return collator.compare(a.number, b.number)
+    }),
     [stickers, collator]
   )
 
-  const TOTAL = sortedStickers.length || 1028
+  // Only stickers with counts_for_completion=true (treat undefined as true for
+  // backward compat) move the X/980 progress bar. Decorative sections like
+  // Coca-Cola and PANINI Extras still render but don't pull the percentage.
+  const completableStickers = useMemo(
+    () => sortedStickers.filter((s) => s.counts_for_completion !== false),
+    [sortedStickers],
+  )
+  const completableIds = useMemo(
+    () => new Set(completableStickers.map((s) => s.id)),
+    [completableStickers],
+  )
+
+  const TOTAL = completableStickers.length || 980
 
   const stats = useMemo(() => {
     let owned = 0, duplicates = 0, totalDupeQty = 0
-    Object.values(userMap).forEach((us) => {
+    Object.entries(userMap).forEach(([id, us]) => {
+      // Don't let a Coca-Cola or PANINI Extra sticker the user happens to own
+      // bump the progress bar past 100%.
+      if (!completableIds.has(Number(id))) return
       if (us.status === 'owned') owned++
       if (us.status === 'duplicate') {
-        owned++ // duplicate also counts as owned
+        owned++
         duplicates++
-        totalDupeQty += us.quantity - 1 // extras beyond 1
+        totalDupeQty += us.quantity - 1
       }
     })
     return { owned, missing: TOTAL - owned, duplicates, totalDupeQty }
-  }, [userMap, TOTAL])
+  }, [userMap, TOTAL, completableIds])
 
   // Section stats (group by section name, not country — so special sections like Legends, Stadiums appear separately)
   const sectionStats = useMemo(() => {
