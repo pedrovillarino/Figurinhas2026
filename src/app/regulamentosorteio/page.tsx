@@ -91,8 +91,8 @@ export default function RegulamentoConcursoPage() {
         <Section number="7" title="Apuração">
           <p>
             Realizada via plataforma <strong>Sorteiogram</strong>{' '}
-            (<a href="https://sorteiogram.com" target="_blank" rel="noopener noreferrer" className="text-brand underline">
-              sorteiogram.com
+            (<a href="https://sorteio.com" target="_blank" rel="noopener noreferrer" className="text-brand underline">
+              sorteio.com
             </a>),
             com gravação em tela publicada nos stories oficiais{' '}
             <strong>@completeai</strong>.
