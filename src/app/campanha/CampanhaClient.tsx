@@ -348,7 +348,7 @@ export default function CampanhaClient({
               href="/register"
               className="inline-block bg-brand text-white font-bold px-8 py-3 rounded-xl hover:bg-brand-dark transition active:scale-95"
             >
-              Cadastrar e participar
+              Começar a participar
             </Link>
           </div>
         </section>
@@ -542,7 +542,7 @@ export default function CampanhaClient({
             href="/register"
             className="block w-full bg-brand text-white text-center font-bold py-3 rounded-xl active:scale-95 transition"
           >
-            Cadastrar e participar
+            Começar a participar
           </Link>
         )}
       </div>
