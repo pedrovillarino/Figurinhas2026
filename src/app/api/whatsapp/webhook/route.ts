@@ -140,9 +140,10 @@ async function findUserByPhone(phone: string) {
 }
 
 // ─── Get user stats ───
-// Only stickers with counts_for_completion=true are part of the X/980 album
-// progress. Decorative collections (Coca-Cola, PANINI Extras) appear in the
-// app but don't move the percentage.
+// Returns the X/980 album progress AND the per-color extras breakdown.
+// Album progress only counts completable stickers; extras are tracked
+// separately and serve as ranking tiebreaks (gold > silver > bronze >
+// regular > coca-cola).
 async function getUserStats(userId: string) {
   const supabase = getAdmin()
 
@@ -151,31 +152,53 @@ async function getUserStats(userId: string) {
     .select('*', { count: 'exact', head: true })
     .eq('counts_for_completion', true)
 
-  // Inner join via embedded select so user_stickers rows that hit a
-  // non-completable sticker (Coca-Cola, Extras) are filtered out server-side.
-  const { data: userStickers } = await supabase
+  // Pull every user_sticker once, joined with the sticker so we can count
+  // both album progress and per-variant extras in the same pass.
+  const { data: rows } = await supabase
     .from('user_stickers')
-    .select('status, quantity, stickers!inner(counts_for_completion)')
+    .select('status, stickers!inner(counts_for_completion, variant, section)')
     .eq('user_id', userId)
-    .eq('stickers.counts_for_completion', true)
+    .in('status', ['owned', 'duplicate'])
 
   const total = totalStickers || 980
   let owned = 0
   let duplicates = 0
+  let extrasGold = 0
+  let extrasSilver = 0
+  let extrasBronze = 0
+  let extrasRegular = 0
+  let extrasCocacola = 0
 
-  userStickers?.forEach((us) => {
-    if (us.status === 'owned') owned++
-    if (us.status === 'duplicate') {
-      owned++
-      duplicates++
+  type UsRow = { status: string; stickers: { counts_for_completion: boolean; variant: string | null; section: string } | { counts_for_completion: boolean; variant: string | null; section: string }[] | null }
+  ;(rows || []).forEach((row) => {
+    const us = row as unknown as UsRow
+    // PostgREST may shape the inner-join as either an object or an array
+    // depending on relationship metadata — normalize to a single object.
+    const s = Array.isArray(us.stickers) ? us.stickers[0] : us.stickers
+    if (!s) return
+    if (s.counts_for_completion) {
+      if (us.status === 'owned') owned++
+      if (us.status === 'duplicate') { owned++; duplicates++ }
+    } else {
+      if (s.variant === 'gold') extrasGold++
+      else if (s.variant === 'silver') extrasSilver++
+      else if (s.variant === 'bronze') extrasBronze++
+      else if (s.variant === 'regular') extrasRegular++
+      else if (s.section === 'Coca-Cola') extrasCocacola++
     }
   })
 
   const missing = total - owned
   const pct = Math.round((owned / total) * 100)
+  const extrasTotal = extrasGold + extrasSilver + extrasBronze + extrasRegular + extrasCocacola
 
-  return { owned, missing, duplicates, total, pct }
+  return {
+    owned, missing, duplicates, total, pct,
+    extrasTotal, extrasGold, extrasSilver, extrasBronze, extrasRegular, extrasCocacola,
+  }
 }
+
+const EXTRAS_TOTAL_AVAILABLE = 92  // 12 Coca-Cola + 80 PANINI Extras (20 × 4 cores)
 
 // ─── Section name resolver (PT/EN, fuzzy, multi-input) ────────────────────
 //
@@ -981,7 +1004,10 @@ export async function POST(req: NextRequest) {
               `✅ Coladas: *${stats.owned}*\n` +
               `❌ Faltam: *${stats.missing}*\n` +
               `🔁 Repetidas: *${stats.duplicates}*\n` +
-              `📈 Progresso: *${stats.pct}%* (${stats.owned}/${stats.total})`,
+              `📈 Progresso: *${stats.pct}%* (${stats.owned}/${stats.total})\n\n` +
+              `⭐ *Extras: ${stats.extrasTotal}/${EXTRAS_TOTAL_AVAILABLE}*\n` +
+              `🥇 ${stats.extrasGold} ouros · 🥈 ${stats.extrasSilver} pratas · 🥉 ${stats.extrasBronze} bronzes\n` +
+              `⭐ ${stats.extrasRegular} regulars · 🥤 ${stats.extrasCocacola} Coca-Cola`,
             nextButtons,
           )
           break

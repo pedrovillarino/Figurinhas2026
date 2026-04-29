@@ -18,8 +18,33 @@ type RankingData = {
   city_match_total?: number | null
   friends_rank?: number | null
   friends_total?: number | null
+  extras_total?: number
+  extras_gold?: number
+  extras_silver?: number
+  extras_bronze?: number
+  extras_regular?: number
+  extras_cocacola?: number
   [key: string]: unknown
 } | null
+
+const EXTRAS_TOTAL = 92  // 12 Coca-Cola + 80 PANINI Extras (20 jogadores × 4 cores)
+
+function ExtrasBreakdown({ ranking, compact = false }: { ranking: NonNullable<RankingData>; compact?: boolean }) {
+  const g = ranking.extras_gold ?? 0
+  const s = ranking.extras_silver ?? 0
+  const b = ranking.extras_bronze ?? 0
+  const r = ranking.extras_regular ?? 0
+  const c = ranking.extras_cocacola ?? 0
+  if (g + s + b + r + c === 0) {
+    return <span className="text-[10px] text-gray-400">sem extras ainda</span>
+  }
+  const sep = compact ? ' ' : '   '
+  return (
+    <span className="text-[11px] text-gray-700 font-medium">
+      🥇 {g}{sep}🥈 {s}{sep}🥉 {b}{sep}⭐ {r}{sep}🥤 {c}
+    </span>
+  )
+}
 
 type LeaderboardEntry = {
   user_id: string
@@ -30,6 +55,12 @@ type LeaderboardEntry = {
   pct: number
   tier: string
   rank: number
+  // Extras tiebreak counts (used for ranking order; also shown next to entry)
+  extras_gold?: number
+  extras_silver?: number
+  extras_bronze?: number
+  extras_regular?: number
+  extras_cocacola?: number
 }
 
 type RankingTab = 'national' | 'city' | 'neighborhood' | 'friends'
@@ -206,10 +237,18 @@ export default function RankingPageClient({
             </svg>
             <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-navy">{pct}%</span>
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-lg font-bold text-navy">{owned}/{total}</p>
             <p className="text-xs text-gray-500">figurinhas coladas</p>
             <p className="text-[10px] text-gray-400 mt-0.5">{duplicates} repetidas · {total - owned} faltando</p>
+            {ranking && (ranking.extras_total ?? 0) >= 0 && (
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <p className="text-[10px] font-semibold text-amber-700 mb-0.5">
+                  ⭐ Extras: {ranking.extras_total ?? 0}/{EXTRAS_TOTAL}
+                </p>
+                <ExtrasBreakdown ranking={ranking} />
+              </div>
+            )}
             {isPremium && (
               <span className="inline-flex items-center gap-1 mt-1 bg-yellow-50 text-yellow-700 rounded-full px-2 py-0.5 text-[9px] font-bold">
                 ⭐ Prioridade nas trocas
