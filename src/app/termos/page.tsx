@@ -45,7 +45,7 @@ export default function TermosPage() {
 
       <h1 className="text-2xl font-black text-navy mb-2">Termos de Serviço</h1>
       <p className="text-xs text-gray-400 mb-8">
-        Última atualização: 13 de abril de 2026 — Versão 1.3
+        Última atualização: 30 de abril de 2026 — Versão 1.4
       </p>
 
       <div className="bg-gold-light border border-gold rounded-lg p-4 mb-8">
@@ -232,6 +232,31 @@ export default function TermosPage() {
               Cada scan processa uma foto e pode detectar múltiplas figurinhas de uma vez. Os créditos
               extras não expiram e são cumulativos com o saldo do plano. Usuários do plano Free e Copa Completa
               não possuem opção de compra avulsa.
+            </P>
+          </SubSection>
+
+          <SubSection id="4.8">
+            <p className="text-sm font-semibold text-navy">4.8. Modificação de planos e ofertas</p>
+            <P>
+              A Complete Aí pode, a seu critério e a qualquer momento:
+            </P>
+            <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1 my-2">
+              <li>Criar novos planos ou modalidades de assinatura;</li>
+              <li>Descontinuar planos disponíveis para novos cadastros;</li>
+              <li>Modificar limites, recursos ou características de planos para novos usuários a partir da data da alteração;</li>
+              <li>Alterar preços conforme o item 4.6.</li>
+            </ul>
+            <P>
+              <strong>Direitos preservados:</strong> usuários já cadastrados em planos pagos mantêm
+              integralmente os benefícios do plano contratado pela vigência da edição atual do álbum,
+              conforme o item 4.4. Usuários do plano Free atual têm seus limites originais (descritos
+              no item 4.1) preservados até o fim da edição atual, mesmo que novos limites sejam
+              aplicados a cadastros posteriores.
+            </P>
+            <P>
+              <strong>Aviso prévio:</strong> modificações estruturais que afetem usuários existentes
+              serão comunicadas com no mínimo 30 (trinta) dias de antecedência por meio do App,
+              e-mail ou WhatsApp.
             </P>
           </SubSection>
         </Section>
