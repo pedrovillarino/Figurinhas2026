@@ -37,6 +37,14 @@ Sentry.init({
     'webkit.messageHandlers',
     'enableDidUserTypeOnKeyboardLogging',
     'Java object is gone',
+    // Supabase auth lock contention — happens when multiple client components
+    // (AuthRefresh, LaunchPromoModal, NotificationBell, etc) call
+    // supabase.auth.getUser() concurrently on mount. The lock is acquired by
+    // the second call and the first request reports "stolen". Both still
+    // succeed — no user-visible impact, just noisy. Filed upstream:
+    // https://github.com/supabase/auth-js/issues (intermittent, no fix yet)
+    'lock:sb-',
+    'was released because another request stole it',
   ],
 
   // Drop errors that originate from known third-party domains

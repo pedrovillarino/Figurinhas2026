@@ -31,7 +31,7 @@ export default async function EmbaixadoresAdminSection() {
   const admin = getAdmin()
 
   // ── Lifetime totals (since campaign launch) ──
-  const [confirmedRes, paidRes, ambassadorsRes, couponsRes] = await Promise.all([
+  const [confirmedRes, paidRes, ambassadorsRes, couponsRes, optedInRes, selfUpgradedRes] = await Promise.all([
     admin.from('referral_rewards')
       .select('*', { count: 'exact', head: true })
       .in('status', ['confirmed', 'paid_upgrade']),
@@ -45,10 +45,23 @@ export default async function EmbaixadoresAdminSection() {
       .select('id, code, restricted_to_user_id, valid_until, times_used, max_uses')
       .eq('created_by', 'referral_program')
       .eq('active', true),
+    // Opted-in participants — clicked "Começar a participar"
+    admin.from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .not('opted_into_campaign_at', 'is', null)
+      .eq('excluded_from_campaign', false),
+    // Self-upgraded users (worth +5 ranking points each)
+    admin.from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .not('self_upgrade_at', 'is', null)
+      .not('opted_into_campaign_at', 'is', null)
+      .eq('excluded_from_campaign', false),
   ])
 
   const confirmedTotal = confirmedRes.count ?? 0
   const paidTotal = paidRes.count ?? 0
+  const optedInTotal = optedInRes.count ?? 0
+  const selfUpgradedTotal = selfUpgradedRes.count ?? 0
   const uniqueAmbassadors = new Set(
     (ambassadorsRes.data || []).map((r) => (r as { referrer_id: string }).referrer_id),
   ).size
@@ -94,11 +107,15 @@ export default async function EmbaixadoresAdminSection() {
         🏆 Embaixadores — Campanha de Lançamento
       </h2>
 
-      {/* Counters */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        <AdminStat label="Embaixadores ativos" value={uniqueAmbassadors} />
+      {/* Counters — top row: participation, bottom row: results */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        <AdminStat label="Participantes (opt-in)" value={optedInTotal} sub="clicaram 'Começar a participar'" />
+        <AdminStat label="Indicaram alguém" value={uniqueAmbassadors} sub={`${pctOf(uniqueAmbassadors, optedInTotal)}% dos opt-ins`} />
+        <AdminStat label="Auto-upgrade" value={selfUpgradedTotal} sub="opt-ins que assinaram (+5 pts)" />
         <AdminStat label="Cadastros via indicação" value={confirmedTotal} />
-        <AdminStat label="Pagantes via indicação" value={paidTotal} sub={`${pctOf(paidTotal, confirmedTotal)}% conversão`} />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+        <AdminStat label="Pagantes via indicação" value={paidTotal} sub={`${pctOf(paidTotal, confirmedTotal)}% das indicações`} />
         <AdminStat label="Cupons 50% off ativos" value={activeCoupons} />
         <AdminStat label="Cupons já redimidos" value={redeemedCoupons} />
       </div>
