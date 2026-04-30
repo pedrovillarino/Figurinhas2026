@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { REFERRAL_CONSTANTS } from '@/lib/referrals'
+import { shouldShowModal, markModalOpen, markModalClosed, MODAL_PRIORITY } from '@/lib/modal-coordinator'
 
 // ── Embaixadores campaign promo ──
 // This modal replaced the old "COPA100/COPA50 cupom" promo on 2026-04-29.
@@ -50,7 +51,12 @@ export default function LaunchPromoModal() {
       }
 
       timerId = setTimeout(() => {
-        if (!cancelled) setVisible(true)
+        if (cancelled) return
+        // Defer to higher-priority modals (FirstScanPrompt, Onboarding) and
+        // honor the inter-modal cooldown so we don't stack popups.
+        if (!shouldShowModal('launch_promo', MODAL_PRIORITY.LAUNCH_PROMO)) return
+        markModalOpen('launch_promo', MODAL_PRIORITY.LAUNCH_PROMO)
+        setVisible(true)
       }, DELAY_MS)
     })()
 
@@ -77,11 +83,13 @@ export default function LaunchPromoModal() {
 
   function close() {
     localStorage.setItem(STORAGE_KEY, String(Date.now()))
+    markModalClosed('launch_promo')
     setVisible(false)
   }
 
   function goToCampanha() {
     localStorage.setItem(STORAGE_KEY, String(Date.now()))
+    markModalClosed('launch_promo')
     setVisible(false)
     router.push('/campanha')
   }

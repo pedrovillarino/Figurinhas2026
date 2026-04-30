@@ -6,6 +6,7 @@ import ReferralApplier from '@/components/ReferralApplier'
 import AuthRefresh from '@/components/AuthRefresh'
 import ClientHealthCheck from '@/components/ClientHealthCheck'
 import LaunchPromoModal from '@/components/LaunchPromoModal'
+import FirstScanPrompt from '@/components/FirstScanPrompt'
 import AuthCompletionTracker from '@/components/AuthCompletionTracker'
 import PendingPhoneSync from '@/components/PendingPhoneSync'
 
@@ -24,6 +25,7 @@ export default function ProtectedLayout({
       <AuthRefresh />
       <ClientHealthCheck />
       <LaunchPromoModal />
+      <FirstScanPrompt />
       <AuthCompletionTracker />
       <PendingPhoneSync />
       <footer>

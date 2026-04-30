@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { TIER_CONFIG, type Tier } from '@/lib/tiers'
 import EmbaixadoresAdminSection from './EmbaixadoresAdminSection'
 import FunnelAdminSection from './FunnelAdminSection'
+import ScanEngagementAdminSection from './ScanEngagementAdminSection'
+import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -557,6 +559,12 @@ export default async function AdminPage({
 
       {/* Conversion funnel — answers "are users converting Free → Paid?" */}
       <FunnelAdminSection days={funnelDays} />
+
+      {/* Scan engagement — answers "is scan driving conversion / repeat use?" */}
+      <ScanEngagementAdminSection />
+
+      {/* Scan feedback — perceived quality of the scan feature (👍/👎 + comments) */}
+      <ScanFeedbackAdminSection />
 
       {/* Embaixadores campaign — read-only summary (ranking + counters) */}
       <EmbaixadoresAdminSection />

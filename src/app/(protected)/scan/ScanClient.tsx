@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
+import ScanFeedback from '@/components/ScanFeedback'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -681,7 +682,14 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <div className="flex gap-3 mt-8">
+
+        {/* Inline feedback — dispensable, self-hides after submission, capped
+             once-per-session. Doesn't block the action buttons below. */}
+        <div className="w-full max-w-sm mt-6">
+          <ScanFeedback metadata={{ saved_count: savedCount, owned_count: ownedCount }} />
+        </div>
+
+        <div className="flex gap-3 mt-2">
           <button
             onClick={reset}
             className="bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium hover:bg-brand-dark transition"
