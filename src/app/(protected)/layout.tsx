@@ -1,12 +1,14 @@
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import InstallBanner from '@/components/InstallBanner'
-import PushPermission from '@/components/PushPermission'
+// PushPermission used to be rendered here at layout level — it asked for
+// notification permission 10s after every page mount, which interrupted users
+// before they had any reason to say yes. It now lives inline inside ScanClient
+// (success state) so the prompt happens AFTER a successful scan, in context.
 import ReferralApplier from '@/components/ReferralApplier'
 import AuthRefresh from '@/components/AuthRefresh'
 import ClientHealthCheck from '@/components/ClientHealthCheck'
 import LaunchPromoModal from '@/components/LaunchPromoModal'
-import FirstScanPrompt from '@/components/FirstScanPrompt'
 import AuthCompletionTracker from '@/components/AuthCompletionTracker'
 import PendingPhoneSync from '@/components/PendingPhoneSync'
 
@@ -20,12 +22,10 @@ export default function ProtectedLayout({
       <AppHeader />
       <div id="main-content">{children}</div>
       <InstallBanner />
-      <PushPermission />
       <ReferralApplier />
       <AuthRefresh />
       <ClientHealthCheck />
       <LaunchPromoModal />
-      <FirstScanPrompt />
       <AuthCompletionTracker />
       <PendingPhoneSync />
       <footer>

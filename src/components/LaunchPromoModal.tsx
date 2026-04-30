@@ -50,6 +50,23 @@ export default function LaunchPromoModal() {
         return
       }
 
+      // Don't pile this on top of the OnboardingModal for brand new users.
+      // They're already getting the legal/age + tutorial flow which now
+      // ends with a scan CTA. Wait at least 24h before this campaign
+      // promo enters the rotation.
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('id', user.id)
+          .maybeSingle()
+        const createdAt = (profile as { created_at?: string } | null)?.created_at
+        if (createdAt) {
+          const ageHours = (Date.now() - new Date(createdAt).getTime()) / (3600 * 1000)
+          if (ageHours < 24) return
+        }
+      } catch { /* show anyway on profile-fetch error */ }
+
       timerId = setTimeout(() => {
         if (cancelled) return
         // Defer to higher-priority modals (FirstScanPrompt, Onboarding) and

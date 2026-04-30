@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import ScanFeedback from '@/components/ScanFeedback'
+import PostScanPushAsk from '@/components/PostScanPushAsk'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -683,9 +684,11 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
           />
         </div>
 
-        {/* Inline feedback — dispensable, self-hides after submission, capped
-             once-per-session. Doesn't block the action buttons below. */}
+        {/* Inline post-scan banners — both dispensable, neither blocks the
+             action buttons below. PostScanPushAsk also self-hides if push
+             permission is already granted/denied or recently dismissed. */}
         <div className="w-full max-w-sm mt-6">
+          <PostScanPushAsk />
           <ScanFeedback metadata={{ saved_count: savedCount, owned_count: ownedCount }} />
         </div>
 

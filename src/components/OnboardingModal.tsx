@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
@@ -37,6 +38,7 @@ const tutorialSteps = [
 ]
 
 export default function OnboardingModal() {
+  const router = useRouter()
   const [show, setShow] = useState(false)
   const [phase, setPhase] = useState<OnboardingStep>('age')
   const [tutorialIdx, setTutorialIdx] = useState(0)
@@ -160,6 +162,11 @@ export default function OnboardingModal() {
     } else {
       handleClose()
     }
+  }
+
+  function handleStartScanning() {
+    handleClose()
+    router.push('/scan')
   }
 
   useBodyScrollLock(show)
@@ -339,30 +346,48 @@ export default function OnboardingModal() {
               </p>
             </div>
 
-            <div className="flex gap-3">
-              {tutorialIdx > 0 && (
+            {tutorialIdx === tutorialSteps.length - 1 ? (
+              // Final slide — instead of generic "Começar!", offer scan as the
+              // first action. Replaces the previous standalone FirstScanPrompt.
+              <>
                 <button
-                  onClick={() => setTutorialIdx(tutorialIdx - 1)}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
+                  onClick={handleStartScanning}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98] shadow-lg shadow-brand/20"
                 >
-                  Voltar
+                  📸 Escanear minha primeira figurinha
                 </button>
-              )}
-              <button
-                onClick={handleTutorialNext}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98]"
-              >
-                {tutorialIdx === tutorialSteps.length - 1 ? 'Começar!' : 'Próximo'}
-              </button>
-            </div>
-
-            {tutorialIdx < tutorialSteps.length - 1 && (
-              <button
-                onClick={handleClose}
-                className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600 transition"
-              >
-                Pular tutorial
-              </button>
+                <button
+                  onClick={handleClose}
+                  className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
+                >
+                  Ver meu álbum primeiro
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex gap-3">
+                  {tutorialIdx > 0 && (
+                    <button
+                      onClick={() => setTutorialIdx(tutorialIdx - 1)}
+                      className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
+                    >
+                      Voltar
+                    </button>
+                  )}
+                  <button
+                    onClick={handleTutorialNext}
+                    className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98]"
+                  >
+                    Próximo
+                  </button>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600 transition"
+                >
+                  Pular tutorial
+                </button>
+              </>
             )}
           </>
         )}
