@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { TIER_CONFIG } from '@/lib/tiers'
+import { trackEvent, FUNNEL_EVENTS } from '@/lib/funnel'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -286,6 +287,11 @@ export async function POST(req: NextRequest) {
         if (session.metadata) {
           await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
         }
+        // Funnel: payment landed
+        trackEvent(userId, FUNNEL_EVENTS.PAYMENT_COMPLETED, {
+          tier,
+          metadata: { amount_total: session.amount_total, payment_path: 'sync' },
+        })
         // Grant referral upgrade reward if applicable. amount_total is in cents
         // and EXCLUDES discount — so a 100% off coupon results in amount_total=0
         // and the referrer correctly does NOT earn the +5 points.
@@ -312,6 +318,11 @@ export async function POST(req: NextRequest) {
       if (session.metadata) {
         await recordDiscountRedemption(session.metadata as Record<string, string>, userId)
       }
+      // Funnel: payment landed (async path = boleto/pix)
+      trackEvent(userId, FUNNEL_EVENTS.PAYMENT_COMPLETED, {
+        tier,
+        metadata: { amount_total: session.amount_total, payment_path: 'async' },
+      })
       // Grant referral upgrade reward if applicable (async payment path —
       // amount_total reflects net amount paid, so 100% off won't trigger reward)
       await grantReferralUpgradeReward(userId, session.amount_total || 0, tier)

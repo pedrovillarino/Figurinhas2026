@@ -10,6 +10,7 @@ import {
   issueReferrerCoupon,
 } from '@/lib/referrals'
 import { sendText } from '@/lib/zapi'
+import { trackEvent, FUNNEL_EVENTS } from '@/lib/funnel'
 
 // ─── /api/campanha/opt-in ──────────────────────────────────────────────────
 //
@@ -114,6 +115,9 @@ export async function POST(request: NextRequest) {
 
     // Make sure user has a referral code (idempotent)
     const referralCode = await ensureReferralCode(user.id)
+
+    // Funnel: campaign opt-in
+    trackEvent(user.id, FUNNEL_EVENTS.CAMPAIGN_OPTED_IN)
 
     // Re-evaluate coupon eligibility — user may have indicated 5+ friends
     // in the 3-day lookback window before clicking opt-in. shouldIssueCouponNow

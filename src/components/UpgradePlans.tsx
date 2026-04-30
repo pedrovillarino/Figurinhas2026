@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TIER_CONFIG, tierIndex, type Tier } from '@/lib/tiers'
+import { trackClient, FUNNEL_EVENTS } from '@/lib/funnel-client'
 
 type UpgradePlansProps = {
   currentTier: Tier
@@ -63,6 +64,15 @@ export default function UpgradePlans({
     return true
   })
 
+  // Funnel: paywall_viewed (mount). Triggered every time UpgradePlans renders
+  // for an authenticated user — captures both organic visits to /upgrade and
+  // forced "you hit your limit" prompts.
+  useEffect(() => {
+    trackClient(FUNNEL_EVENTS.PAYWALL_VIEWED, { feature, current_tier: currentTier })
+    // intentionally only fires once per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function validateCoupon() {
     if (!couponCode.trim()) return
     setValidating(true)
@@ -90,6 +100,13 @@ export default function UpgradePlans({
 
   async function handleUpgrade(targetTier: Tier) {
     setLoading(targetTier)
+    // Funnel: user clicked upgrade (intent signal — fires before checkout API call)
+    trackClient(FUNNEL_EVENTS.UPGRADE_CLICKED, {
+      target_tier: targetTier,
+      current_tier: currentTier,
+      has_coupon: !!couponStatus?.valid,
+      feature,
+    })
     try {
       const bodyData: Record<string, string> = { tier: targetTier }
       if (couponStatus?.valid && (couponStatus.tier === targetTier || couponStatus.tier === 'all')) {

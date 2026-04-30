@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
+import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
 
@@ -226,6 +227,12 @@ export async function POST(request: NextRequest) {
     } else if (usageData && !usageData.allowed) {
       console.log(`[scan] User ${user.id} hit scan limit: ${usageData.current}/${usageData.limit} (tier=${userTier})`)
 
+      // Funnel: scan limit hit (paywall trigger)
+      trackEvent(user.id, FUNNEL_EVENTS.SCAN_LIMIT_HIT, {
+        tier: userTier,
+        metadata: { current: usageData.current, limit: usageData.limit },
+      })
+
       const isFree = userTier === 'free'
       const canBuyPack = userTier === 'estreante' || userTier === 'colecionador'
       const errorMsg = isFree
@@ -242,6 +249,13 @@ export async function POST(request: NextRequest) {
         { status: 429 }
       )
     }
+
+    // Funnel: scan accepted (track-once for first_scan, always for scan_used)
+    trackEventOnce(user.id, FUNNEL_EVENTS.FIRST_SCAN, { tier: userTier })
+    trackEvent(user.id, FUNNEL_EVENTS.SCAN_USED, {
+      tier: userTier,
+      metadata: { current: usageData?.current, limit: usageData?.limit },
+    })
 
     const scansRemaining = usageData?.remaining ?? null
     console.log(`[scan] User scans: ${usageData?.current ?? '?'}/${usageData?.limit ?? tierScanLimit} (tier=${userTier})`)

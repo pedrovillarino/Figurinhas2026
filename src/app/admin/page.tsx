@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { TIER_CONFIG, type Tier } from '@/lib/tiers'
 import EmbaixadoresAdminSection from './EmbaixadoresAdminSection'
+import FunnelAdminSection from './FunnelAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -496,12 +497,18 @@ export const revalidate = 0
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: { secret?: string }
+  searchParams: { secret?: string; days?: string }
 }) {
   // Auth check
   if (searchParams.secret !== ADMIN_SECRET) {
     return <LoginForm />
   }
+
+  // Funnel window — defaults to 30 days, overridable via ?days=N
+  const funnelDays = (() => {
+    const n = parseInt(searchParams.days || '30', 10)
+    return Number.isFinite(n) && n >= 1 && n <= 365 ? n : 30
+  })()
 
   const [m, health, waHealth, evo, geo, scanAcc] = await Promise.all([
     getMetrics(),
@@ -547,6 +554,9 @@ export default async function AdminPage({
           sub="mensal"
         />
       </div>
+
+      {/* Conversion funnel — answers "are users converting Free → Paid?" */}
+      <FunnelAdminSection days={funnelDays} />
 
       {/* Embaixadores campaign — read-only summary (ranking + counters) */}
       <EmbaixadoresAdminSection />

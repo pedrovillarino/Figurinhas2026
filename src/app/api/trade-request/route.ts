@@ -9,6 +9,7 @@ import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
 import { getTradeLimit } from '@/lib/tiers'
 import type { Tier } from '@/lib/tiers'
+import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 
 export const maxDuration = 30
 import { randomBytes } from 'crypto'
@@ -116,11 +117,20 @@ export async function POST(req: NextRequest) {
       console.error('[trade-request] Usage check error:', usageError.message)
       // Don't block on usage tracking errors — log and continue
     } else if (usageData && !usageData.allowed) {
+      // Funnel: trade limit hit
+      trackEvent(user.id, FUNNEL_EVENTS.TRADE_LIMIT_HIT, {
+        tier: userTier,
+        metadata: { current: usageData.current, limit: usageData.limit },
+      })
       return NextResponse.json(
         { error: 'Você atingiu o limite de trocas do seu plano. Faça upgrade ou compre um pacote extra.', needsPack: true },
         { status: 429 }
       )
     }
+
+    // Funnel: trade accepted
+    trackEventOnce(user.id, FUNNEL_EVENTS.FIRST_TRADE, { tier: userTier })
+    trackEvent(user.id, FUNNEL_EVENTS.TRADE_USED, { tier: userTier })
 
     // 2. Check for existing pending request
     const { data: existing } = await admin

@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { TIER_CONFIG, TIER_ORDER, tierIndex, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, stripeLimiter } from '@/lib/ratelimit'
+import { trackEvent, FUNNEL_EVENTS } from '@/lib/funnel'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -213,6 +214,15 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await getStripe().checkout.sessions.create(sessionConfig)
+
+    // Funnel: user reached Stripe checkout (one step away from converting)
+    trackEvent(user.id, FUNNEL_EVENTS.CHECKOUT_STARTED, {
+      metadata: {
+        target_tier: targetTier,
+        discount_percent: percentOff,
+        session_id: session.id,
+      },
+    })
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
