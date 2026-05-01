@@ -1483,6 +1483,31 @@ export async function POST(req: NextRequest) {
 
           // Check if message looks like feedback/suggestion and forward to admin
           const isFeedback = /sugest|ideia|bug|problema|reclama|feedback|melhoria/i.test(text)
+
+          // ── Anti-spam: suprimir help duplicado em rápida sucessão ──
+          // Caso clássico: usuário envia "Oi" e logo depois "tudo bem" — ambas
+          // caem no help/unknown intent e o bot mandaria 2 menus seguidos.
+          // Solução: UPDATE atômico que só passa se a coluna estiver vazia ou
+          // mais antiga que HELP_COOLDOWN_SEC. Em race condition, só uma das
+          // requests ganha o claim — a(s) outra(s) retorna(m) silenciosamente.
+          // Feedback NUNCA é suprimido (sempre forward pro admin).
+          if (!isFeedback) {
+            const HELP_COOLDOWN_SEC = 60
+            const cutoff = new Date(Date.now() - HELP_COOLDOWN_SEC * 1000).toISOString()
+            const supabaseAdmin = getAdmin()
+            const { data: claimed } = await supabaseAdmin
+              .from('profiles')
+              .update({ last_help_response_at: new Date().toISOString() })
+              .eq('id', user.id)
+              .or(`last_help_response_at.is.null,last_help_response_at.lt.${cutoff}`)
+              .select('id')
+
+            if (!claimed || claimed.length === 0) {
+              console.log(`[WhatsApp] help cooldown active for ${maskPhone(phone)}, suppressing duplicate menu`)
+              return NextResponse.json({ ok: true })
+            }
+          }
+
           if (isFeedback && text.length > 5) {
             const adminPhone = process.env.ADMIN_PHONE
             if (adminPhone) {

@@ -1,0 +1,6733 @@
+[
+  {
+    "page_summary": "pagina inicial We Are Panini + Quadro de Honra",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "00",
+        "label": null,
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1930",
+        "label": "Uruguay",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1934",
+        "label": "Italy",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1938",
+        "label": "Italy",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1950",
+        "label": "Uruguay",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1954",
+        "label": "Germany FR",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1958",
+        "label": "Brazil",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1962",
+        "label": "Brazil",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1966",
+        "label": "England",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1970",
+        "label": "Brazil",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1974",
+        "label": "Germany FR",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1978",
+        "label": "Argentina",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1982",
+        "label": "Italy",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1986",
+        "label": "Argentina",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1990",
+        "label": "Germany FR",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1994",
+        "label": "Brazil",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "1998",
+        "label": "France",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2002",
+        "label": "Brazil",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2006",
+        "label": "Italy",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2010",
+        "label": "Spain",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2014",
+        "label": "Germany",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2018",
+        "label": "France",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2022",
+        "label": "Argentina",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "2026",
+        "label": null,
+        "type": "other",
+        "tier": "null"
+      }
+    ],
+    "notes": "The 'Quadro de Honra' lists World Cup winners by year. The 2026 entry is a placeholder without a winner yet. The '00' slot is a generic placeholder.",
+    "_filename": "20260501_194330154_iOS.jpg"
+  },
+  {
+    "page_summary": "Pagina com informacoes sobre a Copa do Mundo 2026 e slots para emblemas oficiais.",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 1",
+        "label": "Emblema Oficial",
+        "type": "logo",
+        "tier": null
+      },
+      {
+        "code": "FWC 2",
+        "label": null,
+        "type": "logo",
+        "tier": null
+      }
+    ],
+    "notes": "O texto 'Emblema Oficial' para FWC 1 e' um texto de fundo no slot. O label para FWC 2 nao esta visivel.",
+    "_filename": "20260501_194336421_iOS.jpg"
+  },
+  {
+    "page_summary": "Pagina com cromos da secao FIFA World Cup (Mascotes Oficiais, Slogan Oficial)",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 2",
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "FWC 3",
+        "label": "Mascotes Oficiais",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "FWC 4",
+        "label": "Slogan Oficial",
+        "type": "other",
+        "tier": null
+      }
+    ],
+    "notes": "O label para FWC 2 nao esta visivel. Os labels 'Mascotes Oficiais' e 'Slogan Oficial' estao impressos acima dos respectivos slots. As caixas coloridas a esquerda representam grupos/paises, mas nao sao slots de figurinhas.",
+    "_filename": "20260501_194340126_iOS.jpg"
+  },
+  {
+    "page_summary": "Pagina com o cromo da Bola Oficial da FIFA World Cup 2026",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 5",
+        "label": "Bola Oficial",
+        "type": "other",
+        "tier": null
+      }
+    ],
+    "notes": "O texto 'Bola Oficial' esta fracamente visivel dentro do slot, mas e' confirmado pelo texto 'TRIONDA - Bola Oficial das partidas da FIFA World Cup 2026™' na parte inferior da pagina.",
+    "_filename": "20260501_194348798_iOS.jpg"
+  },
+  {
+    "page_summary": "Slot para o emblema do país-sede e elementos gráficos do álbum",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 6",
+        "label": "Emblema do país-sede",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "Outros textos visíveis ('ST RIES D IES CAN', '4.315', '48.821', 'NOUS SOM MES 26™') não estão associados a slots de figurinhas.",
+    "_filename": "20260501_194351862_iOS.jpg"
+  },
+  {
+    "page_summary": "Página com o emblema do país-sede e informações de cidades-sede.",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 7",
+        "label": "Emblema do país-sede",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "Apenas um slot de cromo é claramente visível. O lado direito da página contém nomes de cidades-sede (Guadalajara, Mexico City, Monterrey) e o código 'MEX', mas não são slots de cromo. A parte inferior esquerda mostra 'SO MOS', que parece ser parte de um elemento gráfico 'SOMOS' e não um slot de cromo.",
+    "_filename": "20260501_194356403_iOS.jpg"
+  },
+  {
+    "page_summary": "Página de informações sobre os EUA e slot do emblema do país-sede",
+    "section": "USA",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 8",
+        "label": "Emblema do país-sede",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "A página contém uma lista de cidades e estádios dos EUA (e México) e o slot para o emblema do país-sede dos EUA. O texto 'WE ARE' está parcialmente visível no canto inferior direito, sugerindo que pode ser uma página inicial ou de introdução.",
+    "_filename": "20260501_194401043_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção do México com cromos de jogadores e informações do Grupo A.",
+    "section": "Mexico",
+    "page_numbers": [
+      9
+    ],
+    "slots": [
+      {
+        "code": "MEX 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "MEX 2",
+        "label": "LUIS MALLAGÓN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 3",
+        "label": "JOHAN VÁSQUEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 4",
+        "label": "JORGE SÁNCHEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 5",
+        "label": "CÉSAR MONTES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 6",
+        "label": "JESÚS GALLARDO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 7",
+        "label": "ISRAEL REYES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 8",
+        "label": "DIEGO LAINEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 9",
+        "label": "CARLOS RODRÍGUEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 10",
+        "label": "EDSON ÁLVAREZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 11",
+        "label": "ORBELÍN PINEDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 12",
+        "label": "MARCEL RUÍZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 13",
+        "label": null,
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "MEX 14",
+        "label": "ERICK SÁNCHEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 15",
+        "label": "HIRVING LOZANO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 16",
+        "label": "SANTIAGO GIMÉNEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 17",
+        "label": "RAÚL JIMÉNEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 18",
+        "label": "ALEXIS VEGA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 19",
+        "label": "ROBERTO ALVARADO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "MEX 20",
+        "label": "CÉSAR HUERTA",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "O rótulo para os cromos MEX 1 e MEX 13 não está visível, o tipo foi inferido com base na estrutura comum do álbum. O número da página direita não está visível.",
+    "_filename": "20260501_194416748_iOS.jpg"
+  },
+  {
+    "page_summary": "Pages showing Korea Republic player stickers (KOR 1-20) and World Cup qualification group information.",
+    "section": "Korea Republic",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "KOR 1",
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "KOR 2",
+        "label": "HYEONWOO JO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 3",
+        "label": "SEUNGGYU KIM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 4",
+        "label": "MINJAE KIM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 5",
+        "label": "YUMIN CHO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 6",
+        "label": "YOUNGWOO SEOL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 7",
+        "label": "HANBEOM LEE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 8",
+        "label": "TAESEOK LEE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 9",
+        "label": "MYUNGWAE LEE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 10",
+        "label": "JAEBUNG LEE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 11",
+        "label": "INBEOM HWANG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 12",
+        "label": "KANGIN LEE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 13",
+        "label": "대한민국 | Südkorea | Corée du Sud | Corea del Sur | Zuid-Korea | Korea Południowa | Республика Корея | Güney Kore | Korea Południowa | Pecynna Korea",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "KOR 14",
+        "label": "SEUNGHO PAIK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 15",
+        "label": "JENS CASTROP",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 16",
+        "label": "DONGGYEONG LEE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 17",
+        "label": "GUEBUNG CHO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 18",
+        "label": "HEUNGMIN SON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 19",
+        "label": "HEECHAN HWANG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KOR 20",
+        "label": "HYEONGYU OH",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The left page contains World Cup qualification group tables and match schedules. KOR 1 is a large, yellow-orange slot with no visible label. KOR 13 is a large, yellow-orange slot with the country name in multiple languages as its label.",
+    "_filename": "20260501_194458775_iOS.jpg"
+  },
+  {
+    "page_summary": "Two pages dedicated to Czechia, featuring player stickers and Group A match schedule details.",
+    "section": "Czechia",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "CZE 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 2",
+        "label": "MATĚJ KOVÁŘ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 3",
+        "label": "JINDŘICH STANĚK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 4",
+        "label": "LADISLAV KREJČÍ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 5",
+        "label": "VLADIMÍR COUFAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 6",
+        "label": "JAROSLAV ZELENÝ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 7",
+        "label": "TOMÁŠ HOLEŠ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 8",
+        "label": "DAVID ZIMA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 9",
+        "label": "MICHAL SÁDILEK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 10",
+        "label": "LUKÁŠ PROVOD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 11",
+        "label": "LUKÁŠ ČERV",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 12",
+        "label": "TOMÁŠ SOUČEK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 13",
+        "label": "Česko | Tschechien | Tchéquie | Cechia | Tsjechië | Chequia | Чехия | Česky | Чехия",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "CZE 14",
+        "label": "PAVEL ŠULC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 15",
+        "label": "MATĚJ WDRA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 16",
+        "label": "VASIL KUSEJ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 17",
+        "label": "TOMÁŠ CHORÝ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 18",
+        "label": "VÁCLAV ČERNÝ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 19",
+        "label": "ADAM HLOŽEK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CZE 20",
+        "label": "PATRIK SCHICK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Czechia",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Czechia",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Czechia",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      }
+    ],
+    "notes": "The 'GROUP L' table and 'ROAD TO FIFA WORLD CUP 2026' header are not sticker slots. The 'GROUP A' section contains match details with slots for 'Czechia' and additional empty slots, likely for match-specific stickers, but no explicit codes are visible for these.",
+    "_filename": "20260501_194504329_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção do Canadá com cromos de jogadores e informações do Grupo B.",
+    "section": "Canada",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "CAN 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 2",
+        "label": "DAVINE ST. CLAIR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 3",
+        "label": "ALPHONSO DAVIES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 4",
+        "label": "ALISTAIR JOHNSTON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 5",
+        "label": "SAMUEL ADEKUGBE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 6",
+        "label": "RICHIE LARYEA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 7",
+        "label": "DEREK CORNELIUS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 8",
+        "label": "MOISE BOMBITO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 9",
+        "label": "KAMAL MILLER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 10",
+        "label": "STEPHEN EUSTAQUIO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 11",
+        "label": "ISMAEL KONÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 12",
+        "label": "JONATHAN OSORIO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 13",
+        "label": "Canada | Canada | Canada | Canada | Canada | Canada | Canada | Canada | Canada | Kanada | Kanada",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "CAN 14",
+        "label": "JACOB SHAFFELBURG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 15",
+        "label": "MATHIEU CHOINIÈRE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 16",
+        "label": "NIKO SIGUR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 17",
+        "label": "TAJON BUCHANAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 18",
+        "label": "LIAM MILLAR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 19",
+        "label": "CYLE LARIN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CAN 20",
+        "label": "JONATHAN DAVID",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "O slot CAN 1 está vazio, o rótulo é inferido como nulo. O rótulo do CAN 13 é um texto repetido 'Canada', provavelmente uma foto da equipe ou um cromo especial da equipe.",
+    "_filename": "20260501_194508734_iOS.jpg"
+  },
+  {
+    "page_summary": "This two-page spread from the 'Road to FIFA World Cup 2026' album features the Bosnia and Herzegovina national team. It includes 20 sticker slots for players, an emblem, and a team photo, along with details on their Group H qualification matches and Group B friendly/tournament matches.",
+    "section": "Bosnia-Herzegovina",
+    "page_numbers": [
+      18,
+      19
+    ],
+    "slots": [
+      {
+        "code": "BIH 1",
+        "label": "Emblem",
+        "type": "badge",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 2",
+        "label": "NIKOLA VASILJ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 3",
+        "label": "AMAR DEDIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 4",
+        "label": "SEAD KOLAŠINAC",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 5",
+        "label": "TARIK MUHAREMOVIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 6",
+        "label": "NIHAD MUJAKIC",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 7",
+        "label": "NIKOLA MATIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 8",
+        "label": "AMAR HADZIAHMETOVIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 9",
+        "label": "BENJAMIN TAHIROVIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 10",
+        "label": "ARWIN GIGOVIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 11",
+        "label": "IVAN ŠUNJIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 12",
+        "label": "IVAN BAŠIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 13",
+        "label": "Bosna i Hercegovina / Bosna i Hercegovina / Bosnien und Herzegowina / Bosna i Hercegovina / Bosnie et Herzégovine / Bosnia i Herzegovina / Bosnien und Herzegowina / Bosna i Hercegovina / Bosnien-Hersek / Bosna i Hercegovina",
+        "type": "team_photo",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 14",
+        "label": "DŽENS BURNIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 15",
+        "label": "ESMIR BAJRAKTAREVIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 16",
+        "label": "AMAR MEMIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 17",
+        "label": "ERMEDIN DEMIROVIĆ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 18",
+        "label": "EDIN DŽEKO",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 19",
+        "label": "SAMED BAŽDAR",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "BIH 20",
+        "label": "HARIS TABAKOVIĆ",
+        "type": "player",
+        "tier": "null"
+      }
+    ],
+    "notes": "The left page details 'Group H' qualification matches for Bosnia-Herzegovina against Portugal, Slovakia, Luxembourg, Iceland, and Liechtenstein, including a table with P, W, D, L, GF, GA, GD, PTS. It also lists play-off matches: WALES - BOSNIA-HERZEGOVINA and BOSNIA-HERZEGOVINA - ITALY. The right page features 'GROUP B' with flags for Qatar, Canada, Switzerland, and Bosnia-Herzegovina, listing matches: Canada - Bosnia-Herzegovina (Friday, 12 June - Toronto Stadium), Switzerland - Bosnia-Herzegovina (Thursday, 18 June - Los Angeles Stadium), and Qatar - Bosnia-Herzegovina (Wednesday, 24 June - Seattle Stadium).",
+    "_filename": "20260501_194513176_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas de jogadores do Qatar e informações de grupos e resultados da Copa do Mundo 2026",
+    "section": "Qatar",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "QAT 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "QAT 2",
+        "label": "MESHAAL BARSHAM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 3",
+        "label": "SULTAN ALBRAKE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 4",
+        "label": "LUCAS MENDES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 5",
+        "label": "HOMMAM AHMED",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 6",
+        "label": "BOUALEM KHOUKHI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 7",
+        "label": "PEDRO MIGUEL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 8",
+        "label": "TAREK SALMAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 9",
+        "label": "MOHAMMED MANNAI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 10",
+        "label": "KARIM BOUDIAF",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 11",
+        "label": "ASSIM MADIBO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 12",
+        "label": "HAMED FATEHI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 13",
+        "label": "Qatar | Qatar | Qatar | Qatar | Qatar | Qatar",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "QAT 14",
+        "label": "MOHAMMED WAAD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 15",
+        "label": "ABDULAZIZ HATEM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 16",
+        "label": "HASSAN AL-HAYDOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 17",
+        "label": "EDMILSON JUNIOR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 18",
+        "label": "AKRAM HASSAN AFIF",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 19",
+        "label": "AHMED AL-GANHEI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "QAT 20",
+        "label": "ALMOEZ ALI",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "O slot QAT 1 não tem o nome do jogador visível, mas é o primeiro slot do país e de cor diferente, sugerindo um emblema. O slot QAT 13 tem um rótulo repetitivo 'Qatar | Qatar | Qatar | Qatar | Qatar | Qatar', sugerindo um cromo especial ou genérico. As seções 'ROAD TO FIFA WORLD CUP 2026' e 'GROUP B' contêm informações de jogos e grupos, mas não slots de figurinhas.",
+    "_filename": "20260501_194519194_iOS.jpg"
+  },
+  {
+    "page_summary": "Switzerland player stickers, team badge, team photo, and Group B match schedule with team badges and standings table.",
+    "section": "Switzerland",
+    "page_numbers": [
+      23,
+      24
+    ],
+    "slots": [
+      {
+        "code": "QAT",
+        "label": "Qatar",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SUI",
+        "label": "Switzerland",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "BIH",
+        "label": "Bosnia-Herzegovina",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SUI",
+        "label": "Switzerland",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SUI",
+        "label": "Switzerland",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "CAN",
+        "label": "Canada",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SUI 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SUI 2",
+        "label": "GREGOR KOBEL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 3",
+        "label": "YVON MVOGO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 4",
+        "label": "MANUEL AKANJI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 5",
+        "label": "RICARDO RODRIGUEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 6",
+        "label": "NICO ELVEDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 7",
+        "label": "AURELE AMENDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 8",
+        "label": "SILVAN WIDMER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 9",
+        "label": "GRANIT XHAKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 10",
+        "label": "DENIS ZAKARIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 11",
+        "label": "REMO FREULER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 12",
+        "label": "FABIAN RIEDER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 13",
+        "label": "Schweiz / Suisse / Svizzera / Svizra",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "SUI 14",
+        "label": "ARDON JASHARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 15",
+        "label": "JOHAN MANZAMBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 16",
+        "label": "MICHEL AEBISCHER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 17",
+        "label": "BREEL EMBOLO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 18",
+        "label": "RUBEN VARGAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 19",
+        "label": "DAN NDOYE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SUI 20",
+        "label": "ZEKI AMDOUNI",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The Group B table with standings and match results is visible on page 23, but it does not contain sticker slots. The codes for the match schedule slots (QAT, SUI, BIH, CAN) are inferred from the country flags shown next to 'GROUP B' and the labels printed below the slots.",
+    "_filename": "20260501_194525092_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas do Brasil com cromos de jogadores (BRA-1 a BRA-20) e emblema (BRA-13), além da seção do Grupo C com emblemas de seleções e jogos, e a tabela 'ROAD TO FIFA WORLD CUP 2026'.",
+    "section": "Brazil",
+    "page_numbers": [
+      25,
+      26
+    ],
+    "slots": [
+      {
+        "code": "BRA-1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-2",
+        "label": "ALISSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-3",
+        "label": "BENTO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-4",
+        "label": "MARQUINHOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-5",
+        "label": "EDER MILITÃO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-6",
+        "label": "GABRIEL MAGALHÃES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-7",
+        "label": "DANILO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-8",
+        "label": "WESLEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-9",
+        "label": "LUCAS PAQUETÁ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-10",
+        "label": "CASIMIRO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-11",
+        "label": "BRUNO GUIMARÃES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-12",
+        "label": "LUIZ HENRIQUE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-13",
+        "label": "Brasil | Brazilian | Brésil | Brasile | Brazilië | Brasil | Brazilya | Бразилия",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "BRA-14",
+        "label": "VINÍCIUS JÚNIOR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-15",
+        "label": "RODRYGO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-16",
+        "label": "JOÃO PEDRO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-17",
+        "label": "MATHEUS CUNHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-18",
+        "label": "GABRIEL MARTINELLI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-19",
+        "label": "RAPHINHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BRA-20",
+        "label": "ESTÊVÃO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Haiti",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Brazil",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Morocco",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Haiti",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Scotland",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Brazil",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "O slot BRA-1 não tem o nome do jogador visível, mas é presumido ser um jogador. A seção 'ROAD TO FIFA WORLD CUP 2026' contém uma tabela de resultados/jogos e não possui slots de figurinhas.",
+    "_filename": "20260501_194530304_iOS.jpg"
+  },
+  {
+    "page_summary": "Scotland National Team player stickers and Group C badges",
+    "section": "Scotland",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "SCO 7",
+        "label": "SCOTT MCKENNA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 8",
+        "label": "JOHN SOUTTAR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 9",
+        "label": "ANTHONY RALSTON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 10",
+        "label": "GRANT HANLEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "HAI",
+        "label": "Haiti",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "BRA",
+        "label": "Brazil",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "MAR",
+        "label": "Morocco",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SCO",
+        "label": "Scotland",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SCO 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 2",
+        "label": "ANGUS GUNN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 3",
+        "label": "JACK HENDRY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 4",
+        "label": "KIERAN TIERNEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 5",
+        "label": "AARON HICKEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 6",
+        "label": "ANDREW ROBERTSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 11",
+        "label": "SCOTT MCTOMINAY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 12",
+        "label": "BILLY GILMOUR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 13",
+        "label": "Scotland | Schottland | Escocia | Écosse | Scozia | Schotland | Escócia | Escocia | Iskocya | Sakocja | Шотландия",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "SCO 14",
+        "label": "LEWIS FERGUSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 15",
+        "label": "RYAN CHRISTIE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 16",
+        "label": "KENNY MCLEAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 17",
+        "label": "JOHN MCGINN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 18",
+        "label": "LYNDON DYKES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 19",
+        "label": "CHÉ ADAMS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SCO 20",
+        "label": "BEN GANNON-DOAK",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The Group C table and match fixtures/results are visible on the left page but are not sticker slots and thus not included in the 'slots' array.",
+    "_filename": "20260501_194545002_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção dos EUA (USA) com jogadores 1-20 e jogos do Grupo D.",
+    "section": "USA",
+    "page_numbers": [
+      33
+    ],
+    "slots": [
+      {
+        "code": "USA 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "USA 2",
+        "label": "MATT FREESE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 3",
+        "label": "CHRIS RICHARDS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 4",
+        "label": "TIM REAM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 5",
+        "label": "MARK MCKENZIE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 6",
+        "label": "ALEX FREEMAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 7",
+        "label": "ANTONEE ROBINSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 8",
+        "label": "TYLER ADAMS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 9",
+        "label": "TANNER TESSMANN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 10",
+        "label": "WESTON MCKENNIE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 11",
+        "label": "CRISTIAN ROLDAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 12",
+        "label": "TIMOTHY WEAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 13",
+        "label": "United States of America | Vereinigte Staaten von Amerika | États-Unis d'Amérique | Stati Uniti d'America | Verenidge Staten van Amerika | Estados Unidos da América | Estados Unidos de América | Estados Unidos de América | Соединенные Штаты Америки",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "USA 14",
+        "label": "DIEGO LUNA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 15",
+        "label": "MALIK TILLMAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 16",
+        "label": "CHRISTIAN PULISIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 17",
+        "label": "BRENDEN AARONSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 18",
+        "label": "RICARDO PEPI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 19",
+        "label": "HAJI WRIGHT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "USA 20",
+        "label": "FOLARIN BALOGUN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Türkiye",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "USA",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "USA",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Australia",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Paraguay",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "USA",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "A página da direita não possui número visível. O slot USA 1 não possui label impresso diretamente abaixo. Os slots de jogos do Grupo D não possuem código de figurinha explícito.",
+    "_filename": "20260501_194550019_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas dedicadas à seleção do Paraguai, incluindo o grupo D e jogadores PAR 1 a PAR 20.",
+    "section": "Paraguay",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "PAR 20",
+        "label": "ANTONIO SANABRIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 19",
+        "label": "ANGEL ROMERO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 18",
+        "label": "RAMON SOSA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 17",
+        "label": "MIGUEL ALMIRON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 16",
+        "label": "ALEJANDRO ROMERO GAMARRA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 15",
+        "label": "JULIO ENCISO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 14",
+        "label": "MATIAS GALARZA FONDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 12",
+        "label": "ANDRES CUBAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 11",
+        "label": "DAMIAN BOBADILLA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 10",
+        "label": "DIEGO GOMEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 9",
+        "label": "MATHIAS VILLASANTI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 8",
+        "label": "JUNIOR ALONSO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 7",
+        "label": "OMAR ALDERETE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 6",
+        "label": "JUAN JOSE CACERES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 5",
+        "label": "FABIAN BALBUENA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 4",
+        "label": "GUSTAVO GOMEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 3",
+        "label": "ORLANDO GILL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 2",
+        "label": "ROBERTO FERNANDEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAR 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Os labels para PAR 1 e PAR 13 não são visíveis na imagem, mas são slots de jogador.",
+    "_filename": "20260501_194554221_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção da Austrália com cromos de jogadores 1-20.",
+    "section": "Australia",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "AUS-20",
+        "label": "MOHAMED TOURE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-19",
+        "label": "NESTORY IRANKUNDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-18",
+        "label": "KUSINI YENGI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-17",
+        "label": "CRAIG GOODWIN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-16",
+        "label": "PATRICK YAZBEK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-15",
+        "label": "CONNOR METCALFE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-14",
+        "label": "AIDEN O'NEILL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-12",
+        "label": "RILEY MCGREE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-11",
+        "label": "JACKSON IRVINE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-10",
+        "label": "MILOS DEGENEK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-9",
+        "label": "LEWIS MILLER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-8",
+        "label": "CAMERON BURGESS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-7",
+        "label": "AZIZ BEHICH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-6",
+        "label": "JORDAN BOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-5",
+        "label": "ALESSANDRO CIRCATI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-4",
+        "label": "HARRY SOUTTAR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-3",
+        "label": "JOE GAUCI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-2",
+        "label": "MATHEW RYAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "AUS-1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Labels for AUS-1 and AUS-13 are not visible.",
+    "_filename": "20260501_194558235_iOS.jpg"
+  },
+  {
+    "page_summary": "Turkey national team player stickers and group stage information for Group D and E.",
+    "section": "Turkey",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "TUR 1",
+        "label": "UGURCAN ÇAKIR",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 2",
+        "label": "UĞURCAN ÇAKIR",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 3",
+        "label": "MERT MÜLDÜR",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 4",
+        "label": "ZEKI ÇELIK",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 5",
+        "label": "ABDULKERIM BARDACKI",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 6",
+        "label": "ÇAĞLAR SÖYÜNCÜ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 7",
+        "label": "MERIH DEMIRAL",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 8",
+        "label": "FERDI KADIOGLU",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 9",
+        "label": "KAAN AYHAN",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 10",
+        "label": "ISMAIL YÜKSEK",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 11",
+        "label": "HAKAN ÇALHANOGLU",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 12",
+        "label": "ORKUN KÖKÇÜ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 13",
+        "label": "ARDA GÜLER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 14",
+        "label": "IRFAN CAN KAHVECI",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 15",
+        "label": "YUNUS AKGÜN",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 16",
+        "label": "CAN UZUN",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 17",
+        "label": "BARIS ALPER YILMAZ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 18",
+        "label": "KEREM AKTÜRKOGLU",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 19",
+        "label": "KENAN YILDIZ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "TUR 20",
+        "label": null,
+        "type": "player",
+        "tier": "null"
+      }
+    ],
+    "notes": "TUR 1 and TUR 2 have very similar player names printed ('UGURCAN ÇAKIR' and 'UĞURCAN ÇAKIR'). The label for TUR 20 is not visible in the image.",
+    "_filename": "20260501_194602379_iOS.jpg"
+  },
+  {
+    "page_summary": "Germany player stickers (GER 1-20) and team badges, along with Group A standings and Group E match schedules.",
+    "section": "Germany",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "GER 1",
+        "label": "Deutscher Fußball-Bund",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "GER 2",
+        "label": "MARC-ANDRE TER STEGEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 3",
+        "label": "JONATHAN TAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 4",
+        "label": "DAVID RAUM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 5",
+        "label": "NICO SCHLOTTERBECK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 6",
+        "label": "ANTONIO RUDIGER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 7",
+        "label": "WALDEMAR ANTON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 8",
+        "label": "RIDLE BAKU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 9",
+        "label": "MAXIMILIAN MITTELSTADT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 10",
+        "label": "JOSHUA KIMMICH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 11",
+        "label": "FLORIAN WIRTZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 12",
+        "label": "FELIX NMECHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 13",
+        "label": "Deutschland | Alemania | Allemagne | Germania | Niemcy | Германия",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "GER 14",
+        "label": "LEON GORETZKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 15",
+        "label": "JAMAL MUSIALA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 16",
+        "label": "SERGE GNABRY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 17",
+        "label": "KAI HAVERTZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 18",
+        "label": "LEROY SANE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 19",
+        "label": "KARIM ADEYEMI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GER 20",
+        "label": "NICK WOLTEMADE",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The page numbers are not visible in the image. The match schedules and group standings are not included in the 'slots' array as they are not sticker slots.",
+    "_filename": "20260501_194606151_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas de Curaçao com jogadores CUW 1-20 e informações de jogos e grupos.",
+    "section": "Curaçao",
+    "page_numbers": [
+      43
+    ],
+    "slots": [
+      {
+        "code": "CUW 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 2",
+        "label": "ELOY ROOM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 3",
+        "label": "ARMANDO OBISPO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 4",
+        "label": "SHEREL FLORANUS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 5",
+        "label": "JURIEN GAARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 6",
+        "label": "JOSHUA BRENET",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 7",
+        "label": "ROSHON VAN ELJMA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 8",
+        "label": "SHURANDY SAMBO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 9",
+        "label": "LIVANO COMENCIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 10",
+        "label": "GODFRIED ROEMERATOE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 11",
+        "label": "JUNINHO BACUNA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 12",
+        "label": "LEANDRO BACUNA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 14",
+        "label": "TAHITH CHONG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 15",
+        "label": "KENJI GORRE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 16",
+        "label": "JEAL MARGARITHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 17",
+        "label": "JURGEN LOCADIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 18",
+        "label": "JEREMY ANTONISSE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 19",
+        "label": "GERVANE KASTANEER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CUW 20",
+        "label": "SONTJE HANSEN",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Os slots CUW 1 e CUW 13 possuem formato especial e o nome do jogador não é visível. A página da direita não possui número visível.",
+    "_filename": "20260501_194611993_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da Costa do Marfim (Côte d'Ivoire) com jogadores, informações do Grupo E e tabela do Grupo F.",
+    "section": "Côte d'Ivoire",
+    "page_numbers": [
+      44,
+      45
+    ],
+    "slots": [
+      {
+        "code": "CIV 1",
+        "label": "Emblem",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "CIV 2",
+        "label": "YAHIA FOFANA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 3",
+        "label": "GHISLAIN KONAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 4",
+        "label": "WILFRIED SINGO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 5",
+        "label": "ODLON KOSSOUNOU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 6",
+        "label": "EVAN NDICKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 7",
+        "label": "WILLY BOLY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 8",
+        "label": "EMMANUEL AGBADOU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 9",
+        "label": "OUSMANE DIOMANDE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 10",
+        "label": "FRANCK KESSIE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 11",
+        "label": "SEKO FOFANA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 12",
+        "label": "IBRAHIM SANGARE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 13",
+        "label": "Ivory Coast | Elfenbeinküste | Costa d'Avorio | Wybrzeże Kości Słoniowej | Koryv'Mayap",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "CIV 14",
+        "label": "JEAN-PHILIPPE GBAMIN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 15",
+        "label": "AMAD DIALLO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 16",
+        "label": "SEBASTIEN HALLER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 17",
+        "label": "SIMON ADINGRA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 18",
+        "label": "VAN DIOMANDE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 19",
+        "label": "EVANN GUESSAND",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CIV 20",
+        "label": "OUMAR DIAKITE",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The left page shows Group E match schedules. The right page has a small table for Group F standings. CIV 1 label is assumed to be 'Emblem' as it's the first slot for the country and its label is not visible.",
+    "_filename": "20260501_194617007_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas do Equador com jogadores e jogos do Grupo E para a Copa do Mundo FIFA 2026.",
+    "section": "Ecuador",
+    "page_numbers": [
+      46,
+      47
+    ],
+    "slots": [
+      {
+        "code": "ECU 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 2",
+        "label": "HERNAN GALINDEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 3",
+        "label": "GONZALO VALLE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 4",
+        "label": "PIERO HINCAPIE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 5",
+        "label": "PERVIS ESTUPINAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 6",
+        "label": "WILLIAN PACHO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 7",
+        "label": "ANGELO PRECIADO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 8",
+        "label": "JOEL ORDÓÑEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 9",
+        "label": "MOISÉS CAICEDO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 10",
+        "label": "ALAN FRANCO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Côte d'Ivoire",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Ecuador",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Curaçao",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Ecuador",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Germany",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Ecuador",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "ECU 11",
+        "label": "KENDRY PÁEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 12",
+        "label": "PEDRO VITE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 14",
+        "label": "JOHN VEBOAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 15",
+        "label": "LEONARDO CAMPANA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 16",
+        "label": "GONZALO PLATA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 17",
+        "label": "NILSON ANGULO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 18",
+        "label": "ALAN MINDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 19",
+        "label": "KEVIN RODRÍGUEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ECU 20",
+        "label": "ENNER VALENCIA",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "A página 46 está à direita e a página 47 à esquerda. Os slots ECU 1 e ECU 13 não têm o nome do jogador impresso.",
+    "_filename": "20260501_194622048_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção da Holanda (Netherlands) com slots de jogadores e o emblema do time, além de informações de grupos e partidas.",
+    "section": "Netherlands",
+    "page_numbers": [
+      49,
+      50
+    ],
+    "slots": [
+      {
+        "code": "NED 20",
+        "label": "GAKPO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 19",
+        "label": "WOUT WEGHORST",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 18",
+        "label": "DONVELL MALEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 17",
+        "label": "MEMPHIS DEPAY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 16",
+        "label": "JUSTIN KLUIVERT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 15",
+        "label": "XAVI SIMONS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 14",
+        "label": "FRENKIE DE JONG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 12",
+        "label": "TEUN KOOPMEINERS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 11",
+        "label": "RYAN GRAVENBERCH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 10",
+        "label": "TIJJANI REIJNDERS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 9",
+        "label": "JAN PAUL VAN HECKE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 8",
+        "label": "JEREMIE FRIMPONG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 7",
+        "label": "NATHAN AKE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 6",
+        "label": "DENZEL DUMFRIES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 5",
+        "label": "JURRIEN TIMBER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 4",
+        "label": "MICKY VAN DE VEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 3",
+        "label": "VIRGIL VAN DIJK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 2",
+        "label": "BART VERBRUGGEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NED 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "A página da direita (50) foi inferida. Os slots NED 1 e NED 13 não possuem um 'label' impresso diretamente abaixo deles. As informações de grupos e partidas (Group F, Group G) e as bandeiras são impressas no álbum, não sendo slots de figurinhas.",
+    "_filename": "20260501_194626684_iOS.jpg"
+  },
+  {
+    "page_summary": "Japan player stickers, Group F matches, and Road to FIFA World Cup 2026 information",
+    "section": "Japan",
+    "page_numbers": [
+      19
+    ],
+    "slots": [
+      {
+        "code": "JPN 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 2",
+        "label": "ZION SUZUKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 3",
+        "label": "HENRY HEIOKI MOCHIZUKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 4",
+        "label": "AYUMU SEKO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 5",
+        "label": "JUNNOSUKE SUZUKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 6",
+        "label": "SHOGO TANIGUCHI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 7",
+        "label": "TSUYOSHI WATANABE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 8",
+        "label": "KAISHU SANO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 9",
+        "label": "YUKI SOMA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 10",
+        "label": "AO TANAKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 11",
+        "label": "DAICHI KAMADA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 12",
+        "label": "TAKEFUSA KUBO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 14",
+        "label": "RITSU DOAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 15",
+        "label": "KEITO NAKAMURA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 16",
+        "label": "TAKUMI MINAMINO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 17",
+        "label": "SHUTO MACHINO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 18",
+        "label": "JUNYA ITO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 19",
+        "label": "KOKI OGAWA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JPN 20",
+        "label": "AVASE UEDA",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "JPN 1 and JPN 13 are larger slots without a visible player name printed below them.",
+    "_filename": "20260501_194630969_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da Suécia com jogadores 1-20 e informações de jogos do Grupo F e Liga das Nações.",
+    "section": "Sweden",
+    "page_numbers": [
+      82,
+      83
+    ],
+    "slots": [
+      {
+        "code": "SWE 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 2",
+        "label": "VIKTOR JOHANSSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 3",
+        "label": "ISAK HIEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 4",
+        "label": "GABRIEL GUDMUNDSSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 5",
+        "label": "EMIL HOLM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 6",
+        "label": "VICTOR NILSSON LINDELOF",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 7",
+        "label": "GUSTAF LAGERBIELKE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 8",
+        "label": "LUCAS BERGVALL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 9",
+        "label": "HUGO LARSSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 10",
+        "label": "JESPER KARLSTRÖM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 11",
+        "label": "YASIN AVARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 12",
+        "label": "MATTIAS SVANBERG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 14",
+        "label": "DANIEL SVENSSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 15",
+        "label": "KEN SEMA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 16",
+        "label": "ROONY BARDGHJI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 17",
+        "label": "DEJAN KULUSEVSKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 18",
+        "label": "ANTHONY ELANGA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 19",
+        "label": "ALEXANDER ISAK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SWE 20",
+        "label": "VIKTOR GYÖKERES",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Os slots SWE 1 e SWE 13 não possuem nome de jogador visível.",
+    "_filename": "20260501_194635259_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da Tunísia com jogadores e informações do grupo F.",
+    "section": "Tunisia",
+    "page_numbers": [
+      59
+    ],
+    "slots": [
+      {
+        "code": "TUN 20",
+        "label": "NAIM SLITI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 19",
+        "label": "SAYFALLAH LTAIEF",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 18",
+        "label": "ISMAEL GHARBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 17",
+        "label": "HAZEM MASTOURI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 16",
+        "label": "ELIAS SAAD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 15",
+        "label": "ELIAS ACHOURI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 14",
+        "label": "HANNIBAL MEJBRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 13",
+        "label": "Tunisie | Tunez | Tunisia | Tunis | Tunesien | Tunesie | Тунис | تونس",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "TUN 12",
+        "label": "MOHAMED ALI BEN ROMDHANE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 11",
+        "label": "FERJANI SASSI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 10",
+        "label": "AISSA LAIDOUNI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 9",
+        "label": "ELYES SKHIRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 8",
+        "label": "DYLAN BRONN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 7",
+        "label": "ALI ABDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 6",
+        "label": "YASSINE MERIAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 5",
+        "label": "MONTASSAR TALBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 4",
+        "label": "YAN VALERY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 3",
+        "label": "AYMEN DAHMEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 2",
+        "label": "BECHIR BEN SAID",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "TUN 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "The label for TUN 1 is not visible, but it is typically the team badge for the first sticker of a country. The label for TUN 13 is a list of country names in different languages, which usually indicates a team photo sticker.",
+    "_filename": "20260501_194640687_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da Bélgica (We Are Belgium) com cromos de jogadores e emblema, e informações do Grupo G.",
+    "section": "Belgium",
+    "page_numbers": [
+      89
+    ],
+    "slots": [
+      {
+        "code": "BEL 20",
+        "label": "ROMELU LUKAKU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 19",
+        "label": "LOIS OPENDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 18",
+        "label": "LEANDRO TROSSARD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 17",
+        "label": "CHARLES DE KETELAERE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 16",
+        "label": "JEREMY DOKU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 15",
+        "label": "KEVIN DE BRUYNE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 14",
+        "label": "HANS VANAKEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 13",
+        "label": "Belgium | Belgique | Belgie | Belgien",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "BEL 12",
+        "label": "ALEXIS SAELMAEKERS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 11",
+        "label": "NICOLAS RASKIN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 10",
+        "label": "AMADOU ONANA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 9",
+        "label": "YOURI TIELEMANS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 8",
+        "label": "THOMAS MEUNIER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 7",
+        "label": "MAXIM DE CUYPER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 6",
+        "label": "BRANDON MECHELE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 5",
+        "label": "ZENO DEBAST",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 4",
+        "label": "TIMOTHY CASTAGNE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 3",
+        "label": "ARTHUR THEATE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 2",
+        "label": "THIBAUT COURTOIS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "BEL 1",
+        "label": "WE ARE BELGIUM | Union Royale Belge des Sociétés de Football-Association | Koninklijke Belgische Voetbalbond",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "A página esquerda inclui o calendário de jogos da Bélgica no Grupo G (vs New Zealand, IR Iran, Egypt). A página direita mostra a tabela de classificação do Grupo J, que não são slots de figurinhas.",
+    "_filename": "20260501_194651105_iOS.jpg"
+  },
+  {
+    "page_summary": "Pages for Egypt, featuring player stickers EGV 1-20, Group A and Group G match information.",
+    "section": "Egypt",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "EGV 1",
+        "label": "MOHAMED ELSHENAWY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 2",
+        "label": "MOHAMED ELSHENAWY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 3",
+        "label": "MOHAMED HANY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 4",
+        "label": "MOHAMED HAMDY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 5",
+        "label": "YASSER IBRAHIM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 6",
+        "label": "KHALED SOBHI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 7",
+        "label": "RAMY RABIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 8",
+        "label": "HOSSAM ABDELMAGUID",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 9",
+        "label": "AHMED FATOUH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 10",
+        "label": "MARWAN ATTIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 11",
+        "label": "ZIZO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 12",
+        "label": "HAMDY FATHY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 13",
+        "label": "EGYPTE | Égypte | Egipto | Egitto | Misr | Egypt | Emnet",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "EGV 14",
+        "label": "MOHANAD LASHEEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 15",
+        "label": "EMAM ASHOUR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 16",
+        "label": "OSAMA FAISAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 17",
+        "label": "MOHAMED SALAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 18",
+        "label": "MOSTAFA MOHAMED",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 19",
+        "label": "TREZEGUET",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "EGV 20",
+        "label": "OMAR MARMOUSH",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "EGV 1 and EGV 2 are both labeled 'MOHAMED ELSHENAWY'. EGV 13 is a large green slot with multi-language text 'EGYPTE | Égypte | Egipto | Egitto | Misr | Egypt | Emnet' printed below, interpreted as the Egypt team badge.",
+    "_filename": "20260501_194655586_iOS.jpg"
+  },
+  {
+    "page_summary": "Duas páginas dedicadas à seleção do Irã, incluindo cromos de jogadores (IRN 1-20) e informações sobre o Grupo G e jogos da Copa do Mundo FIFA 2026.",
+    "section": "Iran",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "IRN 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 2",
+        "label": "ALIREZA BEIRANVAND",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 3",
+        "label": "MORTEZA POURALIGANJI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 4",
+        "label": "EHSAN HAJSAFI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 5",
+        "label": "MILAD MOHAMMADI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 6",
+        "label": "SHOJAE KHALILZADEH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 7",
+        "label": "RAMIN REZAEIAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 8",
+        "label": "HOSSEIN KANAANI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 9",
+        "label": "SADEGH MOHARRAMI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 10",
+        "label": "SALEH HARDANI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 11",
+        "label": "SAEED EZATOLAHI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 12",
+        "label": "SAMAN GHODDOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 13",
+        "label": null,
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "IRN 14",
+        "label": "OMID NOORAFKAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 15",
+        "label": "ROOZBEH CHESHMI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 16",
+        "label": "MOHAMMAD MOHEBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 17",
+        "label": "SARDAR AZMOUN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 18",
+        "label": "MEHDI TAREMI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 19",
+        "label": "ALIREZA JAHANBAKHSH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRN 20",
+        "label": "ALI GHOLIZADEH",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Os números das páginas não estão visíveis. O cromo IRN 13 é um slot maior, provavelmente para uma foto da equipe, com base no contexto e no texto 'IR Iran | Iran | Iran | Iran | Iran' abaixo dele. O rótulo para IRN 1 não está visível, mas é um slot de jogador em sequência.",
+    "_filename": "20260501_194659693_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas de Nova Zelândia (Grupo G) com jogadores e emblemas",
+    "section": "New Zealand",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "NZL",
+        "label": "NZL",
+        "type": "badge",
+        "tier": "regular"
+      },
+      {
+        "code": "IRN",
+        "label": "IRN",
+        "type": "badge",
+        "tier": "regular"
+      },
+      {
+        "code": "EGY",
+        "label": "EGY",
+        "type": "badge",
+        "tier": "regular"
+      },
+      {
+        "code": "BEL",
+        "label": "BEL",
+        "type": "badge",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-20",
+        "label": "KOSTA BARBAROUSES",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-19",
+        "label": "CALLUM MCGOWATT",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-18",
+        "label": "ELIJAH JUST",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-17",
+        "label": "CHRIS WOOD",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-16",
+        "label": "BEN OLD",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-15",
+        "label": "MARKO STAMENIC",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-14",
+        "label": "MATTHEW GARBETT",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-13",
+        "label": "New Zealand | Nouvelle-Zélande | Nueva Zelanda | Nova Zelândia | Новая Зеландия",
+        "type": "team_photo",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-12",
+        "label": "RYAN THOMAS",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-11",
+        "label": "SARPREET SINGH",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-10",
+        "label": "JOE BELL",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-9",
+        "label": "FINN SURMAN",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-8",
+        "label": "FRANCIS DE VRIES",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-7",
+        "label": "TYLER BINDON",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-6",
+        "label": "TIM PAYNE",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-5",
+        "label": "LIBERATO CACACE",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-4",
+        "label": "MICHAEL BOXALL",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-3",
+        "label": "ALEX PAULSEN",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-2",
+        "label": "MAX CHOCOMBE",
+        "type": "player",
+        "tier": "regular"
+      },
+      {
+        "code": "NZL-1",
+        "label": "NZL",
+        "type": "player",
+        "tier": "regular"
+      }
+    ],
+    "notes": "Page numbers not visible. Slot NZL-13 appears to be a team photo based on the multi-language label. Slot NZL-1 is assumed to be a player based on the numbering sequence.",
+    "_filename": "20260501_194705906_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção da Espanha com slots de jogadores e informações do Grupo H, incluindo o calendário de jogos.",
+    "section": "Spain / Group H",
+    "page_numbers": [
+      56,
+      57
+    ],
+    "slots": [
+      {
+        "code": "ESP 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "ESP 2",
+        "label": null,
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "ESP 3",
+        "label": "ROBIN LE NORMAND",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 4",
+        "label": "AYMERIC LAPORTE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 5",
+        "label": "DEAN HUIJSEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 6",
+        "label": "PEDRO PORRO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 7",
+        "label": "DANI CARVAJAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 8",
+        "label": "MARC CUCURELLA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 9",
+        "label": "MARTIN ZUBIMENDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 10",
+        "label": "RODRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 11",
+        "label": "PEDRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 12",
+        "label": "FABIAN RUIZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 14",
+        "label": "MIKEL MERINO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 15",
+        "label": "LAMINE YAMAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 16",
+        "label": "DANI OLMO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 17",
+        "label": "NICO WILLIAMS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 18",
+        "label": "FERRAN TORRES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 19",
+        "label": "ALVARO MORATA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ESP 20",
+        "label": "MIKEL OYARZABAL",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "ESP 1 and ESP 2 are large slots without visible labels; their types (badge, team_photo) are assumed based on typical album layout for a national team section. The large blue/purple graphic labeled 'ESP 13' is an informational graphic, not a sticker slot, and is therefore excluded from the 'slots' array.",
+    "_filename": "20260501_194710314_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção de Cabo Verde (jogadores CPV 1-20) e slots de times do Grupo H.",
+    "section": "Cabo Verde",
+    "page_numbers": [
+      88,
+      89
+    ],
+    "slots": [
+      {
+        "code": null,
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "CPV 11",
+        "label": "PATRICK ANDRADE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 12",
+        "label": "JAMIRO MONTEIRO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 14",
+        "label": "DEROY DUARTE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 15",
+        "label": "GARRY RODRIGUES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 16",
+        "label": "JOVANE CABRAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 17",
+        "label": "RYAN MENDES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 18",
+        "label": "DALON LIVRAMENTO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 19",
+        "label": "WILLY SEMEDO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 20",
+        "label": "BEBE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 2",
+        "label": "VOZINHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 3",
+        "label": "LOGAN COSTA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 4",
+        "label": "PICO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 5",
+        "label": "DINEV",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 6",
+        "label": "STEVEN MOREIRA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 7",
+        "label": "WAGNER PINA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 8",
+        "label": "JOAO PAULO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 9",
+        "label": "YANNICK SEMEDO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CPV 10",
+        "label": "KEVIN PINA",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Labels for CPV 1 and CPV 13 are partially visible but not fully legible. Codes and labels for Group H team slots (URU, CPV, KSA, ESP) are not printed.",
+    "_filename": "20260501_194714694_iOS.jpg"
+  },
+  {
+    "page_summary": "Saudi Arabia team pages with player slots KSA 1 to KSA 20",
+    "section": "Saudi Arabia",
+    "page_numbers": [
+      72
+    ],
+    "slots": [
+      {
+        "code": "KSA 20",
+        "label": "ABDULLAH ALHAMDAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 19",
+        "label": "SALEH ALSHEHRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 18",
+        "label": "FERAS ALBRIKAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 17",
+        "label": "ABDULRAHMAN ALOBUD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 16",
+        "label": "SALEM ALDAWSARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 15",
+        "label": "MARWAN ALSHAHAFI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 14",
+        "label": "SALEH ABU ALSHAMAT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 12",
+        "label": "NASSER ALDAWSARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 11",
+        "label": "ABDULLAH ALKHAIBARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 10",
+        "label": "ZIYAD ALJOHANI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 9",
+        "label": "MUSAB ALJUWAYR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 8",
+        "label": "HASSAN ALTAMBAKTI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 7",
+        "label": "MOTEE ALHARBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 6",
+        "label": "JEHAD THIKRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 5",
+        "label": "NAWAF BUWASHIL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 4",
+        "label": "SAUD ABDULHAMID",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 3",
+        "label": "ABDULRAHMAN ALSANBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 2",
+        "label": "NAWAF ALAQIDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "KSA 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Page 73 is inferred for the right page. Labels for KSA 1 and KSA 13 are not visible.",
+    "_filename": "20260501_194718826_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas de Uruguai com cromos de jogadores e emblemas do Grupo H.",
+    "section": "Uruguay",
+    "page_numbers": [
+      73
+    ],
+    "slots": [
+      {
+        "code": "URU 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 2",
+        "label": "SERGIO ROCHET",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 3",
+        "label": "SANTIAGO MELE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 4",
+        "label": "RONALD ARAUJO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 5",
+        "label": "JOSE MARIA GIMENEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 6",
+        "label": "SEBASTIAN CACERES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 7",
+        "label": "MATHIAS OLIVERA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 8",
+        "label": "GUILLERMO VARELA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 9",
+        "label": "NAHITAN NÁNDEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 10",
+        "label": "FEDERICO VALVERDE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 11",
+        "label": "GIORGIAN DE ARRASCAETA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 12",
+        "label": "RODRIGO BENTANCUR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 14",
+        "label": "MANUEL UGARTE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 15",
+        "label": "NICOLAS DE LA CRUZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 16",
+        "label": "MAXI ARAUJO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 17",
+        "label": "DARWIN NUÑEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 18",
+        "label": "FEDERICO VIÑAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 19",
+        "label": "RODRIGO AGUIRRE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU 20",
+        "label": "FACUNDO PELLISTRI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "URU",
+        "label": "Uruguay",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "KSA",
+        "label": "Saudi Arabia",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "CPV",
+        "label": "Cabo Verde",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "ESP",
+        "label": "Spain",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "A página 73 está parcialmente visível. O nome do jogador para URU 1 e URU 13 não está visível.",
+    "_filename": "20260501_194722653_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção da França com jogadores e informações de grupos.",
+    "section": "France",
+    "page_numbers": [
+      13
+    ],
+    "slots": [
+      {
+        "code": "FRA 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "FRA 2",
+        "label": "MIKE MAIGNAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 3",
+        "label": "THÉO HERNÁNDEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 4",
+        "label": "WILLIAM SALIBA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 5",
+        "label": "JULES KOUNDÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 6",
+        "label": "IBRAHIMA KONATÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 7",
+        "label": "DAYOT UPAMECANO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 8",
+        "label": "LUCAS DIGNE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 9",
+        "label": "AURÉLIEN TCHOUAMÉNI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 10",
+        "label": "EDUARDO CAMAVINGA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 11",
+        "label": "MANU KONÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 12",
+        "label": "ADRIEN RABBIOT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 14",
+        "label": "MICHAEL OLISÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 15",
+        "label": "OUSMANE DEMBÉLÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 16",
+        "label": "BRADLEY BARCOLA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 17",
+        "label": "DÉSIRÉ DOUÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 18",
+        "label": "KINGSLEY COMAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 19",
+        "label": "HUGO EKITIKÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FRA 20",
+        "label": "KYLIAN MBAPPÉ",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "A página esquerda contém informações sobre os grupos D e I, incluindo tabelas e jogos, mas não há slots de figurinhas visíveis nela. O slot FRA 1 é provavelmente o emblema da seleção. O slot FRA 13 está vazio, sem nome de jogador impresso, mas contém 'France' em vários idiomas, indicando um cromo especial de jogador ou de equipe.",
+    "_filename": "20260501_194727253_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção de Senegal com cromos de jogadores e informações de grupos.",
+    "section": "Senegal",
+    "page_numbers": [
+      77,
+      78
+    ],
+    "slots": [
+      {
+        "code": "SEN 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SEN 2",
+        "label": "ÉDOUARD MENDY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 3",
+        "label": "VÉHMAN DIOUF",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 4",
+        "label": "MOUSSA NIAKHATE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 5",
+        "label": "ABDOULAYE SECK",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 6",
+        "label": "ISMAIL JAKOBS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 7",
+        "label": "EL HADJI MALICK DIOUF",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 8",
+        "label": "KALIDOU KOULIBALY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 9",
+        "label": "IDRISSA GANA GUEYE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 10",
+        "label": "PAPE MATAR SARR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 11",
+        "label": "PAPE GUEYE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 12",
+        "label": "HABIB DIARRA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 13",
+        "label": null,
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "SEN 14",
+        "label": "LAMINE CAMARA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 15",
+        "label": "SADIO MANÉ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 16",
+        "label": "ISMAILA SARR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 17",
+        "label": "BOULAYE DIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 18",
+        "label": "ILIMAN NDIAYE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 19",
+        "label": "NICOLAS JACKSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "SEN 20",
+        "label": "KREPIN DIATTA",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Assumed SEN 1 is badge and SEN 13 is team photo based on common album layouts, as no labels are printed for these slots. The 'GROUP B' and 'GROUP I' sections on page 77 are informational and do not contain sticker slots.",
+    "_filename": "20260501_194732547_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção do Iraque (cromos 1-20), emblema da federação, e badges dos times do Grupo 1.",
+    "section": "Iraq",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "IRAQ-BADGE",
+        "label": "Iraqi Football Association",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 2",
+        "label": "JALAL HASSAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 3",
+        "label": "REBIN SULAKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 4",
+        "label": "HUSSEIN ALI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 5",
+        "label": "AKAM HASHEM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 6",
+        "label": "MERCHAS DOSKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 7",
+        "label": "ZAID TAHSEEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 8",
+        "label": "MANAF YOUNIS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 9",
+        "label": "ZIDANE IQBAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 10",
+        "label": "AMIR AL-AMMARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 11",
+        "label": "IBRAHIM BAYESH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 12",
+        "label": "ALI JASIM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 14",
+        "label": "YOUSSEF AMYN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 15",
+        "label": "ANWAR SHER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 16",
+        "label": "MARHO FARJI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 17",
+        "label": "OSAMA RASHID",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 18",
+        "label": "ALI AL-HAMADI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 19",
+        "label": "AYMEN HUSSEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRAQ 20",
+        "label": "MOHANAD ALI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GROUP1-IRAQ",
+        "label": "Iraq",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "GROUP1-FRA",
+        "label": "France",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "GROUP1-NOR",
+        "label": "Norway",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "GROUP1-SEN",
+        "label": "Senegal",
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "A seção 'ROAD TO FIFA WORLD CUP 2026' e os detalhes das partidas do Grupo 1 não são slots de figurinhas e foram omitidos.",
+    "_filename": "20260501_194737766_iOS.jpg"
+  },
+  {
+    "page_summary": "Pages showing Norway national team player stickers (1-20), Group I country badges, and group information.",
+    "section": "Norway",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "NOR 7",
+        "label": "DAVID MØLLER WOLFE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 8",
+        "label": "TORBJØRN HEGGEM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 9",
+        "label": "MORTEN THORSBY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 10",
+        "label": "MARTIN ØDEGAARD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 2",
+        "label": "ØRJAN NYLAND",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 3",
+        "label": "JULIAN RYERSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 4",
+        "label": "LEO ØSTIGÅRD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 5",
+        "label": "KRISTOFFER VASSBAKK AJER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 6",
+        "label": "MARCUS HOLMGREN PEDERSEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "IRQ",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "FRA",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "NOR",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "SEN",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "NOR 11",
+        "label": "SANDER BERGE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 12",
+        "label": "ANDREAS SCHJELDERUP",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 13",
+        "label": "Norwegian | Norwegen | Norvège | Norvegia | Noruega | Hopвeгия",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "NOR 14",
+        "label": "PATRICK BERG",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 15",
+        "label": "ERLING HAALAND",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 16",
+        "label": "ALEXANDER SØRLOTH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 17",
+        "label": "ARON DØNNUM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 18",
+        "label": "JØRGEN STRAND LARSEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 19",
+        "label": "ANTONIO NUSA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "NOR 20",
+        "label": "OSCAR BOBB",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The Group I table and match schedule areas are informational and do not contain sticker slots with specific codes.",
+    "_filename": "20260501_194741593_iOS.jpg"
+  },
+  {
+    "page_summary": "Argentina player stickers and group stage information for FIFA World Cup 2026",
+    "section": "Argentina",
+    "page_numbers": [
+      63,
+      64
+    ],
+    "slots": [
+      {
+        "code": "ARG-1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "ARG-2",
+        "label": "EMILIANO MARTÍNEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-3",
+        "label": "NAHUEL MOLINA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-4",
+        "label": "CRISTIAN ROMERO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-5",
+        "label": "NICOLÁS OTAMENDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-6",
+        "label": "NICOLÁS TAGLIAFICO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-7",
+        "label": "LEONARDO BALERDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-8",
+        "label": "ENZO FERNÁNDEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-9",
+        "label": "ALEXIS MAC ALLISTER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-10",
+        "label": "RODRIGO DE PAUL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-11",
+        "label": "EZEQUIEL PALACIOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-12",
+        "label": "LEANDRO PAREDES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-14",
+        "label": "NICO PAZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-15",
+        "label": "FRANCO MASTANTUONO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-16",
+        "label": "NICO GONZÁLEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-17",
+        "label": "LIONEL MESSI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-18",
+        "label": "LAUTARO MARTÍNEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-19",
+        "label": "JULIÁN ÁLVAREZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ARG-20",
+        "label": "GUILLANO SIMEONE",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "ARG-1 is a large orange slot, likely the team badge. ARG-13 is also a large orange slot, likely a star player or special team sticker, with 'Argentina' in multiple languages next to it.",
+    "_filename": "20260501_194747998_iOS.jpg"
+  },
+  {
+    "page_summary": "Pages for Algeria, including Group J match schedule and player stickers ALG 1-20.",
+    "section": "Algeria",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "ALG 1",
+        "label": "Team Photo",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "ALG 2",
+        "label": "ALEXIS GUENDOUZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 3",
+        "label": "RAMY BENSEBAINI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 4",
+        "label": "YOUCEF ATAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 5",
+        "label": "RAYAN AÏT-NOURI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 6",
+        "label": "MOHAMED AMINE TOUGAI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 7",
+        "label": "AISSA MANDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 8",
+        "label": "ISMAEL BENNACER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 9",
+        "label": "HOUSSEM AOUAR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 10",
+        "label": "HICHAM BOUDAOUI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 11",
+        "label": "RAMIZ ZERROUKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 12",
+        "label": "NABIL BENTALEB",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 13",
+        "label": "Team Badge",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "ALG 14",
+        "label": "FARES CHAIBI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 15",
+        "label": "RIYAD MAHREZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 16",
+        "label": "SAID BENRAHMA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 17",
+        "label": "ANIS HADJ-MOUSSA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 18",
+        "label": "AMINE GOURI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 19",
+        "label": "BAGHDAD BOUNEDJAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ALG 20",
+        "label": "MOHAMMED AMOURA",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "The text 'Algeria | Algerien | Algérie | Cezayir | Algeria | Алжир' is printed below slot ALG 13. The text 'WE ARE ALGERIA' is a section title above slot ALG 1. Page numbers are not visible. The left page shows Group J match schedule, and the right page shows a Group G table, but the stickers are for Algeria.",
+    "_filename": "20260501_194753015_iOS.jpg"
+  },
+  {
+    "page_summary": "Austria national team section with player stickers, Group J match schedule, and Group H table.",
+    "section": "Austria",
+    "page_numbers": [
+      87,
+      88
+    ],
+    "slots": [
+      {
+        "code": "AUT",
+        "label": null,
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "ALEXANDER SCHLAGER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "PATRICK PENTZ",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "DAVID ALABA",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "KEVIN DANSO",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "PHILIPP LIENHART",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "STEFAN POSCH",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "PHILIPP MWENE",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "ALEXANDER PRASS",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "XAVER SCHLAGER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "MARCEL SABITZER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "KONRAD LAIMER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "Österreich | Autriche | Austria | Oostenrijk | Austria | Австрия",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "FLORIAN GRILLITSCH",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "NICOLAS SEIWALD",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "ROMANO SCHMID",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "PATRICK WIMMER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "CHRISTOPH BAUMGARTNER",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "MICHAEL GREGORITSCH",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "AUT",
+        "label": "MARKO ARNAUTOVIC",
+        "type": "player",
+        "tier": "null"
+      }
+    ],
+    "notes": "Slot AUT-1 has no visible label but is green like AUT-13. Slot AUT-13 contains the team name in multiple languages.",
+    "_filename": "20260501_194757967_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da Jordânia com slots de jogadores e informações do time, incluindo o emblema e um slot especial de texto.",
+    "section": "Jordan",
+    "page_numbers": [
+      88,
+      89
+    ],
+    "slots": [
+      {
+        "code": "JOR 20",
+        "label": "IBRAHIM SABRA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 19",
+        "label": "MOHAMMAD ABU ZRAIQ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 18",
+        "label": "ALI OLWAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 17",
+        "label": "MAHMOUD AL-MARDI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 16",
+        "label": "YAZAN AL-NAIMAT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 15",
+        "label": "MOUSA AL-TAAMARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 14",
+        "label": "AMER JAMOUS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 13",
+        "label": "Jordanian | Jordanie | Jordania | Jordania | Jordania | Jordun",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "JOR 12",
+        "label": "MOHANNAD ABUTAHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 11",
+        "label": "NOOR AL-RAWABDEH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 10",
+        "label": "NIZAR AL-RASHDAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 9",
+        "label": "IBRAHIM SAADEH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 8",
+        "label": "MOHAMMAD ABULNADI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 7",
+        "label": "SALEEM OBAID",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 6",
+        "label": "ABDALLAH NASIB",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 5",
+        "label": "YAZAN AL-ARAB",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 4",
+        "label": "MOHAMMAD ABU HASHISH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 3",
+        "label": "IHSAN HADDAD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 2",
+        "label": "YAZEED ABULAILA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "JOR 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "O slot JOR 1 é o emblema da equipe, seu rótulo não é visível na imagem. O slot JOR 13 contém texto em vários idiomas sobre a Jordânia.",
+    "_filename": "20260501_194802734_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas de Portugal com jogadores e informações de grupos de qualificação",
+    "section": "Portugal",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "POR 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 2",
+        "label": "DIOGO COSTA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 3",
+        "label": "JOSÉ SÁ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 4",
+        "label": "RÚBEN DIAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 5",
+        "label": "JOÃO CANCELO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 6",
+        "label": "DIOGO DALOT",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 7",
+        "label": "NUNO MENDES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 8",
+        "label": "GONÇALO INÁCIO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 9",
+        "label": "BERNARDO SILVA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 10",
+        "label": "BRUNO FERNANDES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 11",
+        "label": "RÚBEN NEVES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 12",
+        "label": "VITINHA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 14",
+        "label": "JOÃO NEVES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 15",
+        "label": "CRISTIANO RONALDO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 16",
+        "label": "FRANCISCO TRINCÃO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 17",
+        "label": "JOÃO FÉLIX",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 18",
+        "label": "GONÇALO RAMOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 19",
+        "label": "PEDRO NETO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "POR 20",
+        "label": "RAFAEL LEÃO",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Slots POR 1 and POR 13 are purple and have no visible player name printed.",
+    "_filename": "20260501_194807914_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção Congo DR com cromos de 1 a 20, incluindo emblema e foto do time.",
+    "section": "Congo DR",
+    "page_numbers": [
+      3,
+      4
+    ],
+    "slots": [
+      {
+        "code": "COD 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "COD 2",
+        "label": "LIONEL MPASI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 3",
+        "label": "AARON WAN-BISSAKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 4",
+        "label": "AXEL TUANZEBE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 5",
+        "label": "ARTHUR MASUAKU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 6",
+        "label": "CHANCEL MBEMBA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 7",
+        "label": "JORIS KAVEMBE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 8",
+        "label": "CHARLES PICKEL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 9",
+        "label": "NGALAYEL MUKAU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 10",
+        "label": "EDO KAVEMBE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 11",
+        "label": "SAMUEL MOUTOUSSAMY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 12",
+        "label": "NOAH SADIKI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 13",
+        "label": null,
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "COD 14",
+        "label": "THEO BONGONDA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 15",
+        "label": "MESCHACK ELIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 16",
+        "label": "YOANE WISSA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 17",
+        "label": "BRIAN CIPENGA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 18",
+        "label": "FISTON MAVELE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 19",
+        "label": "CEDRIC BAKAMBU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COD 20",
+        "label": "NATHANAEL MBUKU",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "COD 1 and COD 13 labels are not explicitly visible in the slots, but inferred from their position and surrounding text (multi-language country name for COD 13).",
+    "_filename": "20260501_194812672_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seleção da Colômbia com cromos de jogadores e emblema/foto do time.",
+    "section": "Colombia",
+    "page_numbers": [
+      87
+    ],
+    "slots": [
+      {
+        "code": "COL 1",
+        "label": "Emblem",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "COL 2",
+        "label": "CAMILO VARGAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 3",
+        "label": "DAVID OSPINA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 4",
+        "label": "DAVINSON SANCHEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 5",
+        "label": "YERRY MINA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 6",
+        "label": "DANIEL MUNOZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 7",
+        "label": "JOHAN MOJICA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 8",
+        "label": "JHON LUCUMI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 9",
+        "label": "SANTIAGO ARIAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 10",
+        "label": "JEFFERSON LERMA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 11",
+        "label": "KEVIN CASTANO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 12",
+        "label": "RICHARD RIOS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 13",
+        "label": "Colombia | Kolumbien | Colombie | Colombia | Colômbia | Колумбия",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "COL 14",
+        "label": "JAMES RODRIGUEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 15",
+        "label": "JUAN FERNANDO QUINTERO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 16",
+        "label": "JORGE CARRASCAL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 17",
+        "label": "JHON ARIAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 18",
+        "label": "JHON CORDOBA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 19",
+        "label": "LUIS SUAREZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "COL 20",
+        "label": "LUIS DIAZ",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "For COL 1, 'Emblem' is inferred as the label based on its position and surrounding text ('WE ARE COLOMBIA', 'Federación Colombiana de Fútbol'), as no specific label is printed directly on or under the slot. Only page 87 is visible.",
+    "_filename": "20260501_194822140_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas da seção da Inglaterra com cromos de jogadores ENG 1 a ENG 20, e parte da tabela do Grupo L.",
+    "section": "England",
+    "page_numbers": [
+      86,
+      87
+    ],
+    "slots": [
+      {
+        "code": "ENG 1",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 2",
+        "label": "JORDAN PICKFORD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 3",
+        "label": "JOHN STONES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 4",
+        "label": "MARC GUEHI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 5",
+        "label": "EZRI KONSA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 6",
+        "label": "TRENT ALEXANDER-ARNOLD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 7",
+        "label": "REECE JAMES",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 8",
+        "label": "DAN BURN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 9",
+        "label": "JORDAN HENDERSON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 10",
+        "label": "DECLAN RICE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 11",
+        "label": "JUDE BELLINGHAM",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 12",
+        "label": "COLE PALMER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 14",
+        "label": "MORGAN ROGERS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 15",
+        "label": "ANTHONY GORDON",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 16",
+        "label": "PHIL FODEN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 17",
+        "label": "BUKAYO SAKA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 18",
+        "label": "HARRY KANE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 19",
+        "label": "MARCUS RASHFORD",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "ENG 20",
+        "label": "OLLIE WATKINS",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "O rótulo para os cromos ENG 1 e ENG 13 não está visível na imagem.",
+    "_filename": "20260501_194827177_iOS.jpg"
+  },
+  {
+    "page_summary": "Croatia team pages with player stickers CRO 1-20 and Group L fixtures from the Road to FIFA World Cup 2026 section.",
+    "section": "Croatia",
+    "page_numbers": [
+      148,
+      149
+    ],
+    "slots": [
+      {
+        "code": "CRO 1",
+        "label": "Hrvatski nogometni savez",
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "CRO 2",
+        "label": "DOMINIK LIVAKOVIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 3",
+        "label": "DUJE CALETA-CAR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 4",
+        "label": "JOSKO GVARDIOL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 5",
+        "label": "JOSIP STANISIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 6",
+        "label": "LUKA VUSKOVIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 7",
+        "label": "JOSIP SUTALO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 8",
+        "label": "KRISTIJAN JAKIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 9",
+        "label": "LUKA MODRIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 10",
+        "label": "MATEO KOVACIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 11",
+        "label": "MARTIN BATURINA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 12",
+        "label": "LOVRO MAJER",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 13",
+        "label": null,
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 14",
+        "label": "MARIO PASALIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 15",
+        "label": "PETAR SUCIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 16",
+        "label": "IVAN PERISIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 17",
+        "label": "MARCO PASALIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 18",
+        "label": "ANTE BUDIMIR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 19",
+        "label": "ANDREJ KRAMARIC",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CRO 20",
+        "label": "FRANJO IVANOVIC",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "CRO 13 player name is not visible. CRO 1 is the team badge, labeled 'Hrvatski nogometni savez'.",
+    "_filename": "20260501_194832153_iOS.jpg"
+  },
+  {
+    "page_summary": "Duas páginas do álbum oficial Panini FIFA World Cup 2026, mostrando os slots de figurinhas da seleção de Gana, incluindo informações sobre o Grupo L e jogos.",
+    "section": "Ghana",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "GHA 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      },
+      {
+        "code": "GHA 2",
+        "label": "LAWRENCE ATI ZIGI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 3",
+        "label": "TARIQ LAMPTEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 4",
+        "label": "MOHAMMED SALISU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 5",
+        "label": "ALIDU SEIDU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 6",
+        "label": "ALEXANDER DJIKU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 7",
+        "label": "GIDEON MENSAH",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 8",
+        "label": "CALEB EKUBAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 9",
+        "label": "ABDUL ISSAHAKU FATAWU",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 10",
+        "label": "THOMAS PARTEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 11",
+        "label": "SALIS ABDUL SAMED",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 12",
+        "label": "KAMALDEEN SULEMANA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 13",
+        "label": null,
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "GHA 14",
+        "label": "MOHAMMED KUDUS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 15",
+        "label": "INAKI WILLIAMS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 16",
+        "label": "JORDAN AYEW",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 17",
+        "label": "ANDRE AYEW",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 18",
+        "label": "JOSEPH PAINTSIL",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 19",
+        "label": "OSMAN BUKARI",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "GHA 20",
+        "label": "ANTOINE SEMENYO",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Informações do Grupo L: Panamá, Croácia, Gana, Inglaterra. Jogos de Gana: vs Croácia (Sábado, 22 Junho - Philadelphia Stadium), vs Inglaterra (Terça-feira, 22 Junho - Toronto Stadium), vs Panamá (Quarta-feira, 27 Junho - Miami Stadium).",
+    "_filename": "20260501_194836753_iOS.jpg"
+  },
+  {
+    "page_summary": "Panama player stickers and team badge, with Group L match schedules and Group A/D tables",
+    "section": "Panama",
+    "page_numbers": [
+      105,
+      106
+    ],
+    "slots": [
+      {
+        "code": "PAN 20",
+        "label": "ALBERTO QUINTERO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 19",
+        "label": "JOSE LUIS RODRIGUEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 18",
+        "label": "CECILIO WATERMAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 17",
+        "label": "JOSE FAJARDO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 16",
+        "label": "ISMAEL DIAZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 15",
+        "label": "CARLOS HARVEY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 14",
+        "label": "EDGAR BARCENAS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 13",
+        "label": "Panama | Panama | Panama | Panama | Panama | Panama | Panama | Panama",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": "PAN 12",
+        "label": "ADALBERTO CARRASQUILLA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 11",
+        "label": "ANIBAL GODOY",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 10",
+        "label": "CRISTIAN MARTINEZ",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 9",
+        "label": "CESAR BLACKMAN",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 8",
+        "label": "JOSE CORDOBA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 7",
+        "label": "ERIC DAVIS",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 6",
+        "label": "MICHAEL AMIR MURILLO",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 5",
+        "label": "ANDRES ANDRADE",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 4",
+        "label": "FIDEL ESCOBAR",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 3",
+        "label": "LUIS MEJIA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 2",
+        "label": "ORLANDO MOSQUERA",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "PAN 1",
+        "label": null,
+        "type": "badge",
+        "tier": null
+      }
+    ],
+    "notes": "The left page (105) also contains Group L match schedules. The right page (106) contains Group A and Group D tables. These are not sticker slots.",
+    "_filename": "20260501_194841578_iOS.jpg"
+  },
+  {
+    "page_summary": "Historical FIFA World Cup match summaries and top scorers",
+    "section": "FIFA World Cup",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 10",
+        "label": "FIFA WORLD CUP BRAZIL 1950™\n16 de julho de 1950\nMaracanã, Rio de Janeiro\nURUGUAY 2-1 BRAZIL",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "9",
+        "label": "Ademir (Brazil)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "FWC 9",
+        "label": "FIFA WORLD CUP ITALY 1934™\n10 de junho de 1934\nNazionale, Rome\nITALY 2-1 CZECHOSLOVAKIA\nApós a prorrogação",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "5",
+        "label": "Oldřich Nejedlý (Czechoslovakia)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "8",
+        "label": "Guillermo Stábile (Argentina)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "7",
+        "label": "Leônidas (Brazil)",
+        "type": "player",
+        "tier": "null"
+      }
+    ],
+    "notes": "Image is rotated 90 degrees clockwise. The player slots are part of an 'ARTILHEIRO' (Top Scorer) sub-section.",
+    "_filename": "20260501_194849896_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas de história da Copa do Mundo, cobrindo os anos 1954, 1958, 1962 e 1966, com detalhes dos jogos finais e artilheiros.",
+    "section": "FIFA World Cup History",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "FWC 11",
+        "label": "FIFA WORLD CUP SWITZERLAND 1954™\n4 de julho de 1954\nWankdorf, Berne\nGERMANY FR 3-2 HUNGARY",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "11",
+        "label": "Sándor Kocsis (Hungary)",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "FWC 12",
+        "label": "FIFA WORLD CUP CHILE 1962™\n17 de junho de 1962\nNacional, Santiago\nBRAZIL 3-1 CZECHOSLOVAKIA",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": "4",
+        "label": "Garrincha (Brazil)\nVavá (Brazil)\nSánchez (Chile)\nAlbert (Hungary)\nIvanov (URSS)\nJerković (Yugoslavia)",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "FIFA WORLD CUP SWEDEN 1958\n29 de junho de 1958\nRåsunda, Solna, Stockholm\nBRAZIL 5-2 SWEDEN",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "BRAZIL 1958",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "FIFA WORLD CUP ENGLAND 1966\n30 de julho de 1966\nWembley, London\nENGLAND 4-2 GERMANY FR",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "ENGLAND 1966",
+        "type": "team_photo",
+        "tier": null
+      }
+    ],
+    "notes": "Os códigos para os slots de 'FIFA WORLD CUP SWEDEN 1958', 'BRAZIL 1958', 'FIFA WORLD CUP ENGLAND 1966' e 'ENGLAND 1966' não estão visíveis na imagem e foram deixados como null. Os slots de 'ARTILHEIROS' têm o número de gols como código.",
+    "_filename": "20260501_194852636_iOS.jpg"
+  },
+  {
+    "page_summary": "Página com resumos de jogos históricos da FIFA World Cup e artilheiros, incluindo um slot decorativo FWC.",
+    "section": "FIFA World Cup",
+    "page_numbers": [
+      107
+    ],
+    "slots": [
+      {
+        "code": "FWC 13",
+        "label": null,
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "ENGLAND 1966",
+        "type": "team_photo",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Grzegorz Lato (Poland)",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Eusébio (Portugal)",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Os cromos já estão colados nos slots. Os textos dos cromos foram usados como 'label' para os slots onde não havia um label explícito no álbum. Os blocos de texto com resumos de jogos históricos não são slots de figurinhas e, portanto, não foram incluídos na lista de slots.",
+    "_filename": "20260501_194854922_iOS.jpg"
+  },
+  {
+    "page_summary": "Página com resumos de finais de Copas do Mundo e artilheiros de edições passadas.",
+    "section": null,
+    "page_numbers": [
+      108
+    ],
+    "slots": [
+      {
+        "code": null,
+        "label": "FIFA WORLD CUP USA 1994™\n17 de julho de 1994\nRose Bowl, Pasadena\nBRAZIL 0-0 ITALY\nBrasil venceu por 3-2 nos pênaltis",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "FIFA WORLD CUP MEXICO 1986™\n29 de junho de 1986\nAzteca, Mexico City\nARGENTINA 3-2 GERMANY FR",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "FIFA WORLD CUP ARGENTINA 1978™\n25 de junho de 1978\nMonumental, Buenos Aires\nARGENTINA 3-1 NETHERLANDS\nApós a prorrogação",
+        "type": "other",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Hristo Stoichkov\n(Bulgaria)",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Oleg Salenko\n(Russia)",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Gary Lineker\n(England)",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "Os números 'FWC 14' e 'FWC 15' são elementos de design da página, não códigos de figurinha. O número '6' ao lado dos artilheiros é interpretado como o número de gols marcados, não um código de figurinha, devido à sua posição e ao contexto da seção 'ARTILHEIROS'. Slots na parte inferior da página estão muito cortados para serem incluídos.",
+    "_filename": "20260501_194900035_iOS.jpg"
+  },
+  {
+    "page_summary": "Páginas do Quadro de Honra com artilheiros e resumos das finais da Copa do Mundo.",
+    "section": "Quadro de Honra",
+    "page_numbers": [
+      109
+    ],
+    "slots": [
+      {
+        "code": "ARTILHEIRO 6",
+        "label": "Harry Kane (England)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "FWC 19",
+        "label": "FIFA WORLD CUP QATAR 2022™",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "ARTILHEIRO 8",
+        "label": "Kylian Mbappé (France)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "ARTILHEIRO 5",
+        "label": "Thomas Müller (Germany)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "ARTILHEIRO 8",
+        "label": "Ronaldo (Brazil)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "FWC 18",
+        "label": "FIFA WORLD CUP BRAZIL 2014™",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "FWC 17",
+        "label": "FIFA WORLD CUP GERMANY 2006™",
+        "type": "other",
+        "tier": "null"
+      },
+      {
+        "code": "ARTILHEIRO 6",
+        "label": "James Rodríguez (Colombia)",
+        "type": "player",
+        "tier": "null"
+      },
+      {
+        "code": "ARTILHEIRO 5",
+        "label": "Miroslav Klose (Germany)",
+        "type": "player",
+        "tier": "null"
+      }
+    ],
+    "notes": "A página 109 é a página da esquerda. O número da página da direita não está visível. O texto completo para os cromos de resumo da Copa do Mundo é:\nFWC 19: '18 de dezembro de 2022\nLusail Stadium, Lusail\nARGENTINA 3-3 FRANCE\nArgentina venceu por 4-2 nos pênaltis'\nFWC 18: '13 de julho de 2014\nMaracanã, Rio de Janeiro\nGERMANY 1-0 ARGENTINA\nApós a prorrogação'\nFWC 17: '9 de junho de 2006\nOlympiastadion, Berlin\nITALY 1-1 FRANCE\nItália venceu por 5-3 nos pênaltis'",
+    "_filename": "20260501_194904217_iOS.jpg"
+  },
+  {
+    "page_summary": "Página de cromos Coca-Cola com jogadores",
+    "section": "Coca-Cola",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "CC1",
+        "label": "Lamine Yamal",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC2",
+        "label": "Joshua Kimmich",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC3",
+        "label": "Harry Kane",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC4",
+        "label": "Santiago Giménez",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC5",
+        "label": "Joško Gvardiol",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": null,
+        "label": "Federico Valverde",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "O código do último slot (Federico Valverde) não está totalmente visível, mas é presumido ser CC6 com base na sequência.",
+    "_filename": "20260501_194913086_iOS.jpg"
+  },
+  {
+    "page_summary": "Página de figurinhas extras da Coca-Cola com jogadores",
+    "section": "Coca-Cola",
+    "page_numbers": [],
+    "slots": [
+      {
+        "code": "CC7",
+        "label": "Jefferson Lerma",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC8",
+        "label": "Enner Valencia",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC9",
+        "label": "Gabriel Magalhães",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC10",
+        "label": "Virgil van Dijk",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC11",
+        "label": "Alphonso Davies",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC12",
+        "label": "Emiliano Martínez",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC13",
+        "label": "Raúl Jiménez",
+        "type": "player",
+        "tier": null
+      },
+      {
+        "code": "CC14",
+        "label": "Lautaro Martínez",
+        "type": "player",
+        "tier": null
+      }
+    ],
+    "notes": "A imagem mostra uma página de figurinhas extras da Coca-Cola, com 8 slots visíveis. Os códigos das figurinhas são CC7 a CC14. Não há números de página visíveis.",
+    "_filename": "20260501_194917648_iOS.jpg"
+  }
+]
