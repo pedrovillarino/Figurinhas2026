@@ -333,20 +333,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Match each detected sticker using fuzzy matching (with quantity tracking)
-    const stickerQty = new Map<number, { sticker: DbSticker; qty: number }>()
+    // Match each detected sticker using fuzzy matching (with quantity tracking).
+    // Also keep the WORST confidence reported by Gemini for each sticker_id so
+    // we can flag low-confidence items in the preview ("⚠️ confira").
+    const stickerQty = new Map<number, { sticker: DbSticker; qty: number; minConfidence: number }>()
     const unmatchedNames: string[] = []
 
-    for (const detected of filledStickers) {
+    for (const detected of filledStickers as Array<{ player_name?: string; country?: string; number?: string; confidence?: number }>) {
       const matched = matchSticker(detected, cache)
+      const conf = typeof detected.confidence === 'number' ? detected.confidence : 1
       if (matched) {
         const existing = stickerQty.get(matched.id)
         if (existing) {
           existing.qty += 1
+          if (conf < existing.minConfidence) existing.minConfidence = conf
         } else {
-          stickerQty.set(matched.id, { sticker: matched, qty: 1 })
+          stickerQty.set(matched.id, { sticker: matched, qty: 1, minConfidence: conf })
         }
-        console.log(`[WhatsApp scan] ✓ "${detected.player_name}" (${detected.country}) → ${matched.number} ${matched.player_name}`)
+        console.log(`[WhatsApp scan] ✓ "${detected.player_name}" (${detected.country}) → ${matched.number} ${matched.player_name} [conf=${conf.toFixed(2)}]`)
       } else {
         const label = detected.player_name || detected.number || '?'
         unmatchedNames.push(label)
@@ -376,18 +380,24 @@ export async function POST(req: NextRequest) {
     const previewLines: string[] = []
     const scanData: Array<{ sticker_id: number; number: string; player_name: string; quantity: number }> = []
 
-    dbStickers.forEach(({ sticker, qty }, idx) => {
+    const LOW_CONFIDENCE_THRESHOLD = 0.8
+    let lowConfidenceCount = 0
+
+    dbStickers.forEach(({ sticker, qty, minConfidence }, idx) => {
       const ex = existingMap.get(sticker.id)
       const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
       const qtyLabel = qty > 1 ? ` (x${qty})` : ''
       const n = idx + 1
+      const lowConf = minConfidence < LOW_CONFIDENCE_THRESHOLD
+      if (lowConf) lowConfidenceCount++
+      const warn = lowConf ? ' ⚠️' : ''
 
       if (!ex) {
-        previewLines.push(qty > 1 ? `*${n}.* 🆕 ${label}${qtyLabel}` : `*${n}.* 🆕 ${label}`)
+        previewLines.push(qty > 1 ? `*${n}.* 🆕 ${label}${qtyLabel}${warn}` : `*${n}.* 🆕 ${label}${warn}`)
       } else if (ex.status === 'owned') {
-        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_`)
+        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_${warn}`)
       } else if (ex.status === 'duplicate') {
-        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + qty})_`)
+        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + qty})_${warn}`)
       }
 
       scanData.push({ sticker_id: sticker.id, number: sticker.number, player_name: sticker.player_name || '', quantity: qty })
@@ -411,11 +421,16 @@ export async function POST(req: NextRequest) {
     const totalStickersFound = dbStickers.reduce((sum, s) => sum + s.qty, 0)
 
     // Build message — different wording for first scan vs subsequent
+    const lowConfNote = lowConfidenceCount > 0
+      ? `\n\n⚠️ _${lowConfidenceCount} item(s) com baixa confiança — confira antes de salvar. Use *tirar N* se algum estiver errado._`
+      : ''
+
     let msg: string
     if (totalPending === 1) {
       // First (or only) scan pending
       msg = `📋 *Encontrei ${totalStickersFound} figurinha(s):*\n\n`
       msg += previewLines.join('\n')
+      msg += lowConfNote
       msg += '\n\n💡 Pode mandar mais fotos! Quando terminar:'
       msg += '\n✅ *SIM* → registra tudo'
       msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
@@ -425,6 +440,7 @@ export async function POST(req: NextRequest) {
       // Additional scans — accumulating
       msg = `📋 *+${totalStickersFound} figurinha(s) detectada(s):*\n\n`
       msg += previewLines.join('\n')
+      msg += lowConfNote
       msg += `\n\n📦 *${totalPending} fotos pendentes no total.*`
       msg += '\nMande mais fotos ou responda:'
       msg += '\n✅ *SIM* → registra todas'
