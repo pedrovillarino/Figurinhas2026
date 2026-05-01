@@ -356,11 +356,11 @@ export async function POST(req: NextRequest) {
     // for Gemini — the player name is too small to read at low resolution,
     // so it guesses. Bail early with a friendly hint rather than process noise.
     const backCount = (filledStickers as Array<{ face?: string }>).filter((s) => (s.face || '').toLowerCase() === 'back').length
-    const allBackHeavy = backCount >= 5 && backCount / filledStickers.length >= 0.6
+    const allBackHeavy = backCount >= 4 && backCount / filledStickers.length >= 0.6
     if (allBackHeavy) {
       await sendText(
         phone,
-        `📸 Detectei *${backCount} versos* na foto. Esse é um caso difícil — o nome do jogador no verso é pequeno e fica ilegível com muitos cromos juntos.\n\n💡 *Tenta uma destas:*\n• Foto da FRENTE (jogador) ao invés do verso — bem mais preciso\n• Verso, mas no máximo *3-4 cromos por foto*\n• Manda *um cromo de cada vez* pra acerto certo\n\nOu registra direto pelo código: digite *${'BRA-1 ARG-3'}* (até 10 separados por espaço).`,
+        `📸 Detectei *${backCount} versos* na foto. Esse é um caso difícil — o nome do jogador no verso é pequeno e fica ilegível com muitos cromos juntos.\n\n💡 *Tenta uma destas:*\n• Foto da FRENTE (jogador) — bem mais preciso, até *8 cromos por foto*\n• Verso: no máximo *3 cromos por foto*\n• Foto bem próxima, sem reflexo, com boa luz\n• Ou registra pelo código: *BRA-1 ARG-3* (até 10 separados por espaço)`,
       )
       return NextResponse.json({ ok: true })
     }

@@ -526,12 +526,15 @@ export default function ScanHub({
           </div>
         </a>
 
-        {/* ── Subtle selling banner ── */}
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
-          <span className="text-sm mt-0.5">💡</span>
-          <p className="text-xs text-gray-600 flex-1 leading-relaxed">
-            <span className="font-semibold text-gray-700">Dica:</span> Fotografe a <span className="font-semibold">frente</span> das figurinhas com boa luz — pode juntar várias na mesa. Pra mais precisão em cromos isolados, foto bem próxima e nítida.
-          </p>
+        {/* ── Instruções de uso ── */}
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 space-y-2">
+          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Pra acertar o scan</p>
+          <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
+            <li>• <span className="font-semibold">Frente do cromo</span> (foto do jogador): até <span className="font-semibold">8 cromos</span> por foto</li>
+            <li>• <span className="font-semibold">Verso</span> (com o número): até <span className="font-semibold">3 cromos</span> por foto — texto pequeno só lê em foto próxima</li>
+            <li>• Foto <span className="font-semibold">nítida e sem reflexo</span>, com boa luz, foco no centro</li>
+            <li>• Mais cromos por foto = mais cromos perdidos. <span className="font-semibold">Menos é mais.</span></li>
+          </ul>
         </div>
 
         {/* ── Disclaimer + privacy ── */}
