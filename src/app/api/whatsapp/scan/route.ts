@@ -40,6 +40,7 @@ TIPOS DE FIGURINHAS:
 REGRAS:
 - "filled": figurinha colada ou fotografada solta.
 - "empty": espaço vazio no álbum.
+- CRÍTICO — CONTAGEM ANTES DE LISTAR: ANTES de identificar qualquer figurinha, CONTE quantas figurinhas físicas (filled) você vê na foto, da esquerda pra direita, de cima pra baixo. Coloque esse número em "total_stickers_visible". DEPOIS, liste UMA entrada em "stickers" para CADA uma das figurinhas contadas. O tamanho do array "stickers" DEVE bater EXATAMENTE com "total_stickers_visible". Se não conseguir identificar uma específica, ainda assim adicione uma entrada com player_name="?" e confidence baixa — não pule!
 - CRÍTICO: Identifique TODAS as figurinhas — jogadores, emblemas, escudos, fotos de time. NÃO pule nenhuma.
 - CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO". Cada jogador é único.
 - CRÍTICO DUPLICATAS: Se houver DUAS ou MAIS cópias da MESMA figurinha (ex: dois "NEYMAR JR"), liste CADA cópia como uma entrada SEPARADA no array. O usuário coleciona duplicatas para trocar — cada figurinha física = uma entrada.
@@ -50,6 +51,7 @@ Retorne APENAS JSON válido:
 {
   "pages_detected": 1,
   "scan_confidence": 0.9,
+  "total_stickers_visible": 2,
   "stickers": [
     {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95},
     {"number": "", "player_name": "Neymar Jr", "country": "Brasil", "status": "filled", "confidence": 0.95}
@@ -333,6 +335,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Gap detection: Gemini was asked to count BEFORE listing. If it counted
+    // more cromos than it listed, it pulled a "skipped" — surface to user
+    // so they can re-scan the missed sticker isolated.
+    const reportedTotal = typeof parsed.total_stickers_visible === 'number' ? parsed.total_stickers_visible : 0
+    const skippedCount = Math.max(0, reportedTotal - filledStickers.length)
+    if (skippedCount > 0) {
+      console.log(`[WhatsApp scan] gap detected: total=${reportedTotal}, listed=${filledStickers.length}, skipped=${skippedCount}`)
+    }
+
     // Match each detected sticker using fuzzy matching (with quantity tracking).
     // Also keep the WORST confidence reported by Gemini for each sticker_id so
     // we can flag low-confidence items in the preview ("⚠️ confira").
@@ -424,6 +435,9 @@ export async function POST(req: NextRequest) {
     const lowConfNote = lowConfidenceCount > 0
       ? `\n\n⚠️ _${lowConfidenceCount} item(s) com baixa confiança — confira antes de salvar. Use *tirar N* se algum estiver errado._`
       : ''
+    const gapNote = skippedCount > 0
+      ? `\n\n🚨 _Vi *${reportedTotal} figurinhas* na foto mas só identifiquei ${filledStickers.length}. ${skippedCount} cromo(s) podem ter passado batido — confira a foto e mande de novo só o(s) que ficou(aram) de fora._`
+      : ''
 
     let msg: string
     if (totalPending === 1) {
@@ -431,6 +445,7 @@ export async function POST(req: NextRequest) {
       msg = `📋 *Encontrei ${totalStickersFound} figurinha(s):*\n\n`
       msg += previewLines.join('\n')
       msg += lowConfNote
+      msg += gapNote
       msg += '\n\n💡 Pode mandar mais fotos! Quando terminar:'
       msg += '\n✅ *SIM* → registra tudo'
       msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
@@ -441,6 +456,7 @@ export async function POST(req: NextRequest) {
       msg = `📋 *+${totalStickersFound} figurinha(s) detectada(s):*\n\n`
       msg += previewLines.join('\n')
       msg += lowConfNote
+      msg += gapNote
       msg += `\n\n📦 *${totalPending} fotos pendentes no total.*`
       msg += '\nMande mais fotos ou responda:'
       msg += '\n✅ *SIM* → registra todas'
