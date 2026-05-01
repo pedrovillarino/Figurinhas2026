@@ -3,6 +3,7 @@ import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
+import { expandCountryNamesToCodes } from '@/lib/country-codes'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
 
@@ -923,6 +924,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
+      // Pré-processa nomes de países → códigos FIFA: "brasil 1, argentina 3" → "BRA 1, ARG 3".
+      // Permite o user escrever do jeito natural sem decorar siglas.
+      // Roda ANTES do expand de códigos agrupados pra que combinações tipo
+      // "Brasil: 1, 10, 14" virem "BRA: 1, 10, 14" e depois "BRA-1 BRA-10 BRA-14".
+
       // Pré-processa códigos agrupados: "ARG: 1, 10, 14, 16" → "ARG-1 ARG-10 ARG-14 ARG-16".
       // Pedro pediu (2026-05-01) que o bot entenda esse formato natural.
       // Duas regras conservadoras pra evitar falso positivo em texto qualquer:
@@ -945,9 +951,147 @@ export async function POST(req: NextRequest) {
             return ns.map((n) => `${country}-${n}`).join(' ')
           },
         )
-      const text = expandMultiNoColon(expandWithColon(rawText))
+      const text = expandMultiNoColon(expandWithColon(expandCountryNamesToCodes(rawText)))
 
       const lower = text.trim().toLowerCase()
+
+      // ─── Pending corrections (bug auditoria → SIM/NÃO) ───
+      // Quando o admin (ou um script) detecta um cromo registrado errado e
+      // enfileira uma `pending_correction`, o user recebe uma mensagem
+      // explicando o erro e pedindo autorização. Esta seção captura a
+      // resposta SIM/NÃO ANTES do intent detection — senão "sim" cairia
+      // no help via Gemini.
+      const isYes = /^(sim|s|si|ok|claro|pode|pode sim|aceito|confirmo|👍|✅|isso)\.?$/i.test(lower)
+      const isNo = /^(n[aã]o|n|nao|n\.|nope|negativo|prefiro nao|prefiro não|❌|🚫)\.?$/i.test(lower)
+      if (isYes || isNo) {
+        const supabaseAdmin = getAdmin()
+        const { data: pc } = await supabaseAdmin
+          .from('pending_corrections')
+          .select('id, wrong_sticker_id, correct_sticker_id, scans_bonus, expires_at, wrong_sticker:stickers!pending_corrections_wrong_sticker_id_fkey(number, player_name), correct_sticker:stickers!pending_corrections_correct_sticker_id_fkey(number, player_name)')
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+
+        if (pc) {
+          const correction = pc as unknown as {
+            id: number
+            wrong_sticker_id: number
+            correct_sticker_id: number
+            scans_bonus: number
+            wrong_sticker: { number: string; player_name: string }
+            correct_sticker: { number: string; player_name: string }
+          }
+
+          if (isNo) {
+            await supabaseAdmin
+              .from('pending_corrections')
+              .update({ status: 'rejected', resolved_at: new Date().toISOString() })
+              .eq('id', correction.id)
+              .eq('status', 'pending')
+            await sendText(phone, '👍 Tudo bem, mantive como está. Obrigado pelo retorno!')
+            return NextResponse.json({ ok: true })
+          }
+
+          // SIM — aplicar correção atomic
+          // 1. Reivindicar a correção (race-safe: só uma resposta SIM ganha)
+          const { data: claimed } = await supabaseAdmin
+            .from('pending_corrections')
+            .update({ status: 'approved', resolved_at: new Date().toISOString() })
+            .eq('id', correction.id)
+            .eq('status', 'pending')
+            .select('id')
+          if (!claimed || claimed.length === 0) {
+            // Outra request já tratou — silencia
+            return NextResponse.json({ ok: true })
+          }
+
+          // 2. Decrementar/remover o cromo errado (preservando outras qty)
+          const { data: wrongRow } = await supabaseAdmin
+            .from('user_stickers')
+            .select('quantity, status')
+            .eq('user_id', user.id)
+            .eq('sticker_id', correction.wrong_sticker_id)
+            .maybeSingle()
+
+          if (wrongRow) {
+            const newQty = Math.max(0, (wrongRow.quantity || 1) - 1)
+            if (newQty === 0) {
+              await supabaseAdmin
+                .from('user_stickers')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('sticker_id', correction.wrong_sticker_id)
+            } else {
+              const newStatus = newQty > 1 ? 'duplicate' : 'owned'
+              await supabaseAdmin
+                .from('user_stickers')
+                .update({ quantity: newQty, status: newStatus })
+                .eq('user_id', user.id)
+                .eq('sticker_id', correction.wrong_sticker_id)
+            }
+          }
+
+          // 3. Adicionar/incrementar o cromo certo
+          const { data: correctRow } = await supabaseAdmin
+            .from('user_stickers')
+            .select('quantity, status')
+            .eq('user_id', user.id)
+            .eq('sticker_id', correction.correct_sticker_id)
+            .maybeSingle()
+
+          if (correctRow) {
+            const newQty = (correctRow.quantity || 0) + 1
+            const newStatus = newQty > 1 ? 'duplicate' : 'owned'
+            await supabaseAdmin
+              .from('user_stickers')
+              .update({ quantity: newQty, status: newStatus })
+              .eq('user_id', user.id)
+              .eq('sticker_id', correction.correct_sticker_id)
+          } else {
+            await supabaseAdmin
+              .from('user_stickers')
+              .insert({
+                user_id: user.id,
+                sticker_id: correction.correct_sticker_id,
+                quantity: 1,
+                status: 'owned',
+              })
+          }
+
+          // 4. Creditar bonus de scans (read-then-update, idempotente porque
+          //    o approve já foi reivindicado e só uma resposta passa)
+          if (correction.scans_bonus > 0) {
+            const { data: profileRow } = await supabaseAdmin
+              .from('profiles')
+              .select('scan_credits')
+              .eq('id', user.id)
+              .single()
+            if (profileRow) {
+              await supabaseAdmin
+                .from('profiles')
+                .update({ scan_credits: (profileRow.scan_credits || 0) + correction.scans_bonus })
+                .eq('id', user.id)
+            }
+          }
+
+          // 5. Confirmar
+          await sendText(
+            phone,
+            `✅ *Pronto!* Corrigi pra você:\n\n` +
+              `❌ Removido: ${correction.wrong_sticker.number} ${correction.wrong_sticker.player_name}\n` +
+              `✅ Adicionado: ${correction.correct_sticker.number} ${correction.correct_sticker.player_name}\n\n` +
+              (correction.scans_bonus > 0
+                ? `🎁 *+${correction.scans_bonus} scans grátis* creditados na sua conta como pedido de desculpas pelo erro.\n\n`
+                : '') +
+              `Obrigado pela paciência! 💚`
+          )
+          return NextResponse.json({ ok: true })
+        }
+        // Se não tem correction pendente, deixa o sim/não fluir pro flow normal (cancelar pending_scan, etc.)
+      }
 
       // ─── "tirar N" / "remover N,M" — drop specific items from the latest pending scan ───
       // The user-facing list is numbered 1..N over the LATEST pending_scan
@@ -1307,12 +1451,53 @@ export async function POST(req: NextRequest) {
             .in('number', matches)
 
           if (!foundStickers || foundStickers.length === 0) {
-            const tail = cameFromAudio
-              ? `Confere se falou o código de país certo (ex: BRA, ARG, FRA).`
-              : `Confere se digitou certo (ex: BRA-1, não BR-1).`
+            // Best-guess: pra cada código não achado, sugerir candidatos com
+            // mesmo número final e prefixo parecido. Pedro pediu (2026-05-01)
+            // que o bot dê o melhor guess + pergunte, em vez de simplesmente
+            // dizer "não entendi" e parar.
+            const { data: allCodes } = await supabaseAdmin
+              .from('stickers')
+              .select('number, player_name')
+            const codeIndex = (allCodes || []) as Array<{ number: string; player_name: string }>
+
+            // Levenshtein simples (só pra prefixes curtos — máx 5 chars)
+            const lev = (a: string, b: string): number => {
+              const m = a.length, n = b.length
+              if (Math.abs(m - n) > 3) return 99
+              const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+              for (let i = 0; i <= m; i++) dp[i][0] = i
+              for (let j = 0; j <= n; j++) dp[0][j] = j
+              for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {
+                dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+              }
+              return dp[m][n]
+            }
+
+            const suggestions: string[] = []
+            for (const code of matches) {
+              const [pre, num] = code.split('-')
+              if (!pre || !num) continue
+              const candidates = codeIndex
+                .filter((c) => c.number.endsWith(`-${num}`))
+                .map((c) => ({ ...c, dist: lev(c.number.split('-')[0].toUpperCase(), pre.toUpperCase()) }))
+                .filter((c) => c.dist <= 2)
+                .sort((a, b) => a.dist - b.dist)
+                .slice(0, 2)
+              if (candidates.length > 0) {
+                const guess = candidates.map((c) => `*${c.number}* (${c.player_name})`).join(' ou ')
+                suggestions.push(`• \`${code}\` → você quis dizer ${guess}?`)
+              } else {
+                suggestions.push(`• \`${code}\` → não consegui adivinhar`)
+              }
+            }
+
+            const lead = cameFromAudio
+              ? `🤔 Não achei esses no álbum:`
+              : `🤔 Esses não existem no álbum:`
             await sendText(
               phone,
-              `🤔 Nenhum desses códigos existe no álbum: *${matches.join(', ')}*\n\n${tail}`,
+              `${lead}\n\n${suggestions.join('\n')}\n\n` +
+                `📝 Manda de novo com a forma certa, ou só fala assim: _"Brasil 1, Argentina 3"_ que eu entendo. 👍`,
             )
             break
           }
