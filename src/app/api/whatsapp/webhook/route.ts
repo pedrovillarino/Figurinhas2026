@@ -1031,6 +1031,8 @@ export async function POST(req: NextRequest) {
         intent = 'trades'
       } else if (/\b(ranking|posição|posicao|colocação|colocacao|placar)\b/.test(lower)) {
         intent = 'ranking'
+      } else if (/\b(hist[oó]rico|hist[oó]ria|meus scans|[uú]ltim[ao]s figurinhas|o que registrei|que salvei|que entrou|salvei|registrei)\b/.test(lower)) {
+        intent = 'history'
       } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && (text.match(/[a-z]{2,5}[\s\-]?\d{1,2}/gi) || []).length >= 1) {
         // Looks like sticker codes: "BRA-1 ARG-3" or "bra 1, arg 3" or "BRA1"
         intent = 'register'
@@ -1301,6 +1303,58 @@ export async function POST(req: NextRequest) {
             reply += `\n\n⚠️ Não encontradas: ${notFound.join(', ')}`
           }
           reply += `\n\n💡 Dica: mande uma *foto* para registrar mais rápido!`
+
+          await sendText(phone, reply)
+          break
+        }
+
+        case 'history': {
+          // Last 20 stickers the user actually saved (any source: scan, manual,
+          // import). updated_at is the source of truth — when the row last
+          // moved (created or quantity changed). Lets the user audit what
+          // really entered the album, including timing.
+          const adminDb = getAdmin()
+          const { data: recent } = await adminDb
+            .from('user_stickers')
+            .select('sticker_id, status, quantity, updated_at, sticker:stickers!inner(number, player_name)')
+            .eq('user_id', user.id)
+            .gt('quantity', 0)
+            .order('updated_at', { ascending: false })
+            .limit(20)
+
+          const rows = (recent || []) as unknown as Array<{
+            sticker_id: number
+            status: string
+            quantity: number
+            updated_at: string
+            sticker: { number: string; player_name: string | null }
+          }>
+
+          if (rows.length === 0) {
+            await sendText(phone, '📭 Você ainda não tem figurinhas no álbum. Manda uma foto pra escanear!')
+            break
+          }
+
+          const formatRel = (iso: string): string => {
+            const diffMs = Date.now() - new Date(iso).getTime()
+            const min = Math.floor(diffMs / 60000)
+            if (min < 1) return 'agora'
+            if (min < 60) return `há ${min} min`
+            const hrs = Math.floor(min / 60)
+            if (hrs < 24) return `há ${hrs}h`
+            const days = Math.floor(hrs / 24)
+            if (days < 7) return `há ${days}d`
+            return new Date(iso).toLocaleDateString('pt-BR')
+          }
+
+          let reply = `📜 *Últimas ${rows.length} figurinhas registradas:*\n\n`
+          reply += rows.map((r, i) => {
+            const label = `${r.sticker.number} ${r.sticker.player_name || ''}`.trim()
+            const qty = r.quantity > 1 ? ` (x${r.quantity})` : ''
+            const tag = r.status === 'duplicate' ? ' 🔁' : ''
+            return `*${i + 1}.* ${label}${qty}${tag} _${formatRel(r.updated_at)}_`
+          }).join('\n')
+          reply += '\n\n💡 Faltou alguma que você tinha mandado? Manda foto de novo ou registra por código (ex: PAR-3).'
 
           await sendText(phone, reply)
           break
