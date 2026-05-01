@@ -5,7 +5,7 @@ import { sendText, formatPhone } from '@/lib/zapi'
 export const dynamic = 'force-dynamic'
 
 // Admin-only: enfileira correção(ões) e envia o WhatsApp pedindo SIM/NÃO.
-// Auth: header `x-admin-secret` igual a ADMIN_PANEL_SECRET (mesmo do /admin).
+// Auth: header `x-admin-secret` igual a ADMIN_SECRET (mesmo do /admin).
 //
 // POST /api/admin/dispatch-correction
 // Body (single correction):
@@ -37,10 +37,10 @@ function getAdmin() {
 }
 
 export async function POST(req: NextRequest) {
-  // Auth via shared secret (ADMIN_PANEL_SECRET — mesmo usado em /admin).
+  // Auth via shared secret (ADMIN_SECRET — mesmo usado em /admin).
   // Mantém o endpoint protegido sem precisar de sessão de auth.
   const provided = req.headers.get('x-admin-secret')
-  const expected = process.env.ADMIN_PANEL_SECRET
+  const expected = process.env.ADMIN_SECRET
   if (!expected || provided !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
