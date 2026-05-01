@@ -1097,5 +1097,6 @@ const COUNTRY_TO_CODE: Record<string, string> = {
   'costa rica': 'CRC', 'costarica': 'CRC', 'crc': 'CRC',
   'arabia saudita': 'KSA', 'saudi arabia': 'KSA', 'ksa': 'KSA',
   'eua': 'USA', 'usa': 'USA',
+  'curacao': 'CUW', 'curaçao': 'CUW', 'korsou': 'CUW', 'cuw': 'CUW',
   'fifa': 'FIFA',
 }

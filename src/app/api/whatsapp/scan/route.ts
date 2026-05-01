@@ -110,6 +110,7 @@ const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   'catar': 'QAT', 'qatar': 'QAT', 'equador': 'ECU', 'ecuador': 'ECU', 'senegal': 'SEN',
   'gales': 'WAL', 'wales': 'WAL', 'australia': 'AUS', 'polonia': 'POL', 'poland': 'POL',
   'costa rica': 'CRC', 'arabia saudita': 'KSA', 'saudi arabia': 'KSA', 'eua': 'USA', 'fifa': 'FIFA',
+  'curacao': 'CUW', 'curaçao': 'CUW', 'korsou': 'CUW',
 }
 
 // ── Module-level sticker cache for WhatsApp scan ──
