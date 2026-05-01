@@ -32,6 +32,12 @@ PANINI EXTRAS: figurinhas com selo vermelho "EXTRA STICKER" no canto superior di
   - player_name normal (ex: "Erling Haaland")
   - number = "" (o código EXT-NN-TIER não aparece na frente)
 
+COCA-COLA: figurinhas com fundo ESCURO (foto do jogador em ação, NÃO fundo branco de estúdio como cromo normal), nome do jogador escrito VERTICAL na lateral ESQUERDA em letras brancas maiúsculas, seguido do código de país entre parênteses (ex: "LAMINE YAMAL (ESP)", "FEDERICO VALVERDE (URU)"). Tem só o logo FIFA pequeno no canto superior esquerdo — SEM "PANINI", SEM "EXTRA STICKER". São 14 cromos (CC1-CC14). Pra essas:
+  - country = "Coca" (NÃO o país entre parênteses — esse é só indicador)
+  - player_name normal (ex: "Lamine Yamal", "Federico Valverde")
+  - tier omitido
+  - number = ""
+
 Leia com cuidado. Não chute nomes. Ano (2010, 2019) e altura/peso (1.75, 68) NÃO são número da figurinha. Cada figurinha física = 1 entrada (duplicatas viram entradas separadas).
 
 Retorne JSON:
@@ -39,7 +45,8 @@ Retorne JSON:
   "scan_confidence": 0.9,
   "stickers": [
     {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95},
-    {"player_name": "Erling Haaland", "country": "Extra", "tier": "ouro", "status": "filled", "confidence": 0.9}
+    {"player_name": "Erling Haaland", "country": "Extra", "tier": "ouro", "status": "filled", "confidence": 0.9},
+    {"player_name": "Lamine Yamal", "country": "Coca", "status": "filled", "confidence": 0.92}
   ]
 }`
 
@@ -113,6 +120,8 @@ let waCache: {
   // PANINI Extras: 4 variants per player. Same isolation as web scan to avoid
   // collision with normal player matching.
   extrasByPlayer: Map<string, Map<ExtraTier, DbSticker>>
+  // Coca-Cola: 14 stickers, share player names with country sections.
+  cocaColaByPlayer: Map<string, DbSticker>
   at: number
 } | null = null
 const WA_CACHE_TTL = 60 * 60 * 1000
@@ -132,6 +141,7 @@ async function getWaCache(db: any) {
   const byNumber = new Map(stickers.map((s: DbSticker) => [s.number.toUpperCase(), s]))
   const byCountry = new Map<string, DbSticker[]>()
   const extrasByPlayer = new Map<string, Map<ExtraTier, DbSticker>>()
+  const cocaColaByPlayer = new Map<string, DbSticker>()
 
   const extrasNameRegex = /^(.*?)\s*\((Regular|Bronze|Prata|Ouro)\)\s*$/i
   const tierMap: Record<string, ExtraTier> = {
@@ -149,12 +159,16 @@ async function getWaCache(db: any) {
       }
       continue // keep extras out of byCountry
     }
+    if (s.section === 'Coca-Cola') {
+      cocaColaByPlayer.set(normalizeName(s.player_name), s)
+      continue // keep Coca-Cola out of byCountry too
+    }
     const code = s.number.split('-')[0]
     if (!byCountry.has(code)) byCountry.set(code, [])
     byCountry.get(code)!.push(s)
   }
-  waCache = { stickers, byNumber, byCountry, extrasByPlayer, at: Date.now() }
-  console.log(`[WhatsApp scan] Cached ${stickers.length} stickers (${extrasByPlayer.size} extras players)`)
+  waCache = { stickers, byNumber, byCountry, extrasByPlayer, cocaColaByPlayer, at: Date.now() }
+  console.log(`[WhatsApp scan] Cached ${stickers.length} stickers (${extrasByPlayer.size} extras players, ${cocaColaByPlayer.size} coca-cola)`)
   return waCache
 }
 
@@ -168,7 +182,22 @@ function matchSticker(
   const normPlayer = normalizeName(playerName)
   const normCountry = normalizeName(country)
 
-  // Priority 0: PANINI Extras (country = "Extra" + tier).
+  // Priority 0a: Coca-Cola (country = "Coca").
+  // Same isolation reasoning as Extras — CC players also exist in their
+  // country sections, so we only route here when Gemini explicitly tags
+  // "Coca". No country fallback — false positives would shadow the right one.
+  const looksCoca = country.toUpperCase() === 'COCA' || normCountry === 'coca' || normCountry === 'cocacola' || normCountry === 'coca cola'
+  if (looksCoca && normPlayer && normPlayer.length >= 2) {
+    const exact = cache.cocaColaByPlayer.get(normPlayer)
+    if (exact) return exact
+    let foundNorm: string | null = null
+    cache.cocaColaByPlayer.forEach((_, name) => {
+      if (!foundNorm && (name.includes(normPlayer) || normPlayer.includes(name))) foundNorm = name
+    })
+    return foundNorm ? cache.cocaColaByPlayer.get(foundNorm) || null : null
+  }
+
+  // Priority 0b: PANINI Extras (country = "Extra" + tier).
   // Distinct path because extras live in a separate section with 4 variants.
   // No fallback to country lookup — if we can't resolve the tier, return null
   // (avoids matching an Extra as the player's regular country sticker).

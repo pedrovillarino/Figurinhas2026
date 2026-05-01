@@ -85,6 +85,12 @@ PANINI EXTRAS: stickers with a red "EXTRA STICKER" badge top-right AND a circula
   - Read the player_name normally (e.g., "Erling Haaland")
   - sticker_number stays "" (the EXT-NN-TIER code isn't printed on the front)
 
+COCA-COLA STICKERS: distinctive visual layout — DARK photographic background (in-game player photo, NOT the white/team-colored studio look of normal country stickers), with the player's name printed VERTICALLY along the LEFT EDGE in large white uppercase letters, followed by the country code in parentheses (e.g., "LAMINE YAMAL (ESP)", "FEDERICO VALVERDE (URU)", "HARRY KANE (ENG)"). A small FIFA logo sits in the top-left corner — there is NO "PANINI" badge and NO red "EXTRA STICKER" badge. There are 14 of these total (CC1–CC14). For these:
+  - Set country_code to "COCA" (NOT the country in the parentheses — that's just an indicator)
+  - Read the player_name normally (e.g., "Lamine Yamal", "Federico Valverde")
+  - tier stays null
+  - sticker_number stays ""
+
 Read carefully. Don't guess names. The 4-digit year (2010, 2019) and height/weight (1.75, 68) are NOT the sticker number.
 
 Return JSON:
@@ -92,7 +98,8 @@ Return JSON:
   "image_quality": "high" | "medium" | "low",
   "stickers": [
     {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "face": "front", "confidence": 0.95},
-    {"player_name": "Erling Haaland", "country_code": "EXT", "tier": "ouro", "status": "filled", "face": "front", "confidence": 0.9}
+    {"player_name": "Erling Haaland", "country_code": "EXT", "tier": "ouro", "status": "filled", "face": "front", "confidence": 0.9},
+    {"player_name": "Lamine Yamal", "country_code": "COCA", "status": "filled", "face": "front", "confidence": 0.92}
   ],
   "warnings": []
 }
@@ -114,6 +121,9 @@ let stickerCache: {
   // extrasByPlayer maps normalized player name → tier → sticker.
   extrasByPlayer: Map<string, Map<ExtraTier, CachedSticker>>
   extrasNames: string[] // for fuzzy fallback
+  // Coca-Cola: same isolation logic as Extras — country='FIFA' (or per-player
+  // country) would collide with normal matching, so they live in their own map.
+  cocaColaByPlayer: Map<string, CachedSticker>
   validCodes: string[]
   loadedAt: number
 } | null = null
@@ -161,8 +171,11 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
     ouro: 'ouro',
   }
 
+  const cocaColaByPlayer = new Map<string, CachedSticker>()
+
   for (const s of stickers) {
     const isExtra = s.section === 'PANINI Extras'
+    const isCoca = s.section === 'Coca-Cola'
 
     if (isExtra) {
       const m = s.player_name.match(extrasNameRegex)
@@ -179,6 +192,16 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
       continue
     }
 
+    if (isCoca) {
+      // Coca-Cola: same isolation as Extras. The same player (e.g. Lamine
+      // Yamal) ALSO appears as ESP-N in the regular section — we don't want
+      // that one shadowing the Coca-Cola variant when the user explicitly
+      // photographs the red Coca-Cola sticker.
+      const normName = normalizeName(s.player_name)
+      cocaColaByPlayer.set(normName, s)
+      continue
+    }
+
     const code = s.number.split('-')[0]
     const normName = normalizeName(s.player_name)
 
@@ -192,14 +215,15 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
   const extrasNames = Array.from(extrasNamesSet)
 
   // Extract unique country codes from sticker numbers (e.g., "BRA-17" → "BRA").
-  // Filter out extras prefixes (EXT-...) — they're matched separately.
+  // Filter out extras (EXT-...) and Coca-Cola (CC-...) prefixes — they're
+  // matched separately via dedicated paths.
   const validCodes = Array.from(new Set(
     stickers
-      .filter((s) => s.section !== 'PANINI Extras')
+      .filter((s) => s.section !== 'PANINI Extras' && s.section !== 'Coca-Cola')
       .map((s) => s.number.split('-')[0].toUpperCase())
   ))
 
-  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, extrasByPlayer, extrasNames, validCodes, loadedAt: Date.now() }
+  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, extrasByPlayer, extrasNames, cocaColaByPlayer, validCodes, loadedAt: Date.now() }
   console.log(`[scan] Cached ${allDbStickers.length} stickers (TTL: 1h)`)
   return stickerCache
 }
@@ -347,7 +371,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { numberMap, nameByCountry, nameFlat, extrasByPlayer } = cached
+    const { numberMap, nameByCountry, nameFlat, extrasByPlayer, cocaColaByPlayer } = cached
     perf.mark('cache')
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
@@ -556,9 +580,40 @@ export async function POST(request: NextRequest) {
         null
 
       let dbSticker: CachedSticker | null = null
-      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' | 'extras_exact' | 'extras_fuzzy' = 'fuzzy_cross_country'
+      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' | 'extras_exact' | 'extras_fuzzy' | 'coca_exact' | 'coca_fuzzy' = 'fuzzy_cross_country'
 
-      // ── Priority 0: PANINI Extras (country_code='EXT' + tier) ──
+      // ── Priority 0a: Coca-Cola (country_code='COCA') ──
+      // Same isolation reasoning as Extras: CC stickers share player names
+      // with normal country stickers (Lamine Yamal exists as ESP-X AND CC-1),
+      // so we only route into this path when Gemini confirms Coca-Cola visual
+      // (red bg + Coca-Cola logo + "FIFA OFFICIAL PARTNER"). No fallback to
+      // country lookup — false positives there would be worse than no match.
+      if (countryCode === 'COCA' && normPlayer && normPlayer.length >= 2) {
+        const exact = cocaColaByPlayer.get(normPlayer)
+        if (exact) {
+          dbSticker = exact
+          matchType = 'coca_exact'
+        } else {
+          // Fuzzy across the 14 Coca-Cola players
+          let bestMatch: CachedSticker | null = null
+          cocaColaByPlayer.forEach((sticker, normName) => {
+            if (!bestMatch && (normName.includes(normPlayer) || normPlayer.includes(normName))) {
+              bestMatch = sticker
+            }
+          })
+          if (bestMatch) {
+            dbSticker = bestMatch
+            matchType = 'coca_fuzzy'
+          }
+        }
+        if (!dbSticker) {
+          unmatched.push(`${playerName || '?'} (Coca-Cola)`)
+          console.log(`[scan] ✗ Coca-Cola "${playerName}" → no match`)
+          continue
+        }
+      }
+
+      // ── Priority 0b: PANINI Extras (country_code='EXT' + tier) ──
       // Distinct path because extras live in a separate section with 4 variants
       // per player. We never fall through to country/name lookup for EXT —
       // either we find the right tier or we mark it unmatched (avoids wrongly
@@ -675,10 +730,12 @@ export async function POST(request: NextRequest) {
       const matchConfidence: Record<string, number> = {
         number: 0.97,                // Sticker number match = near certain
         exact_name_country: 0.95,    // Exact name + right country = very good
+        coca_exact: 0.93,            // Coca-Cola: distinctive visual (red+logo) → high confidence
         extras_exact: 0.88,          // Extras: name+tier matched exactly — tier read is the risk
-        fuzzy_name_country: 0.80,    // Fuzzy name + right country = good
-        extras_fuzzy: 0.70,          // Extras: fuzzy name + tier — both sources of error
         exact_name_flat: 0.82,       // Exact name, no country verification = good
+        fuzzy_name_country: 0.80,    // Fuzzy name + right country = good
+        coca_fuzzy: 0.78,            // Coca-Cola: fuzzy name within 14-player set
+        extras_fuzzy: 0.70,          // Extras: fuzzy name + tier — both sources of error
         fuzzy_cross_country: 0.60,   // Fuzzy name, wrong/no country = acceptable
       }
       const baseConfidence = matchConfidence[matchType] || 0.5
