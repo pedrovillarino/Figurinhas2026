@@ -10,6 +10,9 @@
  * No client-side interactivity needed (no buttons in S1) — pure server render.
  */
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { TIER_CONFIG, type Tier } from '@/lib/tiers'
+
+const ALBUM_COMPLETABLE_TOTAL = 980
 
 function getAdmin() {
   return createAdminClient(
@@ -25,6 +28,12 @@ type RankingRow = {
   confirmed_count: number
   paid_upgrade_count: number
   total_points: number
+}
+
+type UserStats = {
+  tier: Tier
+  ownedUnique: number
+  scansUsed: number
 }
 
 export default async function EmbaixadoresAdminSection() {
@@ -101,6 +110,36 @@ export default async function EmbaixadoresAdminSection() {
     console.error('Admin ranking fetch failed:', err)
   }
 
+  // ── Per-user stats for the ranking (admin-only enrichment) ──
+  const userStats = new Map<string, UserStats>()
+  if (ranking.length > 0) {
+    const userIds = ranking.map((r) => r.user_id)
+    const [tiersRes, ownedRes, scansRes] = await Promise.all([
+      admin.from('profiles').select('id, tier').in('id', userIds),
+      admin.from('user_stickers')
+        .select('user_id, sticker:stickers!inner(counts_for_completion)')
+        .in('user_id', userIds)
+        .gt('quantity', 0)
+        .eq('sticker.counts_for_completion', true),
+      admin.from('scan_usage').select('user_id, scan_count').in('user_id', userIds),
+    ])
+
+    for (const id of userIds) userStats.set(id, { tier: 'free', ownedUnique: 0, scansUsed: 0 })
+
+    for (const row of (tiersRes.data || []) as Array<{ id: string; tier: string | null }>) {
+      const s = userStats.get(row.id)
+      if (s) s.tier = (row.tier || 'free') as Tier
+    }
+    for (const row of (ownedRes.data || []) as Array<{ user_id: string }>) {
+      const s = userStats.get(row.user_id)
+      if (s) s.ownedUnique += 1
+    }
+    for (const row of (scansRes.data || []) as Array<{ user_id: string; scan_count: number | null }>) {
+      const s = userStats.get(row.user_id)
+      if (s) s.scansUsed += row.scan_count ?? 0
+    }
+  }
+
   return (
     <div>
       <h2 className="text-lg font-semibold mt-8 mb-4" style={{ color: '#0A1628' }}>
@@ -132,32 +171,54 @@ export default async function EmbaixadoresAdminSection() {
           </p>
         ) : (
           <div className="divide-y divide-gray-100">
-            {ranking.map((r) => (
-              <div key={r.user_id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <span className="w-8 text-center font-bold text-gray-500">
-                  {r.rank <= 3
-                    ? ['🥇', '🥈', '🥉'][r.rank - 1]
-                    : `#${r.rank}`}
-                </span>
-                <span className="flex-1 truncate text-gray-800">
-                  {r.display_name || <span className="text-gray-400">(sem nome)</span>}
-                </span>
-                <span className="text-[10px] text-gray-500 font-mono">
-                  {r.user_id.slice(0, 8)}…
-                </span>
-                <span className="text-xs text-gray-600 w-20 text-right">
-                  {r.confirmed_count} cadastros
-                </span>
-                <span className="text-xs text-amber-700 w-20 text-right font-semibold">
-                  {r.paid_upgrade_count} pagantes
-                </span>
-                <span className="font-black text-brand w-16 text-right">{r.total_points} pts</span>
-              </div>
-            ))}
+            {ranking.map((r) => {
+              const stats = userStats.get(r.user_id) ?? { tier: 'free' as Tier, ownedUnique: 0, scansUsed: 0 }
+              const albumPct = (stats.ownedUnique / ALBUM_COMPLETABLE_TOTAL) * 100
+              return (
+                <div key={r.user_id} className="flex items-center gap-3 px-4 py-2.5 text-sm flex-wrap">
+                  <span className="w-8 text-center font-bold text-gray-500 shrink-0">
+                    {r.rank <= 3
+                      ? ['🥇', '🥈', '🥉'][r.rank - 1]
+                      : `#${r.rank}`}
+                  </span>
+                  <span className="flex-1 min-w-[140px] truncate text-gray-800">
+                    {r.display_name || <span className="text-gray-400">(sem nome)</span>}
+                  </span>
+                  <TierBadge tier={stats.tier} />
+                  <span className="text-[11px] text-gray-600 w-24 text-right tabular-nums" title={`${stats.ownedUnique} de ${ALBUM_COMPLETABLE_TOTAL} coladas`}>
+                    {albumPct.toFixed(1)}% álbum
+                  </span>
+                  <span className="text-[11px] text-gray-600 w-20 text-right tabular-nums">
+                    {stats.scansUsed} scans
+                  </span>
+                  <span className="text-xs text-gray-600 w-20 text-right tabular-nums">
+                    {r.confirmed_count} cadastros
+                  </span>
+                  <span className="text-xs text-amber-700 w-20 text-right font-semibold tabular-nums">
+                    {r.paid_upgrade_count} pagantes
+                  </span>
+                  <span className="font-black text-brand w-16 text-right tabular-nums">{r.total_points} pts</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+function TierBadge({ tier }: { tier: Tier }) {
+  const styles: Record<Tier, string> = {
+    free: 'bg-gray-100 text-gray-600 border-gray-200',
+    estreante: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    colecionador: 'bg-amber-50 text-amber-700 border-amber-200',
+    copa_completa: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  }
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded border w-24 justify-center ${styles[tier]}`}>
+      {TIER_CONFIG[tier].label}
+    </span>
   )
 }
 
