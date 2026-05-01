@@ -825,6 +825,10 @@ export async function POST(req: NextRequest) {
     // ─── Audio ───
     // Download → transcribe via Gemini → re-route as text. Falls back to a
     // helpful menu if transcription fails so the user always has a path forward.
+    // `cameFromAudio` flows down to the text handler so the register flow can
+    // skip "manda uma foto" suggestions — the user já escolheu áudio, sugerir
+    // outra modalidade só polui a resposta.
+    let cameFromAudio = false
     if (messageType === 'audio') {
       const audioUrl = body.audio?.audioUrl || body.audio?.url
       const audioBase64Inline = body.audio?.base64 || null
@@ -860,6 +864,7 @@ export async function POST(req: NextRequest) {
       // handler below take over naturally.
       body.text = { message: transcribed }
       messageType = 'text'
+      cameFromAudio = true
     }
 
     // ─── Image ───
@@ -1259,14 +1264,15 @@ export async function POST(req: NextRequest) {
           }
 
           if (matches.length === 0) {
-            await sendText(
-              phone,
-              '🤔 Não consegui ler códigos de figurinhas aí. O formato é assim:\n\n' +
+            const baseMsg = cameFromAudio
+              ? '🎤 Não consegui pegar nenhum código no seu áudio. Tenta de novo falando bem claro o país e o número, exemplo:\n\n' +
+                '✅ "BRA 1, ARG 3, FRA 10"\n' +
+                '✅ "Brasil 1 e Argentina 3"'
+              : '🤔 Não consegui ler códigos de figurinhas aí. O formato é assim:\n\n' +
                 '✅ `BRA-1 ARG-3 FRA-10`\n' +
                 '✅ `bra 1, arg 3`\n' +
-                '✅ `BRA1 BRA5`\n\n' +
-                '📸 Ou simplesmente *manda uma foto* — eu identifico tudo automaticamente!',
-            )
+                '✅ `BRA1 BRA5`'
+            await sendText(phone, baseMsg)
             break
           }
 
@@ -1277,11 +1283,12 @@ export async function POST(req: NextRequest) {
             .in('number', matches)
 
           if (!foundStickers || foundStickers.length === 0) {
+            const tail = cameFromAudio
+              ? `Confere se falou o código de país certo (ex: BRA, ARG, FRA).`
+              : `Confere se digitou certo (ex: BRA-1, não BR-1).`
             await sendText(
               phone,
-              `🤔 Nenhum desses códigos existe no álbum: *${matches.join(', ')}*\n\n` +
-                `Confere se digitou certo (ex: BRA-1, não BR-1).\n` +
-                `📸 Se preferir, manda uma *foto* — funciona bem melhor!`,
+              `🤔 Nenhum desses códigos existe no álbum: *${matches.join(', ')}*\n\n${tail}`,
             )
             break
           }
@@ -1303,7 +1310,10 @@ export async function POST(req: NextRequest) {
           const scanData = Array.from(grouped.values())
 
           if (scanData.length === 0) {
-            await sendText(phone, '🤔 Não consegui mapear esses códigos pro álbum. Tenta uma foto?')
+            const fallback = cameFromAudio
+              ? '🤔 Não consegui mapear esses códigos pro álbum. Tenta de novo falando bem claro?'
+              : '🤔 Não consegui mapear esses códigos pro álbum. Confere se digitou certo (ex: BRA-1).'
+            await sendText(phone, fallback)
             break
           }
 
@@ -1465,21 +1475,35 @@ export async function POST(req: NextRequest) {
           // here too because of the `default:` — distinguish the lead line.
           const isUnknown = intent === 'unknown'
           const lead = isUnknown
-            ? `${greeting}🤔 Hmm, não peguei essa. O que você queria?`
-            : `${greeting}⚽ *O que posso fazer:*`
-          await sendButtonList(
-            phone,
+            ? `${greeting}🤔 Hmm, não peguei essa. Olha o que eu sei fazer:`
+            : `${greeting}⚽ *O que posso fazer por você:*`
+
+          const menu =
             `${lead}\n\n` +
-              `📸 *Foto* — eu identifico as figurinhas com IA\n` +
-              `🎤 *Áudio* — eu transcrevo e respondo\n` +
-              `✏️ *Códigos* — ex: BRA-1 ARG-3 FRA-10\n` +
-              `🔔 *trocas* — solicitações pendentes\n` +
-              `🏆 *ranking* — sua posição\n\n` +
-              `💡 Mande *sugestões* a qualquer momento\n` +
-              `❓ FAQ: ${APP_URL}/faq\n` +
-              `📱 App: ${APP_URL}`,
-            MAIN_MENU_BUTTONS,
-          )
+            `━━━━━━━━━━━━━━━━━\n` +
+            `📥 *3 jeitos de registrar suas figurinhas:*\n` +
+            `━━━━━━━━━━━━━━━━━\n\n` +
+            `📸 *1. Por FOTO*\n` +
+            `Manda uma foto do álbum aberto ou das figurinhas soltas. Recomendado até *10 cromos por foto*, com boa luz e nomes/números bem nítidos. A partir de 5 cromos, prefira todos *de frente*.\n\n` +
+            `🎤 *2. Por ÁUDIO*\n` +
+            `Manda um áudio falando os códigos. Exemplo: _"BRA 1, ARG 3, FRA 10"_ ou _"Brasil 1 e Argentina 3"_. Eu transcrevo e mostro pra você confirmar antes de salvar.\n\n` +
+            `✏️ *3. Por TEXTO*\n` +
+            `Digita os códigos separados por espaço ou vírgula. Exemplo: _BRA-1 ARG-3 FRA-10_ ou _bra 1, arg 3_.\n\n` +
+            `━━━━━━━━━━━━━━━━━\n` +
+            `📊 *Outras coisas que eu faço:*\n` +
+            `━━━━━━━━━━━━━━━━━\n\n` +
+            `🔁 *repetidas* — mostra suas figurinhas duplicadas\n` +
+            `🎯 *faltantes* — mostra o que ainda falta\n` +
+            `📈 *progresso* — quantas você tem do álbum\n` +
+            `🏆 *ranking* — sua posição entre os colecionadores\n` +
+            `📜 *historico* — últimas figurinhas registradas\n\n` +
+            `🔔 *Trocas perto de você*\n` +
+            `Autoriza no app pra eu te avisar quando alguém com a figurinha que você precisa estiver perto:\n` +
+            `${APP_URL}/album\n\n` +
+            `💡 Mande *sugestões* a qualquer momento\n` +
+            `❓ FAQ: ${APP_URL}/faq`
+
+          await sendText(phone, menu)
           break
         }
       }
