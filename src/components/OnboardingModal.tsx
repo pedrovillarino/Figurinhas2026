@@ -7,7 +7,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 const ONBOARDING_KEY = 'completeai_onboarding_v2'
 
-type OnboardingStep = 'age' | 'terms' | 'tutorial'
+type OnboardingStep = 'age' | 'terms' | 'tutorial' | 'location'
 
 const tutorialSteps = [
   {
@@ -55,6 +55,18 @@ export default function OnboardingModal() {
 
   const [saving, setSaving] = useState(false)
 
+  // Location + phone capture (after tutorial)
+  const [hasExistingPhone, setHasExistingPhone] = useState(false)
+  const [hasExistingCity, setHasExistingCity] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [cepInput, setCepInput] = useState('')
+  const [showCepInput, setShowCepInput] = useState(false)
+  const [requestingGeo, setRequestingGeo] = useState(false)
+  const [savingLocation, setSavingLocation] = useState(false)
+  const [locationError, setLocationError] = useState('')
+  const [geoCapturedCity, setGeoCapturedCity] = useState<string | null>(null)
+  const [cepCapturedCity, setCepCapturedCity] = useState<string | null>(null)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -69,9 +81,12 @@ export default function OnboardingModal() {
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('tos_accepted_at, date_of_birth')
+            .select('tos_accepted_at, date_of_birth, phone, city, location_lat')
             .eq('id', user.id)
             .single()
+
+          if (profile?.phone) setHasExistingPhone(true)
+          if (profile?.city || profile?.location_lat != null) setHasExistingCity(true)
 
           if (profile?.tos_accepted_at && profile?.date_of_birth) {
             // Already completed on another device — save locally and skip
@@ -159,6 +174,8 @@ export default function OnboardingModal() {
   function handleTutorialNext() {
     if (tutorialIdx < tutorialSteps.length - 1) {
       setTutorialIdx(tutorialIdx + 1)
+    } else if (!hasExistingCity || !hasExistingPhone) {
+      setPhase('location')
     } else {
       handleClose()
     }
@@ -169,13 +186,115 @@ export default function OnboardingModal() {
     router.push('/scan')
   }
 
+  function handleRequestGeo() {
+    if (!navigator.geolocation) {
+      setLocationError('Seu navegador não suporta localização.')
+      return
+    }
+    setLocationError('')
+    setRequestingGeo(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        try {
+          const res = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng }),
+          })
+          const data = await res.json()
+          if (res.ok && data.city) {
+            setGeoCapturedCity(data.city)
+          } else {
+            setLocationError('Não consegui identificar sua cidade. Tente o CEP.')
+          }
+        } catch {
+          setLocationError('Sem conexão. Tenta de novo?')
+        }
+        setRequestingGeo(false)
+      },
+      (err) => {
+        setRequestingGeo(false)
+        if (err.code === 1) setLocationError('Permissão negada. Use CEP ou WhatsApp.')
+        else setLocationError('Não foi possível obter a localização.')
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    )
+  }
+
+  async function handleSaveAndContinue(then: 'scan' | 'album') {
+    setLocationError('')
+    setSavingLocation(true)
+
+    // 1. Phone (also infers city via DDD if no city set yet)
+    const phoneTrimmed = phoneInput.trim()
+    if (phoneTrimmed) {
+      try {
+        const res = await fetch('/api/me/phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phoneTrimmed }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          setLocationError(data?.error || 'Não consegui salvar o WhatsApp.')
+          setSavingLocation(false)
+          return
+        }
+      } catch {
+        setLocationError('Sem conexão. Tenta de novo?')
+        setSavingLocation(false)
+        return
+      }
+    }
+
+    // 2. CEP fallback (only if user typed one and didn't grant geo)
+    const cepTrimmed = cepInput.replace(/\D/g, '')
+    if (cepTrimmed.length === 8 && !geoCapturedCity) {
+      try {
+        const viaRes = await fetch(`https://viacep.com.br/ws/${cepTrimmed}/json/`)
+        const viaData = await viaRes.json()
+        if (!viaData.erro && viaData.localidade) {
+          await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              city: viaData.localidade,
+              state: viaData.uf,
+              neighborhood: viaData.bairro || undefined,
+            }),
+          })
+          setCepCapturedCity(viaData.localidade)
+        } else {
+          setLocationError('CEP não encontrado.')
+          setSavingLocation(false)
+          return
+        }
+      } catch {
+        setLocationError('Erro ao buscar CEP.')
+        setSavingLocation(false)
+        return
+      }
+    }
+
+    setSavingLocation(false)
+    handleClose()
+    if (then === 'scan') router.push('/scan')
+  }
+
   useBodyScrollLock(show)
 
   if (!show) return null
 
   // Total step count for indicator
-  const totalDots = 2 + tutorialSteps.length // age + terms + tutorial steps
-  const currentDot = phase === 'age' ? 0 : phase === 'terms' ? 1 : 2 + tutorialIdx
+  const showLocationStep = !hasExistingCity || !hasExistingPhone
+  const totalDots = 2 + tutorialSteps.length + (showLocationStep ? 1 : 0)
+  const currentDot =
+    phase === 'age' ? 0
+    : phase === 'terms' ? 1
+    : phase === 'location' ? 2 + tutorialSteps.length
+    : 2 + tutorialIdx
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
@@ -347,22 +466,41 @@ export default function OnboardingModal() {
             </div>
 
             {tutorialIdx === tutorialSteps.length - 1 ? (
-              // Final slide — instead of generic "Começar!", offer scan as the
-              // first action. Replaces the previous standalone FirstScanPrompt.
-              <>
-                <button
-                  onClick={handleStartScanning}
-                  className="w-full py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98] shadow-lg shadow-brand/20"
-                >
-                  📸 Escanear minha primeira figurinha
-                </button>
-                <button
-                  onClick={handleClose}
-                  className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
-                >
-                  Ver meu álbum primeiro
-                </button>
-              </>
+              // Final slide — has city + phone? offer scan/album CTAs.
+              // Otherwise send user to the location step before navigating.
+              !showLocationStep ? (
+                <>
+                  <button
+                    onClick={handleStartScanning}
+                    className="w-full py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98] shadow-lg shadow-brand/20"
+                  >
+                    📸 Escanear minha primeira figurinha
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
+                  >
+                    Ver meu álbum primeiro
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleTutorialNext}
+                    className="w-full py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98] shadow-lg shadow-brand/20"
+                  >
+                    Próximo
+                  </button>
+                  {tutorialIdx > 0 && (
+                    <button
+                      onClick={() => setTutorialIdx(tutorialIdx - 1)}
+                      className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition"
+                    >
+                      Voltar
+                    </button>
+                  )}
+                </>
+              )
             ) : (
               <>
                 <div className="flex gap-3">
@@ -389,6 +527,108 @@ export default function OnboardingModal() {
                 </button>
               </>
             )}
+          </>
+        )}
+
+        {/* ── Location step (geo OR cep + WhatsApp opcional) ── */}
+        {phase === 'location' && (
+          <>
+            <div className="text-center mb-5">
+              <div className="text-5xl mb-3">📍</div>
+              <h2 className="text-lg font-bold text-gray-900 mb-1.5">
+                Pra te avisar de trocas perto de você
+              </h2>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Precisamos saber sua cidade. WhatsApp é opcional — sem ele, avisamos por email.
+              </p>
+            </div>
+
+            {/* Bloco 1 — Cidade */}
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Onde você está?</p>
+
+              {!geoCapturedCity && !cepCapturedCity ? (
+                <>
+                  <button
+                    onClick={handleRequestGeo}
+                    disabled={requestingGeo || savingLocation}
+                    className="w-full py-2.5 mb-2 rounded-xl text-sm font-semibold border border-brand text-brand hover:bg-brand-light/40 transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {requestingGeo ? 'Solicitando…' : '📍 Permitir localização'}
+                  </button>
+
+                  {!showCepInput ? (
+                    <button
+                      onClick={() => setShowCepInput(true)}
+                      disabled={savingLocation}
+                      className="w-full text-xs text-gray-500 hover:text-gray-700 underline transition disabled:opacity-50"
+                    >
+                      ou digitar CEP
+                    </button>
+                  ) : (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      placeholder="CEP — 00000-000"
+                      value={cepInput}
+                      onChange={(e) => setCepInput(e.target.value)}
+                      maxLength={9}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                      disabled={savingLocation}
+                    />
+                  )}
+                </>
+              ) : (
+                <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                  ✅ Cidade: <span className="font-semibold">{geoCapturedCity || cepCapturedCity}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Bloco 2 — WhatsApp (opcional) */}
+            <div className="mb-3">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">WhatsApp <span className="text-gray-400 font-normal normal-case">(opcional, avisa mais rápido)</span></p>
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(21) 99999-8888"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                disabled={savingLocation}
+              />
+              <p className="text-[10px] text-gray-400 mt-1.5 leading-snug">
+                Sem WhatsApp, avisamos por email. Política de uso na <a href="/privacidade" target="_blank" className="underline">política</a>.
+              </p>
+            </div>
+
+            {locationError && (
+              <p className="text-xs text-red-600 mb-2">{locationError}</p>
+            )}
+
+            <button
+              onClick={() => handleSaveAndContinue('scan')}
+              disabled={savingLocation || requestingGeo}
+              className="w-full py-3 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition active:scale-[0.98] shadow-lg shadow-brand/20 disabled:opacity-50"
+            >
+              {savingLocation ? 'Salvando...' : '📸 Salvar e escanear primeira figurinha'}
+            </button>
+            <button
+              onClick={() => handleSaveAndContinue('album')}
+              disabled={savingLocation || requestingGeo}
+              className="w-full mt-2 py-2.5 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition disabled:opacity-50"
+            >
+              Salvar e ver álbum
+            </button>
+            <button
+              onClick={handleClose}
+              disabled={savingLocation || requestingGeo}
+              className="w-full mt-3 text-[11px] text-gray-400 hover:text-gray-600 transition disabled:opacity-50"
+            >
+              Pular por agora
+            </button>
           </>
         )}
       </div>

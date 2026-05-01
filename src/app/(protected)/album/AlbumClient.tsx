@@ -9,6 +9,7 @@ import ExportModal from '@/components/ExportModal'
 import UndoToast from '@/components/UndoToast'
 import OnboardingModal from '@/components/OnboardingModal'
 import ImportListModal from '@/components/ImportListModal'
+import LocationBanner from '@/components/LocationBanner'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
 
 type Sticker = {
@@ -583,6 +584,9 @@ export default function AlbumClient({
 
       {/* Premium banner - only shows if there's still a tier limit */}
       {showLimitBanner && <PremiumBanner />}
+
+      {/* Location banner — shows only if user has no city set yet */}
+      <LocationBanner />
 
       {/* Search + view toggle */}
       <div className="flex gap-2 mb-3">
