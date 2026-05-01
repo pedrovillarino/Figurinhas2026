@@ -161,11 +161,13 @@ export default function ScanHub({
           }
         } catch {
           if (attempt === 0) {
-            // Network error — retry once
+            // Network or timeout — retry once
             await new Promise(r => setTimeout(r, 1500))
             continue
           }
-          accWarnings.push(`Foto ${i + 1}: Sem conexão — verifique sua internet`)
+          // Generic — could be offline, server timeout, or aborted request.
+          // Don't pretend it's certainly the user's wifi.
+          accWarnings.push(`Foto ${i + 1}: Análise não terminou. Tente foto com menos cromos ou aguarde e mande de novo.`)
         }
       }
 
@@ -258,7 +260,9 @@ export default function ScanHub({
       setChecked(initial)
       setState('results')
     } catch {
-      setErrorMsg('Sem conexão com a internet. Verifique seu Wi-Fi ou dados móveis e tente novamente.')
+      // Pode ser offline, timeout do server, ou request abortado.
+      // Não afirma que é certamente a internet do user.
+      setErrorMsg('Análise não terminou — pode ter demorado demais. Tente foto com menos cromos por vez ou aguarde e tente de novo.')
       setState('error')
     }
   }

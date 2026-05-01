@@ -13,7 +13,6 @@ import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
 import { embedImage } from '@/lib/embeddings'
 import { savePendingSample, computeKnnVerdict, type Face } from '@/lib/sample-store'
-import { twoPassScan, isTwoPassEnabled } from '@/lib/two-pass-scan'
 
 const ENABLE_KNN_BOOST = process.env.ENABLE_KNN_BOOST === 'true'
 
@@ -390,40 +389,13 @@ export async function POST(request: NextRequest) {
     let geminiMs = 0
     let usedModel = ''
 
-    // Two-pass scan path — gated by env SCAN_TWO_PASS=true. Pass 1 detects
-    // bbox per sticker; pass 2 reanalyzes each crop in parallel at near-
-    // isolated resolution. Output schema is identical to the single-pass
-    // JSON, so the rest of the matching pipeline is untouched. Falls back
-    // to single-pass on any failure.
-    if (isTwoPassEnabled()) {
-      const twoPassStart = Date.now()
-      try {
-        const tp = await twoPassScan({
-          imageB64: image,
-          mimeType,
-          apiKey,
-          validCodes: cached!.validCodes,
-        })
-        if (tp && tp.stickers.length > 0) {
-          responseText = JSON.stringify(tp)
-          geminiMs = Date.now() - twoPassStart
-          usedModel = 'gemini-2.5-flash (two-pass)'
-          console.log(`[scan] two-pass ok: ${tp.stickers.length} stickers in ${geminiMs}ms`)
-        } else {
-          console.warn('[scan] two-pass returned no stickers — falling back to single-pass')
-        }
-      } catch (err) {
-        console.error('[scan] two-pass exception, falling back:', err instanceof Error ? err.message : err)
-      }
-    }
-
     const isRetryable = (msg: string) =>
       msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') ||
       msg.includes('Too Many') || msg.includes('404') || msg.includes('not found') ||
       msg.includes('deprecated') || msg.includes('503') || msg.includes('UNAVAILABLE') ||
       msg.includes('500') || msg.includes('INTERNAL')
 
-    for (let i = 0; i < MODELS.length && !responseText; i++) {
+    for (let i = 0; i < MODELS.length; i++) {
       const modelName = MODELS[i]
       try {
         const model = genAI.getGenerativeModel({
@@ -796,8 +768,16 @@ export async function POST(request: NextRequest) {
     }
 
     const knnAdjustments: Array<{ sticker_id: number; delta: number; label: string; validators: number }> = []
-    if (scanResultId !== null && detectionEvents.length > 0) {
-      // Decode the source image once for sharp cropping
+
+    // Build the active-learning task. When KNN boost is OFF (default / shadow
+    // mode), this is FIRE-AND-FORGET — the response returns before embeddings
+    // finish so we don't blow the Vercel function timeout (which is 10s on
+    // the Hobby plan, regardless of maxDuration). The Node runtime keeps the
+    // function alive briefly after response so most samples still persist.
+    // When boost is ON, we must await because the verdict adjusts matched[]
+    // confidence values that the client sees.
+    const runActiveLearning = async () => {
+      if (scanResultId === null || detectionEvents.length === 0) return
       const srcBuffer = Buffer.from(image, 'base64')
       let srcMeta: { width: number; height: number } | null = null
       try {
@@ -807,12 +787,9 @@ export async function POST(request: NextRequest) {
         srcMeta = null
       }
 
-      // Process each detection — best-effort, never blocks the response on
-      // any individual failure. Run in parallel for latency.
       await Promise.all(detectionEvents.map(async (ev) => {
         if (!ev.bbox || !srcMeta) return
         const { x1, y1, x2, y2 } = ev.bbox
-        // Validate bbox: normalized 0-1, ordered, non-degenerate
         if ([x1, y1, x2, y2].some((n) => !Number.isFinite(n))) return
         if (x1 >= x2 || y1 >= y2) return
         const left = Math.max(0, Math.round(x1 * srcMeta.width))
@@ -821,7 +798,7 @@ export async function POST(request: NextRequest) {
         const bottom = Math.min(srcMeta.height, Math.round(y2 * srcMeta.height))
         const cropW = right - left
         const cropH = bottom - top
-        if (cropW < 32 || cropH < 32) return // too small to be a sticker
+        if (cropW < 32 || cropH < 32) return
 
         let cropBuf: Buffer
         try {
@@ -835,10 +812,8 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        // Embed (returns null if Cohere not configured — sample still saved without vector)
         const embedding = await embedImage(cropBuf, 'image/jpeg')
 
-        // Optional kNN verdict — only adjust confidence when boost is enabled
         if (ENABLE_KNN_BOOST && embedding) {
           const verdict = await computeKnnVerdict(supabaseAdmin, embedding, ev.face, ev.stickerId)
           if (verdict.label !== 'none') {
@@ -848,7 +823,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Save pending sample (best-effort)
         await savePendingSample(supabaseAdmin, {
           scanResultId,
           stickerId: ev.stickerId,
@@ -862,10 +836,22 @@ export async function POST(request: NextRequest) {
           isTrusted,
         })
       }))
+    }
 
-      if (knnAdjustments.length > 0) {
-        console.log(`[scan] kNN adjustments: ${JSON.stringify(knnAdjustments)}`)
-      }
+    if (ENABLE_KNN_BOOST) {
+      // Boost ON → must await to apply confidence deltas before responding
+      await runActiveLearning()
+    } else {
+      // Shadow mode → fire-and-forget so response returns fast.
+      // Vercel Node runtime keeps the lambda alive ~30s post-response by
+      // default; that's enough for 10–20 samples to flush.
+      runActiveLearning().catch((err) =>
+        console.error('[scan] active learning background task failed:', err instanceof Error ? err.message : err),
+      )
+    }
+
+    if (ENABLE_KNN_BOOST && knnAdjustments.length > 0) {
+      console.log(`[scan] kNN adjustments: ${JSON.stringify(knnAdjustments)}`)
     }
 
     return NextResponse.json({
