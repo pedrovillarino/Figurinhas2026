@@ -710,6 +710,11 @@ export async function POST(request: NextRequest) {
         console.log(`[scan] ✓ "${playerName || stickerNumber}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name} [${matchType}, ${finalConfidence}]`)
       } else if (!normPlayer && !stickerNumber) {
         // Skip — nothing to match on
+      } else if (playerName === '?' || normPlayer === '' || normPlayer === '?') {
+        // Two-pass returned "?" because Gemini explicitly couldn't read this
+        // crop. Don't surface as "didn't recognize" — it's already counted
+        // in the gap (skippedCount). Just log and move on.
+        console.log(`[scan] ✗ unreadable crop (Gemini returned "?")`)
       } else {
         unmatched.push(playerName ? `${playerName} (${countryCode})` : stickerNumber)
         console.log(`[scan] ✗ "${playerName}" (${countryCode}) → no match`)

@@ -203,7 +203,8 @@ export async function twoPassScan(args: {
   const pass1Model = genAI.getGenerativeModel({
     model: modelName,
     systemInstruction: PASS1_SYSTEM,
-    generationConfig: { temperature: 0.0, responseMimeType: 'application/json', maxOutputTokens: 4096 },
+    // 8192 cabe ~30 stickers de bbox (cada item ~250 tokens c/ JSON)
+    generationConfig: { temperature: 0.0, responseMimeType: 'application/json', maxOutputTokens: 8192 },
   })
 
   const pass1 = await callPass1(pass1Model, args.imageB64, args.mimeType)
@@ -277,9 +278,12 @@ export async function twoPassScan(args: {
     } as TwoPassSticker & { country: string; number: string })
   }
 
-  const warnings: string[] = []
+  // Don't surface a separate "pass 2 unreadable" warning here — the gap
+  // detection at the endpoint level already covers the same signal in
+  // better wording (total_visible vs stickers.length). Avoids 3 stacked
+  // confusing messages on the user's screen.
   if (unreadable > 0) {
-    warnings.push(`${unreadable} cromo(s) não pude ler na pass 2 — tenta foto isolada.`)
+    console.log(`[two-pass] ${unreadable} sticker(s) unreadable in pass 2`)
   }
 
   return {
@@ -287,7 +291,7 @@ export async function twoPassScan(args: {
     scan_confidence: 0.85,
     image_quality: pass1.image_quality ?? 'medium',
     stickers,
-    warnings,
+    warnings: [],
   }
 }
 
