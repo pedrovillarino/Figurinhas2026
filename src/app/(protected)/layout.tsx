@@ -1,3 +1,9 @@
+// Force dynamic rendering on every protected page. They all hydrate
+// user-specific Supabase data at runtime (auth cookies, profile, user_stickers),
+// so build-time prerender has no benefit and breaks any build that runs
+// without NEXT_PUBLIC_SUPABASE_* env vars (e.g. branch previews).
+export const dynamic = 'force-dynamic'
+
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import InstallBanner from '@/components/InstallBanner'
