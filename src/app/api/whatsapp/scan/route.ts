@@ -38,8 +38,9 @@ TIPOS DE FIGURINHAS:
 - Estádios e logos FIFA: figurinhas especiais (ex: FWC-1)
 
 REGRAS:
-- "filled": figurinha colada ou fotografada solta.
-- "empty": espaço vazio no álbum.
+- "filled": figurinha física presente — INCLUI tanto a FRENTE (foto do jogador) quanto o VERSO (número grande tipo "BRA 17", estatísticas, sem foto). Verso é figurinha colada virada — NUNCA marque verso como "empty".
+- "empty": SLOT vazio no álbum — retângulo branco/cinza COM o nome do jogador impresso EMBAIXO dele (fora do retângulo) como placeholder. Sem nada visualmente DENTRO do retângulo.
+- Na dúvida entre verso e empty, escolha verso (verso tem conteúdo estruturado dentro: número grande, posição, dados).
 - CRÍTICO — CONTAGEM ANTES DE LISTAR: ANTES de identificar qualquer figurinha, CONTE quantas figurinhas físicas (filled) você vê na foto, da esquerda pra direita, de cima pra baixo. Coloque esse número em "total_stickers_visible". DEPOIS, liste UMA entrada em "stickers" para CADA uma das figurinhas contadas. O tamanho do array "stickers" DEVE bater EXATAMENTE com "total_stickers_visible". Se não conseguir identificar uma específica, ainda assim adicione uma entrada com player_name="?" e confidence baixa — não pule!
 - CRÍTICO: Identifique TODAS as figurinhas — jogadores, emblemas, escudos, fotos de time. NÃO pule nenhuma.
 - CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO". Cada jogador é único.
@@ -328,7 +329,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const filledStickers = parsed.stickers.filter((s: { status: string }) => s.status === 'filled')
+    // Keep filled stickers; ALSO keep backs (face='back') even if Gemini
+    // mistakenly marked them as 'empty' — backs are physical stickers,
+    // they just lack the colored player photo by design.
+    const filledStickers = parsed.stickers.filter((s: { status: string; face?: string }) => {
+      if (s.status === 'filled') return true
+      if ((s.face || '').toLowerCase() === 'back') return true
+      return false
+    })
 
     if (filledStickers.length === 0) {
       await sendText(phone, 'Não encontrei figurinhas coladas nessa foto. Tenta outra! 📸')

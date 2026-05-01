@@ -101,7 +101,10 @@ For EACH sticker visible, extract:
 1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo". For empty slots, leave as "". If unreadable, use "?".
 2. "country_code": The 3-letter code. Valid codes: ${validCodes.join(', ')}
 3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
-4. "status": "filled" (actual physical sticker glued in) or "empty" (album slot with NO physical sticker — only printed reference text). Be strict: when in doubt between filled and empty, choose "empty".
+4. "status": "filled" or "empty".
+   - "filled" = a REAL physical sticker is present. This includes BOTH the front (player photo, name, flag) AND the back (large sticker number "BRA 17", small print stats, no player photo). Backs are filled stickers turned over — never mark a back as empty.
+   - "empty" = album slot with NO sticker at all — a blank rectangle with the player name printed as a placeholder UNDERNEATH it (outside the rectangle). The interior is white/gray with no content.
+   When in doubt between front and back, choose front. When in doubt between back and empty, choose back (a back has structured content — number, position, stats, all printed inside).
 5. "confidence": YOUR HONEST confidence 0.0 to 1.0 — see CONFIDENCE RULES below.
 6. "face": "front" (player photo + name + flag visible) or "back" (only the sticker number visible, no player photo).
 7. "bbox": tight bounding box around the sticker, as normalized 0-1 coordinates relative to the WHOLE photo: {"x1": left, "y1": top, "x2": right, "y2": bottom}. Be tight — exclude album page background. If you cannot localize precisely, omit bbox.
@@ -488,9 +491,16 @@ export async function POST(request: NextRequest) {
 
     // Drop empty album slots — Gemini reports them as detections because the
     // album page pre-prints each player's name under empty slots as a reference.
-    // We only want stickers actually glued to the page.
+    // We only want stickers actually glued to the page. EXCEPT: if face='back'
+    // (user is photographing the back of a real sticker showing the number),
+    // never treat as empty — backs lack player photo by definition but ARE
+    // glued physical stickers.
     const rawDetected = stickersArr.length
-    const filledStickers = stickersArr.filter((s) => (s.status || 'filled').toLowerCase() !== 'empty')
+    const filledStickers = stickersArr.filter((s) => {
+      const isEmpty = (s.status || 'filled').toLowerCase() === 'empty'
+      const isBack = (s.face || '').toLowerCase() === 'back'
+      return !isEmpty || isBack
+    })
     const emptyFiltered = rawDetected - filledStickers.length
     if (emptyFiltered > 0) {
       console.log(`[scan] Filtered ${emptyFiltered} empty slot(s) reported by Gemini`)
