@@ -526,7 +526,7 @@ export default function ScanHub({
         <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-100 mb-3">
           <span className="text-sm mt-0.5">💡</span>
           <p className="text-xs text-gray-600 flex-1 leading-relaxed">
-            <span className="font-semibold text-gray-700">Dica:</span> Fotografar a <span className="font-semibold">parte de trás</span> das figurinhas (onde fica o número) aumenta muito a assertividade do scan. Também dá para juntar até 20 de frente na mesa!
+            <span className="font-semibold text-gray-700">Dica:</span> Fotografe a <span className="font-semibold">frente</span> das figurinhas com boa luz — pode juntar várias na mesa. Pra mais precisão em cromos isolados, foto bem próxima e nítida.
           </p>
         </div>
 
