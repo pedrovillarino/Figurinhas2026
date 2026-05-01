@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { sendText, formatPhone } from '@/lib/zapi'
-import { sendEmail, matchAlertEmailHtml } from '@/lib/email'
 import { checkRateLimit, getIp, notifyLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
 
 function getAdmin() {
   return createClient(
@@ -30,8 +26,16 @@ type NotifyPrefs = {
  * POST /api/notify-matches
  *
  * Called when a user adds/updates stickers in their collection.
- * Checks if any nearby users need the stickers this user has as duplicates,
- * and sends them a WhatsApp/email notification based on their preferences.
+ * Instead of sending notifications immediately, ENQUEUES match candidates
+ * into the `match_candidates` table. The /api/cron/process-notifications
+ * cron drains the queue hourly, applies cooldowns + quiet hours, aggregates
+ * per recipient, and sends a single consolidated digest message.
+ *
+ * Why a queue instead of immediate send (changed 2026-05-01):
+ *   1. Avoid spam — same recipient won't get N pings per day if N people
+ *      nearby scan dupes
+ *   2. Allow ranking by (distance, qty) across multiple scanners
+ *   3. Respect quiet hours globally without blocking the scan path
  *
  * Body: { sticker_ids: number[] }
  * Requires authentication.
@@ -135,180 +139,93 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, notified: 0 })
     }
 
-    // 4. Batch: get ALL user_stickers for nearby users for the duplicate sticker IDs
-    //    Single query instead of N queries in a loop
+    // 4. Batch: get ALL user_stickers for nearby users for the duplicate sticker IDs.
+    //    Trade-dedup is done LATER (in the cron) to avoid re-sending if a trade
+    //    is created between enqueue and processing. We only need ownership here.
     const nearbyIds = nearbyProfiles.map((p) => p.id)
     const dupIdsArr = Array.from(duplicateIds)
 
-    const [{ data: allNearbyStickers }, { data: allRecentTrades }] = await Promise.all([
-      // One query: all nearby users' ownership of these specific stickers
-      supabase
-        .from('user_stickers')
-        .select('user_id, sticker_id')
-        .in('user_id', nearbyIds)
-        .in('sticker_id', dupIdsArr)
-        .in('status', ['owned', 'duplicate']),
-      // One query: all trade requests between current user and nearby users
-      supabase
-        .from('trade_requests')
-        .select('id, requester_id, target_id, status, created_at')
-        .or(
-          nearbyIds.map((nid) =>
-            `and(requester_id.eq.${user_id},target_id.eq.${nid}),and(requester_id.eq.${nid},target_id.eq.${user_id})`
-          ).join(',')
-        ),
-    ])
+    const { data: allNearbyStickers } = await supabase
+      .from('user_stickers')
+      .select('user_id, sticker_id')
+      .in('user_id', nearbyIds)
+      .in('sticker_id', dupIdsArr)
+      .in('status', ['owned', 'duplicate'])
 
-    // Build lookup maps from batch results
     const ownedByUser = new Map<string, Set<number>>()
     for (const us of allNearbyStickers || []) {
       if (!ownedByUser.has(us.user_id)) ownedByUser.set(us.user_id, new Set())
       ownedByUser.get(us.user_id)!.add(us.sticker_id)
     }
 
-    // Build trade dedup map: user_id -> { hasPending, hasRecent24h }
-    const tradeStatus = new Map<string, { hasPending: boolean; hasRecent24h: boolean }>()
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    for (const tr of allRecentTrades || []) {
-      const otherId = tr.requester_id === user_id ? tr.target_id : tr.requester_id
-      if (!tradeStatus.has(otherId)) tradeStatus.set(otherId, { hasPending: false, hasRecent24h: false })
-      const status = tradeStatus.get(otherId)!
-      if (tr.status === 'pending' || tr.status === 'approved') status.hasPending = true
-      if (new Date(tr.created_at) > twentyFourHoursAgo) status.hasRecent24h = true
-    }
-
     perf.mark('batch-queries')
 
-    // 5. Process each nearby user (no more DB queries in this loop!)
-    let notified = 0
-    const notifiedUserIds: string[] = []
+    // 5. Build candidate rows for the queue. The cron applies cooldown,
+    //    quiet hours, threshold and trade-dedup at send time — we just enqueue.
+    type CandidateRow = {
+      recipient_id: string
+      scanner_id: string
+      sticker_id: number
+      distance_km: number
+      is_priority: boolean
+    }
+    const candidates: CandidateRow[] = []
 
     for (const nearby of nearbyProfiles) {
       const prefs: NotifyPrefs = {
         notify_channel: nearby.notify_channel || 'whatsapp',
-        notify_min_threshold: nearby.notify_min_threshold || 1,
         notify_priority_stickers: nearby.notify_priority_stickers || [],
         notify_radius_km: nearby.notify_radius_km || 50,
       }
 
-      // Distance check: use PostGIS distance if available, else haversine fallback
+      // Skip users who explicitly opted out
+      if (prefs.notify_channel === 'none') continue
+
       const dist = nearby.distance_km ?? haversine(
         userProfile.location_lat, userProfile.location_lng,
         nearby.location_lat, nearby.location_lng
       )
       if (dist > (prefs.notify_radius_km || 50)) continue
 
-      // Rate limit: if user hasn't configured notifications, limit to 1 every 15 days
-      if (!nearby.notify_configured && nearby.last_match_notified_at) {
-        const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
-        if (new Date(nearby.last_match_notified_at) > fifteenDaysAgo) continue
-      }
-
-      // Check which stickers they need (from pre-fetched batch data)
       const theirOwnedIds = ownedByUser.get(nearby.id) || new Set()
       const theyNeed = dupIdsArr.filter((id) => !theirOwnedIds.has(id))
-
       if (theyNeed.length === 0) continue
 
-      // Check threshold
       const prioritySet = new Set(prefs.notify_priority_stickers || [])
-      const hasPriority = theyNeed.some((id) => prioritySet.has(id))
-      const minThreshold = prefs.notify_min_threshold || 1
-      if (!hasPriority && theyNeed.length < minThreshold) continue
 
-      // Dedup: skip if there's already a pending/recent trade (from pre-fetched batch data)
-      const ts = tradeStatus.get(nearby.id)
-      if (ts?.hasPending || ts?.hasRecent24h) continue
-
-      // Build notification message
-      const neededStickers = stickerDetails
-        .filter((s) => theyNeed.includes(s.id))
-        .map((s) => ({ number: s.number, isPriority: prioritySet.has(s.id) }))
-
-      if (neededStickers.length === 0) continue
-
-      const distStr = dist < 1 ? 'menos de 1km' : `${Math.round(dist)}km`
-      const firstName = userProfile.display_name?.split(' ')[0] || 'Alguém'
-      const stickerList = neededStickers.slice(0, 10).map((s) => s.isPriority ? `⭐${s.number}` : s.number).join(', ')
-      const extra = neededStickers.length > 10 ? ` e mais ${neededStickers.length - 10}` : ''
-      const priorityNote = hasPriority ? '\n⭐ Inclui figurinhas prioritárias!\n' : ''
-
-      const msg = `🔔 *Alerta de figurinhas!*\n\n` +
-        `${firstName} (a ${distStr} de voce) tem ${neededStickers.length} figurinha${neededStickers.length > 1 ? 's' : ''} que voce precisa:\n\n` +
-        `📋 ${stickerList}${extra}\n${priorityNote}\n` +
-        `Abra o app para solicitar a troca (com aprovação segura):\n${APP_URL}/trades`
-
-      const channel = prefs.notify_channel || 'whatsapp'
-      const phone = nearby.phone ? formatPhone(nearby.phone) : null
-
-      // Send via WhatsApp
-      let didNotify = false
-      let whatsappSent = false
-
-      if (channel === 'whatsapp' || channel === 'both') {
-        if (phone) {
-          try {
-            await sendText(phone, msg)
-            whatsappSent = true
-            didNotify = true
-            // Throttle: 1 msg/sec to avoid Z-API rate limiting
-            await new Promise(r => setTimeout(r, 1100))
-          } catch (err) {
-            console.error(`WhatsApp failed for ${nearby.id}:`, err)
-          }
-        }
-      }
-
-      // Send via email:
-      //  - If user chose 'email' or 'both' → always send email
-      //  - If user chose 'whatsapp' but WhatsApp failed or no phone → fallback to email
-      const shouldEmail =
-        channel === 'email' ||
-        channel === 'both' ||
-        (channel === 'whatsapp' && !whatsappSent)
-
-      if (shouldEmail && nearby.email) {
-        const stickerListFormatted = neededStickers
-          .slice(0, 15)
-          .map((s) => s.isPriority ? `⭐ ${s.number}` : s.number)
-          .join(', ')
-        const extraText = neededStickers.length > 15 ? ` e mais ${neededStickers.length - 15}` : ''
-
-        const html = matchAlertEmailHtml(
-          firstName,
-          distStr,
-          neededStickers.length,
-          stickerListFormatted + extraText,
-          hasPriority
-        )
-        const emailSent = await sendEmail(
-          nearby.email,
-          `🔔 ${firstName} tem ${neededStickers.length} figurinha${neededStickers.length > 1 ? 's' : ''} que você precisa!`,
-          html
-        )
-        if (emailSent) {
-          didNotify = true
-        }
-      }
-
-      if (didNotify) {
-        notified++
-        notifiedUserIds.push(nearby.id)
+      for (const stickerId of theyNeed) {
+        candidates.push({
+          recipient_id: nearby.id,
+          scanner_id: user_id,
+          sticker_id: stickerId,
+          distance_km: Math.round(dist * 100) / 100,
+          is_priority: prioritySet.has(stickerId),
+        })
       }
     }
 
-    // 6. Batch update last_match_notified_at for all notified users (single query)
-    if (notifiedUserIds.length > 0) {
-      await supabase
-        .from('profiles')
-        .update({ last_match_notified_at: new Date().toISOString() })
-        .in('id', notifiedUserIds)
+    // 6. Bulk-insert with ON CONFLICT DO NOTHING (UNIQUE constraint dedups
+    //    same scanner+recipient+sticker pairs across multiple scans).
+    let enqueued = 0
+    if (candidates.length > 0) {
+      const { error: insertError, count } = await supabase
+        .from('match_candidates')
+        .upsert(candidates, {
+          onConflict: 'recipient_id,scanner_id,sticker_id',
+          ignoreDuplicates: true,
+          count: 'exact',
+        })
+      if (insertError) {
+        console.error('match_candidates insert error:', insertError)
+      } else {
+        enqueued = count ?? candidates.length
+      }
     }
 
-    perf.mark('notify')
-    perf.end({ notified, nearby: nearbyProfiles.length })
+    perf.mark('enqueue')
+    perf.end({ enqueued, candidates: candidates.length, nearby: nearbyProfiles.length })
 
-    return NextResponse.json({ ok: true, notified })
+    return NextResponse.json({ ok: true, enqueued })
   } catch (err) {
     perf.end({ error: 'true' })
     console.error('Notify matches error:', err)
