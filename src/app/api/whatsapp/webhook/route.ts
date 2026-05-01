@@ -790,13 +790,28 @@ export async function POST(req: NextRequest) {
       : hasText ? 'text'
       : rawType
 
-    console.log('[WhatsApp webhook]', { phone: maskPhone(phone), rawType, messageType, hasImage, hasText, bodyKeys: Object.keys(body) })
-    // TEMP DEBUG: campos críticos do payload, sem JSON.stringify (que pode
-    // throw em referência circular). Cada log é independente — se um falhar,
-    // os outros ainda saem.
-    try { console.log('[DEBUG] type:', body.type, 'isGroup:', body.isGroup, 'fromMe:', body.fromMe) } catch {}
-    try { console.log('[DEBUG] text raw:', body.text, 'body field:', body.body, 'message field:', body.message) } catch {}
-    try { console.log('[DEBUG] messageId:', body.messageId, 'id:', body.id) } catch {}
+    // TEMP DEBUG (console.error pra aparecer com level=error na Vercel —
+    // os logs anteriores como console.log estavam sumindo da view summary).
+    // Tudo numa string só pra evitar agrupamento. Remover quando achar bug.
+    try {
+      const dbg = [
+        `phone=${maskPhone(phone)}`,
+        `type=${body.type}`,
+        `isGroup=${body.isGroup}`,
+        `fromMe=${body.fromMe}`,
+        `messageType=${messageType}`,
+        `hasImage=${hasImage}`,
+        `hasText=${hasText}`,
+        `text.message=${typeof body.text === 'object' ? body.text?.message?.slice?.(0, 60) : body.text}`,
+        `bodyField=${typeof body.body === 'string' ? body.body.slice(0, 60) : body.body}`,
+        `msgField=${typeof body.message === 'string' ? body.message.slice(0, 60) : body.message}`,
+        `messageId=${body.messageId}`,
+        `bodyKeys=[${Object.keys(body).join(',')}]`,
+      ].join(' | ')
+      console.error('[WA_DEBUG]', dbg)
+    } catch (debugErr) {
+      console.error('[WA_DEBUG] failed:', debugErr)
+    }
 
     // Find user by phone
     const user = await findUserByPhone(phone)
