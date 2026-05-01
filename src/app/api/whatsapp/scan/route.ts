@@ -352,6 +352,19 @@ export async function POST(req: NextRequest) {
       console.log(`[WhatsApp scan] gap detected: total=${reportedTotal}, listed=${filledStickers.length}, skipped=${skippedCount}`)
     }
 
+    // Bulk-back detection: photos with many back-faces are a known weak spot
+    // for Gemini — the player name is too small to read at low resolution,
+    // so it guesses. Bail early with a friendly hint rather than process noise.
+    const backCount = (filledStickers as Array<{ face?: string }>).filter((s) => (s.face || '').toLowerCase() === 'back').length
+    const allBackHeavy = backCount >= 5 && backCount / filledStickers.length >= 0.6
+    if (allBackHeavy) {
+      await sendText(
+        phone,
+        `📸 Detectei *${backCount} versos* na foto. Esse é um caso difícil — o nome do jogador no verso é pequeno e fica ilegível com muitos cromos juntos.\n\n💡 *Tenta uma destas:*\n• Foto da FRENTE (jogador) ao invés do verso — bem mais preciso\n• Verso, mas no máximo *3-4 cromos por foto*\n• Manda *um cromo de cada vez* pra acerto certo\n\nOu registra direto pelo código: digite *${'BRA-1 ARG-3'}* (até 10 separados por espaço).`,
+      )
+      return NextResponse.json({ ok: true })
+    }
+
     // Match each detected sticker using fuzzy matching (with quantity tracking).
     // Also keep the WORST confidence reported by Gemini for each sticker_id so
     // we can flag low-confidence items in the preview ("⚠️ confira").
