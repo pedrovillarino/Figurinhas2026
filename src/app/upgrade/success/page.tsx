@@ -58,10 +58,11 @@ export default function UpgradeSuccessPage() {
       .update(updates)
       .eq('id', user.id)
 
+    // Never strand the user post-payment: log silently if the metadata
+    // update fails (a missing/renamed column shouldn't block the album),
+    // but always proceed to /album.
     if (dbError) {
-      setError('Erro ao salvar. Tente novamente.')
-      setSaving(false)
-      return
+      console.error('[upgrade/success] profile update failed (non-blocking):', dbError.message)
     }
 
     router.push('/album')
