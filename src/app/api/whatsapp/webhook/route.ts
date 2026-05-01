@@ -791,13 +791,12 @@ export async function POST(req: NextRequest) {
       : rawType
 
     console.log('[WhatsApp webhook]', { phone: maskPhone(phone), rawType, messageType, hasImage, hasText, bodyKeys: Object.keys(body) })
-    // TEMP DEBUG (remover depois): full payload shape sem o conteúdo de mídia,
-    // pra entender por que mensagens chegam mas não são respondidas.
-    console.log('[WhatsApp webhook DEBUG body]', JSON.stringify({
-      ...body,
-      image: body.image ? { ...body.image, base64: body.image.base64 ? '[redacted]' : undefined, imageUrl: body.image.imageUrl ? '[present]' : undefined } : undefined,
-      audio: body.audio ? { ...body.audio, base64: body.audio.base64 ? '[redacted]' : undefined, audioUrl: body.audio.audioUrl ? '[present]' : undefined } : undefined,
-    }).slice(0, 1500))
+    // TEMP DEBUG: campos críticos do payload, sem JSON.stringify (que pode
+    // throw em referência circular). Cada log é independente — se um falhar,
+    // os outros ainda saem.
+    try { console.log('[DEBUG] type:', body.type, 'isGroup:', body.isGroup, 'fromMe:', body.fromMe) } catch {}
+    try { console.log('[DEBUG] text raw:', body.text, 'body field:', body.body, 'message field:', body.message) } catch {}
+    try { console.log('[DEBUG] messageId:', body.messageId, 'id:', body.id) } catch {}
 
     // Find user by phone
     const user = await findUserByPhone(phone)
