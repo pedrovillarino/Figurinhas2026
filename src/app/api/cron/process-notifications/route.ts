@@ -6,7 +6,11 @@ import { sendEmail } from '@/lib/email'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-// ─── Match-digest cron — runs hourly ─────────────────────────────────────
+// ─── Match-digest cron — runs daily at 12h UTC (9h BRT) ──────────────────
+// Was hourly, but Vercel Hobby plan limits crons to 1x/day. Daily is enough
+// because cooldowns are 1d (configured) / 3d (not configured) anyway. If we
+// ever upgrade to Pro, can bump to hourly and the quiet-hours guard below
+// will start mattering.
 //
 // Drains the `match_candidates` queue (filled by /api/notify-matches on each
 // scan) and sends ONE consolidated digest per recipient with all the trade
