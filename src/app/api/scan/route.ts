@@ -94,8 +94,11 @@ CRITICAL — HOW TO READ PANINI STICKERS:
 - The actual STICKER NUMBER follows format: CODE + space/hyphen + small number (e.g., "BRA 17", "ARG 20", "FRA 19"). It may be printed small on the front or clearly on the back.
 - If you CANNOT see a clear sticker number in CODE-NUMBER format, leave sticker_number as "" — the system will match by player name instead.
 
+CRITICAL — COUNT BEFORE LISTING:
+Before identifying any sticker, COUNT the total filled stickers in the photo (left-to-right, top-to-bottom) and put that number in "total_stickers_visible". THEN list one entry per sticker. The size of the "stickers" array MUST EXACTLY equal "total_stickers_visible". If you cannot identify a specific one, STILL add an entry with player_name="?" and confidence=0.3 — do not skip it. We rely on this count to detect when you missed a sticker.
+
 For EACH sticker visible, extract:
-1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo". For empty slots, leave as "".
+1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo". For empty slots, leave as "". If unreadable, use "?".
 2. "country_code": The 3-letter code. Valid codes: ${validCodes.join(', ')}
 3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
 4. "status": "filled" (actual physical sticker glued in) or "empty" (album slot with NO physical sticker — only printed reference text). Be strict: when in doubt between filled and empty, choose "empty".
@@ -107,6 +110,7 @@ Return ONLY valid JSON:
 {
   "scan_confidence": 0.7,
   "image_quality": "high" | "medium" | "low",
+  "total_stickers_visible": 2,
   "stickers": [
     {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95, "face": "front", "bbox": {"x1": 0.10, "y1": 0.20, "x2": 0.34, "y2": 0.55}},
     {"player_name": "", "country_code": "ARG", "sticker_number": "ARG-10", "status": "filled", "confidence": 0.85, "face": "back", "bbox": {"x1": 0.40, "y1": 0.20, "x2": 0.64, "y2": 0.55}}
@@ -499,6 +503,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Gap detection: Gemini was asked to count BEFORE listing. If it counted
+    // more cromos than it listed, it pulled a "skipped" — surface so the user
+    // can re-scan the missed sticker isolated.
+    const reportedTotal = typeof (parsed as { total_stickers_visible?: number }).total_stickers_visible === 'number'
+      ? (parsed as { total_stickers_visible: number }).total_stickers_visible
+      : 0
+    const skippedCount = Math.max(0, reportedTotal - filledStickers.length - emptyFiltered)
+    if (skippedCount > 0) {
+      console.log(`[scan] gap detected: total=${reportedTotal}, filled=${filledStickers.length}, empty=${emptyFiltered}, skipped=${skippedCount}`)
+    }
+
     console.log(`[scan] Gemini found ${filledStickers.length} filled stickers (${emptyFiltered} empty filtered):`,
       filledStickers.map((s) => `${s.player_name}(${s.country_code || s.country || '?'})`).join(', ')
     )
@@ -667,7 +682,11 @@ export async function POST(request: NextRequest) {
     perf.end({ matched: matched.length, unmatched: unmatched.length, model: usedModel })
 
     if (unmatched.length > 0 && matched.length > 0) {
-      warnings.push(`${unmatched.length} figurinha(s) não encontrada(s) no álbum: ${unmatched.slice(0, 3).join(', ')}${unmatched.length > 3 ? '...' : ''}`)
+      warnings.push(`Não reconheci ${unmatched.length} nome(s) que a IA leu na foto: ${unmatched.slice(0, 3).join(', ')}${unmatched.length > 3 ? '...' : ''}. Pode ter sido erro de leitura — tenta foto isolada e mais nítida.`)
+    }
+
+    if (skippedCount > 0) {
+      warnings.unshift(`🚨 Vi ${reportedTotal} figurinhas na foto mas só identifiquei ${filledStickers.length}. ${skippedCount} cromo(s) podem ter passado batido — tira foto isolada do(s) que ficou(aram) de fora.`)
     }
 
     if (matched.length === 0 && filledStickers.length > 0) {

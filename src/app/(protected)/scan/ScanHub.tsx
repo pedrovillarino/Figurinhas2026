@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
@@ -437,7 +438,15 @@ export default function ScanHub({
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 mb-6">Cada foto detecta várias figurinhas de uma vez</p>
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-xs text-gray-500">Cada foto detecta várias figurinhas de uma vez</p>
+          <Link
+            href="/historico"
+            className="text-[11px] font-semibold text-brand hover:text-brand-dark transition flex items-center gap-1 shrink-0"
+          >
+            📜 Histórico
+          </Link>
+        </div>
 
         {/* Hidden inputs */}
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Tirar foto com câmera" />
