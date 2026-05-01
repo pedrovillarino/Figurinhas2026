@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText } from '@/lib/zapi'
 import { getScanLimit, type Tier } from '@/lib/tiers'
+import { twoPassScan, isTwoPassEnabled } from '@/lib/two-pass-scan'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -280,35 +281,61 @@ export async function POST(req: NextRequest) {
     ]
     let responseText = ''
 
+    // Two-pass scan path — gated by env SCAN_TWO_PASS=true. Same drop-in
+    // semantics as in /api/scan: pass 1 locates bbox per sticker, pass 2
+    // identifies each crop in parallel. Falls back to single-pass on
+    // failure. Output schema is identical so downstream code is untouched.
+    if (isTwoPassEnabled()) {
+      try {
+        const validCodes = Array.from(new Set(cache.stickers.map((s) => s.number.split('-')[0].toUpperCase())))
+        const tp = await twoPassScan({
+          imageB64: base64,
+          mimeType: mimeType || 'image/jpeg',
+          apiKey: process.env.GEMINI_API_KEY!,
+          validCodes,
+        })
+        if (tp && tp.stickers.length > 0) {
+          responseText = JSON.stringify(tp)
+          console.log(`[WhatsApp scan] two-pass ok: ${tp.stickers.length} stickers`)
+        } else {
+          console.warn('[WhatsApp scan] two-pass returned no stickers — falling back')
+        }
+      } catch (err) {
+        console.error('[WhatsApp scan] two-pass exception, falling back:', err instanceof Error ? err.message : err)
+      }
+    }
+
     const isRetryable = (msg: string) =>
       msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') ||
       msg.includes('Too Many') || msg.includes('404') || msg.includes('not found') ||
       msg.includes('deprecated') || msg.includes('503') || msg.includes('UNAVAILABLE') ||
       msg.includes('500') || msg.includes('INTERNAL')
 
-    for (const modelName of models) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          systemInstruction: SCAN_INSTRUCTION,
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-          },
-        })
+    if (!responseText) {
+      for (const modelName of models) {
+        try {
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: SCAN_INSTRUCTION,
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: 'application/json',
+            },
+          })
 
-        const result = await model.generateContent([
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
-          { text: 'Identifique TODAS as figurinhas nesta foto — jogadores, emblemas, escudos, fotos de time. Leia o nome EXATO de cada jogador. Retorne JSON.' },
-        ])
-        responseText = result.response.text()
-        console.log(`[WhatsApp scan] ${modelName} succeeded`)
-        break
-      } catch (modelErr) {
-        const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
-        console.error(`[WhatsApp scan] ${modelName} failed:`, msg.substring(0, 200))
-        if (isRetryable(msg)) continue
-        throw modelErr
+          const result = await model.generateContent([
+            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64 } },
+            { text: 'Identifique TODAS as figurinhas nesta foto — jogadores, emblemas, escudos, fotos de time. Leia o nome EXATO de cada jogador. Retorne JSON.' },
+          ])
+          responseText = result.response.text()
+          console.log(`[WhatsApp scan] ${modelName} succeeded`)
+          break
+        } catch (modelErr) {
+          const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
+          console.error(`[WhatsApp scan] ${modelName} failed:`, msg.substring(0, 200))
+          if (isRetryable(msg)) continue
+          throw modelErr
+        }
       }
     }
 

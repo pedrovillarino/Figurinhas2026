@@ -13,6 +13,7 @@ import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
 import { embedImage } from '@/lib/embeddings'
 import { savePendingSample, computeKnnVerdict, type Face } from '@/lib/sample-store'
+import { twoPassScan, isTwoPassEnabled } from '@/lib/two-pass-scan'
 
 const ENABLE_KNN_BOOST = process.env.ENABLE_KNN_BOOST === 'true'
 
@@ -389,13 +390,40 @@ export async function POST(request: NextRequest) {
     let geminiMs = 0
     let usedModel = ''
 
+    // Two-pass scan path — gated by env SCAN_TWO_PASS=true. Pass 1 detects
+    // bbox per sticker; pass 2 reanalyzes each crop in parallel at near-
+    // isolated resolution. Output schema is identical to the single-pass
+    // JSON, so the rest of the matching pipeline is untouched. Falls back
+    // to single-pass on any failure.
+    if (isTwoPassEnabled()) {
+      const twoPassStart = Date.now()
+      try {
+        const tp = await twoPassScan({
+          imageB64: image,
+          mimeType,
+          apiKey,
+          validCodes: cached!.validCodes,
+        })
+        if (tp && tp.stickers.length > 0) {
+          responseText = JSON.stringify(tp)
+          geminiMs = Date.now() - twoPassStart
+          usedModel = 'gemini-2.5-flash (two-pass)'
+          console.log(`[scan] two-pass ok: ${tp.stickers.length} stickers in ${geminiMs}ms`)
+        } else {
+          console.warn('[scan] two-pass returned no stickers — falling back to single-pass')
+        }
+      } catch (err) {
+        console.error('[scan] two-pass exception, falling back:', err instanceof Error ? err.message : err)
+      }
+    }
+
     const isRetryable = (msg: string) =>
       msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') ||
       msg.includes('Too Many') || msg.includes('404') || msg.includes('not found') ||
       msg.includes('deprecated') || msg.includes('503') || msg.includes('UNAVAILABLE') ||
       msg.includes('500') || msg.includes('INTERNAL')
 
-    for (let i = 0; i < MODELS.length; i++) {
+    for (let i = 0; i < MODELS.length && !responseText; i++) {
       const modelName = MODELS[i]
       try {
         const model = genAI.getGenerativeModel({
