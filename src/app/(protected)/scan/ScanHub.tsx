@@ -530,10 +530,9 @@ export default function ScanHub({
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 space-y-2">
           <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Pra acertar o scan</p>
           <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
-            <li>• <span className="font-semibold">Frente do cromo</span> (foto do jogador): até <span className="font-semibold">8 cromos</span> por foto</li>
-            <li>• <span className="font-semibold">Verso</span> (com o número): até <span className="font-semibold">3 cromos</span> por foto — texto pequeno só lê em foto próxima</li>
-            <li>• Foto <span className="font-semibold">nítida e sem reflexo</span>, com boa luz, foco no centro</li>
-            <li>• Mais cromos por foto = mais cromos perdidos. <span className="font-semibold">Menos é mais.</span></li>
+            <li>• Até <span className="font-semibold">10 cromos por foto</span> — frente ou verso</li>
+            <li>• Foto <span className="font-semibold">nítida e sem reflexo</span>, com boa luz e foco no centro — quanto mais nítido, mais o scan acerta</li>
+            <li>• Cromos amassados ou com brilho atrapalham a leitura</li>
           </ul>
         </div>
 

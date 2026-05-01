@@ -326,15 +326,13 @@ export async function POST(req: NextRequest) {
       console.log(`[WhatsApp scan] gap detected: total=${reportedTotal}, listed=${filledStickers.length}, skipped=${skippedCount}`)
     }
 
-    // Bulk-back detection: photos with many back-faces are a known weak spot
-    // for Gemini — the player name is too small to read at low resolution,
-    // so it guesses. Bail early with a friendly hint rather than process noise.
-    const backCount = (filledStickers as Array<{ face?: string }>).filter((s) => (s.face || '').toLowerCase() === 'back').length
-    const allBackHeavy = backCount >= 4 && backCount / filledStickers.length >= 0.6
-    if (allBackHeavy) {
+    // Soft guard: alerta quando estoura o limite unificado de 10 cromos por
+    // foto (frente ou verso). Acima disso a perda de detalhe atrapalha
+    // independente do face. Aborta com hint pra refazer a foto menor.
+    if (filledStickers.length > 10) {
       await sendText(
         phone,
-        `📸 Detectei *${backCount} versos* na foto. Esse é um caso difícil — o nome do jogador no verso é pequeno e fica ilegível com muitos cromos juntos.\n\n💡 *Tenta uma destas:*\n• Foto da FRENTE (jogador) — bem mais preciso, até *8 cromos por foto*\n• Verso: no máximo *3 cromos por foto*\n• Foto bem próxima, sem reflexo, com boa luz\n• Ou registra pelo código: *BRA-1 ARG-3* (até 10 separados por espaço)`,
+        `📸 Detectei *${filledStickers.length} cromos* nessa foto — é muito pra ler de uma vez.\n\n💡 *Pra acertar:*\n• No máximo *10 cromos por foto*\n• Foto bem nítida, sem reflexo, com boa luz\n• Ou registra pelo código: *BRA-1 ARG-3* (até 10 separados por espaço)`,
       )
       return NextResponse.json({ ok: true })
     }
