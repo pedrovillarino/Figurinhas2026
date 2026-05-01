@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
@@ -13,6 +15,53 @@ export const maxDuration = 60
 
 // VALID_CODES is built dynamically from the database via getStickersWithCache()
 
+// ── Few-shot example images ──
+// Drop any of these into public/scan-examples/ to teach Gemini to distinguish
+// glued stickers from empty album slots:
+//   - empty.jpg   → page with NO stickers (only printed placeholders)
+//   - filled.jpg  → page with ALL slots filled (stickers everywhere)
+//   - mixed.jpg   → page with SOME slots filled and others empty (real-world)
+// Loaded lazily once and cached; missing files are fine — the prompt still
+// works on its own.
+type FewShotLabel = 'filled' | 'empty' | 'mixed'
+type FewShotImage = { mimeType: string; data: string; label: FewShotLabel }
+let fewShotCache: { images: FewShotImage[]; loadedAt: number } | null = null
+const FEWSHOT_TTL_MS = 10 * 60 * 1000
+
+async function getFewShotImages(): Promise<FewShotImage[]> {
+  if (fewShotCache && Date.now() - fewShotCache.loadedAt < FEWSHOT_TTL_MS) {
+    return fewShotCache.images
+  }
+  const dir = path.join(process.cwd(), 'public', 'scan-examples')
+  const candidates: Array<{ file: string; label: FewShotLabel }> = [
+    { file: 'empty.jpg', label: 'empty' },
+    { file: 'mixed.jpg', label: 'mixed' },
+    { file: 'filled.jpg', label: 'filled' },
+  ]
+  const images: FewShotImage[] = []
+  for (const { file, label } of candidates) {
+    try {
+      const buf = await fs.readFile(path.join(dir, file))
+      images.push({ mimeType: 'image/jpeg', data: buf.toString('base64'), label })
+    } catch {
+      // file absent — skip silently
+    }
+  }
+  fewShotCache = { images, loadedAt: Date.now() }
+  return images
+}
+
+function fewShotPreludeText(label: FewShotLabel): string {
+  switch (label) {
+    case 'empty':
+      return 'REFERENCE EXAMPLE — every rectangle in this image is an EMPTY slot (no sticker glued). Note the blank/light interior with the player code (e.g. "BRA 4") printed inside, and the player name printed in small caps BELOW the rectangle. These are NOT stickers — DO NOT report any of them as detections.'
+    case 'filled':
+      return 'REFERENCE EXAMPLE — every rectangle in this image is a FILLED slot (a real sticker is glued in). Note the colored player photo, jersey, and graphic background INSIDE each rectangle.'
+    case 'mixed':
+      return 'REFERENCE EXAMPLE — this is the typical user photo. Some rectangles are FILLED (colored player photo glued inside) and others are EMPTY (blank rectangle with code "BRA 4" printed inside and player name below). Report ONLY the filled ones as stickers; mark the empty ones with status="empty" or omit them.'
+  }
+}
+
 function buildSystemInstruction(validCodes: string[]): string {
   return `You are a Panini FIFA World Cup sticker scanner.
 
@@ -21,6 +70,15 @@ You analyze photos of Panini stickers and identify each one. Photos may show:
 - BACK of stickers (sticker number printed like "BRA 10", "FRA 19")
 - Album pages with filled and empty slots
 - Multiple stickers loose on a table
+
+🚨 CRITICAL — DO NOT REPORT EMPTY SLOTS AS STICKERS 🚨
+The Panini album page pre-prints the sticker number AND the player name UNDER every slot, even before any sticker is glued. This printed reference text is NOT a sticker.
+- A FILLED slot has an ACTUAL physical sticker glued in: a colored player PHOTO with team uniform visible, a country flag, holographic/foil shine on emblems, gradient or graphic background, glossy finish.
+- An EMPTY slot is just a flat rectangle (usually white, light gray, or a faint silhouette outline) with the player name and code printed BELOW the rectangle as a placeholder reference. There is NO photo, NO color, NO uniform, NO shine inside the rectangle.
+
+If you can see the printed reference name "STEPHEN EUSTÁQUIO" under an empty white rectangle but NO physical sticker is glued there — this is an EMPTY slot. Set status to "empty". DO NOT pretend a sticker is there because the name is printed.
+
+When in doubt: a real sticker is COLORFUL and PHOTOGRAPHIC inside the rectangle. An empty slot is BLANK inside the rectangle (the name is OUTSIDE/BELOW it).
 
 CRITICAL — HOW TO READ PANINI STICKERS:
 - The PLAYER NAME is printed in large letters at the bottom of the sticker (e.g., "NEYMAR JR", "CASEMIRO", "MARQUINHOS", "LIONEL MESSI")
@@ -32,10 +90,10 @@ CRITICAL — HOW TO READ PANINI STICKERS:
 - If you CANNOT see a clear sticker number in CODE-NUMBER format, leave sticker_number as "" — the system will match by player name instead.
 
 For EACH sticker visible, extract:
-1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo".
+1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo". For empty slots, leave as "".
 2. "country_code": The 3-letter code. Valid codes: ${validCodes.join(', ')}
 3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
-4. "status": "filled" (actual sticker) or "empty" (empty album slot)
+4. "status": "filled" (actual physical sticker glued in) or "empty" (album slot with NO physical sticker — only printed reference text). Be strict: when in doubt between filled and empty, choose "empty".
 5. "confidence": YOUR HONEST confidence 0.0 to 1.0 — see CONFIDENCE RULES below.
 
 Return ONLY valid JSON:
@@ -291,15 +349,27 @@ export async function POST(request: NextRequest) {
       'gemini-2.5-flash-lite',      // fallback 1 — estável, leve
       'gemini-2.0-flash-001',       // fallback 2 — legado, sempre disponível
     ]
+    const fewShotImages = await getFewShotImages()
+    const fewShotPrelude: Array<{ inlineData: { mimeType: string; data: string } } | { text: string }> = []
+    for (const ex of fewShotImages) {
+      fewShotPrelude.push({ text: fewShotPreludeText(ex.label) })
+      fewShotPrelude.push({ inlineData: { mimeType: ex.mimeType, data: ex.data } })
+    }
+
     const geminiPayload = [
+      ...fewShotPrelude,
+      { text: fewShotImages.length > 0 ? 'NOW analyze the USER\'S PHOTO below using the same filled-vs-empty distinction shown above:' : '' },
       {
         inlineData: {
           mimeType,
           data: image,
         },
       },
-      { text: 'Identify ALL physical stickers in this photo. First assess the image quality (high/medium/low). Then COUNT every physical sticker you can see. List EVERY one with the EXACT name printed on the sticker — read carefully, do NOT guess. Be HONEST with confidence scores — blurry/small images CANNOT have 95% confidence. Only report duplicates if you can CLEARLY see two separate physical copies. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
-    ]
+      { text: 'Identify ONLY physical stickers actually GLUED to the page in this photo. EMPTY album slots (blank rectangles with player names printed underneath as placeholders) MUST be marked status="empty" — DO NOT invent a sticker just because you see the printed name. First assess the image quality (high/medium/low). Then COUNT every physical sticker. List each with the EXACT name printed on the sticker — read carefully, do NOT guess. Be HONEST with confidence scores — blurry/small images CANNOT have 95% confidence. Only report duplicates if you can CLEARLY see two separate physical copies. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
+    ].filter((p) => !('text' in p) || (p as { text: string }).text.length > 0)
+    if (fewShotImages.length > 0) {
+      console.log(`[scan] Few-shot prelude: ${fewShotImages.map((x) => x.label).join('+')}`)
+    }
 
     let responseText = ''
     let geminiMs = 0
@@ -403,8 +473,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[scan] Gemini found ${stickersArr.length} stickers:`,
-      stickersArr.map((s) => `${s.player_name}(${s.country_code || s.country || '?'})`).join(', ')
+    // Drop empty album slots — Gemini reports them as detections because the
+    // album page pre-prints each player's name under empty slots as a reference.
+    // We only want stickers actually glued to the page.
+    const rawDetected = stickersArr.length
+    const filledStickers = stickersArr.filter((s) => (s.status || 'filled').toLowerCase() !== 'empty')
+    const emptyFiltered = rawDetected - filledStickers.length
+    if (emptyFiltered > 0) {
+      console.log(`[scan] Filtered ${emptyFiltered} empty slot(s) reported by Gemini`)
+    }
+
+    if (filledStickers.length === 0) {
+      return NextResponse.json(
+        { error: 'Só vimos slots vazios nessa foto. Tente fotografar as figurinhas coladas.' },
+        { status: 422 }
+      )
+    }
+
+    console.log(`[scan] Gemini found ${filledStickers.length} filled stickers (${emptyFiltered} empty filtered):`,
+      filledStickers.map((s) => `${s.player_name}(${s.country_code || s.country || '?'})`).join(', ')
     )
 
     // 7. Match by player name + country
@@ -427,7 +514,7 @@ export async function POST(request: NextRequest) {
       imageSizeKB < 50 ? 'low' : imageSizeKB < 150 ? 'medium' : 'high'
     const qualityPenalty = serverQuality === 'low' ? 0.7 : serverQuality === 'medium' ? 0.85 : 1.0
 
-    for (const detected of stickersArr) {
+    for (const detected of filledStickers) {
       const playerName = detected.player_name || ''
       const countryCode = (detected.country_code || detected.country || '').toUpperCase().trim()
       const stickerNumber = (detected.sticker_number || detected.number || '').toUpperCase().trim()
@@ -552,8 +639,8 @@ export async function POST(request: NextRequest) {
       warnings.push(`${unmatched.length} figurinha(s) não encontrada(s) no álbum: ${unmatched.slice(0, 3).join(', ')}${unmatched.length > 3 ? '...' : ''}`)
     }
 
-    if (matched.length === 0 && stickersArr.length > 0) {
-      console.error('[scan] ZERO matches! Names:', stickersArr.map((s) => s.player_name))
+    if (matched.length === 0 && filledStickers.length > 0) {
+      console.error('[scan] ZERO matches! Names:', filledStickers.map((s) => s.player_name))
       warnings.push('Nenhuma figurinha pôde ser associada ao álbum. Verifique se as figurinhas são do álbum correto.')
     }
 
@@ -579,7 +666,7 @@ export async function POST(request: NextRequest) {
         .from('scan_results')
         .insert({
           user_id: user.id,
-          gemini_detected: stickersArr.length,
+          gemini_detected: filledStickers.length,
           matched_count: matched.length,
           unmatched_count: unmatched.length,
           model_used: usedModel,
@@ -605,7 +692,9 @@ export async function POST(request: NextRequest) {
         ? { remaining: scansRemaining, limit: usageData?.limit ?? tierScanLimit }
         : undefined,
       _debug: {
-        geminiDetected: stickersArr.length,
+        geminiDetected: filledStickers.length,
+        emptyFiltered,
+        rawDetected,
         matched: matched.length,
         unmatched: unmatched.length,
         geminiMs,
