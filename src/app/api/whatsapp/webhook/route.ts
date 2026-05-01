@@ -1246,7 +1246,11 @@ export async function POST(req: NextRequest) {
         }
 
         case 'register': {
-          // Parse sticker codes from text (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, arg 3")
+          // Parse sticker codes from text (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, arg 3").
+          // Mesmo flow que foto: cria pending_scan e pede confirmação (sim/tirar N/não)
+          // em vez de salvar direto. Pedro pediu (2026-05-01) consistência entre
+          // os caminhos de entrada — código digitado, áudio transcrito e foto
+          // todos passam pela mesma etapa de revisão.
           const codePattern = /([a-z]{2,5})[\s\-]?(\d{1,2})/gi
           const matches: string[] = []
           let match
@@ -1255,81 +1259,110 @@ export async function POST(req: NextRequest) {
           }
 
           if (matches.length === 0) {
-            await sendButtonList(
+            await sendText(
               phone,
               '🤔 Não consegui ler códigos de figurinhas aí. O formato é assim:\n\n' +
                 '✅ `BRA-1 ARG-3 FRA-10`\n' +
                 '✅ `bra 1, arg 3`\n' +
                 '✅ `BRA1 BRA5`\n\n' +
                 '📸 Ou simplesmente *manda uma foto* — eu identifico tudo automaticamente!',
-              MAIN_MENU_BUTTONS,
             )
             break
           }
 
           const supabaseAdmin = getAdmin()
-          // Look up stickers by number
           const { data: foundStickers } = await supabaseAdmin
             .from('stickers')
             .select('id, number, player_name, country')
             .in('number', matches)
 
           if (!foundStickers || foundStickers.length === 0) {
-            await sendButtonList(
+            await sendText(
               phone,
               `🤔 Nenhum desses códigos existe no álbum: *${matches.join(', ')}*\n\n` +
                 `Confere se digitou certo (ex: BRA-1, não BR-1).\n` +
                 `📸 Se preferir, manda uma *foto* — funciona bem melhor!`,
-              MAIN_MENU_BUTTONS,
             )
             break
           }
 
-          // Save as owned
-          let saved = 0
-          for (const sticker of foundStickers) {
-            const { data: existing } = await supabaseAdmin
-              .from('user_stickers')
-              .select('id, status, quantity')
-              .eq('user_id', user.id)
-              .eq('sticker_id', sticker.id)
-              .single()
+          // Group by sticker_id (codes repetidos viram quantity > 1) e mantém
+          // a ordem em que apareceram no texto, pra preview ficar previsível.
+          const stickerByNumber = new Map<string, { id: number; number: string; player_name: string; country: string }>()
+          for (const s of foundStickers) {
+            stickerByNumber.set(s.number, s as { id: number; number: string; player_name: string; country: string })
+          }
+          const grouped = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
+          for (const code of matches) {
+            const s = stickerByNumber.get(code)
+            if (!s) continue
+            const ex = grouped.get(s.id)
+            if (ex) ex.quantity += 1
+            else grouped.set(s.id, { sticker_id: s.id, number: s.number, player_name: s.player_name || '', quantity: 1 })
+          }
+          const scanData = Array.from(grouped.values())
 
-            if (existing) {
-              if (existing.status === 'owned') {
-                await supabaseAdmin.from('user_stickers')
-                  .update({ status: 'duplicate', quantity: (existing.quantity ?? 1) + 1, updated_at: new Date().toISOString() })
-                  .eq('id', existing.id)
-              } else if (existing.status === 'duplicate') {
-                await supabaseAdmin.from('user_stickers')
-                  .update({ quantity: (existing.quantity ?? 1) + 1, updated_at: new Date().toISOString() })
-                  .eq('id', existing.id)
-              } else {
-                await supabaseAdmin.from('user_stickers')
-                  .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() })
-                  .eq('id', existing.id)
-              }
-            } else {
-              await supabaseAdmin.from('user_stickers').insert({
-                user_id: user.id,
-                sticker_id: sticker.id,
-                status: 'owned',
-                quantity: 1,
-              })
-            }
-            saved++
+          if (scanData.length === 0) {
+            await sendText(phone, '🤔 Não consegui mapear esses códigos pro álbum. Tenta uma foto?')
+            break
           }
 
-          const notFound = matches.filter(m => !foundStickers.some((s: { number: string }) => s.number === m))
-          const stickerList = foundStickers.map((s: { number: string; player_name: string }) => `${s.number} (${s.player_name || ''})`).join('\n')
+          // Existing entries pra render 🆕 / 🔁
+          const { data: existing } = await supabaseAdmin
+            .from('user_stickers')
+            .select('sticker_id, status, quantity')
+            .eq('user_id', user.id)
+            .in('sticker_id', scanData.map((s) => s.sticker_id))
+          const existingMap = new Map((existing || []).map((e: { sticker_id: number; status: string; quantity: number }) => [e.sticker_id, e]))
 
-          let reply = `✅ *${saved} figurinha${saved > 1 ? 's' : ''} registrada${saved > 1 ? 's' : ''}!*\n\n${stickerList}`
+          // Save pending scan (1h TTL — mesmo do flow de foto)
+          await supabaseAdmin.from('pending_scans').insert({
+            user_id: user.id,
+            phone,
+            scan_data: scanData,
+          })
+
+          const { count: pendingCount } = await supabaseAdmin
+            .from('pending_scans')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .gt('expires_at', new Date().toISOString())
+          const totalPending = pendingCount || 1
+
+          const notFound = matches.filter((m) => !stickerByNumber.has(m))
+          const totalFound = scanData.reduce((sum, s) => sum + s.quantity, 0)
+
+          // Numbered preview matching the photo flow
+          const previewLines = scanData.map((s, idx) => {
+            const ex = existingMap.get(s.sticker_id) as { status: string; quantity: number } | undefined
+            const label = `${s.number} ${s.player_name || ''}`.trim()
+            const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
+            const n = idx + 1
+            if (!ex) return `*${n}.* 🆕 ${label}${qtyLabel}`
+            if (ex.status === 'owned') return `*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_`
+            return `*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + s.quantity})_`
+          })
+
+          let msg = totalPending === 1
+            ? `📋 *Encontrei ${totalFound} figurinha(s):*\n\n`
+            : `📋 *+${totalFound} figurinha(s) detectada(s):*\n\n`
+          msg += previewLines.join('\n')
           if (notFound.length > 0) {
-            reply += `\n\n⚠️ Não encontradas: ${notFound.join(', ')}`
+            msg += `\n\n⚠️ Não encontradas no álbum: ${notFound.join(', ')}`
           }
-          reply += `\n\n💡 Dica: mande uma *foto* para registrar mais rápido!`
+          if (totalPending === 1) {
+            msg += '\n\n✅ *SIM* → registra tudo'
+            msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
+            msg += '\n❌ *NÃO* → cancela tudo'
+            msg += '\n\n⏰ _Expira em 1h se não responder_'
+          } else {
+            msg += `\n\n📦 *${totalPending} fotos/listas pendentes no total.*`
+            msg += '\n✅ *SIM* → registra todas'
+            msg += '\n✏️ *TIRAR 3* → remove item 3 desta lista (_tirar 2,5_)'
+            msg += '\n❌ *NÃO* → cancela todas'
+          }
 
-          await sendText(phone, reply)
+          await sendText(phone, msg)
           break
         }
 
