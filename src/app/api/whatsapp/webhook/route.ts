@@ -1476,31 +1476,32 @@ export async function POST(req: NextRequest) {
           const isUnknown = intent === 'unknown'
           const lead = isUnknown
             ? `${greeting}🤔 Hmm, não peguei essa. Olha o que eu sei fazer:`
-            : `${greeting}⚽ *O que posso fazer por você:*`
+            : `${greeting}👋 Aqui vai tudo que eu sei fazer:`
 
           const menu =
             `${lead}\n\n` +
-            `━━━━━━━━━━━━━━━━━\n` +
-            `📥 *3 jeitos de registrar suas figurinhas:*\n` +
-            `━━━━━━━━━━━━━━━━━\n\n` +
-            `📸 *1. Por FOTO*\n` +
-            `Manda uma foto do álbum aberto ou das figurinhas soltas. Recomendado até *10 cromos por foto*, com boa luz e nomes/números bem nítidos. A partir de 5 cromos, prefira todos *de frente*.\n\n` +
-            `🎤 *2. Por ÁUDIO*\n` +
-            `Manda um áudio falando os códigos. Exemplo: _"BRA 1, ARG 3, FRA 10"_ ou _"Brasil 1 e Argentina 3"_. Eu transcrevo e mostro pra você confirmar antes de salvar.\n\n` +
-            `✏️ *3. Por TEXTO*\n` +
-            `Digita os códigos separados por espaço ou vírgula. Exemplo: _BRA-1 ARG-3 FRA-10_ ou _bra 1, arg 3_.\n\n` +
-            `━━━━━━━━━━━━━━━━━\n` +
-            `📊 *Outras coisas que eu faço:*\n` +
-            `━━━━━━━━━━━━━━━━━\n\n` +
-            `🔁 *repetidas* — mostra suas figurinhas duplicadas\n` +
-            `🎯 *faltantes* — mostra o que ainda falta\n` +
-            `📈 *progresso* — quantas você tem do álbum\n` +
-            `🏆 *ranking* — sua posição entre os colecionadores\n` +
-            `📜 *historico* — últimas figurinhas registradas\n\n` +
+            `*📥 Registrar figurinhas — 3 jeitos:*\n\n` +
+            `📸 *Por foto* — o mais rápido\n` +
+            `Tira foto do álbum aberto OU das figurinhas soltas e me manda. Algumas dicas pra dar certo:\n` +
+            `  • Até *10 cromos por foto* (mais que isso, a precisão cai)\n` +
+            `  • *Nitidez é tudo* — nomes e números têm que estar legíveis na foto\n` +
+            `  • Boa luz, sem reflexo, foco no centro\n` +
+            `  • Com 5+ cromos, prefira todos virados *de frente* (lado do nome)\n\n` +
+            `🎤 *Por áudio*\n` +
+            `Manda um áudio falando os códigos. Ex.: _"BRA 1, ARG 3, FRA 10"_ ou _"Brasil 1 e Argentina 3"_. Eu transcrevo e te mostro pra confirmar antes de salvar.\n\n` +
+            `✏️ *Por texto*\n` +
+            `Digita os códigos. Aceita vários formatos: _BRA-1 ARG-3 FRA-10_, _bra 1, arg 3_ ou _BRA1 BRA5_.\n\n` +
+            `*📊 Outras coisas:*\n` +
+            `• *repetidas* — suas duplicadas\n` +
+            `• *faltantes* — o que ainda falta\n` +
+            `• *progresso* — quanto do álbum você tem\n` +
+            `• *ranking* — sua posição entre colecionadores\n` +
+            `• *historico* — últimas figurinhas registradas\n` +
+            `• *trocas* — solicitações pendentes\n\n` +
             `🔔 *Trocas perto de você*\n` +
-            `Autoriza no app pra eu te avisar quando alguém com a figurinha que você precisa estiver perto:\n` +
+            `Quer ser avisado quando alguém com a sua faltante estiver perto? Autoriza no app:\n` +
             `${APP_URL}/album\n\n` +
-            `💡 Mande *sugestões* a qualquer momento\n` +
+            `💡 Manda *sugestões*, *bugs* ou *ideias* a qualquer hora!\n` +
             `❓ FAQ: ${APP_URL}/faq`
 
           await sendText(phone, menu)
