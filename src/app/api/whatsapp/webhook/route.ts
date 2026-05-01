@@ -133,31 +133,36 @@ function brazilianPhoneVariants(phone: string): string[] {
   variants.add(`+${digits}`)
   variants.add(`+55${digits.replace(/^55/, '')}`)
 
-  // 13 digits, "55" + 2-digit DDD + leading "9" + 8-digit number → strip the 9
-  // (e.g. "5551991841073" → "555191841073")
-  if (/^55\d{2}9\d{8}$/.test(digits)) {
+  // Distinguish formats by total digit length (regex on content gave false
+  // positives — e.g. "555191841073" without 9-inicial has a "9" at pos 4
+  // that's part of the regular number "91841073", not a 9-inicial marker).
+  // Rule: brazilian numbers are deterministic by length when DDI/9 are
+  // present or absent.
+  //
+  // 13 digits, "55" + DDD + "9" + 8-digit number → strip the 9
+  if (digits.length === 13 && digits.startsWith('55')) {
     const ddd = digits.slice(2, 4)
-    const num = digits.slice(5)
+    const num = digits.slice(5) // skip the 9
     variants.add(`55${ddd}${num}`)
     variants.add(`${ddd}${num}`)
   }
-  // 12 digits, "55" + 2-digit DDD + 8-digit number → add a "9"
-  // (e.g. "555191841073" → "5551991841073")
-  if (/^55\d{2}\d{8}$/.test(digits) && !/^55\d{2}9/.test(digits)) {
+  // 12 digits, "55" + DDD + 8-digit number (no 9) → add a 9
+  if (digits.length === 12 && digits.startsWith('55')) {
     const ddd = digits.slice(2, 4)
     const num = digits.slice(4)
     variants.add(`55${ddd}9${num}`)
     variants.add(`${ddd}9${num}`)
   }
-  // Without DDI: 11 digits (DDD + 9 + 8) or 10 digits (DDD + 8)
-  if (/^\d{2}9\d{8}$/.test(digits)) {
+  // 11 digits, no DDI, "DDD + 9 + 8 digits" → strip the 9 + add DDI variants
+  if (digits.length === 11) {
     const ddd = digits.slice(0, 2)
-    const num = digits.slice(3)
+    const num = digits.slice(3) // skip the 9
     variants.add(`${ddd}${num}`)
     variants.add(`55${ddd}${num}`)
     variants.add(`55${ddd}9${num}`)
   }
-  if (/^\d{2}\d{8}$/.test(digits) && !/^\d{2}9/.test(digits)) {
+  // 10 digits, no DDI, "DDD + 8 digits" → add 9 + add DDI variants
+  if (digits.length === 10) {
     const ddd = digits.slice(0, 2)
     const num = digits.slice(2)
     variants.add(`${ddd}9${num}`)
