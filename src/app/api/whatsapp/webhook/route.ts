@@ -965,105 +965,113 @@ export async function POST(req: NextRequest) {
       const isNo = /^(n[aã]o|n|nao|n\.|nope|negativo|prefiro nao|prefiro não|❌|🚫)\.?$/i.test(lower)
       if (isYes || isNo) {
         const supabaseAdmin = getAdmin()
-        const { data: pc } = await supabaseAdmin
+        // Carrega TODAS as corrections pendentes do user (não só 1) — um SIM
+        // aprova o bundle inteiro. Isso é importante quando o admin enfileira
+        // múltiplas correções de uma vez (ex: 2 cromos Coca-Cola pro mesmo user).
+        const { data: pendings } = await supabaseAdmin
           .from('pending_corrections')
           .select('id, wrong_sticker_id, correct_sticker_id, scans_bonus, expires_at, wrong_sticker:stickers!pending_corrections_wrong_sticker_id_fkey(number, player_name), correct_sticker:stickers!pending_corrections_correct_sticker_id_fkey(number, player_name)')
           .eq('user_id', user.id)
           .eq('status', 'pending')
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle()
 
-        if (pc) {
-          const correction = pc as unknown as {
-            id: number
-            wrong_sticker_id: number
-            correct_sticker_id: number
-            scans_bonus: number
-            wrong_sticker: { number: string; player_name: string }
-            correct_sticker: { number: string; player_name: string }
-          }
+        type Correction = {
+          id: number
+          wrong_sticker_id: number
+          correct_sticker_id: number
+          scans_bonus: number
+          wrong_sticker: { number: string; player_name: string }
+          correct_sticker: { number: string; player_name: string }
+        }
+        const corrections = (pendings || []) as unknown as Correction[]
 
+        if (corrections.length > 0) {
           if (isNo) {
+            // Rejeita TODAS pendentes do user
             await supabaseAdmin
               .from('pending_corrections')
               .update({ status: 'rejected', resolved_at: new Date().toISOString() })
-              .eq('id', correction.id)
+              .eq('user_id', user.id)
               .eq('status', 'pending')
             await sendText(phone, '👍 Tudo bem, mantive como está. Obrigado pelo retorno!')
             return NextResponse.json({ ok: true })
           }
 
-          // SIM — aplicar correção atomic
-          // 1. Reivindicar a correção (race-safe: só uma resposta SIM ganha)
+          // SIM — reivindicar TODAS de uma vez (race-safe: WHERE status='pending')
           const { data: claimed } = await supabaseAdmin
             .from('pending_corrections')
             .update({ status: 'approved', resolved_at: new Date().toISOString() })
-            .eq('id', correction.id)
+            .eq('user_id', user.id)
             .eq('status', 'pending')
-            .select('id')
+            .select('id, wrong_sticker_id, correct_sticker_id, scans_bonus')
+
           if (!claimed || claimed.length === 0) {
-            // Outra request já tratou — silencia
+            // Race lost — outra request reivindicou primeiro
             return NextResponse.json({ ok: true })
           }
+          const claimedIds = new Set((claimed as Array<{ id: number }>).map((c) => c.id))
+          const claimedCorrections = corrections.filter((c) => claimedIds.has(c.id))
 
-          // 2. Decrementar/remover o cromo errado (preservando outras qty)
-          const { data: wrongRow } = await supabaseAdmin
-            .from('user_stickers')
-            .select('quantity, status')
-            .eq('user_id', user.id)
-            .eq('sticker_id', correction.wrong_sticker_id)
-            .maybeSingle()
+          // Aplicar cada correção (sequencial, mas atômico por sticker_id)
+          const applied: Correction[] = []
+          for (const correction of claimedCorrections) {
+            // 1. Decrementar/remover cromo errado
+            const { data: wrongRow } = await supabaseAdmin
+              .from('user_stickers')
+              .select('quantity, status')
+              .eq('user_id', user.id)
+              .eq('sticker_id', correction.wrong_sticker_id)
+              .maybeSingle()
+            if (wrongRow) {
+              const newQty = Math.max(0, (wrongRow.quantity || 1) - 1)
+              if (newQty === 0) {
+                await supabaseAdmin
+                  .from('user_stickers')
+                  .delete()
+                  .eq('user_id', user.id)
+                  .eq('sticker_id', correction.wrong_sticker_id)
+              } else {
+                const newStatus = newQty > 1 ? 'duplicate' : 'owned'
+                await supabaseAdmin
+                  .from('user_stickers')
+                  .update({ quantity: newQty, status: newStatus })
+                  .eq('user_id', user.id)
+                  .eq('sticker_id', correction.wrong_sticker_id)
+              }
+            }
 
-          if (wrongRow) {
-            const newQty = Math.max(0, (wrongRow.quantity || 1) - 1)
-            if (newQty === 0) {
-              await supabaseAdmin
-                .from('user_stickers')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('sticker_id', correction.wrong_sticker_id)
-            } else {
+            // 2. Adicionar/incrementar cromo certo
+            const { data: correctRow } = await supabaseAdmin
+              .from('user_stickers')
+              .select('quantity, status')
+              .eq('user_id', user.id)
+              .eq('sticker_id', correction.correct_sticker_id)
+              .maybeSingle()
+            if (correctRow) {
+              const newQty = (correctRow.quantity || 0) + 1
               const newStatus = newQty > 1 ? 'duplicate' : 'owned'
               await supabaseAdmin
                 .from('user_stickers')
                 .update({ quantity: newQty, status: newStatus })
                 .eq('user_id', user.id)
-                .eq('sticker_id', correction.wrong_sticker_id)
+                .eq('sticker_id', correction.correct_sticker_id)
+            } else {
+              await supabaseAdmin
+                .from('user_stickers')
+                .insert({
+                  user_id: user.id,
+                  sticker_id: correction.correct_sticker_id,
+                  quantity: 1,
+                  status: 'owned',
+                })
             }
+            applied.push(correction)
           }
 
-          // 3. Adicionar/incrementar o cromo certo
-          const { data: correctRow } = await supabaseAdmin
-            .from('user_stickers')
-            .select('quantity, status')
-            .eq('user_id', user.id)
-            .eq('sticker_id', correction.correct_sticker_id)
-            .maybeSingle()
-
-          if (correctRow) {
-            const newQty = (correctRow.quantity || 0) + 1
-            const newStatus = newQty > 1 ? 'duplicate' : 'owned'
-            await supabaseAdmin
-              .from('user_stickers')
-              .update({ quantity: newQty, status: newStatus })
-              .eq('user_id', user.id)
-              .eq('sticker_id', correction.correct_sticker_id)
-          } else {
-            await supabaseAdmin
-              .from('user_stickers')
-              .insert({
-                user_id: user.id,
-                sticker_id: correction.correct_sticker_id,
-                quantity: 1,
-                status: 'owned',
-              })
-          }
-
-          // 4. Creditar bonus de scans (read-then-update, idempotente porque
-          //    o approve já foi reivindicado e só uma resposta passa)
-          if (correction.scans_bonus > 0) {
+          // 3. Somar TODOS os scans_bonus do bundle e creditar de uma vez
+          const totalBonus = applied.reduce((sum, c) => sum + (c.scans_bonus || 0), 0)
+          if (totalBonus > 0) {
             const { data: profileRow } = await supabaseAdmin
               .from('profiles')
               .select('scan_credits')
@@ -1072,21 +1080,24 @@ export async function POST(req: NextRequest) {
             if (profileRow) {
               await supabaseAdmin
                 .from('profiles')
-                .update({ scan_credits: (profileRow.scan_credits || 0) + correction.scans_bonus })
+                .update({ scan_credits: (profileRow.scan_credits || 0) + totalBonus })
                 .eq('id', user.id)
             }
           }
 
-          // 5. Confirmar
+          // 4. Confirmar — lista TODAS as correções do bundle
+          const lines = applied.map((c) =>
+            `❌ ${c.wrong_sticker.number} ${c.wrong_sticker.player_name}\n   ✅ ${c.correct_sticker.number} ${c.correct_sticker.player_name}`
+          )
+          const header = applied.length === 1
+            ? `✅ *Pronto!* Corrigi pra você:`
+            : `✅ *Pronto!* Corrigi *${applied.length}* cromos pra você:`
+          const bonusLine = totalBonus > 0
+            ? `\n🎁 *+${totalBonus} scans grátis* creditados na sua conta como pedido de desculpas pelo erro.\n`
+            : ''
           await sendText(
             phone,
-            `✅ *Pronto!* Corrigi pra você:\n\n` +
-              `❌ Removido: ${correction.wrong_sticker.number} ${correction.wrong_sticker.player_name}\n` +
-              `✅ Adicionado: ${correction.correct_sticker.number} ${correction.correct_sticker.player_name}\n\n` +
-              (correction.scans_bonus > 0
-                ? `🎁 *+${correction.scans_bonus} scans grátis* creditados na sua conta como pedido de desculpas pelo erro.\n\n`
-                : '') +
-              `Obrigado pela paciência! 💚`
+            `${header}\n\n${lines.join('\n\n')}\n${bonusLine}\nObrigado pela paciência! 💚`,
           )
           return NextResponse.json({ ok: true })
         }
