@@ -5,11 +5,16 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { cookies } from 'next/headers'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import sharp from 'sharp'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
+import { embedImage } from '@/lib/embeddings'
+import { savePendingSample, computeKnnVerdict, type Face } from '@/lib/sample-store'
+
+const ENABLE_KNN_BOOST = process.env.ENABLE_KNN_BOOST === 'true'
 
 export const maxDuration = 60
 
@@ -95,14 +100,16 @@ For EACH sticker visible, extract:
 3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
 4. "status": "filled" (actual physical sticker glued in) or "empty" (album slot with NO physical sticker — only printed reference text). Be strict: when in doubt between filled and empty, choose "empty".
 5. "confidence": YOUR HONEST confidence 0.0 to 1.0 — see CONFIDENCE RULES below.
+6. "face": "front" (player photo + name + flag visible) or "back" (only the sticker number visible, no player photo).
+7. "bbox": tight bounding box around the sticker, as normalized 0-1 coordinates relative to the WHOLE photo: {"x1": left, "y1": top, "x2": right, "y2": bottom}. Be tight — exclude album page background. If you cannot localize precisely, omit bbox.
 
 Return ONLY valid JSON:
 {
   "scan_confidence": 0.7,
   "image_quality": "high" | "medium" | "low",
   "stickers": [
-    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95},
-    {"player_name": "Lionel Messi", "country_code": "ARG", "sticker_number": "", "status": "filled", "confidence": 0.65}
+    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95, "face": "front", "bbox": {"x1": 0.10, "y1": 0.20, "x2": 0.34, "y2": 0.55}},
+    {"player_name": "", "country_code": "ARG", "sticker_number": "ARG-10", "status": "filled", "confidence": 0.85, "face": "back", "bbox": {"x1": 0.40, "y1": 0.20, "x2": 0.64, "y2": 0.55}}
   ],
   "warnings": []
 }
@@ -464,6 +471,8 @@ export async function POST(request: NextRequest) {
       number?: string
       status?: string
       confidence?: number
+      face?: string
+      bbox?: { x1: number; y1: number; x2: number; y2: number }
     }> | undefined
 
     if (!stickersArr || !Array.isArray(stickersArr) || stickersArr.length === 0) {
@@ -507,6 +516,18 @@ export async function POST(request: NextRequest) {
     }> = []
     const unmatched: string[] = []
     const seenIds = new Set<number>()
+
+    // Active-learning detection events — one entry per sticker Gemini detected
+    // and we matched. Used after the loop to crop, embed and persist samples
+    // for kNN. Independent of `matched[]` (which dedupes by sticker_id).
+    type DetectionEvent = {
+      stickerId: number
+      face: Face
+      bbox?: { x1: number; y1: number; x2: number; y2: number }
+      geminiConfidence: number
+      matchType: string
+    }
+    const detectionEvents: DetectionEvent[] = []
 
     // Detect image quality from base64 size (small image = low quality)
     const imageSizeKB = image.length * 0.75 / 1024
@@ -623,6 +644,16 @@ export async function POST(request: NextRequest) {
           const existing = matched.find((m) => m.sticker_id === dbSticker!.id)
           if (existing) existing.quantity = (existing.quantity || 1) + 1
         }
+        // Active-learning event — keep raw bbox + face for crop/embed pass
+        detectionEvents.push({
+          stickerId: dbSticker.id,
+          face: detected.face === 'back' ? 'back' : 'front',
+          bbox: detected.bbox && typeof detected.bbox === 'object'
+            ? { x1: Number(detected.bbox.x1), y1: Number(detected.bbox.y1), x2: Number(detected.bbox.x2), y2: Number(detected.bbox.y2) }
+            : undefined,
+          geminiConfidence: typeof detected.confidence === 'number' ? detected.confidence : finalConfidence,
+          matchType,
+        })
         console.log(`[scan] ✓ "${playerName || stickerNumber}" (${countryCode}) → ${dbSticker.number} ${dbSticker.player_name} [${matchType}, ${finalConfidence}]`)
       } else if (!normPlayer && !stickerNumber) {
         // Skip — nothing to match on
@@ -679,6 +710,100 @@ export async function POST(request: NextRequest) {
       scanResultId = inserted?.id ?? null
     } catch (trackErr) {
       console.error('[scan] scan_results insert failed (non-blocking):', trackErr)
+    }
+
+    // ── Active learning: crop + embed + save pending samples ──────────────
+    // For every detection with a usable bbox, crop the region from the
+    // original image, generate an embedding, and save a 'pending' sample.
+    // The PATCH /api/scan/[id] endpoint will later promote each sample to
+    // 'confirmed' or 'rejected' based on what the user kept.
+    //
+    // Trusted-user override: samples confirmed by users flagged
+    // excluded_from_campaign (admin / Pedro) carry is_trusted=true and
+    // single-handedly satisfy the kNN boost gate (no need for N=3 others).
+    let isTrusted = false
+    try {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('excluded_from_campaign')
+        .eq('id', user.id)
+        .single()
+      isTrusted = !!profile?.excluded_from_campaign
+    } catch {
+      // best-effort
+    }
+
+    const knnAdjustments: Array<{ sticker_id: number; delta: number; label: string; validators: number }> = []
+    if (scanResultId !== null && detectionEvents.length > 0) {
+      // Decode the source image once for sharp cropping
+      const srcBuffer = Buffer.from(image, 'base64')
+      let srcMeta: { width: number; height: number } | null = null
+      try {
+        const meta = await sharp(srcBuffer).metadata()
+        if (meta.width && meta.height) srcMeta = { width: meta.width, height: meta.height }
+      } catch {
+        srcMeta = null
+      }
+
+      // Process each detection — best-effort, never blocks the response on
+      // any individual failure. Run in parallel for latency.
+      await Promise.all(detectionEvents.map(async (ev) => {
+        if (!ev.bbox || !srcMeta) return
+        const { x1, y1, x2, y2 } = ev.bbox
+        // Validate bbox: normalized 0-1, ordered, non-degenerate
+        if ([x1, y1, x2, y2].some((n) => !Number.isFinite(n))) return
+        if (x1 >= x2 || y1 >= y2) return
+        const left = Math.max(0, Math.round(x1 * srcMeta.width))
+        const top = Math.max(0, Math.round(y1 * srcMeta.height))
+        const right = Math.min(srcMeta.width, Math.round(x2 * srcMeta.width))
+        const bottom = Math.min(srcMeta.height, Math.round(y2 * srcMeta.height))
+        const cropW = right - left
+        const cropH = bottom - top
+        if (cropW < 32 || cropH < 32) return // too small to be a sticker
+
+        let cropBuf: Buffer
+        try {
+          cropBuf = await sharp(srcBuffer)
+            .extract({ left, top, width: cropW, height: cropH })
+            .resize({ width: 384, height: 384, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer()
+        } catch (cropErr) {
+          console.error('[scan] crop failed:', cropErr instanceof Error ? cropErr.message : cropErr)
+          return
+        }
+
+        // Embed (returns null if Cohere not configured — sample still saved without vector)
+        const embedding = await embedImage(cropBuf, 'image/jpeg')
+
+        // Optional kNN verdict — only adjust confidence when boost is enabled
+        if (ENABLE_KNN_BOOST && embedding) {
+          const verdict = await computeKnnVerdict(supabaseAdmin, embedding, ev.face, ev.stickerId)
+          if (verdict.label !== 'none') {
+            knnAdjustments.push({ sticker_id: ev.stickerId, delta: verdict.delta, label: verdict.label, validators: verdict.validators })
+            const m = matched.find((mm) => mm.sticker_id === ev.stickerId)
+            if (m) m.confidence = Math.max(0, Math.min(1, +(m.confidence + verdict.delta).toFixed(2)))
+          }
+        }
+
+        // Save pending sample (best-effort)
+        await savePendingSample(supabaseAdmin, {
+          scanResultId,
+          stickerId: ev.stickerId,
+          face: ev.face,
+          embedding,
+          imageBuffer: cropBuf,
+          mimeType: 'image/jpeg',
+          userId: user.id,
+          geminiConfidence: ev.geminiConfidence,
+          matchType: ev.matchType,
+          isTrusted,
+        })
+      }))
+
+      if (knnAdjustments.length > 0) {
+        console.log(`[scan] kNN adjustments: ${JSON.stringify(knnAdjustments)}`)
+      }
     }
 
     return NextResponse.json({

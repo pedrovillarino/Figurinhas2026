@@ -19,6 +19,7 @@
     "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.4.3",
+    "cohere-ai": "^8.0.0",
     "gray-matter": "^4.0.3",
     "next": "14.2.35",
     "next-mdx-remote": "^6.0.0",

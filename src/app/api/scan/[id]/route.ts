@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { promoteSamples } from '@/lib/sample-store'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     console.error('[scan PATCH] update error:', error.message)
     return NextResponse.json({ ok: false }, { status: 500 })
   }
+
+  // Promote pending sticker_samples for this scan: rejected ids → 'rejected',
+  // everything else still pending → 'confirmed'. Best-effort, never blocks
+  // the response. This is what feeds the kNN active-learning index.
+  promoteSamples(admin, id, rejected).catch((err) => {
+    console.error('[scan PATCH] promoteSamples failed (non-blocking):', err instanceof Error ? err.message : err)
+  })
 
   return NextResponse.json({ ok: true })
 }
