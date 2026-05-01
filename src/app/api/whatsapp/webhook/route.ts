@@ -895,6 +895,63 @@ export async function POST(req: NextRequest) {
 
       const lower = text.trim().toLowerCase()
 
+      // ─── "tirar N" / "remover N,M" — drop specific items from the latest pending scan ───
+      // The user-facing list is numbered 1..N over the LATEST pending_scan
+      // (the one this WhatsApp scan reply just rendered). Comma, space and
+      // the connector "e" are all accepted: "tirar 3", "tirar 2,5", "tirar 2 e 5".
+      const removeMatch = lower.trim().match(/^(?:tirar|tira|remover|remove)\s+([\d,\s]+(?:\s+e\s+\d+)*)/i)
+      if (removeMatch) {
+        const supabaseAdmin = getAdmin()
+        const { data: latestPending } = await supabaseAdmin
+          .from('pending_scans')
+          .select('id, scan_data')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!latestPending) {
+          await sendText(phone, '🤔 Não tenho nenhuma foto aguardando confirmação. Manda uma foto pra escanear primeiro!')
+          return NextResponse.json({ ok: true })
+        }
+
+        const stickers = (latestPending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity: number }>) || []
+        // Parse indices 1..N from "3", "2,5", "2 e 5", "2, 5 e 7"
+        const parsed: number[] = (removeMatch[1].match(/\d+/g) || [])
+          .map((d: string) => parseInt(d, 10))
+          .filter((n: number) => Number.isInteger(n) && n >= 1 && n <= stickers.length)
+        const indices: number[] = Array.from(new Set<number>(parsed)).sort((a, b) => a - b)
+
+        if (indices.length === 0) {
+          await sendText(phone, `❓ Não entendi o número. A lista tem ${stickers.length} item(s) — tenta: *tirar 1* ou *tirar 1,3*.`)
+          return NextResponse.json({ ok: true })
+        }
+
+        const removed = indices.map((n) => stickers[n - 1])
+        const kept = stickers.filter((_, i) => !indices.includes(i + 1))
+
+        if (kept.length === 0) {
+          await supabaseAdmin.from('pending_scans').delete().eq('id', latestPending.id)
+          await sendText(phone, `❌ Removidas todas as ${removed.length} figurinha(s) dessa foto. Manda outra foto se quiser!`)
+        } else {
+          await supabaseAdmin.from('pending_scans').update({ scan_data: kept }).eq('id', latestPending.id)
+          const removedSummary = removed.map((s) => `${s.number} ${s.player_name}`.trim()).join(', ')
+          let reply = `🗑️ Removido: *${removedSummary}*\n\n`
+          reply += `📋 *Restou ${kept.length} figurinha(s) nessa foto:*\n`
+          reply += kept.map((s, i) => {
+            const label = `${s.number} ${s.player_name || ''}`.trim()
+            const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
+            return `*${i + 1}.* ${label}${qtyLabel}`
+          }).join('\n')
+          reply += '\n\n✅ *SIM* → registra'
+          reply += '\n✏️ *TIRAR N* → remove mais um item'
+          reply += '\n❌ *NÃO* → cancela tudo'
+          await sendText(phone, reply)
+        }
+        return NextResponse.json({ ok: true })
+      }
+
       // ─── Check for pending scan confirmation ───
       if (/^(sim|s|yes|y|confirma|ok)$/i.test(lower.trim())) {
         const supabaseAdmin = getAdmin()

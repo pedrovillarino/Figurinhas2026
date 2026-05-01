@@ -371,25 +371,27 @@ export async function POST(req: NextRequest) {
 
     const existingMap = new Map((existing || []).map((e) => [e.sticker_id, e]))
 
-    // Build preview list
+    // Build preview list — numbered so the user can remove specific items
+    // (e.g. "tirar 3" or "tirar 2,5") without canceling the whole batch.
     const previewLines: string[] = []
     const scanData: Array<{ sticker_id: number; number: string; player_name: string; quantity: number }> = []
 
-    for (const { sticker, qty } of dbStickers) {
+    dbStickers.forEach(({ sticker, qty }, idx) => {
       const ex = existingMap.get(sticker.id)
       const label = `${sticker.number} ${sticker.player_name || ''}`.trim()
       const qtyLabel = qty > 1 ? ` (x${qty})` : ''
+      const n = idx + 1
 
       if (!ex) {
-        previewLines.push(qty > 1 ? `🆕 ${label}${qtyLabel}` : `🆕 ${label}`)
+        previewLines.push(qty > 1 ? `*${n}.* 🆕 ${label}${qtyLabel}` : `*${n}.* 🆕 ${label}`)
       } else if (ex.status === 'owned') {
-        previewLines.push(`🔁 ${label}${qtyLabel} _(repetida)_`)
+        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_`)
       } else if (ex.status === 'duplicate') {
-        previewLines.push(`🔁 ${label}${qtyLabel} _(rep x${ex.quantity + qty})_`)
+        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + qty})_`)
       }
 
       scanData.push({ sticker_id: sticker.id, number: sticker.number, player_name: sticker.player_name || '', quantity: qty })
-    }
+    })
 
     // Save pending scan (expires in 1 hour — DB default)
     await adminDb.from('pending_scans').insert({
@@ -415,7 +417,8 @@ export async function POST(req: NextRequest) {
       msg = `📋 *Encontrei ${totalStickersFound} figurinha(s):*\n\n`
       msg += previewLines.join('\n')
       msg += '\n\n💡 Pode mandar mais fotos! Quando terminar:'
-      msg += '\n✅ *SIM* → registra tudo de uma vez'
+      msg += '\n✅ *SIM* → registra tudo'
+      msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
       msg += '\n❌ *NÃO* → cancela tudo'
       msg += '\n\n⏰ _Expira em 1h se não responder_'
     } else {
@@ -424,7 +427,8 @@ export async function POST(req: NextRequest) {
       msg += previewLines.join('\n')
       msg += `\n\n📦 *${totalPending} fotos pendentes no total.*`
       msg += '\nMande mais fotos ou responda:'
-      msg += '\n✅ *SIM* → registra todas de uma vez'
+      msg += '\n✅ *SIM* → registra todas'
+      msg += '\n✏️ *TIRAR 3* → remove item 3 desta foto (_tirar 2,5_)'
       msg += '\n❌ *NÃO* → cancela todas'
     }
 
