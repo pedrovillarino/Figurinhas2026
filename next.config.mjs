@@ -18,8 +18,8 @@ const securityHeaders = [
       // img-src: Supabase storage, Google avatars, data URIs, blobs (camera)
       "img-src 'self' data: blob: https://*.supabase.co https://api.completeai.com.br https://lh3.googleusercontent.com https://accounts.google.com https://api.qrserver.com",
       "font-src 'self' data:",
-      // connect-src: Supabase (custom domain + fallback), Google auth, Stripe, Gemini AI, Z-API (WhatsApp), Vercel Analytics, push subscriptions
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.completeai.com.br wss://api.completeai.com.br https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+      // connect-src: Supabase (custom domain + fallback), Google auth, Stripe, Gemini AI, Z-API (WhatsApp), Vercel Analytics, push subscriptions, ViaCEP (CEP → cidade fallback no onboarding/album)
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.completeai.com.br wss://api.completeai.com.br https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://viacep.com.br",
       // frame-src: Stripe checkout iframe, Google login popup
       "frame-src https://*.stripe.com https://accounts.google.com",
       "frame-ancestors 'none'",
