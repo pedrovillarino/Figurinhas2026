@@ -917,11 +917,35 @@ export async function POST(req: NextRequest) {
 
     // ─── Text ───
     if (messageType === 'text') {
-      const text = body.text?.message || body.body || body.message || ''
+      const rawText = body.text?.message || body.body || body.message || ''
 
-      if (!text.trim()) {
+      if (!rawText.trim()) {
         return NextResponse.json({ ok: true })
       }
+
+      // Pré-processa códigos agrupados: "ARG: 1, 10, 14, 16" → "ARG-1 ARG-10 ARG-14 ARG-16".
+      // Pedro pediu (2026-05-01) que o bot entenda esse formato natural.
+      // Duas regras conservadoras pra evitar falso positivo em texto qualquer:
+      //   A) `PAÍS: nums` (com dois-pontos) — single número também é OK
+      //   B) `PAÍS nums` (sem dois-pontos, com espaço) — exige 2+ números, senão "tenho 5 figurinhas" viraria código
+      // Separadores aceitos entre números: vírgula, ponto-e-vírgula, barra, espaço, "e".
+      const expandWithColon = (txt: string) =>
+        txt.replace(
+          /([a-z]{2,5})\s*:\s*(\d{1,2}(?:[,;/\s]+(?:e\s+)?\d{1,2})*)/gi,
+          (_m, country, nums) => {
+            const ns = String(nums).match(/\d{1,2}/g) || []
+            return ns.map((n) => `${country}-${n}`).join(' ')
+          },
+        )
+      const expandMultiNoColon = (txt: string) =>
+        txt.replace(
+          /([a-z]{2,5})\s+(\d{1,2}(?:[,;/\s]+(?:e\s+)?\d{1,2})+)/gi,
+          (_m, country, nums) => {
+            const ns = String(nums).match(/\d{1,2}/g) || []
+            return ns.map((n) => `${country}-${n}`).join(' ')
+          },
+        )
+      const text = expandMultiNoColon(expandWithColon(rawText))
 
       const lower = text.trim().toLowerCase()
 
