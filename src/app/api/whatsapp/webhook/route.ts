@@ -750,11 +750,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Z-API sends different event types
-    // We care about received messages
-    const isMessage = body.isGroup === false && body.fromMe === false
+    // Z-API sends different event types — we care about received messages.
+    // Tolerate missing/undefined fields: only skip if isGroup or fromMe are
+    // EXPLICITLY true. Some Z-API payload versions omit these flags entirely
+    // for inbound messages, which previously caused silent drops (=== false
+    // didn't match undefined).
+    const isMessage = body.isGroup !== true && body.fromMe !== true
 
     if (!isMessage) {
+      console.log('[WhatsApp webhook] skipped — isGroup:', body.isGroup, 'fromMe:', body.fromMe)
       return NextResponse.json({ ok: true })
     }
 
