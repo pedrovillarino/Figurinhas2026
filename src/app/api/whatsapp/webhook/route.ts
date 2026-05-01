@@ -117,27 +117,68 @@ Te espero do outro lado! 🚀`
 }
 
 // ─── Find user by phone ───
-async function findUserByPhone(phone: string) {
-  const supabase = getAdmin()
+/**
+ * Generate all reasonable variants of a Brazilian phone number to handle
+ * the "ninth digit" problem: ANATEL added a leading "9" to mobile numbers
+ * (2012-2016), but Z-API and various clients aren't consistent about
+ * including it. A user might have registered with "5551991841073" (13 digits,
+ * with 9) and message us with "555191841073" (12 digits, without 9), or
+ * vice-versa. We try both to find the profile.
+ */
+function brazilianPhoneVariants(phone: string): string[] {
+  const variants = new Set<string>([phone])
+  const digits = phone.replace(/\D/g, '')
+  variants.add(digits)
+  variants.add(digits.replace(/^55/, ''))
+  variants.add(`+${digits}`)
+  variants.add(`+55${digits.replace(/^55/, '')}`)
 
-  // Try exact match first, then without country code (55), then with +55
-  const variants = [
-    phone,
-    phone.replace(/^55/, ''),
-    `+${phone}`,
-    `+55${phone.replace(/^55/, '')}`,
-  ]
-
-  for (const variant of variants) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, display_name, phone, tier')
-      .eq('phone', variant)
-      .single()
-    if (data) return data
+  // 13 digits, "55" + 2-digit DDD + leading "9" + 8-digit number → strip the 9
+  // (e.g. "5551991841073" → "555191841073")
+  if (/^55\d{2}9\d{8}$/.test(digits)) {
+    const ddd = digits.slice(2, 4)
+    const num = digits.slice(5)
+    variants.add(`55${ddd}${num}`)
+    variants.add(`${ddd}${num}`)
+  }
+  // 12 digits, "55" + 2-digit DDD + 8-digit number → add a "9"
+  // (e.g. "555191841073" → "5551991841073")
+  if (/^55\d{2}\d{8}$/.test(digits) && !/^55\d{2}9/.test(digits)) {
+    const ddd = digits.slice(2, 4)
+    const num = digits.slice(4)
+    variants.add(`55${ddd}9${num}`)
+    variants.add(`${ddd}9${num}`)
+  }
+  // Without DDI: 11 digits (DDD + 9 + 8) or 10 digits (DDD + 8)
+  if (/^\d{2}9\d{8}$/.test(digits)) {
+    const ddd = digits.slice(0, 2)
+    const num = digits.slice(3)
+    variants.add(`${ddd}${num}`)
+    variants.add(`55${ddd}${num}`)
+    variants.add(`55${ddd}9${num}`)
+  }
+  if (/^\d{2}\d{8}$/.test(digits) && !/^\d{2}9/.test(digits)) {
+    const ddd = digits.slice(0, 2)
+    const num = digits.slice(2)
+    variants.add(`${ddd}9${num}`)
+    variants.add(`55${ddd}9${num}`)
+    variants.add(`55${ddd}${num}`)
   }
 
-  return null
+  return Array.from(variants).filter(Boolean)
+}
+
+async function findUserByPhone(phone: string) {
+  const supabase = getAdmin()
+  const variants = brazilianPhoneVariants(phone)
+  // Single query with IN clause — more efficient than N round-trips and
+  // tolerant when the same user appears with multiple phone formats in DB
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, display_name, phone, tier')
+    .in('phone', variants)
+    .limit(1)
+  return data && data.length > 0 ? data[0] : null
 }
 
 // ─── Get user stats ───
