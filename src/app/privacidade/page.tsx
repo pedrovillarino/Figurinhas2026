@@ -18,15 +18,15 @@ export default function PrivacidadePage() {
       </a>
 
       <h1 className="text-2xl font-black text-navy mb-2">Política de Privacidade</h1>
-      <p className="text-xs text-gray-400 mb-8">Última atualização: 13 de abril de 2026 — Versão 1.3</p>
+      <p className="text-xs text-gray-400 mb-8">Última atualização: 30 de abril de 2026 — Versão 1.4</p>
 
       <div className="space-y-8 text-sm text-gray-600 leading-relaxed">
         <Section title="1. Responsável pelo Tratamento">
           <p>
-            O responsável pelo tratamento dos dados pessoais (Controlador) é o <strong>Complete Aí</strong>,
+            O responsável pelo tratamento dos dados pessoais (Controlador) é a{' '}
+            <strong>INOVEAI Tecnologia da Informação LTDA</strong>, inscrita no CNPJ sob nº{' '}
+            <strong>66.419.914/0001-08</strong>, operadora do aplicativo <strong>Complete Aí</strong>,
             atuando nos termos da Lei Geral de Proteção de Dados (Lei 13.709/2018).
-            Nos termos do Art. 41 da LGPD, a identificação completa do Controlador pode ser solicitada
-            por requerimento formal ao e-mail abaixo.
           </p>
           <p className="mt-2">
             <strong>Encarregado de Proteção de Dados (DPO):</strong> contato@completeai.com.br
@@ -167,9 +167,9 @@ export default function PrivacidadePage() {
 
         <div className="border-t border-gray-100 pt-6 mt-8">
           <p className="text-[10px] text-gray-300 text-center">
-            O Complete Aí é operado por Pedro Villarino, pessoa física domiciliada no Brasil.
-            A identificação completa do responsável pode ser solicitada por requerimento formal
-            ao e-mail contato@completeai.com.br.
+            O Complete Aí é operado por INOVEAI Tecnologia da Informação LTDA,
+            inscrita no CNPJ sob nº 66.419.914/0001-08. Para assuntos formais,
+            contate o e-mail contato@completeai.com.br.
           </p>
           <p className="text-[10px] text-gray-300 text-center mt-2">
             Este app não é afiliado, endossado ou patrocinado pela FIFA, Panini, Topps, Fanatics ou qualquer organização oficial.

@@ -45,7 +45,7 @@ export default function TermosPage() {
 
       <h1 className="text-2xl font-black text-navy mb-2">Termos de Serviço</h1>
       <p className="text-xs text-gray-400 mb-8">
-        Última atualização: 30 de abril de 2026 — Versão 1.4
+        Última atualização: 30 de abril de 2026 — Versão 1.5
       </p>
 
       <div className="bg-gold-light border border-gold rounded-lg p-4 mb-8">
@@ -61,7 +61,9 @@ export default function TermosPage() {
         <Section number={1} title="Identificação">
           <P>
             O aplicativo <strong>Complete Aí</strong> (&quot;Plataforma&quot;, &quot;App&quot;, &quot;Serviço&quot;) é
-            operado pelo Complete Aí (&quot;nós&quot;, &quot;nosso&quot;), contactável pelo e-mail{' '}
+            operado por <strong>INOVEAI Tecnologia da Informação LTDA</strong>, inscrita no CNPJ
+            sob nº <strong>66.419.914/0001-08</strong> (&quot;nós&quot;, &quot;nosso&quot;), contactável
+            pelo e-mail{' '}
             <a href="mailto:contato@completeai.com.br" className="text-brand hover:text-brand-dark underline">
               contato@completeai.com.br
             </a>.
@@ -445,9 +447,9 @@ export default function TermosPage() {
       {/* Footer disclaimer */}
       <div className="mt-12 pt-6 border-t border-gray-200">
         <p className="text-xs text-gray-400 italic text-center">
-          O Complete Aí é operado por Pedro Villarino, pessoa física domiciliada no Brasil.
-          A identificação completa do responsável pode ser solicitada por requerimento formal
-          ao e-mail contato@completeai.com.br.
+          O Complete Aí é operado por INOVEAI Tecnologia da Informação LTDA,
+          inscrita no CNPJ sob nº 66.419.914/0001-08. Para assuntos formais, contate
+          o e-mail contato@completeai.com.br.
         </p>
       </div>
     </main>
