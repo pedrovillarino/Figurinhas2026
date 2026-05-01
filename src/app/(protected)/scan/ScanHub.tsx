@@ -530,9 +530,10 @@ export default function ScanHub({
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 space-y-2">
           <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Pra acertar o scan</p>
           <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
-            <li>• Até <span className="font-semibold">10 cromos por foto</span> — frente ou verso</li>
-            <li>• Foto <span className="font-semibold">nítida e sem reflexo</span>, com boa luz e foco no centro — quanto mais nítido, mais o scan acerta</li>
-            <li>• Cromos amassados ou com brilho atrapalham a leitura</li>
+            <li>• <span className="font-bold text-red-700">NITIDEZ é essencial</span> — o nome do jogador (frente) ou o número (verso) precisam estar <span className="font-semibold">claramente legíveis</span>. Foto borrada, com sombra ou reflexo = scan erra.</li>
+            <li>• Recomendado: <span className="font-semibold">até 10 cromos por foto</span>. Pode mandar mais, mas a assertividade cai bastante.</li>
+            <li>• A partir de <span className="font-semibold">5 cromos por foto</span>, prefira <span className="font-semibold">todos virados de frente</span> (foto/nome do jogador) — verso em foto cheia fica ilegível.</li>
+            <li>• Boa luz, foco no centro, sem brilho. Cromos amassados atrapalham.</li>
           </ul>
         </div>
 

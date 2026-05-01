@@ -326,16 +326,11 @@ export async function POST(req: NextRequest) {
       console.log(`[WhatsApp scan] gap detected: total=${reportedTotal}, listed=${filledStickers.length}, skipped=${skippedCount}`)
     }
 
-    // Soft guard: alerta quando estoura o limite unificado de 10 cromos por
-    // foto (frente ou verso). Acima disso a perda de detalhe atrapalha
-    // independente do face. Aborta com hint pra refazer a foto menor.
-    if (filledStickers.length > 10) {
-      await sendText(
-        phone,
-        `📸 Detectei *${filledStickers.length} cromos* nessa foto — é muito pra ler de uma vez.\n\n💡 *Pra acertar:*\n• No máximo *10 cromos por foto*\n• Foto bem nítida, sem reflexo, com boa luz\n• Ou registra pelo código: *BRA-1 ARG-3* (até 10 separados por espaço)`,
-      )
-      return NextResponse.json({ ok: true })
-    }
+    // Soft warning quando passa de 10 cromos: processa normalmente mas
+    // adiciona aviso ao final dizendo que a assertividade cai. Pedro
+    // confirmou que vale tentar ler mais, só com transparência sobre
+    // o trade-off.
+    const overLimit = filledStickers.length > 10
 
     // Match each detected sticker using fuzzy matching (with quantity tracking).
     // Also keep the WORST confidence reported by Gemini for each sticker_id so
@@ -431,6 +426,9 @@ export async function POST(req: NextRequest) {
     const gapNote = skippedCount > 0
       ? `\n\n🚨 _Vi *${reportedTotal} figurinhas* na foto mas só identifiquei ${filledStickers.length}. ${skippedCount} cromo(s) podem ter passado batido — confira a foto e mande de novo só o(s) que ficou(aram) de fora._`
       : ''
+    const overLimitNote = overLimit
+      ? `\n\n📸 _Foto com *${filledStickers.length} cromos* — passou do recomendado (10). A assertividade cai bastante; confira tudo antes de salvar e use *tirar N* pra remover erros._`
+      : ''
 
     let msg: string
     if (totalPending === 1) {
@@ -439,6 +437,7 @@ export async function POST(req: NextRequest) {
       msg += previewLines.join('\n')
       msg += lowConfNote
       msg += gapNote
+      msg += overLimitNote
       msg += '\n\n💡 Pode mandar mais fotos! Quando terminar:'
       msg += '\n✅ *SIM* → registra tudo'
       msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
@@ -450,6 +449,7 @@ export async function POST(req: NextRequest) {
       msg += previewLines.join('\n')
       msg += lowConfNote
       msg += gapNote
+      msg += overLimitNote
       msg += `\n\n📦 *${totalPending} fotos pendentes no total.*`
       msg += '\nMande mais fotos ou responda:'
       msg += '\n✅ *SIM* → registra todas'
