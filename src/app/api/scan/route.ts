@@ -700,73 +700,61 @@ export async function POST(request: NextRequest) {
 
     const knnAdjustments: Array<{ sticker_id: number; delta: number; label: string; validators: number }> = []
 
-    // Build the active-learning task. When KNN boost is OFF (default / shadow
-    // mode), this is FIRE-AND-FORGET — the response returns before embeddings
-    // finish so we don't blow the Vercel function timeout (which is 10s on
-    // the Hobby plan, regardless of maxDuration). The Node runtime keeps the
-    // function alive briefly after response so most samples still persist.
-    // When boost is ON, we must await because the verdict adjusts matched[]
-    // confidence values that the client sees.
+    // Active-learning ISOLATED-PHOTO mode: only collect a sample when the
+    // photo contains exactly ONE matched sticker. Without bbox in the prompt
+    // (we removed it for accuracy), we can't disambiguate which sticker a
+    // crop belongs to in multi-sticker photos. With 1 sticker we just use
+    // the whole photo as the sample — no ambiguity, no crop needed.
+    //
+    // Single-photo embeddings are HIGH-QUALITY signals (one user took a
+    // careful close-up of one sticker) so they're worth more for kNN later.
     const runActiveLearning = async () => {
-      if (scanResultId === null || detectionEvents.length === 0) return
-      const srcBuffer = Buffer.from(image, 'base64')
-      let srcMeta: { width: number; height: number } | null = null
+      if (scanResultId === null) return
+      if (matched.length !== 1) {
+        if (matched.length > 1) console.log(`[scan] active learning skipped: ${matched.length} stickers in photo (only collect from isolated photos)`)
+        return
+      }
+      const onlyMatch = matched[0]
+      const ev = detectionEvents.find((d) => d.stickerId === onlyMatch.sticker_id)
+      const face: Face = ev?.face === 'back' ? 'back' : 'front'
+      const geminiConf = ev?.geminiConfidence ?? onlyMatch.confidence
+      const matchType = ev?.matchType ?? 'unknown'
+
+      let resizedBuf: Buffer
       try {
-        const meta = await sharp(srcBuffer).metadata()
-        if (meta.width && meta.height) srcMeta = { width: meta.width, height: meta.height }
-      } catch {
-        srcMeta = null
+        resizedBuf = await sharp(Buffer.from(image, 'base64'))
+          .resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 80 })
+          .toBuffer()
+      } catch (err) {
+        console.error('[scan] active-learning resize failed:', err instanceof Error ? err.message : err)
+        return
       }
 
-      await Promise.all(detectionEvents.map(async (ev) => {
-        if (!ev.bbox || !srcMeta) return
-        const { x1, y1, x2, y2 } = ev.bbox
-        if ([x1, y1, x2, y2].some((n) => !Number.isFinite(n))) return
-        if (x1 >= x2 || y1 >= y2) return
-        const left = Math.max(0, Math.round(x1 * srcMeta.width))
-        const top = Math.max(0, Math.round(y1 * srcMeta.height))
-        const right = Math.min(srcMeta.width, Math.round(x2 * srcMeta.width))
-        const bottom = Math.min(srcMeta.height, Math.round(y2 * srcMeta.height))
-        const cropW = right - left
-        const cropH = bottom - top
-        if (cropW < 32 || cropH < 32) return
+      const embedding = await embedImage(resizedBuf, 'image/jpeg')
 
-        let cropBuf: Buffer
-        try {
-          cropBuf = await sharp(srcBuffer)
-            .extract({ left, top, width: cropW, height: cropH })
-            .resize({ width: 384, height: 384, fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 80 })
-            .toBuffer()
-        } catch (cropErr) {
-          console.error('[scan] crop failed:', cropErr instanceof Error ? cropErr.message : cropErr)
-          return
+      if (ENABLE_KNN_BOOST && embedding) {
+        const verdict = await computeKnnVerdict(supabaseAdmin, embedding, face, onlyMatch.sticker_id)
+        if (verdict.label !== 'none') {
+          knnAdjustments.push({ sticker_id: onlyMatch.sticker_id, delta: verdict.delta, label: verdict.label, validators: verdict.validators })
+          const m = matched.find((mm) => mm.sticker_id === onlyMatch.sticker_id)
+          if (m) m.confidence = Math.max(0, Math.min(1, +(m.confidence + verdict.delta).toFixed(2)))
         }
+      }
 
-        const embedding = await embedImage(cropBuf, 'image/jpeg')
-
-        if (ENABLE_KNN_BOOST && embedding) {
-          const verdict = await computeKnnVerdict(supabaseAdmin, embedding, ev.face, ev.stickerId)
-          if (verdict.label !== 'none') {
-            knnAdjustments.push({ sticker_id: ev.stickerId, delta: verdict.delta, label: verdict.label, validators: verdict.validators })
-            const m = matched.find((mm) => mm.sticker_id === ev.stickerId)
-            if (m) m.confidence = Math.max(0, Math.min(1, +(m.confidence + verdict.delta).toFixed(2)))
-          }
-        }
-
-        await savePendingSample(supabaseAdmin, {
-          scanResultId,
-          stickerId: ev.stickerId,
-          face: ev.face,
-          embedding,
-          imageBuffer: cropBuf,
-          mimeType: 'image/jpeg',
-          userId: user.id,
-          geminiConfidence: ev.geminiConfidence,
-          matchType: ev.matchType,
-          isTrusted,
-        })
-      }))
+      await savePendingSample(supabaseAdmin, {
+        scanResultId,
+        stickerId: onlyMatch.sticker_id,
+        face,
+        embedding,
+        imageBuffer: resizedBuf,
+        mimeType: 'image/jpeg',
+        userId: user.id,
+        geminiConfidence: geminiConf,
+        matchType,
+        isTrusted,
+      })
+      console.log(`[scan] active learning sample saved: sticker_id=${onlyMatch.sticker_id} face=${face}`)
     }
 
     if (ENABLE_KNN_BOOST) {
