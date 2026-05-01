@@ -72,11 +72,18 @@ function buildSystemInstruction(validCodes: string[]): string {
 
 For EACH physical sticker you can see (front or back), return:
 - player_name: EXACT name printed (e.g., "Neymar Jr", "Casemiro"). For badges use "Emblem"; for team photos "Team Photo". If unreadable, use "?".
-- country_code: 3 letters. Valid: ${validCodes.join(', ')}
+- country_code: 3 letters. Valid: ${validCodes.join(', ')}, or "EXT" for PANINI Extras (see below).
 - sticker_number: only if a clear CODE-NUMBER like "BRA-17" or "BRA 17" is visible (use hyphen). Else "".
 - status: "filled" if a real sticker is present (front OR back). "empty" only for an album slot that has NO sticker — just a blank rectangle with the player name printed BELOW it as placeholder.
 - face: "front" (player photo + name) or "back" (large number, no player photo).
 - confidence: 0.0–1.0 honest. Below 0.4 → skip the sticker entirely.
+- tier: ONLY for PANINI Extras (see below). "ouro" | "prata" | "bronze" | "regular". Omit for non-extras.
+
+PANINI EXTRAS: stickers with a red "EXTRA STICKER" badge top-right AND a circular gold "FIFA" logo top-left are SPECIAL extras, not normal country stickers. For these:
+  - Set country_code to "EXT" (not the player's country)
+  - Set tier from the background color: "ouro" (gold/yellow shimmery), "prata" (silver/gray shimmery), "bronze" (brown/copper shimmery), "regular" (white or team-colored, no shimmer)
+  - Read the player_name normally (e.g., "Erling Haaland")
+  - sticker_number stays "" (the EXT-NN-TIER code isn't printed on the front)
 
 Read carefully. Don't guess names. The 4-digit year (2010, 2019) and height/weight (1.75, 68) are NOT the sticker number.
 
@@ -84,7 +91,8 @@ Return JSON:
 {
   "image_quality": "high" | "medium" | "low",
   "stickers": [
-    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "face": "front", "confidence": 0.95}
+    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "face": "front", "confidence": 0.95},
+    {"player_name": "Erling Haaland", "country_code": "EXT", "tier": "ouro", "status": "filled", "face": "front", "confidence": 0.9}
   ],
   "warnings": []
 }
@@ -94,11 +102,18 @@ If the image is not stickers: {"error": "not_album_page", "message": "..."}`
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
 type CachedSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
+type ExtraTier = 'ouro' | 'prata' | 'bronze' | 'regular'
 let stickerCache: {
   data: CachedSticker[]
   numberMap: Map<string, CachedSticker>
   nameByCountry: Map<string, Map<string, CachedSticker>>
   nameFlat: Map<string, CachedSticker>
+  // PANINI Extras live in section='PANINI Extras' as 4 variants per player
+  // (REG/BRO/PRA/OUR). They're EXCLUDED from nameByCountry/nameFlat because
+  // their country='FIFA' would collide with normal player matching.
+  // extrasByPlayer maps normalized player name → tier → sticker.
+  extrasByPlayer: Map<string, Map<ExtraTier, CachedSticker>>
+  extrasNames: string[] // for fuzzy fallback
   validCodes: string[]
   loadedAt: number
 } | null = null
@@ -133,8 +148,37 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
   const numberMap = new Map(stickers.map((s) => [s.number.toUpperCase(), s]))
   const nameByCountry = new Map<string, Map<string, CachedSticker>>()
   const nameFlat = new Map<string, CachedSticker>()
+  const extrasByPlayer = new Map<string, Map<ExtraTier, CachedSticker>>()
+  const extrasNamesSet = new Set<string>()
+
+  // PANINI Extras player_name has format "Erling Haaland (Ouro)" — strip the
+  // parenthetical to recover the bare name, and parse the tier.
+  const extrasNameRegex = /^(.*?)\s*\((Regular|Bronze|Prata|Ouro)\)\s*$/i
+  const tierMap: Record<string, ExtraTier> = {
+    regular: 'regular',
+    bronze: 'bronze',
+    prata: 'prata',
+    ouro: 'ouro',
+  }
 
   for (const s of stickers) {
+    const isExtra = s.section === 'PANINI Extras'
+
+    if (isExtra) {
+      const m = s.player_name.match(extrasNameRegex)
+      if (m) {
+        const bareName = m[1].trim()
+        const tier = tierMap[m[2].toLowerCase()]
+        const normBare = normalizeName(bareName)
+        if (!extrasByPlayer.has(normBare)) extrasByPlayer.set(normBare, new Map())
+        extrasByPlayer.get(normBare)!.set(tier, s)
+        extrasNamesSet.add(normBare)
+      }
+      // Extras stay OUT of nameByCountry/nameFlat — their country='FIFA'
+      // would otherwise collide with normal matching.
+      continue
+    }
+
     const code = s.number.split('-')[0]
     const normName = normalizeName(s.player_name)
 
@@ -145,11 +189,17 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
       nameFlat.set(normName, s)
     }
   }
+  const extrasNames = Array.from(extrasNamesSet)
 
-  // Extract unique country codes from sticker numbers (e.g., "BRA-17" → "BRA")
-  const validCodes = Array.from(new Set(stickers.map((s) => s.number.split('-')[0].toUpperCase())))
+  // Extract unique country codes from sticker numbers (e.g., "BRA-17" → "BRA").
+  // Filter out extras prefixes (EXT-...) — they're matched separately.
+  const validCodes = Array.from(new Set(
+    stickers
+      .filter((s) => s.section !== 'PANINI Extras')
+      .map((s) => s.number.split('-')[0].toUpperCase())
+  ))
 
-  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, validCodes, loadedAt: Date.now() }
+  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, extrasByPlayer, extrasNames, validCodes, loadedAt: Date.now() }
   console.log(`[scan] Cached ${allDbStickers.length} stickers (TTL: 1h)`)
   return stickerCache
 }
@@ -297,7 +347,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { numberMap, nameByCountry, nameFlat } = cached
+    const { numberMap, nameByCountry, nameFlat, extrasByPlayer } = cached
     perf.mark('cache')
 
     // 6. Call Gemini — try primary model, fallback to lite if it fails
@@ -410,6 +460,7 @@ export async function POST(request: NextRequest) {
       status?: string
       confidence?: number
       face?: string
+      tier?: string
       bbox?: { x1: number; y1: number; x2: number; y2: number }
     }> | undefined
 
@@ -496,12 +547,60 @@ export async function POST(request: NextRequest) {
       const countryCode = (detected.country_code || detected.country || '').toUpperCase().trim()
       const stickerNumber = (detected.sticker_number || detected.number || '').toUpperCase().trim()
       const normPlayer = normalizeName(playerName)
+      const tierRaw = (detected.tier || '').toLowerCase().trim()
+      const tier: ExtraTier | null =
+        tierRaw === 'ouro' || tierRaw === 'gold' ? 'ouro' :
+        tierRaw === 'prata' || tierRaw === 'silver' ? 'prata' :
+        tierRaw === 'bronze' ? 'bronze' :
+        tierRaw === 'regular' || tierRaw === 'normal' ? 'regular' :
+        null
 
       let dbSticker: CachedSticker | null = null
-      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' = 'fuzzy_cross_country'
+      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' | 'extras_exact' | 'extras_fuzzy' = 'fuzzy_cross_country'
+
+      // ── Priority 0: PANINI Extras (country_code='EXT' + tier) ──
+      // Distinct path because extras live in a separate section with 4 variants
+      // per player. We never fall through to country/name lookup for EXT —
+      // either we find the right tier or we mark it unmatched (avoids wrongly
+      // matching an Extra as the player's regular country sticker).
+      if (countryCode === 'EXT' && normPlayer && normPlayer.length >= 2) {
+        const tiersForPlayer = extrasByPlayer.get(normPlayer)
+        const fallbackTier: ExtraTier = tier || 'regular'
+        if (tiersForPlayer) {
+          const exact = tiersForPlayer.get(fallbackTier)
+          if (exact) {
+            dbSticker = exact
+            matchType = 'extras_exact'
+          }
+        } else {
+          // Fuzzy player name match across extras
+          let bestNorm: string | null = null
+          extrasByPlayer.forEach((_tiers, normName) => {
+            if (!bestNorm && (normName.includes(normPlayer) || normPlayer.includes(normName))) {
+              bestNorm = normName
+            }
+          })
+          if (bestNorm) {
+            const fuzzyTiers = extrasByPlayer.get(bestNorm)
+            const exact = fuzzyTiers?.get(fallbackTier)
+            if (exact) {
+              dbSticker = exact
+              matchType = 'extras_fuzzy'
+            }
+          }
+        }
+        // If we couldn't resolve an extra, skip the rest of the lookup paths —
+        // the user clearly photographed an extra, falling back to country
+        // lookup would just produce a wrong-section match.
+        if (!dbSticker) {
+          unmatched.push(`${playerName || '?'} (Extra ${tier || 'tier?'})`)
+          console.log(`[scan] ✗ Extra "${playerName}" (tier=${tier}) → no match`)
+          continue
+        }
+      }
 
       // ── Priority 1: Match by sticker number (e.g., back of sticker shows "BRA-10") ──
-      if (stickerNumber) {
+      if (!dbSticker && stickerNumber) {
         dbSticker = findByNumber(stickerNumber, numberMap)
         if (dbSticker) matchType = 'number'
       }
@@ -576,7 +675,9 @@ export async function POST(request: NextRequest) {
       const matchConfidence: Record<string, number> = {
         number: 0.97,                // Sticker number match = near certain
         exact_name_country: 0.95,    // Exact name + right country = very good
+        extras_exact: 0.88,          // Extras: name+tier matched exactly — tier read is the risk
         fuzzy_name_country: 0.80,    // Fuzzy name + right country = good
+        extras_fuzzy: 0.70,          // Extras: fuzzy name + tier — both sources of error
         exact_name_flat: 0.82,       // Exact name, no country verification = good
         fuzzy_cross_country: 0.60,   // Fuzzy name, wrong/no country = acceptable
       }

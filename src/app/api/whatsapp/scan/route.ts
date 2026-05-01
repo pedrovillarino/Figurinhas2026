@@ -20,10 +20,17 @@ const SCAN_INSTRUCTION = `Você identifica figurinhas Panini Copa do Mundo 2026.
 
 Para CADA figurinha física visível (frente ou verso):
 - player_name: nome EXATO impresso (ex: "Neymar Jr"). Para escudos use "Emblem"; foto do time "Team Photo". Se ilegível, use "?".
-- country: país (ex: "Brasil", "Argentina").
+- country: país (ex: "Brasil", "Argentina"), ou "Extra" pra PANINI Extras (veja abaixo).
 - number: só se você ver um código claro tipo "BRA-17" ou "BRA 17" (use hífen). Senão "".
 - status: "filled" se figurinha real está presente (frente OU verso). "empty" só pra slot vazio do álbum (retângulo em branco com nome impresso EMBAIXO como placeholder).
 - confidence: 0.0–1.0 honesto. Abaixo de 0.4, pule.
+- tier: SÓ pra PANINI Extras. "ouro" | "prata" | "bronze" | "regular". Omita pra figurinhas normais.
+
+PANINI EXTRAS: figurinhas com selo vermelho "EXTRA STICKER" no canto superior direito E selo dourado circular "FIFA" no canto superior esquerdo são especiais (NÃO figurinhas normais de país). Pra essas:
+  - country = "Extra"
+  - tier pelo fundo: "ouro" (dourado brilhante), "prata" (prateado brilhante), "bronze" (marrom/cobre brilhante), "regular" (branco ou cor de time, sem brilho)
+  - player_name normal (ex: "Erling Haaland")
+  - number = "" (o código EXT-NN-TIER não aparece na frente)
 
 Leia com cuidado. Não chute nomes. Ano (2010, 2019) e altura/peso (1.75, 68) NÃO são número da figurinha. Cada figurinha física = 1 entrada (duplicatas viram entradas separadas).
 
@@ -31,7 +38,8 @@ Retorne JSON:
 {
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95},
+    {"player_name": "Erling Haaland", "country": "Extra", "tier": "ouro", "status": "filled", "confidence": 0.9}
   ]
 }`
 
@@ -44,7 +52,8 @@ function normalizeName(name: string): string {
     .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
 }
 
-type DbSticker = { id: number; number: string; player_name: string; country: string; type: string }
+type DbSticker = { id: number; number: string; player_name: string; country: string; type: string; section?: string }
+type ExtraTier = 'ouro' | 'prata' | 'bronze' | 'regular'
 
 function fuzzyNameMatch(normTarget: string, stickers: DbSticker[]): DbSticker | null {
   const targetParts = normTarget.split(' ')
@@ -97,7 +106,15 @@ const COUNTRY_NAME_TO_CODE: Record<string, string> = {
 }
 
 // ── Module-level sticker cache for WhatsApp scan ──
-let waCache: { stickers: DbSticker[]; byNumber: Map<string, DbSticker>; byCountry: Map<string, DbSticker[]>; at: number } | null = null
+let waCache: {
+  stickers: DbSticker[]
+  byNumber: Map<string, DbSticker>
+  byCountry: Map<string, DbSticker[]>
+  // PANINI Extras: 4 variants per player. Same isolation as web scan to avoid
+  // collision with normal player matching.
+  extrasByPlayer: Map<string, Map<ExtraTier, DbSticker>>
+  at: number
+} | null = null
 const WA_CACHE_TTL = 60 * 60 * 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,8 +122,8 @@ async function getWaCache(db: any) {
   if (waCache && Date.now() - waCache.at < WA_CACHE_TTL) return waCache
   // Fetch in pages to avoid Supabase 1000-row default limit
   const [p1, p2] = await Promise.all([
-    db.from('stickers').select('id, number, player_name, country, type').range(0, 999),
-    db.from('stickers').select('id, number, player_name, country, type').range(1000, 1999),
+    db.from('stickers').select('id, number, player_name, country, type, section').range(0, 999),
+    db.from('stickers').select('id, number, player_name, country, type, section').range(1000, 1999),
   ])
   const data = [...(p1.data || []), ...(p2.data || [])]
   if (!data || data.length === 0) return null
@@ -114,24 +131,68 @@ async function getWaCache(db: any) {
   const stickers = data as DbSticker[]
   const byNumber = new Map(stickers.map((s: DbSticker) => [s.number.toUpperCase(), s]))
   const byCountry = new Map<string, DbSticker[]>()
+  const extrasByPlayer = new Map<string, Map<ExtraTier, DbSticker>>()
+
+  const extrasNameRegex = /^(.*?)\s*\((Regular|Bronze|Prata|Ouro)\)\s*$/i
+  const tierMap: Record<string, ExtraTier> = {
+    regular: 'regular', bronze: 'bronze', prata: 'prata', ouro: 'ouro',
+  }
+
   for (const s of stickers) {
+    if (s.section === 'PANINI Extras') {
+      const m = s.player_name.match(extrasNameRegex)
+      if (m) {
+        const normBare = normalizeName(m[1].trim())
+        const tier = tierMap[m[2].toLowerCase()]
+        if (!extrasByPlayer.has(normBare)) extrasByPlayer.set(normBare, new Map())
+        extrasByPlayer.get(normBare)!.set(tier, s)
+      }
+      continue // keep extras out of byCountry
+    }
     const code = s.number.split('-')[0]
     if (!byCountry.has(code)) byCountry.set(code, [])
     byCountry.get(code)!.push(s)
   }
-  waCache = { stickers, byNumber, byCountry, at: Date.now() }
-  console.log(`[WhatsApp scan] Cached ${stickers.length} stickers`)
+  waCache = { stickers, byNumber, byCountry, extrasByPlayer, at: Date.now() }
+  console.log(`[WhatsApp scan] Cached ${stickers.length} stickers (${extrasByPlayer.size} extras players)`)
   return waCache
 }
 
 function matchSticker(
-  detected: { number?: string; player_name?: string; country?: string },
+  detected: { number?: string; player_name?: string; country?: string; tier?: string },
   cache: NonNullable<typeof waCache>
 ): DbSticker | null {
   const stickerNum = (detected.number || '').toUpperCase().trim()
   const playerName = detected.player_name || ''
   const country = (detected.country || '').trim()
   const normPlayer = normalizeName(playerName)
+  const normCountry = normalizeName(country)
+
+  // Priority 0: PANINI Extras (country = "Extra" + tier).
+  // Distinct path because extras live in a separate section with 4 variants.
+  // No fallback to country lookup — if we can't resolve the tier, return null
+  // (avoids matching an Extra as the player's regular country sticker).
+  const looksExtra = country.toUpperCase() === 'EXT' || normCountry === 'extra' || normCountry === 'extras'
+  if (looksExtra && normPlayer && normPlayer.length >= 2) {
+    const tierRaw = (detected.tier || '').toLowerCase().trim()
+    const tier: ExtraTier =
+      tierRaw === 'ouro' || tierRaw === 'gold' ? 'ouro' :
+      tierRaw === 'prata' || tierRaw === 'silver' ? 'prata' :
+      tierRaw === 'bronze' ? 'bronze' :
+      'regular' // default when tier is missing or unrecognized
+    const tiersForPlayer = cache.extrasByPlayer.get(normPlayer)
+    if (tiersForPlayer) return tiersForPlayer.get(tier) || null
+    // Fuzzy player match across extras
+    let foundNorm: string | null = null
+    cache.extrasByPlayer.forEach((_, name) => {
+      if (!foundNorm && (name.includes(normPlayer) || normPlayer.includes(name))) foundNorm = name
+    })
+    if (foundNorm) {
+      const fuzzyTiers = cache.extrasByPlayer.get(foundNorm)
+      return fuzzyTiers?.get(tier) || null
+    }
+    return null
+  }
 
   // Priority 1: exact number match
   if (stickerNum) {
@@ -338,7 +399,7 @@ export async function POST(req: NextRequest) {
     const stickerQty = new Map<number, { sticker: DbSticker; qty: number; minConfidence: number }>()
     const unmatchedNames: string[] = []
 
-    for (const detected of filledStickers as Array<{ player_name?: string; country?: string; number?: string; confidence?: number }>) {
+    for (const detected of filledStickers as Array<{ player_name?: string; country?: string; number?: string; confidence?: number; tier?: string }>) {
       const matched = matchSticker(detected, cache)
       const conf = typeof detected.confidence === 'number' ? detected.confidence : 1
       if (matched) {
