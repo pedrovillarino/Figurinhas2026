@@ -99,9 +99,11 @@ export async function sendButtonList(
   const enrichedMessage = plainTextWithOptions(message, limited)
 
   if (!interactiveEnabled()) {
+    console.log(`[zapi] sendButtonList: interactive DISABLED (env WHATSAPP_INTERACTIVE_ENABLED=${process.env.WHATSAPP_INTERACTIVE_ENABLED ?? 'unset'}) — falling back to plain text`)
     return sendText(phone, enrichedMessage)
   }
 
+  console.log(`[zapi] sendButtonList: interactive ENABLED — trying Z-API send-button-list with ${limited.length} buttons`)
   try {
     const res = await fetch(`${BASE_URL}/send-button-list`, {
       method: 'POST',
@@ -112,11 +114,16 @@ export async function sendButtonList(
         buttonList: { buttons: limited },
       }),
     })
-    if (res.ok) return true
-    console.error('Z-API send-button-list error:', await res.text())
+    const responseText = await res.text()
+    if (res.ok) {
+      console.log(`[zapi] sendButtonList: Z-API responded ${res.status} — body: ${responseText.substring(0, 300)}`)
+      return true
+    }
+    console.error(`[zapi] sendButtonList: Z-API error ${res.status} — body: ${responseText.substring(0, 500)}`)
   } catch (err) {
-    console.error('Z-API send-button-list exception:', err)
+    console.error('[zapi] sendButtonList exception:', err instanceof Error ? err.message : err)
   }
+  console.log('[zapi] sendButtonList: falling back to plain text')
   return sendText(phone, enrichedMessage)
 }
 
