@@ -68,84 +68,28 @@ function fewShotPreludeText(label: FewShotLabel): string {
 }
 
 function buildSystemInstruction(validCodes: string[]): string {
-  return `You are a Panini FIFA World Cup sticker scanner.
+  return `You identify Panini FIFA World Cup 2026 stickers in photos. Output JSON only.
 
-You analyze photos of Panini stickers and identify each one. Photos may show:
-- FRONT of stickers (player photo, name printed at bottom, country flag, 3-letter code like "BRA")
-- BACK of stickers (sticker number printed like "BRA 10", "FRA 19")
-- Album pages with filled and empty slots
-- Multiple stickers loose on a table
+For EACH physical sticker you can see (front or back), return:
+- player_name: EXACT name printed (e.g., "Neymar Jr", "Casemiro"). For badges use "Emblem"; for team photos "Team Photo". If unreadable, use "?".
+- country_code: 3 letters. Valid: ${validCodes.join(', ')}
+- sticker_number: only if a clear CODE-NUMBER like "BRA-17" or "BRA 17" is visible (use hyphen). Else "".
+- status: "filled" if a real sticker is present (front OR back). "empty" only for an album slot that has NO sticker — just a blank rectangle with the player name printed BELOW it as placeholder.
+- face: "front" (player photo + name) or "back" (large number, no player photo).
+- confidence: 0.0–1.0 honest. Below 0.4 → skip the sticker entirely.
 
-🚨 CRITICAL — DO NOT REPORT EMPTY SLOTS AS STICKERS 🚨
-The Panini album page pre-prints the sticker number AND the player name UNDER every slot, even before any sticker is glued. This printed reference text is NOT a sticker.
-- A FILLED slot has an ACTUAL physical sticker glued in: a colored player PHOTO with team uniform visible, a country flag, holographic/foil shine on emblems, gradient or graphic background, glossy finish.
-- An EMPTY slot is just a flat rectangle (usually white, light gray, or a faint silhouette outline) with the player name and code printed BELOW the rectangle as a placeholder reference. There is NO photo, NO color, NO uniform, NO shine inside the rectangle.
+Read carefully. Don't guess names. The 4-digit year (2010, 2019) and height/weight (1.75, 68) are NOT the sticker number.
 
-If you can see the printed reference name "STEPHEN EUSTÁQUIO" under an empty white rectangle but NO physical sticker is glued there — this is an EMPTY slot. Set status to "empty". DO NOT pretend a sticker is there because the name is printed.
-
-When in doubt: a real sticker is COLORFUL and PHOTOGRAPHIC inside the rectangle. An empty slot is BLANK inside the rectangle (the name is OUTSIDE/BELOW it).
-
-CRITICAL — HOW TO READ PANINI STICKERS:
-- The PLAYER NAME is printed in large letters at the bottom of the sticker (e.g., "NEYMAR JR", "CASEMIRO", "MARQUINHOS", "LIONEL MESSI")
-- The 3-LETTER COUNTRY CODE is near the flag (e.g., "BRA", "ARG", "FRA", "POR")
-- ⚠️ DO NOT confuse these numbers with the sticker number:
-  - The 4-digit year (e.g., 2010, 2019) = year of national team debut, NOT the sticker number
-  - Height/weight numbers (e.g., 1.75, 68) = player stats, NOT the sticker number
-- The actual STICKER NUMBER follows format: CODE + space/hyphen + small number (e.g., "BRA 17", "ARG 20", "FRA 19"). It may be printed small on the front or clearly on the back.
-- If you CANNOT see a clear sticker number in CODE-NUMBER format, leave sticker_number as "" — the system will match by player name instead.
-
-CRITICAL — COUNT BEFORE LISTING:
-Before identifying any sticker, COUNT the total filled stickers in the photo (left-to-right, top-to-bottom) and put that number in "total_stickers_visible". THEN list one entry per sticker. The size of the "stickers" array MUST EXACTLY equal "total_stickers_visible". If you cannot identify a specific one, STILL add an entry with player_name="?" and confidence=0.3 — do not skip it. We rely on this count to detect when you missed a sticker.
-
-For EACH sticker visible, extract:
-1. "player_name": Read the EXACT name printed. "NEYMAR JR" ≠ "CASEMIRO" ≠ "MARQUINHOS". For emblems/badges use "Emblem". For team photos use "Team Photo". For empty slots, leave as "". If unreadable, use "?".
-2. "country_code": The 3-letter code. Valid codes: ${validCodes.join(', ')}
-3. "sticker_number": ONLY if you see a clear CODE-NUMBER (e.g., "BRA-17"). Use hyphen format. If unsure, use "".
-4. "status": "filled" or "empty".
-   - "filled" = a REAL physical sticker is present. This includes BOTH the front (player photo, name, flag) AND the back (large sticker number "BRA 17", small print stats, no player photo). Backs are filled stickers turned over — never mark a back as empty.
-   - "empty" = album slot with NO sticker at all — a blank rectangle with the player name printed as a placeholder UNDERNEATH it (outside the rectangle). The interior is white/gray with no content.
-   When in doubt between front and back, choose front. When in doubt between back and empty, choose back (a back has structured content — number, position, stats, all printed inside).
-5. "confidence": YOUR HONEST confidence 0.0 to 1.0 — see CONFIDENCE RULES below.
-6. "face": "front" (player photo + name + flag visible) or "back" (only the sticker number visible, no player photo).
-7. "bbox": tight bounding box around the sticker, as normalized 0-1 coordinates relative to the WHOLE photo: {"x1": left, "y1": top, "x2": right, "y2": bottom}. Be tight — exclude album page background. If you cannot localize precisely, omit bbox.
-
-Return ONLY valid JSON:
+Return JSON:
 {
-  "scan_confidence": 0.7,
   "image_quality": "high" | "medium" | "low",
-  "total_stickers_visible": 2,
   "stickers": [
-    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "confidence": 0.95, "face": "front", "bbox": {"x1": 0.10, "y1": 0.20, "x2": 0.34, "y2": 0.55}},
-    {"player_name": "", "country_code": "ARG", "sticker_number": "ARG-10", "status": "filled", "confidence": 0.85, "face": "back", "bbox": {"x1": 0.40, "y1": 0.20, "x2": 0.64, "y2": 0.55}}
+    {"player_name": "Neymar Jr", "country_code": "BRA", "sticker_number": "BRA-17", "status": "filled", "face": "front", "confidence": 0.95}
   ],
   "warnings": []
 }
 
-CONFIDENCE RULES — BE HONEST, users rely on this to decide what to save:
-- 0.95+: You can CLEARLY read the full printed name AND country code — sharp image, no doubt.
-- 0.80-0.94: You can read most of the name but some letters are slightly unclear.
-- 0.60-0.79: Image is blurry/small, you're making an educated guess based on partial text or context.
-- 0.40-0.59: You can barely read the text, mostly guessing from uniform color, position, or one visible word.
-- Below 0.40: Do NOT include the sticker — skip it entirely.
-- CRITICAL: If the image is low resolution or blurry, ALL confidences MUST be lower. A blurry photo CANNOT have 0.95 confidence.
-- scan_confidence reflects OVERALL image quality: "low" quality photo → scan_confidence ≤ 0.5.
-- image_quality: "high" = sharp/clear text readable, "medium" = somewhat blurry but names partially readable, "low" = very blurry/small/dark.
-
-DUPLICATE RULES — BE CONSERVATIVE:
-- ONLY report a sticker as duplicate if you can CLEARLY see TWO separate physical copies of the SAME sticker in the image.
-- Each physical copy must be visibly distinct (different position, separate edges visible).
-- If you see ONE sticker and you're not 100% sure there's a second copy, report it ONCE only.
-- NEVER assume duplicates — if in doubt, report ONE copy. The user can scan again.
-- Wrong duplicates are WORSE than missing duplicates for the user.
-
-OTHER RULES:
-- CRITICAL: Read EVERY SINGLE sticker visible — count them first, then list each one. Left-to-right, top-to-bottom.
-- CRITICAL: Read the ACTUAL name printed on the sticker — do NOT guess or infer from jersey number. Each player has a unique name.
-- CRITICAL: Emblems/badges showing a country crest (e.g., CBF logo for Brazil, AFA logo for Argentina, FFF logo for France) are stickers too — include them with player_name "Emblem".
-- Player name is the PRIMARY identifier. Getting the name right is more important than the number.
-- If you see the BACK of a sticker, the CODE-NUMBER printed there IS the sticker number.
-- If the image is not sticker-related: {"error": "not_album_page", "message": "description"}
-- PREFER skipping a sticker over guessing wrong. A wrong identification hurts the user more than a missed one.`
+If the image is not stickers: {"error": "not_album_page", "message": "..."}`
 }
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
@@ -363,27 +307,14 @@ export async function POST(request: NextRequest) {
       'gemini-2.5-flash-lite',      // fallback 1 — estável, leve
       'gemini-2.0-flash-001',       // fallback 2 — legado, sempre disponível
     ]
-    const fewShotImages = await getFewShotImages()
-    const fewShotPrelude: Array<{ inlineData: { mimeType: string; data: string } } | { text: string }> = []
-    for (const ex of fewShotImages) {
-      fewShotPrelude.push({ text: fewShotPreludeText(ex.label) })
-      fewShotPrelude.push({ inlineData: { mimeType: ex.mimeType, data: ex.data } })
-    }
-
+    // Few-shot images temporariamente desligadas — adicionar exemplos no
+    // payload estava confundindo Gemini com cromos de outras páginas. Voltei
+    // pra payload mínimo: a foto do user + uma instrução curta. O system
+    // prompt já cobre o resto.
     const geminiPayload = [
-      ...fewShotPrelude,
-      { text: fewShotImages.length > 0 ? 'NOW analyze the USER\'S PHOTO below using the same filled-vs-empty distinction shown above:' : '' },
-      {
-        inlineData: {
-          mimeType,
-          data: image,
-        },
-      },
-      { text: 'Identify ONLY physical stickers actually GLUED to the page in this photo. EMPTY album slots (blank rectangles with player names printed underneath as placeholders) MUST be marked status="empty" — DO NOT invent a sticker just because you see the printed name. First assess the image quality (high/medium/low). Then COUNT every physical sticker. List each with the EXACT name printed on the sticker — read carefully, do NOT guess. Be HONEST with confidence scores — blurry/small images CANNOT have 95% confidence. Only report duplicates if you can CLEARLY see two separate physical copies. Scan left-to-right, top-to-bottom. Do NOT confuse the year (2010, 2019) with the sticker number. Return JSON.' },
-    ].filter((p) => !('text' in p) || (p as { text: string }).text.length > 0)
-    if (fewShotImages.length > 0) {
-      console.log(`[scan] Few-shot prelude: ${fewShotImages.map((x) => x.label).join('+')}`)
-    }
+      { inlineData: { mimeType, data: image } },
+      { text: 'Identifique cada figurinha visível nesta foto. Leia o nome EXATO impresso. Retorne JSON.' },
+    ]
 
     let responseText = ''
     let geminiMs = 0

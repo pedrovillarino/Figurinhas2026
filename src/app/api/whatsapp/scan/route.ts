@@ -16,49 +16,23 @@ function getAdmin() {
   )
 }
 
-const SCAN_INSTRUCTION = `Você é um scanner de figurinhas Panini da Copa do Mundo FIFA 2026 (edição USA/Canadá/México).
+const SCAN_INSTRUCTION = `Você identifica figurinhas Panini Copa do Mundo 2026. Retorne JSON apenas.
 
-Você pode receber:
-1. Uma foto de uma PÁGINA INTEIRA do álbum — identifique todos os slots visíveis.
-2. Uma foto de FIGURINHAS SOLTAS (uma ou várias) — identifique cada uma.
+Para CADA figurinha física visível (frente ou verso):
+- player_name: nome EXATO impresso (ex: "Neymar Jr"). Para escudos use "Emblem"; foto do time "Team Photo". Se ilegível, use "?".
+- country: país (ex: "Brasil", "Argentina").
+- number: só se você ver um código claro tipo "BRA-17" ou "BRA 17" (use hífen). Senão "".
+- status: "filled" se figurinha real está presente (frente OU verso). "empty" só pra slot vazio do álbum (retângulo em branco com nome impresso EMBAIXO como placeholder).
+- confidence: 0.0–1.0 honesto. Abaixo de 0.4, pule.
 
-COMO LER UMA FIGURINHA PANINI:
-- O NOME DO JOGADOR está impresso em letras grandes na parte inferior (ex: "NEYMAR JR", "CASEMIRO", "MARQUINHOS")
-- O CÓDIGO DO PAÍS (3 letras) está perto da bandeira (ex: "BRA", "ARG", "FRA")
-- ⚠️ NÃO confunda estes números com o número da figurinha:
-  - Ano de 4 dígitos (ex: 2010, 2019) = ano de estreia na seleção, NÃO é número da figurinha
-  - Números de altura/peso (ex: 1.75, 68) = estatísticas do jogador
-- O NÚMERO DA FIGURINHA tem formato: CÓDIGO + espaço/hífen + número pequeno (ex: "BRA 17", "ARG 20"). Pode estar impresso pequeno na frente ou claramente no verso.
-- Se NÃO conseguir ver um número no formato CÓDIGO-NÚMERO, deixe "number" como "" — o sistema encontra pelo nome.
+Leia com cuidado. Não chute nomes. Ano (2010, 2019) e altura/peso (1.75, 68) NÃO são número da figurinha. Cada figurinha física = 1 entrada (duplicatas viram entradas separadas).
 
-TIPOS DE FIGURINHAS:
-- Jogadores: têm nome do jogador impresso
-- Emblemas/Escudos: mostram o brasão da seleção (ex: CBF, AFA, FFF) → use "Emblem"
-- Foto do time: foto coletiva → use "Team Photo"
-- Estádios e logos FIFA: figurinhas especiais (ex: FWC-1)
-
-REGRAS:
-- "filled": figurinha física presente — INCLUI tanto a FRENTE (foto do jogador) quanto o VERSO (número grande tipo "BRA 17", estatísticas, sem foto). Verso é figurinha colada virada — NUNCA marque verso como "empty".
-- "empty": SLOT vazio no álbum — retângulo branco/cinza COM o nome do jogador impresso EMBAIXO dele (fora do retângulo) como placeholder. Sem nada visualmente DENTRO do retângulo.
-- Na dúvida entre verso e empty, escolha verso (verso tem conteúdo estruturado dentro: número grande, posição, dados).
-- CRÍTICO — CONTAGEM ANTES DE LISTAR: ANTES de identificar qualquer figurinha, CONTE quantas figurinhas físicas (filled) você vê na foto, da esquerda pra direita, de cima pra baixo. Coloque esse número em "total_stickers_visible". DEPOIS, liste UMA entrada em "stickers" para CADA uma das figurinhas contadas. O tamanho do array "stickers" DEVE bater EXATAMENTE com "total_stickers_visible". Se não conseguir identificar uma específica, ainda assim adicione uma entrada com player_name="?" e confidence baixa — não pule!
-- CRÍTICO: Identifique TODAS as figurinhas — jogadores, emblemas, escudos, fotos de time. NÃO pule nenhuma.
-- CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO". Cada jogador é único.
-- CRÍTICO DUPLICATAS: Se houver DUAS ou MAIS cópias da MESMA figurinha (ex: dois "NEYMAR JR"), liste CADA cópia como uma entrada SEPARADA no array. O usuário coleciona duplicatas para trocar — cada figurinha física = uma entrada.
-- O NOME é o identificador principal. Acertar o nome é mais importante que o número.
-- Confiança < 0.7 se incerto. Ignore decorações. Países em Português.
-
-Retorne APENAS JSON válido:
+Retorne JSON:
 {
-  "pages_detected": 1,
   "scan_confidence": 0.9,
-  "total_stickers_visible": 2,
   "stickers": [
-    {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95},
-    {"number": "", "player_name": "Neymar Jr", "country": "Brasil", "status": "filled", "confidence": 0.95}
-  ],
-  "unreadable": [],
-  "warnings": []
+    {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.95}
+  ]
 }`
 
 // ── Matching helpers (same logic as /api/scan) ──
