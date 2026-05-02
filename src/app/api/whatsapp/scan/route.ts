@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText } from '@/lib/zapi'
 import { getScanLimit, type Tier } from '@/lib/tiers'
+import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -321,10 +322,10 @@ export async function POST(req: NextRequest) {
       })
 
     if (usageData && !usageData.allowed) {
-      const isFree = userTier === 'free'
-      const msg = isFree
-        ? `Você usou seus 5 scans gratuitos! Faça upgrade para continuar:\n${APP_URL}/profile`
-        : `Você usou todos os seus ${usageData.limit} scans. Compre um pacote extra pelo app:\n${APP_URL}/profile`
+      // Mensagem em escada (Pedro 2026-05-02): se ainda tem áudio, sugere
+      // áudio. Senão, texto. Sempre mostra opções de upgrade válidas.
+      const quotas = await getQuotas(userId, userTier)
+      const msg = buildPaywallMessage(APP_URL, 'scan', quotas)
       await sendText(phone, msg)
       return NextResponse.json({ ok: true })
     }

@@ -29,10 +29,14 @@ export const TRADE_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDi
 }
 
 // ─── Tier definitions ───
+// audioLimit: lifetime, áudios via WhatsApp (transcrição via Gemini).
+// Pedro 2026-05-02: free=10, estreante=30, colecionador+copa=ilimitado.
+// Foto WhatsApp = scan (usa scanLimit). Texto WhatsApp = sem limite.
 export const TIER_CONFIG = {
   free: {
     label: 'Free',
     scanLimit: 5, // ~40 figurinhas
+    audioLimit: 10,
     canScan: true,
     canTrade: true, // can view matches + 2 included trades
     tradeLimit: 2,
@@ -44,6 +48,7 @@ export const TIER_CONFIG = {
   estreante: {
     label: 'Estreante',
     scanLimit: 50, // ~400 figurinhas
+    audioLimit: 30,
     canScan: true,
     canTrade: true,
     tradeLimit: 5,
@@ -57,6 +62,7 @@ export const TIER_CONFIG = {
   colecionador: {
     label: 'Colecionador',
     scanLimit: 150, // ~1.200 figurinhas
+    audioLimit: Infinity,
     canScan: true,
     canTrade: true,
     tradeLimit: 15,
@@ -70,6 +76,7 @@ export const TIER_CONFIG = {
   copa_completa: {
     label: 'Copa Completa',
     scanLimit: 500, // ~4.000 figurinhas
+    audioLimit: Infinity,
     canScan: true,
     canTrade: true,
     tradeLimit: Infinity,
@@ -96,6 +103,10 @@ export function getStickerLimit(tier: Tier): number {
 
 export function getScanLimit(tier: Tier): number {
   return TIER_CONFIG[tier].scanLimit
+}
+
+export function getAudioLimit(tier: Tier): number {
+  return TIER_CONFIG[tier].audioLimit
 }
 
 export function getTradeLimit(tier: Tier): number {

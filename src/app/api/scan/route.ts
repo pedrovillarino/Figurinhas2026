@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import sharp from 'sharp'
-import { getScanLimit, type Tier } from '@/lib/tiers'
+import { getScanLimit, getAudioLimit, type Tier } from '@/lib/tiers'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { createPerfLogger } from '@/lib/perf'
@@ -325,9 +325,34 @@ export async function POST(request: NextRequest) {
 
       const isFree = userTier === 'free'
       const canBuyPack = userTier === 'estreante' || userTier === 'colecionador'
+      // Pedro 2026-05-02: estratégia em escada. Se ainda tem áudio (free=10
+      // lifetime), sugere áudio. Senão, texto/site + upgrade. Mostra todas
+      // as opções de upgrade válidas pro tier.
+      const audioLimit = getAudioLimit(userTier)
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('audio_uses_count')
+        .eq('id', user.id)
+        .maybeSingle()
+      const audiosUsed = profile?.audio_uses_count || 0
+      const audiosRemaining = audioLimit === Infinity ? Infinity : Math.max(0, audioLimit - audiosUsed)
+      const audioOpen = audiosRemaining > 0 || audiosRemaining === Infinity
+
+      const upgradeList = isFree
+        ? 'Estreante R$9,90 · Colecionador R$19,90 · Copa Completa R$29,90'
+        : userTier === 'estreante'
+          ? 'Colecionador R$19,90 · Copa Completa R$29,90'
+          : userTier === 'colecionador'
+            ? 'Copa Completa R$29,90'
+            : ''
+
+      const altMsg = audioOpen
+        ? `🎤 Manda *áudio* no WhatsApp falando os códigos (${audiosRemaining === Infinity ? 'ilimitado' : `${audiosRemaining} restantes`}) ou ✏️ texto tipo "BRA-1 ARG-3" (sem limite).`
+        : `✏️ Manda *texto* no WhatsApp ("BRA-1 ARG-3" — sem limite) ou registra manualmente clicando nas figurinhas do álbum.`
+
       const errorMsg = isFree
-        ? 'Você usou seus 5 scans gratuitos! Cada scan detecta várias figurinhas — faça upgrade para continuar.'
-        : `Você usou todos os seus ${usageData.limit} scans. Cada scan lê várias figurinhas${canBuyPack ? ' — compre um pacote extra para continuar!' : '.'}`
+        ? `Você usou seus 5 scans gratuitos! ${altMsg} Ou faça upgrade: ${upgradeList}.`
+        : `Você usou todos os seus ${usageData.limit} scans. ${altMsg}${canBuyPack ? ' Ou compre pacote extra' : ''}${upgradeList ? ` ou faça upgrade (${upgradeList})` : ''}.`
 
       return NextResponse.json(
         {

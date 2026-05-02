@@ -7,6 +7,8 @@ import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
+import { getAudioLimit, type Tier } from '@/lib/tiers'
+import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -1060,6 +1062,35 @@ export async function POST(req: NextRequest) {
     // outra modalidade só polui a resposta.
     let cameFromAudio = false
     if (messageType === 'audio') {
+      // ── Limite de áudio (Pedro 2026-05-02) ──
+      // free=10, estreante=30, colecionador+copa=ilimitado. Lifetime.
+      // Bloqueio ANTES do transcribeAudio — se atingiu, não chama Gemini
+      // (economia de custo + UX rápido). Foto = scanLimit; texto = sem limite.
+      const userTier = ((user as { tier?: string }).tier || 'free') as Tier
+      const audioLimit = getAudioLimit(userTier)
+      const limitParam = audioLimit === Infinity ? -1 : audioLimit
+      const supabaseAdmin = getAdmin()
+      const { data: audioUsage, error: audioUsageErr } = await supabaseAdmin
+        .rpc('increment_audio_usage', {
+          p_user_id: user.id,
+          p_limit: limitParam,
+        })
+      if (!audioUsageErr && audioUsage && !audioUsage.allowed) {
+        const used = audioUsage.current ?? audioLimit
+        console.log(`[WhatsApp] Audio limit hit user=${user.id} tier=${userTier} used=${used}/${audioLimit}`)
+        // Mensagem em escada: se ainda tem scan, sugere foto. Senão, texto.
+        // Sempre mostra TODAS as opções de upgrade.
+        const quotas = await getQuotas(user.id, userTier)
+        await sendText(phone, buildPaywallMessage(APP_URL, 'audio', quotas))
+        return NextResponse.json({ ok: true })
+      }
+      if (audioUsageErr) {
+        console.error('[WhatsApp] Audio usage check error:', audioUsageErr.message)
+        // Não bloqueia em caso de erro de tracking — continua processando
+      } else if (audioUsage) {
+        console.log(`[WhatsApp] Audio usage user=${user.id} tier=${userTier} ${audioUsage.current}/${audioLimit === Infinity ? '∞' : audioLimit}`)
+      }
+
       const audioUrl = body.audio?.audioUrl || body.audio?.url
       const audioBase64Inline = body.audio?.base64 || null
 
