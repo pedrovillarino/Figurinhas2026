@@ -555,9 +555,18 @@ export default function ScanHub({
     return (
       <div className="px-4 pt-6">
         <h1 className="text-2xl font-bold mb-4">Confirmar Foto</h1>
-        <div className="rounded-xl overflow-hidden border border-gray-200 mb-4">
+        <div className="rounded-xl overflow-hidden border border-gray-200 mb-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imageData!} alt="Preview" className="w-full" />
+        </div>
+        {/* Aviso de qualidade — pra reduzir scans falhos por foto borrada/longe */}
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
+          <span className="text-base leading-tight">⚠️</span>
+          <p className="text-xs text-amber-900 leading-relaxed">
+            Confira se a imagem está <span className="font-semibold">nítida</span> e se os{' '}
+            <span className="font-semibold">nomes ou números das figurinhas/jogadores</span>{' '}
+            estão visíveis.
+          </p>
         </div>
         <div className="flex gap-3">
           <button onClick={reset} className="flex-1 bg-gray-100 text-gray-700 rounded-xl px-4 py-3 text-sm font-medium hover:bg-gray-200 transition">
