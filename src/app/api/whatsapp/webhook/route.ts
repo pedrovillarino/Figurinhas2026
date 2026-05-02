@@ -182,6 +182,31 @@ async function findUserByPhone(phone: string) {
 }
 
 /**
+ * Returns true if the user has any active (non-expired) pending_scan.
+ * Used to serialize the WhatsApp scan/register flow — Pedro pediu
+ * (2026-05-02) que o bot processe um registro por vez. Se já tem um
+ * pendente, a próxima foto/áudio/texto é segurada com aviso.
+ */
+async function hasActivePendingScan(userId: string): Promise<boolean> {
+  const supabase = getAdmin()
+  const { data } = await supabase
+    .from('pending_scans')
+    .select('id')
+    .eq('user_id', userId)
+    .gt('expires_at', new Date().toISOString())
+    .limit(1)
+  return !!(data && data.length > 0)
+}
+
+const WAIT_PENDING_MSG =
+  '⏳ *Você ainda tem um registro aguardando confirmação.*\n\n' +
+  'Responde primeiro a anterior:\n' +
+  '✅ *SIM* → registra tudo\n' +
+  '✏️ *TIRAR N* → remove o item N\n' +
+  '❌ *NÃO* → cancela\n\n' +
+  '_Depois eu processo essa nova mensagem._'
+
+/**
  * State machine pra cadastro inline via WhatsApp — fluxo email-first.
  *
  * Estados:
@@ -1068,6 +1093,12 @@ export async function POST(req: NextRequest) {
 
     // ─── Image ───
     if (messageType === 'image') {
+      // Serializa: 1 registro por vez. Se já tem pending, segura essa foto.
+      if (await hasActivePendingScan(user.id)) {
+        await sendText(phone, WAIT_PENDING_MSG)
+        return NextResponse.json({ ok: true })
+      }
+
       const imageUrl = body.image?.imageUrl || body.image?.url || body.imageUrl
       const imageBase64 = body.image?.base64 || body.base64 || null
 
@@ -1319,7 +1350,7 @@ export async function POST(req: NextRequest) {
           .maybeSingle()
 
         if (!latestPending) {
-          await sendText(phone, '🤔 Não tenho nenhuma foto aguardando confirmação. Manda uma foto pra escanear primeiro!')
+          await sendText(phone, '🤔 Não tenho nenhum registro aguardando confirmação. Manda uma foto, áudio ou texto pra começar!')
           return NextResponse.json({ ok: true })
         }
 
@@ -1340,12 +1371,12 @@ export async function POST(req: NextRequest) {
 
         if (kept.length === 0) {
           await supabaseAdmin.from('pending_scans').delete().eq('id', latestPending.id)
-          await sendText(phone, `❌ Removidas todas as ${removed.length} figurinha(s) dessa foto. Manda outra foto se quiser!`)
+          await sendText(phone, `❌ Removidas todas as ${removed.length} figurinha(s) do registro. Manda outra foto, áudio ou texto se quiser!`)
         } else {
           await supabaseAdmin.from('pending_scans').update({ scan_data: kept }).eq('id', latestPending.id)
           const removedSummary = removed.map((s) => `${s.number} ${s.player_name}`.trim()).join(', ')
           let reply = `🗑️ Removido: *${removedSummary}*\n\n`
-          reply += `📋 *Restou ${kept.length} figurinha(s) nessa foto:*\n`
+          reply += `📋 *Restou ${kept.length} figurinha(s) no registro:*\n`
           reply += kept.map((s, i) => {
             const label = `${s.number} ${s.player_name || ''}`.trim()
             const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
@@ -1399,8 +1430,10 @@ export async function POST(req: NextRequest) {
           // Get updated stats
           const stats = await getUserStats(user.id)
 
-          const fromPhotos = allPending.length > 1 ? ` (de ${allPending.length} fotos)` : ''
-          let reply = `✅ *${saved} figurinha(s) registrada(s)!*${fromPhotos}\n\n`
+          // Com a serialização (1 pending por vez), allPending sempre tem
+          // length 1. Mantemos a defesa pra legacy data, mas a copy fica
+          // genérica (sem citar "fotos").
+          let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
           reply += savedLines.join('\n') + '\n\n'
           reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
 
@@ -1420,7 +1453,7 @@ export async function POST(req: NextRequest) {
 
         if (allPending && allPending.length > 0) {
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
-          await sendText(phone, `❌ ${allPending.length} foto(s) cancelada(s). Nada foi registrado.\nMande outra foto para tentar novamente! 📸`)
+          await sendText(phone, `❌ Cancelado. Nada foi registrado.\nManda outra foto, áudio ou texto se quiser tentar de novo!`)
           return NextResponse.json({ ok: true })
         }
       }
@@ -1628,6 +1661,12 @@ export async function POST(req: NextRequest) {
         }
 
         case 'register': {
+          // Serializa: 1 registro por vez. Se já tem pending, segura a mensagem.
+          if (await hasActivePendingScan(user.id)) {
+            await sendText(phone, WAIT_PENDING_MSG)
+            break
+          }
+
           // Parse sticker codes from text (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, arg 3").
           // Mesmo flow que foto: cria pending_scan e pede confirmação (sim/tirar N/não)
           // em vez de salvar direto. Pedro pediu (2026-05-01) consistência entre
@@ -1743,22 +1782,21 @@ export async function POST(req: NextRequest) {
             .in('sticker_id', scanData.map((s) => s.sticker_id))
           const existingMap = new Map((existing || []).map((e: { sticker_id: number; status: string; quantity: number }) => [e.sticker_id, e]))
 
-          // Save pending scan (1h TTL — mesmo do flow de foto)
+          // Save pending scan (1h TTL). Como agora o flow é serializado
+          // (1 registro por vez), sempre que chegamos aqui o user não tinha
+          // pending ativo — então este será o único.
           await supabaseAdmin.from('pending_scans').insert({
             user_id: user.id,
             phone,
             scan_data: scanData,
           })
 
-          const { count: pendingCount } = await supabaseAdmin
-            .from('pending_scans')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .gt('expires_at', new Date().toISOString())
-          const totalPending = pendingCount || 1
-
           const notFound = matches.filter((m) => !stickerByNumber.has(m))
           const totalFound = scanData.reduce((sum, s) => sum + s.quantity, 0)
+
+          // Header reflete a origem (foto / áudio / texto) — Pedro pediu
+          // (2026-05-02) que respostas de áudio não falem "foto".
+          const sourceLabel = cameFromAudio ? 'no áudio' : 'no que você digitou'
 
           // Numbered preview matching the photo flow
           const previewLines = scanData.map((s, idx) => {
@@ -1771,24 +1809,15 @@ export async function POST(req: NextRequest) {
             return `*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + s.quantity})_`
           })
 
-          let msg = totalPending === 1
-            ? `📋 *Encontrei ${totalFound} figurinha(s):*\n\n`
-            : `📋 *+${totalFound} figurinha(s) detectada(s):*\n\n`
+          let msg = `📋 *Encontrei ${totalFound} figurinha(s) ${sourceLabel}:*\n\n`
           msg += previewLines.join('\n')
           if (notFound.length > 0) {
             msg += `\n\n⚠️ Não encontradas no álbum: ${notFound.join(', ')}`
           }
-          if (totalPending === 1) {
-            msg += '\n\n✅ *SIM* → registra tudo'
-            msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
-            msg += '\n❌ *NÃO* → cancela tudo'
-            msg += '\n\n⏰ _Expira em 1h se não responder_'
-          } else {
-            msg += `\n\n📦 *${totalPending} fotos/listas pendentes no total.*`
-            msg += '\n✅ *SIM* → registra todas'
-            msg += '\n✏️ *TIRAR 3* → remove item 3 desta lista (_tirar 2,5_)'
-            msg += '\n❌ *NÃO* → cancela todas'
-          }
+          msg += '\n\n✅ *SIM* → registra tudo'
+          msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
+          msg += '\n❌ *NÃO* → cancela tudo'
+          msg += '\n\n⏰ _Expira em 1h se não responder_'
 
           await sendText(phone, msg)
           break
