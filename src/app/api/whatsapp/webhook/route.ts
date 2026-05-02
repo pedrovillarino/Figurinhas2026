@@ -1458,14 +1458,41 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Detect "query" intent — user asking ABOUT a sticker, not registering it.
+      // Pedro pediu (2026-05-02): se o user pergunta "tenho a BRA-2?" ou
+      // "preciso da FRA-2?" ou "tenho a X repetida?", responder com status
+      // em vez de marcar como colada.
+      //
+      // Heurísticas pra distinguir query de register:
+      //   - Termina com "?"
+      //   - Começa com pronome de pergunta + verbo de posse: "tenho a X",
+      //     "eu tenho X", "tô com a X"
+      //   - Verbo "preciso/falta" + sticker: "preciso da X", "falta a X"
+      //   - Pergunta específica de repetida: "X repetida?", "tenho X repetida"
+      //
+      // Importante: queries devem ter EXATAMENTE 1 código de sticker. Se tem
+      // múltiplos, é mais provável que seja registro ("tenho BRA-1, ARG-3").
+      const codeMatches = (text.match(/[a-z]{2,5}[\s\-]?\d{1,2}/gi) || [])
+      const trimmedText = text.trim()
+      const looksLikeQuestion = (
+        /[?]\s*$/.test(trimmedText) ||
+        /^(tenho|eu tenho|tô com|to com|t[ô]o com|preciso|falta|falto|me falta|tem)\s/i.test(trimmedText) ||
+        /\b(repetida|repetido)\s*\??\s*$/i.test(trimmedText)
+      )
+      const isQuerySingleCode = codeMatches.length === 1 && looksLikeQuestion
+
       // Fast keyword matching before calling Gemini
       let intent: string
 
-      if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
+      if (isQuerySingleCode) {
+        intent = 'query_sticker'
+      } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
         intent = 'status'
-      } else if (/(falt|missing|preciso|necessito|que me falta|o que falta|quais faltam)/.test(lower)) {
+      } else if (/(falt|missing|necessito|que me falta|o que falta|quais faltam)/.test(lower) && codeMatches.length === 0) {
+        // "preciso/falta" sem código de sticker → lista geral. Se tem código,
+        // já caiu em query_sticker acima.
         intent = 'missing'
-      } else if (/(repet|duplic|sobr|troc?ar|pra troc|minhas repetidas|minhas figurinhas repetidas)/.test(lower)) {
+      } else if (/(repet|duplic|sobr|troc?ar|pra troc|minhas repetidas|minhas figurinhas repetidas)/.test(lower) && codeMatches.length === 0) {
         intent = 'duplicates'
       } else if (/(troca|pendente|solicita|aceitar|minhas trocas|ver trocas)/.test(lower)) {
         intent = 'trades'
@@ -1473,7 +1500,7 @@ export async function POST(req: NextRequest) {
         intent = 'ranking'
       } else if (/\b(hist[oó]rico|hist[oó]ria|meus scans|[uú]ltim[ao]s figurinhas|o que registrei|que salvei|que entrou|salvei|registrei)\b/.test(lower)) {
         intent = 'history'
-      } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && (text.match(/[a-z]{2,5}[\s\-]?\d{1,2}/gi) || []).length >= 1) {
+      } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && codeMatches.length >= 1) {
         // Looks like sticker codes: "BRA-1 ARG-3" or "bra 1, arg 3" or "BRA1"
         intent = 'register'
       } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como|faq|perguntas?|dúvidas?|planos?|preços?|quanto custa|sugest|ideia|feedback|bug|problema|reclam|melhoria)\b/.test(lower)) {
@@ -1656,6 +1683,87 @@ export async function POST(req: NextRequest) {
 
             msg += `Ou abra o app: ${APP_URL}/trades`
             await sendText(phone, msg)
+          }
+          break
+        }
+
+        case 'query_sticker': {
+          // User perguntando sobre status de uma figurinha específica
+          // (ex: "tenho a BRA-2?", "preciso da FRA-2?", "tenho FRA-2 repetida?").
+          // Resposta tem 3 estados: missing / owned / duplicate (qty>1).
+          const askingAboutDup = /\b(repetida|repetido)\b/i.test(trimmedText)
+          const code = codeMatches[0]?.toUpperCase().replace(/\s+/g, '-').replace(/-+/g, '-') || ''
+          const supabaseAdmin = getAdmin()
+
+          // Busca sticker — aceita "BRA-2" ou "BRA2" (sem hífen)
+          const noSepCandidate = code.replace(/-/g, '')
+          const altMatch = noSepCandidate.match(/^([A-Z]{2,5})(\d+)$/)
+          const candidates = [code, altMatch ? `${altMatch[1]}-${altMatch[2]}` : code]
+
+          const { data: stickerData } = await supabaseAdmin
+            .from('stickers')
+            .select('id, number, player_name')
+            .in('number', candidates)
+            .limit(1)
+          const sticker = stickerData?.[0]
+
+          if (!sticker) {
+            await sendText(phone, `🤔 Não achei *${code}* no álbum. Confere se digitou certo (ex: BRA-2, ARG-3, FWC-5).`)
+            break
+          }
+
+          // Status do user
+          const { data: usData } = await supabaseAdmin
+            .from('user_stickers')
+            .select('status, quantity')
+            .eq('user_id', user.id)
+            .eq('sticker_id', sticker.id)
+            .maybeSingle()
+
+          const playerLabel = sticker.player_name ? `*${sticker.player_name}*` : ''
+          const code_display = `*${sticker.number}*`
+
+          if (!usData || usData.quantity === 0) {
+            // Não tem
+            await sendText(
+              phone,
+              `❌ Você ainda *não tem* ${code_display} ${playerLabel}.\n\n` +
+                `📸 Manda uma foto, áudio ("Brasil 2") ou texto ("BRA-2") quando colar essa.`,
+            )
+            break
+          }
+
+          const qty = usData.quantity || 1
+          if (askingAboutDup) {
+            // Pergunta específica sobre repetida
+            if (qty <= 1) {
+              await sendText(
+                phone,
+                `📋 Você tem ${code_display} ${playerLabel}, mas *não está repetida*. (Apenas 1 unidade.)`,
+              )
+            } else {
+              const extras = qty - 1
+              await sendText(
+                phone,
+                `🔁 Sim! Você tem *${extras} repetida(s)* de ${code_display} ${playerLabel} _(total: ${qty})_.\n\n` +
+                  `💡 Manda *trocas* pra ver oportunidades de troca perto de você.`,
+              )
+            }
+            break
+          }
+
+          // Pergunta geral "tenho?"
+          if (qty === 1) {
+            await sendText(
+              phone,
+              `✅ *Sim!* Você já tem ${code_display} ${playerLabel}.\n\n_Mas não tem repetida — só 1 unidade._`,
+            )
+          } else {
+            const extras = qty - 1
+            await sendText(
+              phone,
+              `✅ *Sim!* Você tem ${code_display} ${playerLabel} e mais *${extras} repetida(s)* _(total: ${qty})_.`,
+            )
           }
           break
         }
