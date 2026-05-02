@@ -528,7 +528,7 @@ export default function ScanHub({
 
         {/* ── Instruções de uso ── */}
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 space-y-2">
-          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Pra acertar o scan</p>
+          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Para o Scan acertar</p>
           <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
             <li>• <span className="font-bold text-red-700">NITIDEZ é essencial</span> — o nome do jogador (frente) ou o número (verso) precisam estar <span className="font-semibold">claramente legíveis</span>. Foto borrada, com sombra ou reflexo = scan erra.</li>
             <li>• Recomendado: <span className="font-semibold">até 10 cromos por foto</span>. Pode mandar mais, mas a assertividade cai bastante.</li>
