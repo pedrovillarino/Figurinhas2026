@@ -1477,14 +1477,18 @@ export async function POST(req: NextRequest) {
       const looksLikeQuestion = (
         /[?]\s*$/.test(trimmedText) ||
         /^(tenho|eu tenho|tô com|to com|t[ô]o com|preciso|falta|falto|me falta|tem)\s/i.test(trimmedText) ||
-        /\b(repetida|repetido)\s*\??\s*$/i.test(trimmedText)
+        /\b(repetida|repetido)s?\s*\??\s*$/i.test(trimmedText)
       )
-      const isQuerySingleCode = codeMatches.length === 1 && looksLikeQuestion
+      // Query funciona com 1 ou múltiplos códigos. Ex:
+      //   "tenho a BRA-2?" → 1 código
+      //   "tenho a BRA-2 e ARG-3?" → 2 códigos
+      //   "preciso da FRA-5, GER-2 e ESP-1?" → 3 códigos
+      const isQueryStickers = codeMatches.length >= 1 && looksLikeQuestion
 
       // Fast keyword matching before calling Gemini
       let intent: string
 
-      if (isQuerySingleCode) {
+      if (isQueryStickers) {
         intent = 'query_sticker'
       } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
         intent = 'status'
@@ -1688,83 +1692,113 @@ export async function POST(req: NextRequest) {
         }
 
         case 'query_sticker': {
-          // User perguntando sobre status de uma figurinha específica
-          // (ex: "tenho a BRA-2?", "preciso da FRA-2?", "tenho FRA-2 repetida?").
-          // Resposta tem 3 estados: missing / owned / duplicate (qty>1).
-          const askingAboutDup = /\b(repetida|repetido)\b/i.test(trimmedText)
-          const code = codeMatches[0]?.toUpperCase().replace(/\s+/g, '-').replace(/-+/g, '-') || ''
+          // User perguntando sobre status de UMA OU MAIS figurinhas
+          // (ex: "tenho a BRA-2?", "preciso da FRA-5 e GER-2?",
+          //  "tenho FRA-2 e BRA-1 repetidas?").
+          // Resposta agrupa por status: tem com repetida / tem sem repetida /
+          // ainda não tem.
+          const askingAboutDup = /\b(repetida|repetido)s?\b/i.test(trimmedText)
           const supabaseAdmin = getAdmin()
 
-          // Busca sticker — aceita "BRA-2" ou "BRA2" (sem hífen)
-          const noSepCandidate = code.replace(/-/g, '')
-          const altMatch = noSepCandidate.match(/^([A-Z]{2,5})(\d+)$/)
-          const candidates = [code, altMatch ? `${altMatch[1]}-${altMatch[2]}` : code]
+          // Normaliza cada código pra formato canônico "PAÍS-NÚMERO"
+          // e gera variantes (com/sem hífen) pra resilência.
+          const wantedCodes = Array.from(new Set(
+            codeMatches.map((m) => {
+              const upper = m.toUpperCase().replace(/\s+/g, '-').replace(/-+/g, '-')
+              const noSep = upper.replace(/-/g, '')
+              const alt = noSep.match(/^([A-Z]{2,5})(\d+)$/)
+              return alt ? `${alt[1]}-${alt[2]}` : upper
+            })
+          ))
 
           const { data: stickerData } = await supabaseAdmin
             .from('stickers')
             .select('id, number, player_name')
-            .in('number', candidates)
-            .limit(1)
-          const sticker = stickerData?.[0]
+            .in('number', wantedCodes)
+          const stickers = stickerData || []
 
-          if (!sticker) {
-            await sendText(phone, `🤔 Não achei *${code}* no álbum. Confere se digitou certo (ex: BRA-2, ARG-3, FWC-5).`)
+          // Map dos não-encontrados (digitou errado / código fake)
+          const foundCodes = new Set(stickers.map((s) => s.number))
+          const notFound = wantedCodes.filter((c) => !foundCodes.has(c))
+
+          if (stickers.length === 0) {
+            await sendText(phone, `🤔 Não achei nenhum desses no álbum: *${wantedCodes.join(', ')}*\n\nConfere se digitou certo (ex: BRA-2, ARG-3, FWC-5).`)
             break
           }
 
-          // Status do user
+          // Status de cada um
           const { data: usData } = await supabaseAdmin
             .from('user_stickers')
-            .select('status, quantity')
+            .select('sticker_id, status, quantity')
             .eq('user_id', user.id)
-            .eq('sticker_id', sticker.id)
-            .maybeSingle()
+            .in('sticker_id', stickers.map((s) => s.id))
+          const usMap = new Map((usData || []).map((u) => [u.sticker_id, u]))
 
-          const playerLabel = sticker.player_name ? `*${sticker.player_name}*` : ''
-          const code_display = `*${sticker.number}*`
-
-          if (!usData || usData.quantity === 0) {
-            // Não tem
-            await sendText(
-              phone,
-              `❌ Você ainda *não tem* ${code_display} ${playerLabel}.\n\n` +
-                `📸 Manda uma foto, áudio ("Brasil 2") ou texto ("BRA-2") quando colar essa.`,
-            )
-            break
+          // Agrupa: tem (qty>1) / tem só 1 / não tem
+          const haveDup: typeof stickers = []
+          const haveSingle: typeof stickers = []
+          const missing: typeof stickers = []
+          for (const s of stickers) {
+            const us = usMap.get(s.id)
+            const qty = us?.quantity ?? 0
+            if (qty >= 2) haveDup.push(s)
+            else if (qty === 1) haveSingle.push(s)
+            else missing.push(s)
           }
 
-          const qty = usData.quantity || 1
+          const fmt = (s: { number: string; player_name: string | null }, qty?: number) => {
+            const name = s.player_name ? ` ${s.player_name}` : ''
+            const tail = qty && qty > 1 ? ` _(x${qty})_` : ''
+            return `• *${s.number}*${name}${tail}`
+          }
+
+          // Modo "perguntou sobre repetidas": resposta foca em qty>1
           if (askingAboutDup) {
-            // Pergunta específica sobre repetida
-            if (qty <= 1) {
-              await sendText(
-                phone,
-                `📋 Você tem ${code_display} ${playerLabel}, mas *não está repetida*. (Apenas 1 unidade.)`,
-              )
-            } else {
-              const extras = qty - 1
-              await sendText(
-                phone,
-                `🔁 Sim! Você tem *${extras} repetida(s)* de ${code_display} ${playerLabel} _(total: ${qty})_.\n\n` +
-                  `💡 Manda *trocas* pra ver oportunidades de troca perto de você.`,
-              )
+            const lines: string[] = []
+            if (haveDup.length > 0) {
+              lines.push(`🔁 *Repetida(s) que você tem:*`)
+              for (const s of haveDup) {
+                const q = usMap.get(s.id)?.quantity || 0
+                lines.push(fmt(s, q))
+              }
             }
+            const notDup = [...haveSingle, ...missing]
+            if (notDup.length > 0) {
+              if (lines.length > 0) lines.push('')
+              lines.push(`📋 *Não está repetida:*`)
+              for (const s of haveSingle) lines.push(`${fmt(s)} _(tem 1)_`)
+              for (const s of missing) lines.push(`${fmt(s)} _(ainda não tem)_`)
+            }
+            if (haveDup.length > 0) {
+              lines.push('')
+              lines.push(`💡 Manda *trocas* pra ver oportunidades perto de você.`)
+            }
+            await sendText(phone, lines.join('\n'))
             break
           }
 
-          // Pergunta geral "tenho?"
-          if (qty === 1) {
-            await sendText(
-              phone,
-              `✅ *Sim!* Você já tem ${code_display} ${playerLabel}.\n\n_Mas não tem repetida — só 1 unidade._`,
-            )
-          } else {
-            const extras = qty - 1
-            await sendText(
-              phone,
-              `✅ *Sim!* Você tem ${code_display} ${playerLabel} e mais *${extras} repetida(s)* _(total: ${qty})_.`,
-            )
+          // Modo "tenho?" — resposta agrupa por status
+          const lines: string[] = []
+          const haveAll = [...haveDup, ...haveSingle]
+          if (haveAll.length > 0) {
+            lines.push(`✅ *Você tem:*`)
+            for (const s of haveDup) {
+              const q = usMap.get(s.id)?.quantity || 0
+              lines.push(`${fmt(s)} _(${q - 1} repetida${q - 1 > 1 ? 's' : ''})_`)
+            }
+            for (const s of haveSingle) lines.push(`${fmt(s)} _(sem repetida)_`)
           }
+          if (missing.length > 0) {
+            if (lines.length > 0) lines.push('')
+            lines.push(`❌ *Ainda falta:*`)
+            for (const s of missing) lines.push(fmt(s))
+          }
+          if (notFound.length > 0) {
+            if (lines.length > 0) lines.push('')
+            lines.push(`⚠️ Não encontrei no álbum: ${notFound.join(', ')}`)
+          }
+
+          await sendText(phone, lines.join('\n'))
           break
         }
 
