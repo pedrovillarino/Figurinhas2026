@@ -573,11 +573,16 @@ export default function AlbumClient({
           </div>
           <div className="text-left">
             {/* Pedro 2026-05-02: mostra TOTAL de cromos extras pra trocar
-                (totalDupeQty), não número de figurinhas distintas com extras.
-                Antes: 1 figurinha c/ qty=2 → mostrava "1" (figurinhas).
-                Agora: → mostra "1" (cromos extras). qty=3 → "2", e por aí. */}
+                (totalDupeQty) como número principal — é o que importa pra
+                trocas. Sublabel mostra também quantas figurinhas distintas
+                têm repetidas, pra contexto. Ex: "3 cromos · 1 fig". */}
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.totalDupeQty}</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Repetidas</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">
+              Repetidas
+              {stats.duplicates > 0 && (
+                <span className="text-gray-400"> · {stats.duplicates} {stats.duplicates === 1 ? 'fig' : 'figs'}</span>
+              )}
+            </p>
           </div>
         </button>
       </div>
