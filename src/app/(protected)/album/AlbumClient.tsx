@@ -50,6 +50,16 @@ export default function AlbumClient({
   const [expanded, setExpanded] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('sections')
   const [showExport, setShowExport] = useState(false)
+  // Pedro 2026-05-02: stats badges clicáveis. Ref pra scrollar até a grid
+  // de figurinhas quando user clicar em "Faltam" / "Repetidas" no header.
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const goToTab = useCallback((tab: Tab) => {
+    setActiveTab(tab)
+    // Scroll suave pra grid (header das tabs) — espera 1 tick pra DOM atualizar
+    setTimeout(() => {
+      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }, [])
   const [showImport, setShowImport] = useState(false)
   const [visibleCount, setVisibleCount] = useState(40)
   const [openSections, setOpenSections] = useState<Set<string>>(new Set())
@@ -412,16 +422,19 @@ export default function AlbumClient({
   function renderCard(sticker: Sticker) {
     const qty = getQuantity(sticker.id)
     const isExpanded = expanded === sticker.id
+    // Pedro 2026-05-02: badge mostra REPETIDAS (extras), não cópias totais.
+    // qty=2 (1 colada + 1 extra) → "+1". qty=3 (1 colada + 2 extras) → "+2".
+    const extras = qty > 1 ? qty - 1 : 0
 
     return (
       <div
         key={sticker.id}
         className={`relative rounded-xl border text-center transition-all duration-200 ${getCardStyle(sticker.id)}`}
       >
-        {/* Quantity badge */}
+        {/* Repetidas badge — mostra quantos EXTRAS o user tem (qty - 1) */}
         {qty > 1 && (
-          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-blue-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm z-10">
-            {qty}
+          <span className="absolute -top-1 -right-1 min-w-5 h-4 px-1 bg-blue-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm z-10">
+            +{extras}
           </span>
         )}
         {qty === 1 && (
@@ -519,35 +532,54 @@ export default function AlbumClient({
         </div>
       </header>
 
-      {/* Stats row */}
+      {/* Stats row — Pedro 2026-05-02: clicáveis (mudam aba + scroll) */}
       <div className="flex gap-2 mb-4">
-        <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
+        <button
+          type="button"
+          onClick={() => goToTab('all')}
+          aria-label="Ver todas as figurinhas"
+          className={`flex-1 flex items-center gap-2.5 bg-white rounded-xl border p-3 active:scale-[0.98] transition-all ${activeTab === 'all' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-100 hover:border-emerald-200'}`}
+        >
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
-          <div>
+          <div className="text-left">
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.owned}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Coladas</p>
           </div>
-        </div>
-        <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => goToTab('missing')}
+          aria-label="Ver figurinhas que faltam"
+          className={`flex-1 flex items-center gap-2.5 bg-white rounded-xl border p-3 active:scale-[0.98] transition-all ${activeTab === 'missing' ? 'border-orange-300 ring-1 ring-orange-200' : 'border-gray-100 hover:border-orange-200'}`}
+        >
           <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-orange-400" />
           </div>
-          <div>
+          <div className="text-left">
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.missing}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Faltam</p>
           </div>
-        </div>
-        <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => goToTab('duplicates')}
+          aria-label="Ver figurinhas repetidas"
+          className={`flex-1 flex items-center gap-2.5 bg-white rounded-xl border p-3 active:scale-[0.98] transition-all ${activeTab === 'duplicates' ? 'border-blue-300 ring-1 ring-blue-200' : 'border-gray-100 hover:border-blue-200'}`}
+        >
           <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
           </div>
-          <div>
-            <p className="text-lg font-bold text-gray-800 leading-none">{stats.duplicates}</p>
+          <div className="text-left">
+            {/* Pedro 2026-05-02: mostra TOTAL de cromos extras pra trocar
+                (totalDupeQty), não número de figurinhas distintas com extras.
+                Antes: 1 figurinha c/ qty=2 → mostrava "1" (figurinhas).
+                Agora: → mostra "1" (cromos extras). qty=3 → "2", e por aí. */}
+            <p className="text-lg font-bold text-gray-800 leading-none">{stats.totalDupeQty}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Repetidas</p>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Scan, Export & Import — compact row */}
@@ -620,8 +652,8 @@ export default function AlbumClient({
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+      {/* Tabs — alvo do scroll quando user clica nos stats badges */}
+      <div ref={tabsRef} className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1 scroll-mt-4">
         {tabs.map((tab) => (
           <button
             key={tab.key}
