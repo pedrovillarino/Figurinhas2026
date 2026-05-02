@@ -219,10 +219,34 @@ async function getGeoDistribution() {
   return { cities, withCity, withoutCity }
 }
 
+/**
+ * Returns the ISO timestamp of midnight today in BRT (São Paulo timezone),
+ * expressed in UTC. BRT is UTC-3 (no DST since 2019).
+ *
+ * Why: the admin counts "scans hoje" but `scan_usage.scan_date` is stored
+ * in UTC (because Postgres CURRENT_DATE runs in UTC). Using UTC as "today"
+ * makes the counter zero out at 21h BRT instead of midnight BRT, which is
+ * confusing for the Brazilian operator. This helper lets the admin filter
+ * by the actual BRT day boundary using `last_scan_at >= startOfDayBrt()`.
+ */
+function startOfDayBrtAsUtc(): Date {
+  const now = new Date()
+  // Shift by BRT offset (-3h) to get a Date whose UTC components match BRT
+  // wall-clock components.
+  const brtView = new Date(now.getTime() - 3 * 60 * 60 * 1000)
+  // Build "midnight BRT" = "03:00 UTC of that BRT-date"
+  return new Date(Date.UTC(
+    brtView.getUTCFullYear(),
+    brtView.getUTCMonth(),
+    brtView.getUTCDate(),
+    3, 0, 0, 0,
+  ))
+}
+
 async function getMetrics() {
   const sb = supabaseAdmin()
   const now = new Date()
-  const todayStr = now.toISOString().split('T')[0]
+  const startOfDayBrt = startOfDayBrtAsUtc()
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   // Run all queries in parallel
@@ -245,10 +269,13 @@ async function getMetrics() {
     // Users by tier
     sb.from('profiles').select('tier'),
 
-    // Scans today
+    // Scans today (BRT) — usa last_scan_at em vez de scan_date pra alinhar
+    // o "hoje" com a meia-noite BRT (e não UTC). Aproximação: conta scan_count
+    // de toda row cujo último scan foi após meia-noite BRT. Pode haver pequena
+    // imprecisão se a row cruza o boundary BRT, mas é melhor que UTC pro user.
     sb.from('scan_usage')
       .select('scan_count')
-      .eq('scan_date', todayStr),
+      .gte('last_scan_at', startOfDayBrt.toISOString()),
 
     // Trades completed (approved)
     sb.from('trade_requests')
@@ -285,10 +312,10 @@ async function getMetrics() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'expired'),
 
-    // Top scanners today
+    // Top scanners today (BRT) — mesma lógica do "scans today"
     sb.from('scan_usage')
       .select('user_id, scan_count')
-      .eq('scan_date', todayStr)
+      .gte('last_scan_at', startOfDayBrt.toISOString())
       .order('scan_count', { ascending: false })
       .limit(5),
   ])
