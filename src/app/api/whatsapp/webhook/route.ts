@@ -3,7 +3,7 @@ import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
-import { expandCountryNamesToCodes } from '@/lib/country-codes'
+import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
@@ -97,16 +97,15 @@ Retorne APENAS JSON:
 
 // ─── Welcome message for unknown users ───
 function getWelcomeMessage(phone: string) {
-  // Mensagem usada no PRIMEIRO contato — vende a solução + pede o nome
-  // diretamente. Cria pending_registration state='awaiting_name' antes de
-  // mandar essa mensagem (lá em baixo, no flow do webhook).
+  // Primeiro contato — tom amigável, pergunta natural pelo nome.
+  // Os Termos saem só depois (na confirmação pós-criação) pra reduzir
+  // atrito da primeira interação. Pedro pediu (2026-05-02): "menos
+  // robotizado, sem disclaimer no início".
   return `Olá! 👋 Sou o assistente do *Complete Aí* ⚽
 
-Use *IA* pra escanear suas figurinhas, completar seu álbum mais fácil e achar *trocas perto de você*.
+Aqui você escaneia suas figurinhas com IA, fica sabendo das *trocas perto de você* e completa o álbum mais rápido.
 
-Pra começar, *como você se chama?*
-
-_Ao continuar, você aceita os Termos de Uso (${APP_URL}/termos) e a Privacidade (${APP_URL}/privacidade)._
+Antes de mais nada, *como devo te chamar?* 😊
 
 📱 _Se preferir cadastro pelo site (Google/email): ${APP_URL}/register?phone=${phone}_`
 }
@@ -259,18 +258,52 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
           `✏️ *Texto* — também aceita _"BRA-1 ARG-3"_\n\n` +
           `Manda *menu* a qualquer hora pra ver tudo que sei fazer.\n\n` +
           `Quando quiser entrar no site (${APP_URL}), faz login com esse email e te mando um link de acesso. 🔓\n\n` +
-          `Bom proveito! 💚`,
+          `Bom proveito! 💚\n\n` +
+          `_Ao usar o serviço você aceita os Termos (${APP_URL}/termos) e a Privacidade (${APP_URL}/privacidade)._`,
       )
       return true
     }
 
     // Handle error cases gracefully
     if (result.error === 'email_already_registered') {
+      // Caso comum: user já cadastrou pelo site (com Google/email) mas sem
+      // associar phone. Em vez de mandar ele de volta pro site, vinculamos
+      // o phone do WhatsApp ao profile existente — assim ele cai logado e
+      // vê tudo que já tinha.
+      const digitsPhone = phone.replace(/\D/g, '')
+      const { data: linkedProfile } = await supabase
+        .from('profiles')
+        .update({ phone: digitsPhone })
+        .eq('email', email)
+        .is('phone', null)  // só vincula se ainda não tem phone
+        .select('id, display_name')
+        .maybeSingle()
+
+      // Apaga pending_registration de qualquer forma
+      await supabase.from('pending_registrations').delete().eq('id', pending.id)
+
+      if (linkedProfile) {
+        // Vinculou com sucesso → user agora é reconhecido
+        const firstName = (linkedProfile.display_name || name || '').split(' ')[0]
+        await sendText(
+          phone,
+          `✅ Achei seu cadastro${firstName ? `, *${firstName}*` : ''}! Conectei seu WhatsApp à conta. 🔓\n\n` +
+            `Agora pode usar tudo aqui:\n` +
+            `📸 *Foto* das figurinhas\n` +
+            `🎤 *Áudio* falando os códigos\n` +
+            `✏️ *Texto* tipo "BRA-1 ARG-3"\n\n` +
+            `Manda *menu* pra ver tudo. 💚`,
+        )
+        return true
+      }
+
+      // Profile existe mas já tem phone (não-nulo, possivelmente outro phone)
+      // → manda pro site fazer login com magic link
       await sendText(
         phone,
-        `⚠️ Esse email *já está cadastrado* no Complete Aí.\n\n` +
-          `Entra no site (${APP_URL}/login) e faz login com esse email — vou mandar um link de acesso pra ele. 🔗\n\n` +
-          `Se não foi você que cadastrou, manda *outro email* aqui que eu uso esse novo.`,
+        `⚠️ Esse email *já está em uma conta* do Complete Aí com outro número associado.\n\n` +
+          `Se for você, entra no site (${APP_URL}/login) com esse email — vou mandar um link de acesso. 🔗\n\n` +
+          `Se não, manda *outro email* aqui.`,
       )
       return true
     }
@@ -620,11 +653,16 @@ async function transcribeAudio(audioBase64: string, mimeType: string): Promise<s
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction:
-        'You receive a Portuguese audio message from a Panini sticker album user. Transcribe it verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
+        'You receive a Portuguese audio message from a Panini sticker album user listing sticker codes. ' +
+        'Transcribe verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. ' +
+        'IMPORTANT: Convert ALL spelled-out numbers to digits — "três" → "3", "treze" → "13", ' +
+        '"vinte e cinco" → "25", "número quinze" → "15". Country names stay as spoken: ' +
+        '"Espanha 3", "Cabo Verde 7", "Brasil 12". ' +
+        'If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
     })
     const result = await model.generateContent([
       { inlineData: { mimeType, data: audioBase64 } },
-      { text: 'Transcreva este áudio em português.' },
+      { text: 'Transcreva este áudio em português, convertendo números por extenso para dígitos.' },
     ])
     const text = result.response.text().trim()
     if (!text || text.toUpperCase().includes('UNINTELLIGIBLE')) return null
@@ -1124,7 +1162,18 @@ export async function POST(req: NextRequest) {
             return ns.map((n) => `${country}-${n}`).join(' ')
           },
         )
-      const text = expandMultiNoColon(expandWithColon(expandCountryNamesToCodes(rawText)))
+      // Pipeline:
+      // 1) "Espanha três" → "Espanha 3"  (convertSpelledNumbersToDigits)
+      // 2) "Espanha 3"   → "ESP 3"        (expandCountryNamesToCodes)
+      // 3) "ESP: 1, 2"   → "ESP-1 ESP-2"  (expandWithColon)
+      // 4) "ESP 1 2 3"   → "ESP-1 ESP-2 ESP-3" (expandMultiNoColon)
+      // O passo 1 é crítico pra áudio: Gemini frequentemente transcreve
+      // números por extenso quando o user fala o país por nome.
+      const text = expandMultiNoColon(
+        expandWithColon(
+          expandCountryNamesToCodes(convertSpelledNumbersToDigits(rawText)),
+        ),
+      )
 
       const lower = text.trim().toLowerCase()
 

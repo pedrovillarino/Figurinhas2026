@@ -94,3 +94,82 @@ export function expandCountryNamesToCodes(text: string): string {
   }
   return result
 }
+
+// ─── Spelled-out PT-BR numbers → digits ────────────────────────────────────
+// Problema observado em produção (2026-05-02): quando o user fala um áudio
+// como "Espanha 3" ou "Cabo Verde 7", o Gemini transcreve com o número POR
+// EXTENSO ("Espanha três", "Cabo Verde sete"). Quando fala a sigla soletrada
+// ("E-S-P 3"), aí sim transcreve com o numeral. Resultado: o parser de
+// figurinhas (que exige `\d{1,2}`) só funcionava com siglas. Pedro pediu
+// fix (2026-05-02): "espanha 3 nao estava reconhendo no audio... so quando
+// fala esp 3" + "cabo verde tbm... so quando falava a sigla".
+//
+// O prompt do Gemini já pede pra converter, mas LLM não é determinístico.
+// Esta função é o backup em código: roda DEPOIS da transcrição e ANTES do
+// expandCountryNamesToCodes. Cobre todos os números 0-99 (suficiente pra
+// figurinhas, que vão até ~20).
+
+const UNITS: Record<string, number> = {
+  zero: 0, um: 1, uma: 1, dois: 2, duas: 2, tres: 3, três: 3, quatro: 4,
+  cinco: 5, seis: 6, meia: 6, sete: 7, oito: 8, nove: 9,
+}
+const TEENS: Record<string, number> = {
+  dez: 10, onze: 11, doze: 12, treze: 13, quatorze: 14, catorze: 14,
+  quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19,
+}
+const TENS: Record<string, number> = {
+  vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, cinqüenta: 50,
+  sessenta: 60, setenta: 70, oitenta: 80, noventa: 90,
+}
+
+// Build alternation in length-DESC order so "dezessete" matches before "dez".
+const ALL_NUMBER_WORDS = [
+  ...Object.keys(TENS),
+  ...Object.keys(TEENS),
+  ...Object.keys(UNITS),
+].sort((a, b) => b.length - a.length)
+
+/**
+ * Converts spelled-out Portuguese numbers (0-99) to digits.
+ *
+ * Handles:
+ *   "três" → "3"
+ *   "treze" → "13"
+ *   "vinte" → "20"
+ *   "vinte e cinco" → "25"
+ *   "vinte cinco" → "25" (some Gemini transcriptions skip "e")
+ *   "Espanha três" → "Espanha 3"
+ *   "Cabo Verde vinte e um" → "Cabo Verde 21"
+ *
+ * Stays defensive: only converts when the spelled-out word is clearly a
+ * number in context (followed by another number-word, end-of-string, or
+ * non-letter). Doesn't touch "umas figurinhas" (here "uma" is article).
+ */
+export function convertSpelledNumbersToDigits(text: string): string {
+  if (!text) return text
+
+  // Pass 1: compound "vinte e cinco" → "25" (and "vinte cinco" without "e")
+  const tensRe = new RegExp(
+    `(?<![\\p{L}\\d])(${Object.keys(TENS).join('|')})(?:\\s+e)?\\s+(${Object.keys(UNITS).join('|')})(?![\\p{L}\\d])`,
+    'giu',
+  )
+  let result = text.replace(tensRe, (_m, t: string, u: string) => {
+    const ten = TENS[t.toLowerCase()]
+    const unit = UNITS[u.toLowerCase()]
+    if (ten == null || unit == null) return _m
+    return String(ten + unit)
+  })
+
+  // Pass 2: standalone words ("três" → "3", "treze" → "13", "vinte" → "20")
+  const standaloneRe = new RegExp(
+    `(?<![\\p{L}\\d])(${ALL_NUMBER_WORDS.join('|')})(?![\\p{L}\\d])`,
+    'giu',
+  )
+  result = result.replace(standaloneRe, (_m, w: string) => {
+    const lc = w.toLowerCase()
+    const v = UNITS[lc] ?? TEENS[lc] ?? TENS[lc]
+    return v == null ? _m : String(v)
+  })
+
+  return result
+}
