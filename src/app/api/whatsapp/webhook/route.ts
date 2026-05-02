@@ -3,7 +3,7 @@ import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
-import { expandCountryNamesToCodes } from '@/lib/country-codes'
+import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
@@ -338,7 +338,8 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
       return true
     }
 
-    // Erro raro: race condition (alguém criou no meio do flow). Tratamento defensivo.
+    // Erro raro: race condition (alguém criou conta no meio do flow). Como
+    // já validamos email no awaiting_email, qualquer erro aqui é inesperado.
     console.error('[register] createUserViaWhatsApp failed:', result)
     await sendText(
       phone,
@@ -671,11 +672,16 @@ async function transcribeAudio(audioBase64: string, mimeType: string): Promise<s
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction:
-        'You receive a Portuguese audio message from a Panini sticker album user. Transcribe it verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
+        'You receive a Portuguese audio message from a Panini sticker album user listing sticker codes. ' +
+        'Transcribe verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. ' +
+        'IMPORTANT: Convert ALL spelled-out numbers to digits — "três" → "3", "treze" → "13", ' +
+        '"vinte e cinco" → "25", "número quinze" → "15". Country names stay as spoken: ' +
+        '"Espanha 3", "Cabo Verde 7", "Brasil 12". ' +
+        'If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
     })
     const result = await model.generateContent([
       { inlineData: { mimeType, data: audioBase64 } },
-      { text: 'Transcreva este áudio em português.' },
+      { text: 'Transcreva este áudio em português, convertendo números por extenso para dígitos.' },
     ])
     const text = result.response.text().trim()
     if (!text || text.toUpperCase().includes('UNINTELLIGIBLE')) return null
@@ -1180,7 +1186,18 @@ export async function POST(req: NextRequest) {
             return ns.map((n) => `${country}-${n}`).join(' ')
           },
         )
-      const text = expandMultiNoColon(expandWithColon(expandCountryNamesToCodes(rawText)))
+      // Pipeline:
+      // 1) "Espanha três" → "Espanha 3"  (convertSpelledNumbersToDigits)
+      // 2) "Espanha 3"   → "ESP 3"        (expandCountryNamesToCodes)
+      // 3) "ESP: 1, 2"   → "ESP-1 ESP-2"  (expandWithColon)
+      // 4) "ESP 1 2 3"   → "ESP-1 ESP-2 ESP-3" (expandMultiNoColon)
+      // O passo 1 é crítico pra áudio: Gemini frequentemente transcreve
+      // números por extenso quando o user fala o país por nome.
+      const text = expandMultiNoColon(
+        expandWithColon(
+          expandCountryNamesToCodes(convertSpelledNumbersToDigits(rawText)),
+        ),
+      )
 
       const lower = text.trim().toLowerCase()
 
