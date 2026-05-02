@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
 import { expandCountryNamesToCodes } from '@/lib/country-codes'
+import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
 
@@ -96,24 +97,18 @@ Retorne APENAS JSON:
 
 // ─── Welcome message for unknown users ───
 function getWelcomeMessage(phone: string) {
+  // Mensagem usada no PRIMEIRO contato — vende a solução + pede o nome
+  // diretamente. Cria pending_registration state='awaiting_name' antes de
+  // mandar essa mensagem (lá em baixo, no flow do webhook).
   return `Olá! 👋 Sou o assistente do *Complete Aí* ⚽
 
-📲 *Antes de começar, crie sua conta gratuita:*
-👉 ${APP_URL}/register?phone=${phone}
+Use *IA* pra escanear suas figurinhas, completar seu álbum mais fácil e achar *trocas perto de você*.
 
-(login rápido com Google ou e-mail — 1 toque)
+Pra começar, *como você se chama?*
 
-━━━━━━━━━━━━━━━
+_Ao continuar, você aceita os Termos de Uso (${APP_URL}/termos) e a Privacidade (${APP_URL}/privacidade)._
 
-✨ *Depois de cadastrado, aqui no WhatsApp você pode:*
-
-📊 *status* — ver seu progresso
-🔍 *faltando* — figurinhas que faltam
-🔁 *repetidas* — suas repetidas pra trocar
-📸 Mandar *foto* de qualquer folha — IA registra automaticamente
-🎁 Receber alertas de *trocas* perto de você
-
-Te espero do outro lado! 🚀`
+📱 _Se preferir cadastro pelo site (Google/email): ${APP_URL}/register?phone=${phone}_`
 }
 
 // ─── Find user by phone ───
@@ -184,6 +179,124 @@ async function findUserByPhone(phone: string) {
     .in('phone', variants)
     .limit(1)
   return data && data.length > 0 ? data[0] : null
+}
+
+/**
+ * State machine pra cadastro inline via WhatsApp.
+ *
+ * Estados:
+ *   awaiting_name  → user envia nome → avança pra awaiting_email
+ *   awaiting_email → user envia email → cria conta e termina
+ *
+ * Retorna `true` se a mensagem foi tratada (cadastro avançou ou completou),
+ * `false` se nada foi feito (caller deve mandar welcome).
+ *
+ * O aceite dos Termos é registrado quando a conta é criada — a mensagem de
+ * welcome avisa que "ao continuar você aceita os Termos" e cada resposta
+ * subsequente é uma confirmação implícita (registramos timestamp).
+ */
+async function handleRegistrationFlow(phone: string, text: string): Promise<boolean> {
+  if (!text) return false
+  const supabase = getAdmin()
+
+  const { data: pending } = await supabase
+    .from('pending_registrations')
+    .select('id, state, name, email')
+    .eq('phone', phone)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle()
+
+  if (!pending) return false
+
+  const trimmed = text.trim()
+
+  if (pending.state === 'awaiting_name') {
+    // Validate name: at least 2 chars, contains a letter (not just numbers/symbols)
+    if (trimmed.length < 2 || !/[a-zA-ZÀ-ÿ]/.test(trimmed)) {
+      await sendText(phone, `🤔 Hmm, não peguei seu nome. Manda só seu *primeiro nome* (ou nome completo).`)
+      return true
+    }
+    // Cap to 80 chars to avoid spam abuse
+    const name = trimmed.slice(0, 80)
+    await supabase
+      .from('pending_registrations')
+      .update({ name, state: 'awaiting_email', updated_at: new Date().toISOString() })
+      .eq('id', pending.id)
+    const firstName = name.split(' ')[0]
+    await sendText(
+      phone,
+      `Beleza, *${firstName}*! 👋\n\n` +
+        `Agora me passa seu *email* — vou usar pra você acessar o site quando quiser, e te avisar de coisa importante.\n\n` +
+        `_Pode ser o do Google, ou qualquer outro que você usa._`,
+    )
+    return true
+  }
+
+  if (pending.state === 'awaiting_email') {
+    if (!isValidEmail(trimmed)) {
+      await sendText(
+        phone,
+        `🤔 Esse email não tá certo. Tem que ter formato tipo *seunome@gmail.com*.\n\nManda de novo?`,
+      )
+      return true
+    }
+    const email = normalizeEmail(trimmed)
+    const name = pending.name || ''
+
+    // Try to create the account
+    const result = await createUserViaWhatsApp({ phone, name, email })
+
+    if (result.ok) {
+      // Cleanup pending row
+      await supabase.from('pending_registrations').delete().eq('id', pending.id)
+      const firstName = name.split(' ')[0] || ''
+      await sendText(
+        phone,
+        `✅ *Conta criada${firstName ? `, ${firstName}` : ''}!* 🎉\n\n` +
+          `Já pode usar tudo aqui pelo WhatsApp:\n` +
+          `📸 *Foto* das figurinhas — eu identifico com IA\n` +
+          `🎤 *Áudio* falando os códigos (ex: _"Brasil 1, Argentina 3"_)\n` +
+          `✏️ *Texto* — também aceita _"BRA-1 ARG-3"_\n\n` +
+          `Manda *menu* a qualquer hora pra ver tudo que sei fazer.\n\n` +
+          `Quando quiser entrar no site (${APP_URL}), faz login com esse email e te mando um link de acesso. 🔓\n\n` +
+          `Bom proveito! 💚`,
+      )
+      return true
+    }
+
+    // Handle error cases gracefully
+    if (result.error === 'email_already_registered') {
+      await sendText(
+        phone,
+        `⚠️ Esse email *já está cadastrado* no Complete Aí.\n\n` +
+          `Entra no site (${APP_URL}/login) e faz login com esse email — vou mandar um link de acesso pra ele. 🔗\n\n` +
+          `Se não foi você que cadastrou, manda *outro email* aqui que eu uso esse novo.`,
+      )
+      return true
+    }
+    if (result.error === 'phone_already_registered') {
+      // Shouldn't happen (we checked earlier), but defensive
+      await supabase.from('pending_registrations').delete().eq('id', pending.id)
+      await sendText(phone, `✅ Esse número já tem cadastro! Manda *menu* pra começar.`)
+      return true
+    }
+    if (result.error === 'auth_create_failed' && /already.*registered|exists/i.test(result.message)) {
+      await sendText(
+        phone,
+        `⚠️ Já tem uma conta com esse email. Entra no site em ${APP_URL}/login e usa esse email pra entrar.`,
+      )
+      return true
+    }
+    // Unknown error — log and ask to try again
+    console.error('[register] createUserViaWhatsApp failed:', result)
+    await sendText(
+      phone,
+      `Hmm, deu um erro tentando criar sua conta agora. Tenta de novo daqui a pouco, ou cadastra pelo site: ${APP_URL}/register?phone=${phone}`,
+    )
+    return true
+  }
+
+  return false
 }
 
 // ─── Get user stats ───
@@ -863,9 +976,23 @@ export async function POST(req: NextRequest) {
     // Find user by phone
     const user = await findUserByPhone(phone)
 
-    // Unknown user → welcome message
+    // Unknown user → check pending_registration state machine OR send welcome
     if (!user) {
+      // Extract message text early (available for any messageType — text/audio
+      // transcription happens later, but for registration we only need text).
+      const earlyText = (body.text?.message || body.body || body.message || '').toString().trim()
+      const handled = await handleRegistrationFlow(phone, earlyText)
+      if (handled) {
+        return NextResponse.json({ ok: true })
+      }
       await sendText(phone, getWelcomeMessage(phone))
+      // Create pending_registration in awaiting_name state so the next message
+      // is interpreted as the user's name. Idempotent: ON CONFLICT updates
+      // updated_at + resets state.
+      const supabaseAdmin = getAdmin()
+      await supabaseAdmin
+        .from('pending_registrations')
+        .upsert({ phone, state: 'awaiting_name', expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }, { onConflict: 'phone' })
       return NextResponse.json({ ok: true })
     }
 
