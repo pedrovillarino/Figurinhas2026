@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { normalizePhoneBR } from '@/lib/phone'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,11 +10,12 @@ export const dynamic = 'force-dynamic'
 // it to the profile after the user finishes Google/email signup, then
 // redirects to the home page with a hint flag for analytics.
 export async function GET(req: NextRequest) {
-  const phone = (req.nextUrl.searchParams.get('phone') ?? '').replace(/\D/g, '')
+  const phone = normalizePhoneBR(req.nextUrl.searchParams.get('phone'))
 
   const response = NextResponse.redirect(new URL('/?from=whatsapp', req.url))
 
-  if (/^\d{10,13}$/.test(phone)) {
+  // Só armazena se ficou no formato canônico 13 dig (55+DDD+9+8)
+  if (phone && /^55\d{2}9\d{8}$/.test(phone)) {
     response.cookies.set('pending_phone', phone, {
       maxAge: 60 * 60 * 24, // 1 day
       sameSite: 'lax',

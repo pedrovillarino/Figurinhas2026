@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { inferCityFromPhone } from '@/lib/ddd'
+import { normalizePhoneBR } from '@/lib/phone'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,9 +17,12 @@ export const dynamic = 'force-dynamic'
 // moment the user grants GPS or types a precise neighborhood.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const phone = String(body.phone ?? '').replace(/\D/g, '')
+  // Normaliza pro formato canônico 13 dig 55+DDD+9+8 antes de gravar.
+  // O trigger no DB também normaliza, mas aqui validamos pra retornar 400
+  // sem ida ao banco se vier lixo.
+  const phone = normalizePhoneBR(String(body.phone ?? ''))
 
-  if (!/^\d{10,13}$/.test(phone)) {
+  if (!phone || !/^55\d{2}9\d{8}$/.test(phone)) {
     return NextResponse.json({ error: 'invalid phone' }, { status: 400 })
   }
 
