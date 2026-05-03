@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import StickerStats from '@/components/StickerStats'
 import RankingShareButton from '@/components/RankingShareButton'
+import UserTierBadge from '@/components/UserTierBadge'
+import type { Tier } from '@/lib/tiers'
 
 type RankingData = {
   owned_count: number
@@ -434,11 +436,11 @@ export default function RankingPageClient({
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-xs font-medium truncate ${isMe ? 'text-brand font-bold' : 'text-navy'}`}>
                           {isMe ? 'Você' : (entry.display_name?.split(' ')[0] || 'Colecionador')}
                         </span>
-                        {entry.tier === 'copa_completa' && <span className="text-[8px]">⭐</span>}
+                        <UserTierBadge tier={entry.tier as Tier} size="xs" />
                       </div>
                       <span className="text-[10px] text-gray-400">{entry.owned_count} figurinhas</span>
                     </div>

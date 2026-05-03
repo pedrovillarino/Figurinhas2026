@@ -222,6 +222,75 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Pedro 2026-05-03: notificação em TEMPO REAL pra Copa Completa ──
+    // Recipientes Copa Completa não esperam o cron diário — recebem msg
+    // imediata quando alguém perto registra figurinha que falta a eles.
+    // Diferencial premium do plano. Não bloqueia o response (waitUntil).
+    if (candidates.length > 0) {
+      const recipientIds = Array.from(new Set(candidates.map((c) => c.recipient_id)))
+      const { data: copaProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, phone, tier, notify_channel')
+        .eq('tier', 'copa_completa')
+        .in('id', recipientIds)
+      if (copaProfiles && copaProfiles.length > 0) {
+        // Fire and forget — não bloqueia
+        const realtimeNotify = async () => {
+          const { sendText, formatPhone } = await import('@/lib/zapi')
+          const { logNotificationSent } = await import('@/lib/notification-queue')
+          // Buscar nomes das figurinhas pra mensagem
+          const stickerIds = Array.from(new Set(candidates.map((c) => c.sticker_id)))
+          const { data: stickerInfo } = await supabase
+            .from('stickers')
+            .select('id, number, player_name')
+            .in('id', stickerIds)
+          const stickerById = new Map((stickerInfo || []).map((s) => [s.id, s]))
+          const scannerProfile = await supabase.from('profiles').select('display_name').eq('id', user_id).maybeSingle()
+          const scannerName = scannerProfile.data?.display_name?.split(' ')[0] || 'alguém'
+          for (const copa of copaProfiles as Array<{ id: string; display_name: string | null; phone: string | null; notify_channel: string | null }>) {
+            if (copa.notify_channel === 'none' || !copa.phone) continue
+            const userCandidates = candidates.filter((c) => c.recipient_id === copa.id)
+            const stickerLines = userCandidates.slice(0, 5).map((c) => {
+              const s = stickerById.get(c.sticker_id)
+              return s ? `• *${s.number}* — ${s.player_name || ''} (${c.distance_km} km)` : null
+            }).filter(Boolean).join('\n')
+            const moreCount = Math.max(0, userCandidates.length - 5)
+            const firstName = copa.display_name?.split(' ')[0] || ''
+            const msg =
+              `🏆 *${firstName ? firstName + ', ' : ''}match em tempo real!*\n\n` +
+              `*${scannerName}* registrou figurinha${userCandidates.length > 1 ? 's' : ''} que você precisa:\n\n` +
+              `${stickerLines}` +
+              `${moreCount > 0 ? `\n_+${moreCount} outras_` : ''}\n\n` +
+              `_Notificação imediata é exclusiva do seu plano *Copa Completa*._\n` +
+              `🔔 Veja as trocas: ${process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'}/trades`
+            try {
+              const phone = formatPhone(copa.phone)
+              const ok = await sendText(phone, msg)
+              if (ok) {
+                await supabase.from('profiles').update({ last_match_notified_at: new Date().toISOString() }).eq('id', copa.id)
+                await logNotificationSent({
+                  userId: copa.id,
+                  type: 'copa_realtime_match',
+                  channel: 'whatsapp',
+                  recipient: phone,
+                  messagePreview: msg,
+                })
+              }
+            } catch (err) {
+              console.error('[copa realtime] send failed:', err)
+            }
+          }
+        }
+        // Use waitUntil se disponível, senão fire and forget
+        try {
+          const { waitUntil } = await import('@vercel/functions')
+          waitUntil(realtimeNotify())
+        } catch {
+          realtimeNotify().catch(() => {})
+        }
+      }
+    }
+
     perf.mark('enqueue')
     perf.end({ enqueued, candidates: candidates.length, nearby: nearbyProfiles.length })
 

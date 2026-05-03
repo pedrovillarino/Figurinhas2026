@@ -30,8 +30,10 @@ const TIER_HIGHLIGHTS: Record<string, string[]> = {
   copa_completa: [
     '500 scans com IA (~4.000 figurinhas)',
     'Áudio e trocas ilimitados',
-    'Sem anúncios',
-    'Experiência completa',
+    '⚡ Notificação em tempo real (vs digest diário)',
+    '🎯 Aparece primeiro nas trocas perto',
+    '🏆 Badge dourado exclusivo no ranking',
+    'Sem anúncios · experiência elite',
   ],
 }
 

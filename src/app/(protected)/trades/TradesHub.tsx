@@ -6,6 +6,7 @@ import { getFlag } from '@/lib/countries'
 import TradeBadge from '@/components/TradeBadge'
 import UserRating from '@/components/UserRating'
 import { canTrade, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, TIER_CONFIG, getTradeLimit, type Tier } from '@/lib/tiers'
+import UserTierBadge from '@/components/UserTierBadge'
 import PaywallModal from '@/components/PaywallModal'
 import TradeRequestsBanner from '@/components/TradeRequestsBanner'
 
@@ -32,6 +33,7 @@ type NearbyMatch = {
   review_count?: number
   completed_trades?: number
   composite_score?: number
+  tier?: string  // Pedro 2026-05-03: badge Copa Completa
 }
 
 type PendingRequest = {
@@ -755,10 +757,11 @@ export default function TradesHub({
                         {getInitials(match.display_name)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                           <span className="text-xs font-semibold text-gray-800 truncate">
                             {match.display_name?.split(' ')[0] || 'Usuário'}
                           </span>
+                          <UserTierBadge tier={match.tier as Tier | undefined} size="xs" />
                           <span className="text-[9px] text-gray-400">{match.distance_km} km</span>
                         </div>
                         <div className="flex gap-1.5 flex-wrap">

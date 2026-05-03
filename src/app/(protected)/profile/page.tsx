@@ -8,6 +8,7 @@ import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, TRA
 import type { Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 import ProfileQRCode from '@/components/ProfileQRCode'
+import UserTierBadge from '@/components/UserTierBadge'
 
 type Profile = {
   display_name: string | null
@@ -447,9 +448,12 @@ export default function ProfilePage() {
           <div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center text-brand text-xl font-bold">
             {profile?.display_name?.[0]?.toUpperCase() || '?'}
           </div>
-          <div>
-            <p className="font-semibold">{profile?.display_name || 'Usuário'}</p>
-            <p className="text-xs text-gray-500">{profile?.email}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold">{profile?.display_name || 'Usuário'}</p>
+              <UserTierBadge tier={profile?.tier} size="sm" />
+            </div>
+            <p className="text-xs text-gray-500 truncate">{profile?.email}</p>
           </div>
         </div>
 
@@ -550,11 +554,12 @@ export default function ProfilePage() {
                   <p className="text-[10px] text-gray-700 leading-tight mt-0.5">150 scans · 15 trocas<br/>Pacotes 50% off · sem ads</p>
                 </div>
               )}
-              <div className="bg-gradient-to-br from-emerald-50 to-brand-light/40 rounded-lg border border-emerald-300 p-3 text-center">
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Copa Completa</p>
+              <div className="bg-gradient-to-br from-emerald-50 to-brand-light/40 rounded-lg border-2 border-emerald-300 p-3 text-center relative">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded-full whitespace-nowrap">🏆 ELITE</span>
+                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide mt-1">Copa Completa</p>
                 <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
-                <p className="text-[10px] font-bold text-emerald-700 mt-1.5">🏆 Tudo ilimitado</p>
-                <p className="text-[10px] text-gray-700 leading-tight mt-0.5">500 scans · áudios ∞<br/>Trocas ∞ · sem ads</p>
+                <p className="text-[10px] font-bold text-emerald-700 mt-1.5">⚡ Notif tempo real</p>
+                <p className="text-[10px] text-gray-700 leading-tight mt-0.5">500 scans · tudo ∞<br/>🎯 Top dos matches · 🏆 Badge</p>
               </div>
             </div>
 
