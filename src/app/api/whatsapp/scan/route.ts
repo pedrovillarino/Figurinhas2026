@@ -522,21 +522,25 @@ export async function POST(req: NextRequest) {
       ? `\n\n📸 _Foto com *${filledStickers.length} cromos* — passou do recomendado (10). A assertividade cai bastante; confira tudo antes de salvar e use *tirar N* pra remover erros._`
       : ''
 
+    // Pedro 2026-05-03 (caso Joao Gabriel): user respondeu "TIRAR N" achando
+    // que era o comando literal. E quando tem 1 item só, oferecer TIRAR
+    // confunde mais que ajuda. Adapta conforme totalStickersFound.
+    const exampleN = Math.min(totalStickersFound, 3)
     let msg: string
     if (totalPending === 1) {
-      // First (or only) scan pending
       msg = `📋 *Encontrei ${totalStickersFound} figurinha(s):*\n\n`
       msg += previewLines.join('\n')
       msg += lowConfNote
       msg += gapNote
       msg += overLimitNote
       msg += '\n\n💡 Pode mandar mais fotos! Quando terminar:'
-      msg += '\n✅ *SIM* → registra tudo'
-      msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
-      msg += '\n❌ *NÃO* → cancela tudo'
+      msg += totalStickersFound === 1 ? '\n✅ *SIM* → registra' : '\n✅ *SIM* → registra tudo'
+      if (totalStickersFound >= 2) {
+        msg += `\n✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} (vale também: _tirar 2,5_)`
+      }
+      msg += '\n❌ *NÃO* → cancela'
       msg += '\n\n⏰ _Expira em 1h se não responder_'
     } else {
-      // Additional scans — accumulating
       msg = `📋 *+${totalStickersFound} figurinha(s) detectada(s):*\n\n`
       msg += previewLines.join('\n')
       msg += lowConfNote
@@ -545,7 +549,9 @@ export async function POST(req: NextRequest) {
       msg += `\n\n📦 *${totalPending} fotos pendentes no total.*`
       msg += '\nMande mais fotos ou responda:'
       msg += '\n✅ *SIM* → registra todas'
-      msg += '\n✏️ *TIRAR 3* → remove item 3 desta foto (_tirar 2,5_)'
+      if (totalStickersFound >= 2) {
+        msg += `\n✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} desta foto (_tirar 2,5_)`
+      }
       msg += '\n❌ *NÃO* → cancela todas'
     }
 

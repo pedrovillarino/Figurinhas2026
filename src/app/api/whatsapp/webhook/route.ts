@@ -236,13 +236,50 @@ async function hasActivePendingScan(userId: string): Promise<boolean> {
   return !!(data && data.length > 0)
 }
 
-const WAIT_PENDING_MSG =
-  '⏳ *Você ainda tem um registro aguardando confirmação.*\n\n' +
-  'Responde primeiro a anterior:\n' +
-  '✅ *SIM* → registra tudo\n' +
-  '✏️ *TIRAR N* → remove o item N\n' +
-  '❌ *NÃO* → cancela\n\n' +
-  '_Depois eu processo essa nova mensagem._'
+/**
+ * Quantos itens estão num pending_scan ativo do user. Retorna 0 se não tem.
+ * Usado pra adaptar a mensagem WAIT_PENDING (omite "TIRAR" quando tem 1 item só).
+ */
+async function countPendingScanItems(userId: string): Promise<number> {
+  const supabase = getAdmin()
+  const { data } = await supabase
+    .from('pending_scans')
+    .select('scan_data')
+    .eq('user_id', userId)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (!data || data.length === 0) return 0
+  const scanData = (data[0] as { scan_data?: unknown[] }).scan_data
+  return Array.isArray(scanData) ? scanData.length : 0
+}
+
+/**
+ * Mensagem "espera registro pendente" adaptativa:
+ * - 1 item: oferece só SIM/NÃO (TIRAR não faz sentido)
+ * - 2+ itens: também oferece TIRAR <número> com exemplo concreto
+ *
+ * Pedro 2026-05-03 (caso Joao Gabriel): user respondeu literalmente
+ * "TIRAR N" porque o N parecia parte do comando. Trocamos pra exemplo
+ * com número de verdade.
+ */
+function buildWaitPendingMsg(itemCount: number): string {
+  const head = '⏳ *Você ainda tem um registro aguardando confirmação.*\n\n' +
+    'Responde primeiro a anterior:\n'
+  const tail = '\n\n_Depois eu processo essa nova mensagem._'
+  if (itemCount <= 1) {
+    return head +
+      '✅ *SIM* → registra\n' +
+      '❌ *NÃO* → cancela' +
+      tail
+  }
+  const exampleN = Math.min(itemCount, 3)
+  return head +
+    `✅ *SIM* → registra os ${itemCount} itens\n` +
+    `✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} (troque pelo número que quer remover)\n` +
+    '❌ *NÃO* → cancela' +
+    tail
+}
 
 /**
  * Pedro 2026-05-03 (Fix H — sugestão dele): se a primeira mensagem do user
@@ -1280,8 +1317,9 @@ export async function POST(req: NextRequest) {
     // ─── Image ───
     if (messageType === 'image') {
       // Serializa: 1 registro por vez. Se já tem pending, segura essa foto.
-      if (await hasActivePendingScan(user.id)) {
-        await sendText(phone, WAIT_PENDING_MSG)
+      const pendingItemsImg = await countPendingScanItems(user.id)
+      if (pendingItemsImg > 0) {
+        await sendText(phone, buildWaitPendingMsg(pendingItemsImg))
         return NextResponse.json({ ok: true })
       }
 
@@ -1580,7 +1618,10 @@ export async function POST(req: NextRequest) {
             return `*${i + 1}.* ${label}${qtyLabel}`
           }).join('\n')
           reply += '\n\n✅ *SIM* → registra'
-          reply += '\n✏️ *TIRAR N* → remove mais um item'
+          if (kept.length >= 2) {
+            const exampleN = Math.min(kept.length, 2)
+            reply += `\n✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} (troque pelo número que quer remover)`
+          }
           reply += '\n❌ *NÃO* → cancela tudo'
           await sendText(phone, reply)
         }
@@ -1776,6 +1817,15 @@ export async function POST(req: NextRequest) {
 
       if (isQueryStickers) {
         intent = 'query_sticker'
+      } else if (
+        // Pedro 2026-05-03 (caso Gianlucca): "Quantos scan?" / "scans restantes" /
+        // "quantos áudio" → user quer ver QUOTAS, não estatísticas do álbum.
+        // Detectado ANTES de status pra não cair na regra "quanto" genérica.
+        /\b(quantos?\s+(scans?|fotos?|[áa]udios?|cr[eé]ditos?|trocas?))\b/i.test(lower) ||
+        /\b(scans?|[áa]udios?|trocas?|cr[eé]ditos?)\s+(restantes?|que\s+(me\s+)?sobram?|tenho|posso\s+(usar|fazer)|me\s+sobr[oa])\b/i.test(lower) ||
+        /\b(meu\s+saldo|minhas?\s+(quotas?|cotas?)|quanto\s+(de\s+)?(scan|[áa]udio))\b/i.test(lower)
+      ) {
+        intent = 'quotas'
       } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
         intent = 'status'
       } else if (/(falt|missing|necessito|que me falta|o que falta|quais faltam)/.test(lower) && codeMatches.length === 0) {
@@ -1830,6 +1880,33 @@ export async function POST(req: NextRequest) {
               `🥇 ${stats.extrasGold} ouros · 🥈 ${stats.extrasSilver} pratas · 🥉 ${stats.extrasBronze} bronzes\n` +
               `⭐ ${stats.extrasRegular} regulars · 🥤 ${stats.extrasCocacola} Coca-Cola`,
             nextButtons,
+          )
+          break
+        }
+
+        // Pedro 2026-05-03 (caso Gianlucca): "Quantos scan?" → mostra créditos
+        // restantes (não stats do álbum). Mensagem inclui scan + áudio juntos
+        // pq o user pode ter perguntado sobre qualquer um (e ver os 2 ajuda).
+        case 'quotas': {
+          const userTierQ = ((user as { tier?: string }).tier || 'free') as Tier
+          const quotas = await getQuotas(user.id, userTierQ)
+          const tierLabel = TIER_CONFIG[userTierQ]?.label || 'Free'
+          const fmt = (rem: number, lim: number) => {
+            if (rem === Infinity) return '∞ ilimitado'
+            if (lim === Infinity) return '∞ ilimitado'
+            return `*${rem}* restante${rem !== 1 ? 's' : ''} (de ${lim})`
+          }
+          const upgradeHint =
+            userTierQ === 'copa_completa'
+              ? ''
+              : `\n\n💎 Quer mais? ${APP_URL}/planos`
+          await sendText(
+            phone,
+            `📊 *Seu plano: ${tierLabel}*\n\n` +
+              `📸 Scans: ${fmt(quotas.scansRemaining, quotas.scansLimit)}\n` +
+              `🎤 Áudios: ${fmt(quotas.audiosRemaining, quotas.audiosLimit)}\n\n` +
+              `_Pra ver figurinhas do álbum, manda *status* ou *meu álbum*._` +
+              upgradeHint,
           )
           break
         }
@@ -2141,8 +2218,9 @@ export async function POST(req: NextRequest) {
 
         case 'register': {
           // Serializa: 1 registro por vez. Se já tem pending, segura a mensagem.
-          if (await hasActivePendingScan(user.id)) {
-            await sendText(phone, WAIT_PENDING_MSG)
+          const pendingItemsReg = await countPendingScanItems(user.id)
+          if (pendingItemsReg > 0) {
+            await sendText(phone, buildWaitPendingMsg(pendingItemsReg))
             break
           }
 
@@ -2293,9 +2371,14 @@ export async function POST(req: NextRequest) {
           if (notFound.length > 0) {
             msg += `\n\n⚠️ Não encontradas no álbum: ${notFound.join(', ')}`
           }
-          msg += '\n\n✅ *SIM* → registra tudo'
-          msg += '\n✏️ *TIRAR 3* → remove o item 3 (vale também: _tirar 2,5_)'
-          msg += '\n❌ *NÃO* → cancela tudo'
+          msg += scanData.length === 1
+            ? '\n\n✅ *SIM* → registra'
+            : '\n\n✅ *SIM* → registra tudo'
+          if (scanData.length >= 2) {
+            const exampleN = Math.min(scanData.length, 3)
+            msg += `\n✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} (vale também: _tirar 2,5_)`
+          }
+          msg += '\n❌ *NÃO* → cancela'
           msg += '\n\n⏰ _Expira em 1h se não responder_'
 
           await sendText(phone, msg)
