@@ -664,9 +664,46 @@ function levenshtein(a: string, b: string, maxDistance = 2): number {
  *   "faltando coca cola"          → ['Coca-Cola']
  *   "faltam argetina"             → ['Argentina']  (typo absorved)
  */
+// Stopwords: tokens que não são país nem comando — ignorar durante parsing.
+// Pedro 2026-05-03 (caso 5512982127030 "Preciso de todas do Brasil"): bot
+// pegou "de" → fuzzy com "ger" → Germany; "do" → fuzzy com "por" → Portugal.
+// Lista cobre saudações + conectores + verbos comuns que apareciam em frases
+// naturais ("preciso de todas as figurinhas do brasil" etc).
+const FILTER_STOPWORDS = new Set([
+  // Saudações
+  'ola', 'oi', 'ei', 'oie', 'olar', 'opa', 'eai', 'eae', 'fala',
+  'bomdia', 'boatarde', 'boanoite',
+  // Conectores / artigos
+  'a', 'as', 'o', 'os', 'um', 'uns', 'uma', 'umas',
+  'de', 'do', 'da', 'dos', 'das',
+  'em', 'no', 'na', 'nos', 'nas',
+  'pra', 'para', 'pro', 'por', 'com', 'sem', 'sob',
+  'e', 'ou', 'mas', 'ja', 'se', 'tambem',
+  // Quantificadores
+  'todas', 'todos', 'tudo', 'toda', 'todo',
+  'qualquer', 'algum', 'alguma', 'alguns', 'algumas',
+  'minhas', 'minha', 'meu', 'meus', 'seu', 'sua',
+  // Verbos comuns que aparecem misturados na frase
+  'preciso', 'precisa', 'necessito', 'quero', 'queria', 'gostaria',
+  'tenho', 'tem', 'estou', 'tô', 'to',
+  'mandar', 'manda', 'manda',
+  'ver', 'vê', 've',
+  'lista', 'liste', 'listar',
+  'mostre', 'mostra', 'mostrar',
+  'favor', 'porfavor',
+  // Auxiliares
+  'que', 'qual', 'quais', 'sobre', 'aqui', 'ali', 'la',
+])
+
 function parseSectionFilters(text: string): string[] {
-  // Strip the leading verb so we only look at the country tokens.
+  // Strip the leading verb/saudação so we only look at the country tokens.
+  // Pedro 2026-05-03: adicionada saudação ("ola", "oi", "bom dia") pra
+  // mensagens como "Olá. Preciso de todas do Brasil" não quebrarem.
   const stripped = text.toLowerCase()
+    .replace(
+      /^(ol[áa]|oi|opa|eai|eae|bom\s*dia|boa\s*tarde|boa\s*noite|fala|hey|hi)[.,!?\s]*/i,
+      '',
+    )
     .replace(/^(faltam|faltando|missing|preciso|necessito|que me falta|o que falta|quais faltam|falta)\s*/i, '')
     .trim()
   if (!stripped) return []
@@ -693,14 +730,32 @@ function parseSectionFilters(text: string): string[] {
         break
       }
       // Fuzzy fallback — only for span=1 to avoid spurious matches.
+      // Pedro 2026-05-03: 3 guards adicionais pra evitar fuzzy match espúrio:
+      //  1. Pula stopwords (de/do/todas/preciso/etc) — não eram filtros.
+      //  2. Exige candidate ≥ 4 chars — pra strings de 3 chars dist=2 = 66%
+      //     diferença, qualquer letra "casa" com aliases curtos (bra/ger/por).
+      //  3. Distância proporcional: max 1/3 do tamanho, arredondado pra cima
+      //     (consistente pra palavras maiores, mais rígido pra menores).
       if (span === 1) {
+        if (FILTER_STOPWORDS.has(candidate)) {
+          // stopword conhecida — não tenta fuzzy. Avança e segue.
+          i += 1
+          matched = true
+          break
+        }
+        if (candidate.length < 4) {
+          // Muito curto pra fuzzy seguro. Se não bateu exato, ignora.
+          break
+        }
+        const maxDist = Math.max(1, Math.floor(candidate.length / 4))
         let best: { key: string; dist: number } | null = null
         for (const key of ALIAS_KEYS) {
-          if (Math.abs(key.length - candidate.length) > 2) continue
-          const d = levenshtein(candidate, key, 2)
-          if (d <= 2 && (!best || d < best.dist)) best = { key, dist: d }
+          if (Math.abs(key.length - candidate.length) > maxDist) continue
+          if (key.length < 4) continue // não fuzzy contra aliases muito curtos
+          const d = levenshtein(candidate, key, maxDist)
+          if (d <= maxDist && (!best || d < best.dist)) best = { key, dist: d }
         }
-        if (best && best.dist <= 2) {
+        if (best && best.dist <= maxDist) {
           found.add(SECTION_ALIASES[best.key])
           i += 1
           matched = true
