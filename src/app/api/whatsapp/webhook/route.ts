@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
 import { normalizePhoneBR } from '@/lib/phone'
+import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
@@ -1220,6 +1221,7 @@ export async function POST(req: NextRequest) {
       if (!audioUsageErr && audioUsage && !audioUsage.allowed) {
         const used = audioUsage.current ?? audioLimit
         console.log(`[WhatsApp] Audio limit hit user=${user.id} tier=${userTier} used=${used}/${audioLimit}`)
+        trackEvent(user.id, FUNNEL_EVENTS.AUDIO_LIMIT_HIT, { tier: userTier, metadata: { used, limit: audioLimit } })
         // Mensagem em escada: se ainda tem scan, sugere foto. Senão, texto.
         // Sempre mostra TODAS as opções de upgrade.
         const quotas = await getQuotas(user.id, userTier)
@@ -1263,6 +1265,11 @@ export async function POST(req: NextRequest) {
       }
 
       console.log(`[WhatsApp] Audio transcribed (${transcribed.length} chars): "${transcribed.slice(0, 100)}"`)
+      // Funnel: registra uso de áudio + first_audio (idempotente).
+      // Pedro 2026-05-03: pra rastrear conversão funil de quem usa áudio.
+      const userTierAudio = ((user as { tier?: string }).tier || 'free') as Tier
+      trackEvent(user.id, FUNNEL_EVENTS.AUDIO_USED, { tier: userTierAudio })
+      void trackEventOnce(user.id, FUNNEL_EVENTS.FIRST_AUDIO, { tier: userTierAudio })
       // Inject transcribed text into body, retype as text, and let the text
       // handler below take over naturally.
       body.text = { message: transcribed }

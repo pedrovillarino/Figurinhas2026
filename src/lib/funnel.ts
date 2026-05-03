@@ -22,10 +22,13 @@ export const FUNNEL_EVENTS = {
   // Activation
   FIRST_SCAN: 'first_scan',
   SCAN_USED: 'scan_used',
+  FIRST_AUDIO: 'first_audio',
+  AUDIO_USED: 'audio_used',
   FIRST_TRADE: 'first_trade',
   TRADE_USED: 'trade_used',
   // Paywall encounter
   SCAN_LIMIT_HIT: 'scan_limit_hit',
+  AUDIO_LIMIT_HIT: 'audio_limit_hit',
   TRADE_LIMIT_HIT: 'trade_limit_hit',
   PAYWALL_VIEWED: 'paywall_viewed',
   // Conversion intent

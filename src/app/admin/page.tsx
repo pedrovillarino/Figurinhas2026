@@ -3,6 +3,7 @@ import { TIER_CONFIG, type Tier } from '@/lib/tiers'
 import EmbaixadoresAdminSection from './EmbaixadoresAdminSection'
 import FunnelAdminSection from './FunnelAdminSection'
 import ScanEngagementAdminSection from './ScanEngagementAdminSection'
+import AudioEngagementAdminSection from './AudioEngagementAdminSection'
 import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
 import NotificationsAdminSection from './NotificationsAdminSection'
 
@@ -628,6 +629,9 @@ export default async function AdminPage({
 
       {/* Scan engagement — answers "is scan driving conversion / repeat use?" */}
       <ScanEngagementAdminSection />
+
+      {/* Audio engagement — espelho do scan, mas pra áudio (Pedro 2026-05-03) */}
+      <AudioEngagementAdminSection />
 
       {/* Scan feedback — perceived quality of the scan feature (👍/👎 + comments) */}
       <ScanFeedbackAdminSection />
