@@ -26,6 +26,10 @@ export const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   croatia: 'CRO', croacia: 'CRO', croácia: 'CRO', cro: 'CRO',
   curacao: 'CUW', curaçao: 'CUW', korsou: 'CUW', cuw: 'CUW',
   czechia: 'CZE', 'czech republic': 'CZE', tcheca: 'CZE', 'republica tcheca': 'CZE', 'república tcheca': 'CZE', cze: 'CZE',
+  // Pedro 2026-05-03: variantes que Gemini transcreve em áudio PT-BR
+  checa: 'CZE', 'republica checa': 'CZE', 'república checa': 'CZE',
+  chequia: 'CZE', tchequia: 'CZE', 'tchéquia': 'CZE', 'chéquia': 'CZE',
+  techa: 'CZE', 'republica techa': 'CZE', // typos de transcrição de áudio
   'dr congo': 'COD', 'rd congo': 'COD', 'congo dr': 'COD', 'republica democratica do congo': 'COD', cod: 'COD',
   ecuador: 'ECU', equador: 'ECU', ecu: 'ECU',
   egypt: 'EGY', egito: 'EGY', egy: 'EGY',
