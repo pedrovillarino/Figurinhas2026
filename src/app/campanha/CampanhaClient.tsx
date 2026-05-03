@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { RankingRow, ActiveCoupon } from './page'
+import { displayPublicName } from '@/lib/display-name'
 
 type Stats = {
   confirmed: number
@@ -602,9 +603,8 @@ function PrizeCard({
 
 function RankingRowItem({ row }: { row: RankingRow }) {
   const medal = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : null
-  const name = row.display_name
-    ? row.display_name.split(' ').slice(0, 2).map((n, i) => i === 1 ? `${n.charAt(0)}.` : n).join(' ')
-    : 'Embaixador'
+  // Pedro 2026-05-03: privacidade — só primeiro nome em ranking público.
+  const name = row.is_self ? 'Você' : displayPublicName(row.display_name)
 
   return (
     <div className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 ${row.is_self ? 'bg-brand/5' : ''}`}>

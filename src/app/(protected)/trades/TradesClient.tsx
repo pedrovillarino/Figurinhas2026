@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { displayPublicName } from '@/lib/display-name'
 
 type TradeMatch = {
   user_id: string
@@ -362,7 +363,7 @@ export default function TradesClient({ userId }: { userId: string }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-semibold text-gray-900 truncate">
-                      {match.display_name?.split(' ')[0] || 'Usuário'}
+                      {displayPublicName(match.display_name)}
                     </span>
                     <span className="text-[10px] text-gray-400 shrink-0">
                       {match.distance_km} km

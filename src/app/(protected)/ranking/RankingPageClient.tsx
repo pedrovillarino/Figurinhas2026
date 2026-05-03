@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import StickerStats from '@/components/StickerStats'
 import RankingShareButton from '@/components/RankingShareButton'
 import UserTierBadge from '@/components/UserTierBadge'
+import { displayPublicName } from '@/lib/display-name'
 import type { Tier } from '@/lib/tiers'
 
 type RankingData = {
@@ -438,7 +439,7 @@ export default function RankingPageClient({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-xs font-medium truncate ${isMe ? 'text-brand font-bold' : 'text-navy'}`}>
-                          {isMe ? 'Você' : (entry.display_name?.split(' ')[0] || 'Colecionador')}
+                          {isMe ? 'Você' : displayPublicName(entry.display_name)}
                         </span>
                         <UserTierBadge tier={entry.tier as Tier} size="xs" />
                       </div>

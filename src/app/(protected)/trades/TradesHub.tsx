@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
+import { displayPublicName } from '@/lib/display-name'
 import TradeBadge from '@/components/TradeBadge'
 import UserRating from '@/components/UserRating'
 import { canTrade, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, TIER_CONFIG, getTradeLimit, type Tier } from '@/lib/tiers'
@@ -204,7 +205,7 @@ export default function TradesHub({
           const pending: PendingRequest = {
             id: newReq.id,
             requester_id: newReq.requester_id,
-            requester_name: profile?.display_name || 'Usuário',
+            requester_name: displayPublicName(profile?.display_name),
             requester_avatar: profile?.avatar_url || null,
             they_have: newReq.they_have,
             i_have: newReq.i_have,
@@ -759,7 +760,7 @@ export default function TradesHub({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                           <span className="text-xs font-semibold text-gray-800 truncate">
-                            {match.display_name?.split(' ')[0] || 'Usuário'}
+                            {displayPublicName(match.display_name)}
                           </span>
                           <UserTierBadge tier={match.tier as Tier | undefined} size="xs" />
                           <span className="text-[9px] text-gray-400">{match.distance_km} km</span>

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import TradeBadge from '@/components/TradeBadge'
+import { displayPublicName } from '@/lib/display-name'
 import UserRating from '@/components/UserRating'
 import ComparatorClient from './ComparatorClient'
 
@@ -33,11 +34,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: 'Usuário não encontrado' }
   }
 
+  // Pedro 2026-05-03: privacidade — perfil público externo (URL indexada,
+  // compartilhada). Mostrar apenas primeiro nome pra evitar exposição de
+  // sobrenome E reduzir incentivo a trocas fora da plataforma.
+  const publicName = displayPublicName(profile.display_name)
+
   return {
-    title: `${profile.display_name || 'Colecionador'} — Complete Aí`,
-    description: `${profile.display_name || 'Este colecionador'} já colou ${profile.owned_count} figurinhas e tem ${profile.duplicate_count} repetidas para trocar no Complete Aí.`,
+    title: `${publicName} — Complete Aí`,
+    description: `${publicName} já colou ${profile.owned_count} figurinhas e tem ${profile.duplicate_count} repetidas para trocar no Complete Aí.`,
     openGraph: {
-      title: `${profile.display_name || 'Colecionador'} — Complete Aí`,
+      title: `${publicName} — Complete Aí`,
       description: `${profile.owned_count} figurinhas coladas, ${profile.duplicate_count} repetidas para trocar`,
     },
   }
@@ -118,7 +124,8 @@ export default async function PublicProfilePage({ params }: Props) {
     }
   }
 
-  const displayName = target.display_name || 'Colecionador'
+  // Pedro 2026-05-03: privacidade — só primeiro nome em perfil público.
+  const displayName = displayPublicName(target.display_name)
   const initial = displayName[0]?.toUpperCase() || '?'
   const progressPct = target.total_stickers > 0
     ? Math.round((target.owned_count / target.total_stickers) * 100)
