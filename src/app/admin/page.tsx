@@ -4,6 +4,7 @@ import EmbaixadoresAdminSection from './EmbaixadoresAdminSection'
 import FunnelAdminSection from './FunnelAdminSection'
 import ScanEngagementAdminSection from './ScanEngagementAdminSection'
 import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
+import NotificationsAdminSection from './NotificationsAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -633,6 +634,11 @@ export default async function AdminPage({
 
       {/* Embaixadores campaign — read-only summary (ranking + counters) */}
       <EmbaixadoresAdminSection />
+
+      {/* Pedro 2026-05-03: Notificações automáticas — histórico + taxa de
+          volta 24h por tipo. Útil pra ver se as notificações estão
+          gerando engajamento ou virando ruído. */}
+      <NotificationsAdminSection />
 
       {/* Tier breakdown */}
       <SectionTitle>Usuarios por plano</SectionTitle>

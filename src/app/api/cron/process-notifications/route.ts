@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendText, formatPhone } from '@/lib/zapi'
 import { sendEmail } from '@/lib/email'
+import { logNotificationSent } from '@/lib/notification-queue'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -333,7 +334,17 @@ export async function GET(req: NextRequest) {
       if ((channel === 'whatsapp' || channel === 'both') && phone) {
         try {
           const ok = await sendText(phone, msg)
-          if (ok) sent = true
+          if (ok) {
+            sent = true
+            // Pedro 2026-05-03: log pra admin (taxa de volta 24h)
+            await logNotificationSent({
+              userId: recipientId,
+              type: 'match_digest',
+              channel: 'whatsapp',
+              recipient: phone,
+              messagePreview: msg,
+            })
+          }
           // Throttle to avoid Z-API rate limit
           await new Promise((r) => setTimeout(r, 1100))
         } catch (err) {
@@ -350,7 +361,16 @@ export async function GET(req: NextRequest) {
         const html = renderDigestEmail(top, totalOpps, groups.length, hasAnyPriority, moreScanners)
         const subject = `🔔 ${totalOpps} figurinha${totalOpps > 1 ? 's' : ''} disponível${totalOpps > 1 ? 'is' : ''} perto de você`
         const ok = await sendEmail(profile.email, subject, html)
-        if (ok) sent = true
+        if (ok) {
+          sent = true
+          await logNotificationSent({
+            userId: recipientId,
+            type: 'match_digest',
+            channel: 'email',
+            recipient: profile.email,
+            messagePreview: subject,
+          })
+        }
       }
 
       if (sent) {

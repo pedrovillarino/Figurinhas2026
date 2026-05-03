@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendText } from '@/lib/zapi'
 import { sendEmail } from '@/lib/email'
+import { logNotificationSent } from '@/lib/notification-queue'
 import { isCampaignActive, REFERRAL_CONSTANTS } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
@@ -167,6 +168,17 @@ async function sendProgressDigest() {
       sent_at: sent ? new Date().toISOString() : null,
     })
 
+    // Pedro 2026-05-03: log pra admin (taxa de volta 24h)
+    if (sent) {
+      await logNotificationSent({
+        userId: r.user_id,
+        type: 'embaixadores_digest',
+        channel: (p.notify_channel === 'email' || !p.phone) ? 'email' : 'whatsapp',
+        recipient: p.phone || p.email || '',
+        messagePreview: message,
+      })
+    }
+
     if (sent) out.sent++
     else out.errors++
   }
@@ -318,8 +330,19 @@ async function sendCouponExpiryReminders() {
       sent_at: sent ? new Date().toISOString() : null,
     })
 
-    if (sent) out.sent++
-    else out.errors++
+    if (sent) {
+      // Pedro 2026-05-03: log pra admin
+      await logNotificationSent({
+        userId: cou.restricted_to_user_id,
+        type: 'coupon_expiry_warning',
+        channel: (p.notify_channel === 'email' || !p.phone) ? 'email' : 'whatsapp',
+        recipient: p.phone || p.email || '',
+        messagePreview: message,
+      })
+      out.sent++
+    } else {
+      out.errors++
+    }
   }
 
   return out
