@@ -71,13 +71,33 @@ function buildSystemInstruction(validCodes: string[]): string {
   return `You identify Panini FIFA World Cup 2026 stickers in photos. Output JSON only.
 
 For EACH physical sticker you can see (front or back), return:
-- player_name: EXACT name printed (e.g., "Neymar Jr", "Casemiro"). For badges use "Emblem"; for team photos "Team Photo". If unreadable, use "?".
-- country_code: 3 letters. Valid: ${validCodes.join(', ')}, or "EXT" for PANINI Extras (see below).
+- player_name: EXACT name printed (e.g., "Neymar Jr", "Casemiro"). For stickers WITHOUT a player name (symbols/figures), use the canonical label — see SYMBOLS section below. If unreadable, use "?".
+- country_code: 3 letters. Valid: ${validCodes.join(', ')}, "FIFA" for FIFA World Cup section, or "EXT" for PANINI Extras (see below).
 - sticker_number: only if a clear CODE-NUMBER like "BRA-17" or "BRA 17" is visible (use hyphen). Else "".
 - status: "filled" if a real sticker is present (front OR back). "empty" only for an album slot that has NO sticker — just a blank rectangle with the player name printed BELOW it as placeholder.
 - face: "front" (player photo + name) or "back" (large number, no player photo).
 - confidence: 0.0–1.0 honest. Below 0.4 → skip the sticker entirely.
 - tier: ONLY for PANINI Extras (see below). "ouro" | "prata" | "bronze" | "regular". Omit for non-extras.
+
+⚠️ SYMBOL STICKERS (no player name — you must RECOGNIZE VISUALLY):
+
+Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
+- {COUNTRY}-1: federation BADGE/CREST (CBF, AFA, FFF, US Soccer, etc — usually team-colored background with large crest centered). player_name = "Emblem".
+- {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
+
+FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":
+- FWC-0: "We are Panini" — FOIL/HOLOGRAPHIC sticker with prismatic multicolor shimmery background, real-photo player doing bicycle kick, yellow "PANINI" logo at bottom
+- FWC-1: "Taça Oficial (parte de cima)" — TOP HALF of the FIFA trophy (gold statuette: human figure holding the gold globe at top). Cropped upper half of the trophy
+- FWC-2: "Taça Oficial (parte de baixo)" likely — BOTTOM HALF of the trophy (gold base + "FIFA WORLD CUP" engraved text). Cropped lower half, complements FWC-1
+- FWC-3: "Mascote Oficial" — cartoon drawing of the 3 mascots (ZAYU llama, MAPLE moose, CLUTCH eagle) together
+- FWC-4: "Troféu Oficial" likely — another official symbol sticker (TBC)
+- FWC-5: "TRIONDA - Bola Oficial" — FOIL/HOLOGRAPHIC sticker of the TRIONDA ball: colorful ball (white + blue + red + green) with FIFA logo visible on the side, on grass field, dark shimmery background
+- FWC-6: "Emblema Canadá" — Canada Soccer crest (red maple leaf)
+- FWC-7: "Emblema México" — FMF Mexico crest (eagle)
+- FWC-8: "Emblema USA" — US Soccer crest (blue/red/white shield)
+- FWC-9 to FWC-19: HISTORICAL SERIES. Old B&W or sepia photo + year printed below. player_name = "{Champion} {Year}" format like "Uruguay 1950", "Brazil 1962", "Argentina 1986", "Italy 2006", "Germany 2014", "Argentina 2022" etc. NOT a player name.
+
+KEY RULE: if the sticker has NO player name printed at the bottom, it's a SYMBOL. Recognize visually and use the canonical label from the list above — DO NOT invent a name.
 
 PANINI EXTRAS: stickers with a red "EXTRA STICKER" badge top-right AND a circular gold "FIFA" logo top-left are SPECIAL extras, not normal country stickers. For these:
   - Set country_code to "EXT" (not the player's country)

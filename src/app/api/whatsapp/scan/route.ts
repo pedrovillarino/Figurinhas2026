@@ -20,12 +20,32 @@ function getAdmin() {
 const SCAN_INSTRUCTION = `Você identifica figurinhas Panini Copa do Mundo 2026. Retorne JSON apenas.
 
 Para CADA figurinha física visível (frente ou verso):
-- player_name: nome EXATO impresso (ex: "Neymar Jr"). Para escudos use "Emblem"; foto do time "Team Photo". Se ilegível, use "?".
-- country: país (ex: "Brasil", "Argentina"), ou "Extra" pra PANINI Extras (veja abaixo).
+- player_name: nome EXATO impresso (ex: "Neymar Jr"). Pra figurinhas SEM nome de jogador (símbolos/figuras), use o rótulo canônico — veja seção SÍMBOLOS abaixo. Se ilegível, use "?".
+- country: país (ex: "Brasil", "Argentina"), "FIFA" pra seção FIFA World Cup, ou "Extra" pra PANINI Extras (veja abaixo).
 - number: só se você ver um código claro tipo "BRA-17" ou "BRA 17" (use hífen). Senão "".
 - status: "filled" se figurinha real está presente (frente OU verso). "empty" só pra slot vazio do álbum (retângulo em branco com nome impresso EMBAIXO como placeholder).
 - confidence: 0.0–1.0 honesto. Abaixo de 0.4, pule.
 - tier: SÓ pra PANINI Extras. "ouro" | "prata" | "bronze" | "regular". Omita pra figurinhas normais.
+
+⚠️ SÍMBOLOS (figurinhas SEM nome de jogador — você precisa RECONHECER VISUALMENTE):
+
+Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
+- {PAIS}-1: ESCUDO da federação do país (CBF, AFA, FFF, US Soccer, etc — geralmente fundo de cor do time + escudo grande no centro com letras visíveis tipo CBF/AFA/FA). player_name = "Emblem", country = país.
+- {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
+
+Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":
+- FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de jogador real chutando de bicicleta, logo "PANINI" amarelo embaixo
+- FWC-1: "Taça Oficial (parte de cima)" — PARTE SUPERIOR da taça FIFA (estatueta dourada brilhante: figura humana segurando o globo dourado no topo). Recorte da metade de cima da taça
+- FWC-2: "Taça Oficial (parte de baixo)" provável — PARTE INFERIOR da taça (base dourada + texto "FIFA WORLD CUP" gravado). Recorte da metade de baixo, complementa FWC-1
+- FWC-3: "Mascote Oficial" — desenho cartoon dos 3 mascotes da Copa 2026 (ZAYU lhama, MAPLE alce, CLUTCH águia) juntos
+- FWC-4: "Troféu Oficial" provável — outra figurinha de símbolo oficial (a confirmar)
+- FWC-5: "TRIONDA - Bola Oficial" — figurinha FOIL/HOLOGRÁFICA da bola TRIONDA: bola colorida (branca + azul + vermelha + verde) com logo FIFA visível na lateral, em campo gramado, fundo escuro com efeito brilhoso
+- FWC-6: "Emblema Canadá" — escudo Canada Soccer (folha de bordo vermelha)
+- FWC-7: "Emblema México" — escudo FMF México (águia mexicana)
+- FWC-8: "Emblema USA" — escudo US Soccer (azul/vermelho/branco)
+- FWC-9 a FWC-19: SÉRIE HISTÓRICA. Foto antiga em P&B ou sépia + ano embaixo. player_name = "{Campeão} {Ano}" formato "Uruguay 1950", "Brazil 1962", "Argentina 1986", "Italy 2006", "Germany 2014", "Argentina 2022" etc. NÃO é nome de jogador.
+
+REGRA-CHAVE: se a figurinha não tem nome de jogador impresso embaixo, é um SÍMBOLO. Reconheça visualmente e use o rótulo da lista acima — NÃO inventa nome.
 
 PANINI EXTRAS: figurinhas com selo vermelho "EXTRA STICKER" no canto superior direito E selo dourado circular "FIFA" no canto superior esquerdo são especiais (NÃO figurinhas normais de país). Pra essas:
   - country = "Extra"

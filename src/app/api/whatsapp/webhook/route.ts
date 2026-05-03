@@ -82,20 +82,39 @@ COMO LER UMA FIGURINHA PANINI:
 - ⚠️ NÃO confunda: ano de 4 dígitos (2010, 2019) = ano de estreia, NÃO é número da figurinha. Altura/peso também NÃO.
 - O NÚMERO DA FIGURINHA tem formato CÓDIGO-NÚMERO (ex: "BRA 17"). Se não conseguir ver, deixe "" — o sistema encontra pelo nome.
 
-REGRAS:
+⚠️ SÍMBOLOS (NÃO SÃO JOGADORES — figurinhas que você precisa RECONHECER VISUALMENTE):
+
+Cada um dos 48 PAÍSES tem 2 símbolos fixos:
+- {PAIS}-1 (1ª figurinha): ESCUDO da federação (CBF Brasil, AFA Argentina, FFF França, US Soccer, etc). Visual: fundo de cor do país + escudo grande centralizado, geralmente com letras visíveis (CBF/AFA/FA/etc) → player_name "Emblem"
+- {PAIS}-13 (13ª figurinha): foto do TIME juntos posando — fileira de 22+ jogadores de pé/agachados em campo → player_name "Team Photo"
+
+Seção FIFA WORLD CUP (FWC-0 a FWC-19):
+- FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de jogador real chutando de bicicleta, logo "PANINI" amarelo embaixo
+- FWC-1: "Taça Oficial (parte de cima)" — figurinha da PARTE SUPERIOR da taça FIFA (estatueta dourada brilhante: figura humana segurando o globo dourado no topo). Recorte da metade de cima da taça
+- FWC-2: "Taça Oficial (parte de baixo)" provável — PARTE INFERIOR da taça (base dourada + texto "FIFA WORLD CUP" gravado). Recorte da metade de baixo, complementa FWC-1
+- FWC-3: "Mascote Oficial" — desenho cartoon dos 3 mascotes da Copa 2026 (ZAYU lhama, MAPLE alce, CLUTCH águia) juntos
+- FWC-4: "Troféu Oficial" provável — outra figurinha de símbolo oficial (a confirmar)
+- FWC-5: "TRIONDA - Bola Oficial" — figurinha FOIL/HOLOGRÁFICA da bola TRIONDA: bola colorida (branca + azul + vermelha + verde) com logo FIFA visível na lateral, em campo gramado, fundo escuro com efeito brilhoso
+- FWC-6: "Emblema Canadá" — escudo Canada Soccer (folha de bordo vermelha)
+- FWC-7: "Emblema México" — escudo FMF (águia mexicana)
+- FWC-8: "Emblema USA" — escudo US Soccer (escudo azul/vermelho/branco)
+- FWC-9 a FWC-19: SÉRIE HISTÓRICA. Foto preto-e-branco/sépia ANTIGA + ano impresso embaixo. player_name = "{Campeão} {Ano}" formato "Uruguay 1950", "Brazil 1970", "Argentina 2022", "Italy 2006" etc — NÃO é nome de jogador.
+
+REGRAS GERAIS:
 - CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO".
 - CRÍTICO: Se há DUAS cópias da mesma figurinha, liste CADA uma separadamente.
-- O NOME é o identificador principal.
-- Emblemas/escudos (CBF, AFA, FFF) → player_name "Emblem"
-- Fotos de time → player_name "Team Photo"
-- Países em Português.
+- Países em Português ("Brasil", "Argentina") exceto "FIFA" pra seção FIFA World Cup.
+- Se a figurinha tem só LOGO ou MASCOTE ou TROFÉU ou BOLA — é símbolo, não chute nome de jogador.
 
 Retorne APENAS JSON:
 {
   "pages_detected": 1,
   "scan_confidence": 0.9,
   "stickers": [
-    {"number": "", "player_name": "Neymar Jr", "country": "Brasil", "status": "filled", "confidence": 0.95}
+    {"number": "BRA-17", "player_name": "Neymar Jr", "country": "Brasil", "status": "filled", "confidence": 0.95},
+    {"number": "BRA-1", "player_name": "Emblem", "country": "Brasil", "status": "filled", "confidence": 0.99},
+    {"number": "FWC-3", "player_name": "Mascote Oficial", "country": "FIFA", "status": "filled", "confidence": 0.99},
+    {"number": "FWC-15", "player_name": "Brazil 1994", "country": "FIFA", "status": "filled", "confidence": 0.95}
   ],
   "unreadable": [],
   "warnings": []
