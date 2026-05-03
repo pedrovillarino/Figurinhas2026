@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
-import AudioRegistrationCTA from '@/components/AudioRegistrationCTA'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -481,6 +480,18 @@ export default function ScanHub({
           </button>
         </div>
 
+        {/* Pedro 2026-05-03: instruções LOGO após os botões — orientação
+            antes de outras opções. */}
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-4 space-y-2">
+          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Para o Scan acertar</p>
+          <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
+            <li>• <span className="font-bold text-red-700">NITIDEZ é essencial</span> — o nome do jogador (frente) ou o número (verso) precisam estar <span className="font-semibold">claramente legíveis</span>. Foto borrada, com sombra ou reflexo = scan erra.</li>
+            <li>• Recomendado: <span className="font-semibold">até 10 cromos por foto</span>. Pode mandar mais, mas a assertividade cai bastante.</li>
+            <li>• A partir de <span className="font-semibold">5 cromos por foto</span>, prefira <span className="font-semibold">todos virados de frente</span> (foto/nome do jogador) — verso em foto cheia fica ilegível.</li>
+            <li>• Boa luz, foco no centro, sem brilho. Cromos amassados atrapalham.</li>
+          </ul>
+        </div>
+
         {/* ── What you can scan ── */}
         <div className="mb-5">
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">O que posso escanear</p>
@@ -503,12 +514,12 @@ export default function ScanHub({
           </div>
         </div>
 
-        {/* ── WhatsApp CTA ── */}
+        {/* ── WhatsApp CTA (foto) ── */}
         <a
           href="https://wa.me/5521966791113?text=oi"
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 mb-4 active:scale-[0.98] transition-transform shadow-sm"
+          className="block rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 mb-3 active:scale-[0.98] transition-transform shadow-sm"
         >
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center shrink-0">
@@ -519,7 +530,7 @@ export default function ScanHub({
             </div>
             <div className="flex-1">
               <p className="text-sm font-bold text-white leading-tight">Escaneie pelo WhatsApp</p>
-              <p className="text-[11px] text-emerald-100 mt-0.5">Mande uma foto das figurinhas e a IA registra pra você — sem abrir o app!</p>
+              <p className="text-[11px] text-emerald-100 mt-0.5">Mande uma foto das figurinhas — IA registra pra você</p>
             </div>
             <svg className="w-5 h-5 text-white/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -527,21 +538,29 @@ export default function ScanHub({
           </div>
         </a>
 
-        {/* Pedro 2026-05-03: card destacado de áudio (concorrente da foto) */}
-        <div className="mb-4">
-          <AudioRegistrationCTA variant="card" />
-        </div>
-
-        {/* ── Instruções de uso ── */}
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 space-y-2">
-          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Para o Scan acertar</p>
-          <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
-            <li>• <span className="font-bold text-red-700">NITIDEZ é essencial</span> — o nome do jogador (frente) ou o número (verso) precisam estar <span className="font-semibold">claramente legíveis</span>. Foto borrada, com sombra ou reflexo = scan erra.</li>
-            <li>• Recomendado: <span className="font-semibold">até 10 cromos por foto</span>. Pode mandar mais, mas a assertividade cai bastante.</li>
-            <li>• A partir de <span className="font-semibold">5 cromos por foto</span>, prefira <span className="font-semibold">todos virados de frente</span> (foto/nome do jogador) — verso em foto cheia fica ilegível.</li>
-            <li>• Boa luz, foco no centro, sem brilho. Cromos amassados atrapalham.</li>
-          </ul>
-        </div>
+        {/* Pedro 2026-05-03: CTA "Registre por áudio" — gradient navy/brand,
+            consistente com identidade visual (não azul aleatório). */}
+        <a
+          href={`https://wa.me/5521966791113?text=${encodeURIComponent('Gostaria de registrar minhas figurinhas por áudio.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl bg-gradient-to-r from-navy to-navy/85 p-4 mb-4 active:scale-[0.98] transition-transform shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white leading-tight">Registre por áudio no WhatsApp</p>
+              <p className="text-[11px] text-white/75 mt-0.5">Fale &quot;Brasil 1, Argentina 3&quot; — pra quem prefere voz</p>
+            </div>
+            <svg className="w-5 h-5 text-white/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+        </a>
 
         {/* ── Disclaimer + privacy ── */}
         <p className="text-[11px] text-gray-400 px-1 leading-relaxed">

@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
-import AudioRegistrationCTA from '@/components/AudioRegistrationCTA'
 
 type Sticker = {
   id: number
@@ -797,11 +796,6 @@ export default function DashboardClient({
           </div>
         </div>
       )}
-      {/* Pedro 2026-05-03: visibilidade do áudio (concorrente da foto) */}
-      <div className="mb-4">
-        <AudioRegistrationCTA variant="card" />
-      </div>
-
       {/* ─── WhatsApp Bot Discovery ─── */}
       <a
         href="https://wa.me/5521966791113?text=oi"
@@ -816,8 +810,8 @@ export default function DashboardClient({
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-gray-800">Tambem no WhatsApp</p>
-          <p className="text-[10px] text-gray-500 mt-0.5">Escaneie, veja status e repetidas direto pelo chat</p>
+          <p className="text-xs font-semibold text-gray-800">Também no WhatsApp</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">Escaneie por <strong>foto</strong> ou <strong>áudio</strong>, veja status e trocas direto pelo chat</p>
         </div>
         <svg aria-hidden="true" className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />

@@ -583,21 +583,37 @@ export default function AlbumClient({
         </button>
       </div>
 
-      {/* Scan, Export & Import — compact row */}
-      <div className="flex gap-2 mb-4">
+      {/* Pedro 2026-05-03: 4 botões em 2 linhas (Scan/Áudio acima — registro;
+          Exportar/Importar abaixo — gerenciar). Cores seguem identidade
+          visual: amber pra scan (foto), navy pra áudio (voz, cleano),
+          brand pra exportar, emerald pra importar. */}
+      <div className="grid grid-cols-2 gap-2 mb-2">
         <Link
           href="/scan"
-          className="flex-1 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg active:scale-[0.98] transition"
+          className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg active:scale-[0.98] transition"
         >
           <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
           </svg>
-          <span className="text-xs font-semibold text-gray-700">Escanear</span>
+          <span className="text-xs font-semibold text-gray-700">Scan por foto</span>
         </Link>
+        <a
+          href={`https://wa.me/5521966791113?text=${encodeURIComponent('Gostaria de registrar minhas figurinhas por áudio.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-2 bg-navy/5 border border-navy/15 rounded-lg active:scale-[0.98] transition"
+        >
+          <svg className="w-4 h-4 text-navy flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+          </svg>
+          <span className="text-xs font-semibold text-gray-700">Registro por áudio</span>
+        </a>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <Link
           href="/export"
-          className="flex-1 flex items-center gap-2 px-3 py-2 bg-brand-light/60 border border-brand/15 rounded-lg active:scale-[0.98] transition"
+          className="flex items-center gap-2 px-3 py-2 bg-brand-light/60 border border-brand/15 rounded-lg active:scale-[0.98] transition"
         >
           <svg className="w-4 h-4 text-brand flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -606,7 +622,7 @@ export default function AlbumClient({
         </Link>
         <button
           onClick={() => setShowImport(true)}
-          className="flex-1 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg active:scale-[0.98] transition"
+          className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg active:scale-[0.98] transition"
         >
           <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />

@@ -530,30 +530,31 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Mini-comparativo dos planos disponíveis */}
+            {/* Pedro 2026-05-03: mini-cards mais vendedores. Mostra o
+                MAIOR diferencial em destaque + benefícios chave. */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
               {tier === 'free' && (
-                <div className="bg-white rounded-lg border border-gray-200 p-2.5 text-center">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Estreante</p>
-                  <p className="text-lg font-bold text-brand mt-0.5">R$9,90</p>
-                  <p className="text-[10px] text-gray-500">/mês</p>
-                  <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">30 scans · 30 áudios · 5 trocas</p>
+                <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
+                  <p className="text-[10px] font-bold text-brand uppercase tracking-wide">Estreante</p>
+                  <p className="text-lg font-bold text-brand mt-0.5">R$9,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
+                  <p className="text-[10px] font-semibold text-gray-700 mt-1.5">6× mais scans + áudios</p>
+                  <p className="text-[10px] text-gray-500 leading-tight mt-0.5">30 scans · 30 áudios<br/>5 trocas · sem ads</p>
                 </div>
               )}
               {(tier === 'free' || tier === 'estreante') && (
-                <div className="bg-white rounded-lg border-2 border-gold/60 p-2.5 text-center relative shadow-sm">
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gold text-[8px] font-bold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap">⭐ MAIS POPULAR</span>
+                <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg border-2 border-gold/60 p-3 text-center relative shadow-sm">
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gold text-[9px] font-bold text-white px-2 py-0.5 rounded-full whitespace-nowrap">⭐ MELHOR ESCOLHA</span>
                   <p className="text-[10px] font-bold text-gold-dark uppercase tracking-wide mt-1">Colecionador</p>
-                  <p className="text-lg font-bold text-gold-dark mt-0.5">R$19,90</p>
-                  <p className="text-[10px] text-gray-500">/mês</p>
-                  <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">150 scans · áudio ∞ · 15 trocas</p>
+                  <p className="text-lg font-bold text-gold-dark mt-0.5">R$19,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
+                  <p className="text-[10px] font-bold text-gold-dark mt-1.5">🎤 Áudio ilimitado</p>
+                  <p className="text-[10px] text-gray-700 leading-tight mt-0.5">150 scans · 15 trocas<br/>Pacotes 50% off · sem ads</p>
                 </div>
               )}
-              <div className="bg-white rounded-lg border border-gray-200 p-2.5 text-center">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Copa Completa</p>
-                <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90</p>
-                <p className="text-[10px] text-gray-500">/mês</p>
-                <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">500 scans · tudo ilimitado</p>
+              <div className="bg-gradient-to-br from-emerald-50 to-brand-light/40 rounded-lg border border-emerald-300 p-3 text-center">
+                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Copa Completa</p>
+                <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
+                <p className="text-[10px] font-bold text-emerald-700 mt-1.5">🏆 Tudo ilimitado</p>
+                <p className="text-[10px] text-gray-700 leading-tight mt-0.5">500 scans · áudios ∞<br/>Trocas ∞ · sem ads</p>
               </div>
             </div>
 
@@ -608,17 +609,6 @@ export default function ProfilePage() {
                 </p>
               </>
             )}
-            {/* Pedro 2026-05-03: link sutil pra áudio (só se ainda tem saldo) */}
-            {(audiosRemaining === Infinity || audiosRemaining > 0) && (
-              <a
-                href={`https://wa.me/5521966791113?text=${encodeURIComponent('oi quero registrar por áudio')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-1 text-[11px] text-blue-600 hover:text-blue-800 transition"
-              >
-                🎤 Como usar áudio →
-              </a>
-            )}
           </div>
 
           {/* Trocas */}
@@ -667,21 +657,26 @@ export default function ProfilePage() {
                   <button
                     onClick={handleBuyScans}
                     disabled={buyingScans}
-                    className="w-full border border-brand/20 text-brand rounded-lg px-3 py-2 text-xs font-medium hover:bg-brand-light/40 transition disabled:opacity-50 flex items-center justify-between"
+                    className="w-full border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-xs font-medium hover:bg-amber-50 transition disabled:opacity-50 flex items-center justify-between"
                   >
-                    <span>📸 +{scanPackAmount} scans</span>
+                    <span>📸 +{scanPackAmount} scans por foto</span>
                     <span className="font-bold">{buyingScans ? '...' : scanPackConfig.priceDisplay}</span>
                   </button>
                 )}
-                {audioPackConfig && (
+                {audioPackConfig ? (
                   <button
                     onClick={handleBuyAudios}
                     disabled={buyingAudios}
-                    className="w-full border border-blue-200 text-blue-600 rounded-lg px-3 py-2 text-xs font-medium hover:bg-blue-50 transition disabled:opacity-50 flex items-center justify-between"
+                    className="w-full border border-navy/15 text-navy rounded-lg px-3 py-2 text-xs font-medium hover:bg-navy/5 transition disabled:opacity-50 flex items-center justify-between"
                   >
-                    <span>🎤 +{audioPackAmount} áudios</span>
+                    <span>🎤 +{audioPackAmount} áudios pelo WhatsApp</span>
                     <span className="font-bold">{buyingAudios ? '...' : audioPackConfig.priceDisplay}</span>
                   </button>
+                ) : (
+                  <div className="w-full border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2 text-xs font-medium bg-emerald-50/40 flex items-center justify-between">
+                    <span>🎤 Áudio pelo WhatsApp</span>
+                    <span className="font-bold">já ilimitado ✓</span>
+                  </div>
                 )}
                 {tradePackConfig && (
                   <button

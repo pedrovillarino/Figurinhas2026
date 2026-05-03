@@ -7,7 +7,7 @@ import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
-import { getAudioLimit, type Tier } from '@/lib/tiers'
+import { getAudioLimit, TIER_CONFIG, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 
 export const dynamic = 'force-dynamic'
@@ -1718,6 +1718,46 @@ export async function POST(req: NextRequest) {
             ? `💚`
             : `Tô por aqui! Se precisar registrar uma figurinha, ver suas faltantes ou achar trocas, é só falar. Manda *menu* pra ver tudo que sei fazer.`
         await sendText(phone, response)
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 2026-05-03: tutorial de áudio. Detecta mensagem padrão dos
+      // CTAs do site ("Gostaria de registrar minhas figurinhas por áudio.")
+      // ou variações similares. Responde com instruções amigáveis +
+      // mostra saldo restante baseado no tier.
+      const wantsAudioTutorial = /(?:gostaria|quero|posso|tenho|como)\s+(?:de\s+)?registrar.+(?:por\s+)?[áa]udio/i.test(lower)
+        || /^registro\s+por\s+[áa]udio/i.test(lower)
+        || /como\s+(?:funciona|usar|fazer)\s+(?:o\s+)?[áa]udio/i.test(lower)
+      if (wantsAudioTutorial && codeMatches.length === 0) {
+        const userTier = ((user as { tier?: string }).tier || 'free') as Tier
+        const audioLimit = getAudioLimit(userTier)
+        const supabase = getAdmin()
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('audio_uses_count, audio_credits')
+          .eq('id', user.id)
+          .maybeSingle()
+        const used = profileData?.audio_uses_count || 0
+        const credits = profileData?.audio_credits || 0
+        const effectiveLimit = audioLimit === Infinity ? Infinity : audioLimit + credits
+        const remaining = effectiveLimit === Infinity ? Infinity : Math.max(0, effectiveLimit - used)
+
+        const remainingText = remaining === Infinity
+          ? '_ilimitado no seu plano_'
+          : `*${remaining} áudio${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}* no seu plano${userTier === 'free' ? '' : ` ${TIER_CONFIG[userTier].label}`}`
+
+        const tutorial =
+          `🎤 *Registrar por áudio é simples!*\n\n` +
+          `1️⃣ Aperte o ícone de microfone aqui no WhatsApp e segura\n` +
+          `2️⃣ *Fale os códigos* das figurinhas:\n` +
+          `   • _"Brasil 1, Argentina 3, Espanha 5"_\n` +
+          `   • _"Brasil 1, 5, 12"_ (vários do mesmo país)\n` +
+          `   • _"Espanha três, Argentina sete"_ (números por extenso também)\n` +
+          `3️⃣ Solta o microfone — eu identifico tudo e te confirmo. ✅\n\n` +
+          `📊 ${remainingText}\n\n` +
+          `💡 *Dica:* fale *devagar e claro*, com pausas entre cada figurinha.\n\n` +
+          `Quando estiver pronto, *manda o áudio*! 🎤`
+        await sendText(phone, tutorial)
         return NextResponse.json({ ok: true })
       }
 
