@@ -431,38 +431,46 @@ export default function ScanHub({
   const progressPct = totalStickers > 0 ? Math.round((ownedCount / totalStickers) * 100) : 0
 
   // ── IDLE ──
+  // Pedro 2026-05-03: layout reconfigurado pra caber sem scroll em iPhone
+  // 14/15 (390×844, ~707px úteis). Header 1 linha, dicas colapsáveis, WhatsApp
+  // foto+áudio em 2 cards lado a lado, "O que posso escanear" virou inline.
   if (state === 'idle') {
     return (
-      <div className="px-4 pt-6 pb-28">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-black tracking-tight text-gray-900">Scanner IA</h1>
-          {scansRemaining !== null && (
-            <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2.5 py-1">
-              {scansRemaining} scans restantes
-            </span>
-          )}
-        </div>
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-xs text-gray-500">Cada foto detecta várias figurinhas de uma vez</p>
-          <Link
-            href="/historico"
-            className="text-[11px] font-semibold text-brand hover:text-brand-dark transition flex items-center gap-1 shrink-0"
-          >
-            📜 Histórico
-          </Link>
+      <div className="px-4 pt-3 pb-[80px]">
+        {/* Header em 1 linha — título + scans + histórico */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-black tracking-tight text-gray-900 leading-none">Scanner IA</h1>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Várias figurinhas por foto · 📖 página · ⚽ cromo · 🃏 vários
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {scansRemaining !== null && (
+              <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 leading-tight whitespace-nowrap">
+                {scansRemaining} restantes
+              </span>
+            )}
+            <Link
+              href="/historico"
+              className="text-[11px] font-semibold text-brand hover:text-brand-dark transition whitespace-nowrap"
+            >
+              📜 Histórico
+            </Link>
+          </div>
         </div>
 
         {/* Hidden inputs */}
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Tirar foto com câmera" />
         <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" aria-label="Escolher foto da galeria" />
 
-        {/* ── Main actions (FIRST) ── */}
-        <div className="flex gap-2.5 mb-5">
+        {/* Botões principais */}
+        <div className="flex gap-2.5 mb-3">
           <button
             onClick={triggerCamera}
-            className="flex-1 flex flex-col items-center gap-2 bg-brand text-white rounded-2xl py-5 px-3 cursor-pointer hover:bg-brand-dark transition active:scale-[0.98] shadow-sm"
+            className="flex-1 flex flex-col items-center gap-1.5 bg-brand text-white rounded-2xl py-4 px-3 cursor-pointer hover:bg-brand-dark transition active:scale-[0.98] shadow-sm"
           >
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
             </svg>
@@ -471,100 +479,69 @@ export default function ScanHub({
 
           <button
             onClick={triggerGallery}
-            className="flex-1 flex flex-col items-center gap-2 bg-white border-2 border-gray-100 text-gray-700 rounded-2xl py-5 px-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
+            className="flex-1 flex flex-col items-center gap-1.5 bg-white border-2 border-gray-100 text-gray-700 rounded-2xl py-4 px-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]"
           >
-            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
             </svg>
             <span className="text-sm font-bold">Galeria</span>
           </button>
         </div>
 
-        {/* Pedro 2026-05-03: instruções LOGO após os botões — orientação
-            antes de outras opções. */}
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-4 space-y-2">
-          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">📸 Para o Scan acertar</p>
-          <ul className="text-xs text-gray-700 leading-relaxed space-y-1.5">
-            <li>• <span className="font-bold text-red-700">NITIDEZ é essencial</span> — o nome do jogador (frente) ou o número (verso) precisam estar <span className="font-semibold">claramente legíveis</span>. Foto borrada, com sombra ou reflexo = scan erra.</li>
-            <li>• Recomendado: <span className="font-semibold">até 10 cromos por foto</span>. Pode mandar mais, mas a assertividade cai bastante.</li>
-            <li>• A partir de <span className="font-semibold">5 cromos por foto</span>, prefira <span className="font-semibold">todos virados de frente</span> (foto/nome do jogador) — verso em foto cheia fica ilegível.</li>
-            <li>• Boa luz, foco no centro, sem brilho. Cromos amassados atrapalham.</li>
+        {/* Dicas: 1 linha sempre visível + colapsável (ainda dá pra abrir e ler tudo) */}
+        <details className="rounded-xl bg-amber-50 border border-amber-200 mb-3 group">
+          <summary className="list-none cursor-pointer px-3 py-2 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-amber-900 leading-snug">
+              📸 <strong className="text-red-700">NITIDEZ é tudo</strong> — nome ou número precisam estar legíveis
+            </span>
+            <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap group-open:hidden">+ dicas</span>
+            <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap hidden group-open:inline">▴</span>
+          </summary>
+          <ul className="text-[11px] text-gray-700 leading-relaxed space-y-1 mx-3 pt-2 pb-2.5 border-t border-amber-200/60">
+            <li>• Até <strong>10 cromos por foto</strong> — mais que isso a IA erra mais</li>
+            <li>• A partir de 5 cromos, prefira <strong>frente do cromo</strong> (foto/nome do jogador)</li>
+            <li>• Boa luz, foco no centro, sem reflexo nem sombra</li>
           </ul>
-        </div>
+        </details>
 
-        {/* ── What you can scan ── */}
-        <div className="mb-5">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">O que posso escanear</p>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
-              <div className="text-2xl mb-1">📖</div>
-              <p className="text-[10px] font-semibold text-gray-700">Página</p>
-              <p className="text-[9px] text-gray-400">do álbum aberto</p>
-            </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
-              <div className="text-2xl mb-1">⚽</div>
-              <p className="text-[10px] font-semibold text-gray-700">Figurinha</p>
-              <p className="text-[9px] text-gray-400">solta na mão</p>
-            </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-2.5 text-center">
-              <div className="text-2xl mb-1">🃏</div>
-              <p className="text-[10px] font-semibold text-gray-700">Várias</p>
-              <p className="text-[9px] text-gray-400">espalhadas na mesa</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── WhatsApp CTA (foto) ── */}
-        <a
-          href="https://wa.me/5521966791113?text=oi"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 mb-3 active:scale-[0.98] transition-transform shadow-sm"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+        {/* WhatsApp duo — foto + áudio lado a lado */}
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Pelo WhatsApp</p>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <a
+            href="https://wa.me/5521966791113?text=oi"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 active:scale-[0.98] transition-transform shadow-sm"
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <svg className="w-5 h-5 text-white shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                 <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.257-.154-2.87.853.853-2.87-.154-.257A8 8 0 1112 20z" />
               </svg>
+              <span className="text-[12px] font-bold text-white">Foto</span>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white leading-tight">Escaneie pelo WhatsApp</p>
-              <p className="text-[11px] text-emerald-100 mt-0.5">Mande uma foto das figurinhas — IA registra pra você</p>
-            </div>
-            <svg className="w-5 h-5 text-white/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </div>
-        </a>
+            <p className="text-[10px] text-emerald-50 leading-tight">Manda foto, IA registra</p>
+          </a>
 
-        {/* Pedro 2026-05-03: CTA "Registre por áudio" — gradient navy/brand,
-            consistente com identidade visual (não azul aleatório). */}
-        <a
-          href={`https://wa.me/5521966791113?text=${encodeURIComponent('Gostaria de registrar minhas figurinhas por áudio.')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block rounded-xl bg-gradient-to-r from-navy to-navy/85 p-4 mb-4 active:scale-[0.98] transition-transform shadow-sm"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center shrink-0">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <a
+            href={`https://wa.me/5521966791113?text=${encodeURIComponent('Gostaria de registrar minhas figurinhas por áudio.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-xl bg-gradient-to-br from-navy to-navy/80 p-3 active:scale-[0.98] transition-transform shadow-sm"
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <svg className="w-5 h-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
               </svg>
+              <span className="text-[12px] font-bold text-white">Áudio</span>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white leading-tight">Registre por áudio no WhatsApp</p>
-              <p className="text-[11px] text-white/75 mt-0.5">Fale &quot;Brasil 1, Argentina 3&quot; — pra quem prefere voz</p>
-            </div>
-            <svg className="w-5 h-5 text-white/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </div>
-        </a>
+            <p className="text-[10px] text-white/75 leading-tight">Fale &quot;Brasil 1&quot;</p>
+          </a>
+        </div>
 
-        {/* ── Disclaimer + privacy ── */}
-        <p className="text-[11px] text-gray-400 px-1 leading-relaxed">
-          Suas fotos são descartadas imediatamente após a análise. Fotografe apenas figurinhas ou páginas do álbum.
+        {/* Disclaimer compacto */}
+        <p className="text-[10px] text-gray-400 px-1 leading-relaxed">
+          Fotos descartadas após análise. Fotografe apenas figurinhas ou páginas do álbum.
         </p>
 
         {/* Paywall Modal */}
