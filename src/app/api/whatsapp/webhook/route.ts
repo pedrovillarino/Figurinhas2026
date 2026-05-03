@@ -3,6 +3,7 @@ import { waitUntil } from '@vercel/functions'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
+import { normalizePhoneBR } from '@/lib/phone'
 import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
@@ -1074,7 +1075,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const phone = formatPhone(body.phone || body.chatId || '')
+    // Pedro 2026-05-03 (caso Samyr): Z-API às vezes entrega phone em formato
+    // não-canônico (ex: 12 dig sem o 9 inicial). Normalizar pra 13 dig
+    // (55+DDD+9+8) AQUI garante que todo o resto da cadeia (lookup,
+    // pending_registrations, sendText) usa o mesmo formato.
+    const rawPhone = body.phone || body.chatId || ''
+    const phone = normalizePhoneBR(rawPhone) || formatPhone(rawPhone)
     if (!phone) {
       return NextResponse.json({ ok: true })
     }
