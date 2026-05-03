@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, isPaid } from '@/lib/tiers'
+import { TIER_CONFIG, SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, AUDIO_PACK_CONFIG, AUDIO_PACK_AMOUNTS, AUDIO_PACK_AMOUNT, getAudioLimit, isPaid } from '@/lib/tiers'
 import type { Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 import ProfileQRCode from '@/components/ProfileQRCode'
@@ -17,6 +17,8 @@ type Profile = {
   tier: Tier
   scan_credits: number
   trade_credits: number
+  audio_credits: number
+  audio_uses_count: number
   referral_code: string | null
   is_minor?: boolean
 }
@@ -50,7 +52,11 @@ export default function ProfilePage() {
   const [locRequestingGps, setLocRequestingGps] = useState(false)
   const [buyingScans, setBuyingScans] = useState(false)
   const [buyingTrades, setBuyingTrades] = useState(false)
+  const [buyingAudios, setBuyingAudios] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
+  // Pedro 2026-05-03: pacotes avulsos colapsados por padrão pra incentivar
+  // upgrade. User clica "Comprar avulso" pra expandir.
+  const [showAvulso, setShowAvulso] = useState(false)
   const [scansUsedTotal, setScansUsedTotal] = useState(0)
   const [tradesUsedTotal, setTradesUsedTotal] = useState(0)
   const [stats, setStats] = useState<Stats>({ owned: 0, missing: 0, duplicates: 0, total: 638 })
@@ -75,7 +81,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, referral_code, is_minor, city, state, location_lat')
+      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, audio_credits, audio_uses_count, referral_code, is_minor, city, state, location_lat')
       .eq('id', user.id)
       .single()
 
@@ -85,6 +91,8 @@ export default function ProfilePage() {
         tier: (data.tier || 'free') as Tier,
         scan_credits: data.scan_credits || 0,
         trade_credits: data.trade_credits || 0,
+        audio_credits: data.audio_credits || 0,
+        audio_uses_count: data.audio_uses_count || 0,
         referral_code: data.referral_code || null,
       })
       setPhone(data.phone || '')
@@ -311,6 +319,23 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleBuyAudios() {
+    setBuyingAudios(true)
+    try {
+      const res = await fetch('/api/stripe/audio-pack', { method: 'POST' })
+      const data = await res.json()
+      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://')) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || `Erro ao iniciar compra (url: ${JSON.stringify(data.url)})`)
+        setBuyingAudios(false)
+      }
+    } catch (err) {
+      alert(`Erro ao conectar: ${err instanceof Error ? err.message : 'desconhecido'}`)
+      setBuyingAudios(false)
+    }
+  }
+
   async function handleDeleteAccount() {
     setDeleting(true)
     try {
@@ -344,10 +369,24 @@ export default function ProfilePage() {
   const tradesRemaining = tradeLimit === Infinity ? Infinity : Math.max(0, tradeLimit - tradesUsed)
   const tradePct = tradeLimit === Infinity ? 0 : tradeLimit > 0 ? Math.min(100, Math.round((tradesUsed / tradeLimit) * 100)) : 0
 
+  // Pedro 2026-05-03: limite de áudio (lifetime, igual scan/trade)
+  const tierAudioLimit = getAudioLimit(tier)
+  const audioLimit = tierAudioLimit === Infinity ? Infinity : tierAudioLimit + (profile?.audio_credits || 0)
+  const audiosUsed = profile?.audio_uses_count || 0
+  const audiosRemaining = audioLimit === Infinity ? Infinity : Math.max(0, audioLimit - audiosUsed)
+  const audioPct = audioLimit === Infinity ? 0 : audioLimit > 0 ? Math.min(100, Math.round((audiosUsed / audioLimit) * 100)) : 0
+
   const scanPackConfig = SCAN_PACK_CONFIG[tier]
   const scanPackAmount = SCAN_PACK_AMOUNTS[tier] || SCAN_PACK_AMOUNT
   const tradePackConfig = TRADE_PACK_CONFIG[tier]
   const tradePackAmount = TRADE_PACK_AMOUNTS[tier] || TRADE_PACK_AMOUNT
+  const audioPackConfig = AUDIO_PACK_CONFIG[tier]
+  const audioPackAmount = AUDIO_PACK_AMOUNTS[tier] || AUDIO_PACK_AMOUNT
+
+  // Urgência: passou de 70% em qualquer barra → mostrar nudge de upgrade
+  const isNearLimit = (scanPct >= 70 && scanLimit !== Infinity)
+    || (audioPct >= 70 && audioLimit !== Infinity)
+    || (tradePct >= 70 && tradeLimit !== Infinity)
 
   return (
     <main className="px-4 pt-6 pb-24">
@@ -375,11 +414,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Plan & Credits */}
+      {/* ─── Plano & Quotas (redesign Pedro 2026-05-03) ─────────────────
+          Estratégia: incentivar upgrade > pacotes avulsos.
+          • Hero CTA grande "Fazer upgrade" no topo (free/estreante/colec)
+          • 3 barras de quota (scan + áudio + troca)
+          • Pacotes avulsos colapsados (clica pra expandir)
+          • Banner de urgência se algum quota >= 70%
+      */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-800">Plano</span>
+            <span className="text-sm font-semibold text-gray-800">Seu plano</span>
             <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${
               tier === 'copa_completa' ? 'bg-emerald-100 text-emerald-700' :
               tier === 'colecionador' ? 'bg-gold/20 text-gold-dark' :
@@ -389,78 +434,188 @@ export default function ProfilePage() {
               {tierConfig.label}
             </span>
           </div>
-          {tier !== 'copa_completa' && (
+        </div>
+
+        {/* Hero CTA — só aparece se não for copa_completa */}
+        {tier !== 'copa_completa' && (
+          <div className={`rounded-xl border p-4 mb-4 transition-all ${
+            isNearLimit
+              ? 'bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-300'
+              : 'bg-gradient-to-br from-brand-light/40 to-emerald-50 border-brand/20'
+          }`}>
+            {isNearLimit ? (
+              <div className="flex items-start gap-2 mb-3">
+                <div className="text-2xl">🚨</div>
+                <div>
+                  <p className="text-sm font-bold text-amber-800">Você está perto do limite</p>
+                  <p className="text-[11px] text-amber-700">Upgrade evita interrupção e libera mais valor.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 mb-3">
+                <div className="text-2xl">🚀</div>
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Faz mais com seu álbum</p>
+                  <p className="text-[11px] text-gray-600">Mais scans, áudios e trocas — desbloqueia recursos.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Mini-comparativo dos planos disponíveis */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+              {tier === 'free' && (
+                <div className="bg-white rounded-lg border border-gray-200 p-2.5 text-center">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Estreante</p>
+                  <p className="text-lg font-bold text-brand mt-0.5">R$9,90</p>
+                  <p className="text-[10px] text-gray-500">/mês</p>
+                  <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">50 scans · 30 áudios · 5 trocas</p>
+                </div>
+              )}
+              {(tier === 'free' || tier === 'estreante') && (
+                <div className="bg-white rounded-lg border-2 border-gold/60 p-2.5 text-center relative shadow-sm">
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gold text-[8px] font-bold text-white px-1.5 py-0.5 rounded-full whitespace-nowrap">⭐ MAIS POPULAR</span>
+                  <p className="text-[10px] font-bold text-gold-dark uppercase tracking-wide mt-1">Colecionador</p>
+                  <p className="text-lg font-bold text-gold-dark mt-0.5">R$19,90</p>
+                  <p className="text-[10px] text-gray-500">/mês</p>
+                  <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">150 scans · áudio ∞ · 15 trocas</p>
+                </div>
+              )}
+              <div className="bg-white rounded-lg border border-gray-200 p-2.5 text-center">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Copa Completa</p>
+                <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90</p>
+                <p className="text-[10px] text-gray-500">/mês</p>
+                <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">500 scans · tudo ilimitado</p>
+              </div>
+            </div>
+
             <button
               onClick={() => setShowPaywall(true)}
-              className="text-[11px] text-brand font-semibold hover:text-brand-dark transition"
+              className="w-full bg-brand text-white rounded-lg px-4 py-2.5 text-sm font-bold hover:bg-brand-dark transition active:scale-[0.98]"
             >
-              Fazer upgrade
+              Fazer upgrade →
             </button>
-          )}
-        </div>
-
-        {/* Scan usage */}
-        <div className="mb-3">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Scans com IA</span>
-            <span>{scansUsed}/{scanLimit} usados</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${scanPct >= 90 ? 'bg-red-400' : scanPct >= 70 ? 'bg-yellow-400' : 'bg-brand'}`}
-              style={{ width: `${scanPct}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-gray-400 mt-1">
-            {scansRemaining} scan{scansRemaining !== 1 ? 's' : ''} restante{scansRemaining !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Buy more scans */}
-        {scanPackConfig && (
-          <button
-            onClick={handleBuyScans}
-            disabled={buyingScans}
-            className="w-full mb-3 border border-brand/30 text-brand rounded-lg px-4 py-2 text-xs font-semibold hover:bg-brand-light/50 transition disabled:opacity-50"
-          >
-            {buyingScans ? 'Redirecionando...' : `Comprar +${scanPackAmount} scans por ${scanPackConfig.priceDisplay}`}
-          </button>
         )}
 
-        {/* Trade usage */}
-        <div className="mb-2">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Trocas</span>
-            <span>
-              {tradeLimit === Infinity
-                ? `${tradesUsed} usadas (ilimitado)`
-                : `${tradesUsed}/${tradeLimit} usadas`}
-            </span>
+        {/* Quotas: 3 barras (scan, áudio, troca) */}
+        <div className="space-y-3 mb-3">
+          {/* Scan */}
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span className="flex items-center gap-1">📸 Scans com IA</span>
+              <span>{scansUsed}/{scanLimit} usados</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all ${scanPct >= 90 ? 'bg-red-400' : scanPct >= 70 ? 'bg-yellow-400' : 'bg-brand'}`}
+                style={{ width: `${scanPct}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">
+              {scansRemaining} scan{scansRemaining !== 1 ? 's' : ''} restante{scansRemaining !== 1 ? 's' : ''}
+            </p>
           </div>
-          {tradeLimit !== Infinity && (
-            <>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${tradePct >= 90 ? 'bg-red-400' : tradePct >= 70 ? 'bg-yellow-400' : 'bg-gold'}`}
-                  style={{ width: `${tradePct}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-gray-400 mt-1">
-                {tradesRemaining} troca{tradesRemaining !== 1 ? 's' : ''} restante{tradesRemaining !== 1 ? 's' : ''}
-              </p>
-            </>
-          )}
+
+          {/* Áudio (NOVO Pedro 2026-05-03) */}
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span className="flex items-center gap-1">🎤 Áudios pelo WhatsApp</span>
+              <span>
+                {audioLimit === Infinity
+                  ? `${audiosUsed} usados (ilimitado)`
+                  : `${audiosUsed}/${audioLimit} usados`}
+              </span>
+            </div>
+            {audioLimit !== Infinity && (
+              <>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${audioPct >= 90 ? 'bg-red-400' : audioPct >= 70 ? 'bg-yellow-400' : 'bg-blue-500'}`}
+                    style={{ width: `${audioPct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {audiosRemaining} áudio{audiosRemaining !== 1 ? 's' : ''} restante{audiosRemaining !== 1 ? 's' : ''}
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Trocas */}
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span className="flex items-center gap-1">🔁 Trocas</span>
+              <span>
+                {tradeLimit === Infinity
+                  ? `${tradesUsed} usadas (ilimitado)`
+                  : `${tradesUsed}/${tradeLimit} usadas`}
+              </span>
+            </div>
+            {tradeLimit !== Infinity && (
+              <>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${tradePct >= 90 ? 'bg-red-400' : tradePct >= 70 ? 'bg-yellow-400' : 'bg-gold'}`}
+                    style={{ width: `${tradePct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {tradesRemaining} troca{tradesRemaining !== 1 ? 's' : ''} restante{tradesRemaining !== 1 ? 's' : ''}
+                </p>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Buy more trades */}
-        {tradePackConfig && (
-          <button
-            onClick={handleBuyTrades}
-            disabled={buyingTrades}
-            className="w-full border border-gold/30 text-gold-dark rounded-lg px-4 py-2 text-xs font-semibold hover:bg-gold-light/50 transition disabled:opacity-50"
-          >
-            {buyingTrades ? 'Redirecionando...' : `Comprar +${tradePackAmount} trocas por ${tradePackConfig.priceDisplay}`}
-          </button>
+        {/* Pacotes avulsos — colapsado por padrão pra incentivar upgrade */}
+        {(scanPackConfig || tradePackConfig || audioPackConfig) && (
+          <div className="border-t border-gray-100 pt-3 mt-3">
+            <button
+              type="button"
+              onClick={() => setShowAvulso((v) => !v)}
+              className="flex items-center justify-between w-full text-xs text-gray-500 hover:text-gray-700 transition"
+            >
+              <span>🛒 Comprar pacote avulso</span>
+              <span className={`text-gray-400 transition-transform ${showAvulso ? 'rotate-180' : ''}`}>▾</span>
+            </button>
+            {showAvulso && (
+              <div className="mt-3 space-y-2">
+                <p className="text-[10px] text-gray-500 italic mb-2">
+                  💡 Pacote é por unidade. Plano mensal = mais valor por real.
+                </p>
+                {scanPackConfig && (
+                  <button
+                    onClick={handleBuyScans}
+                    disabled={buyingScans}
+                    className="w-full border border-brand/20 text-brand rounded-lg px-3 py-2 text-xs font-medium hover:bg-brand-light/40 transition disabled:opacity-50 flex items-center justify-between"
+                  >
+                    <span>📸 +{scanPackAmount} scans</span>
+                    <span className="font-bold">{buyingScans ? '...' : scanPackConfig.priceDisplay}</span>
+                  </button>
+                )}
+                {audioPackConfig && (
+                  <button
+                    onClick={handleBuyAudios}
+                    disabled={buyingAudios}
+                    className="w-full border border-blue-200 text-blue-600 rounded-lg px-3 py-2 text-xs font-medium hover:bg-blue-50 transition disabled:opacity-50 flex items-center justify-between"
+                  >
+                    <span>🎤 +{audioPackAmount} áudios</span>
+                    <span className="font-bold">{buyingAudios ? '...' : audioPackConfig.priceDisplay}</span>
+                  </button>
+                )}
+                {tradePackConfig && (
+                  <button
+                    onClick={handleBuyTrades}
+                    disabled={buyingTrades}
+                    className="w-full border border-gold/20 text-gold-dark rounded-lg px-3 py-2 text-xs font-medium hover:bg-gold-light/40 transition disabled:opacity-50 flex items-center justify-between"
+                  >
+                    <span>🔁 +{tradePackAmount} trocas</span>
+                    <span className="font-bold">{buyingTrades ? '...' : tradePackConfig.priceDisplay}</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

@@ -69,6 +69,21 @@ async function addTradeCredits(userId: string, credits: number) {
   return true
 }
 
+async function addAudioCredits(userId: string, credits: number) {
+  const supabase = getAdminClient()
+  const { data, error } = await supabase.rpc('add_audio_credits', {
+    p_user_id: userId,
+    p_credits: credits,
+  })
+
+  if (error) {
+    console.error('Error adding audio credits:', error)
+    return false
+  }
+  console.log(`User ${userId} added ${credits} audio credits:`, data)
+  return true
+}
+
 async function grantReferralUpgradeReward(userId: string, amountPaid: number, tier?: string) {
   // ── Embaixadores campaign (2026-04-29) ──
   // When a paid tier is purchased:
@@ -279,6 +294,11 @@ export async function POST(req: NextRequest) {
         const credits = parseInt(session.metadata?.credits || '2', 10) // safe fallback: smallest pack
         const ok = await addTradeCredits(userId, credits)
         if (!ok) return NextResponse.json({ error: 'Trade credits update failed' }, { status: 500 })
+      } else if (userId && type === 'audio_pack') {
+        // Audio pack purchase — add audio credits (Pedro 2026-05-03)
+        const credits = parseInt(session.metadata?.credits || '10', 10) // safe fallback: smallest pack
+        const ok = await addAudioCredits(userId, credits)
+        if (!ok) return NextResponse.json({ error: 'Audio credits update failed' }, { status: 500 })
       } else if (userId) {
         // Tier upgrade
         const tier = session.metadata?.tier || 'estreante'
@@ -312,6 +332,9 @@ export async function POST(req: NextRequest) {
     } else if (userId && type === 'trade_pack') {
       const credits = parseInt(session.metadata?.credits || '2', 10) // safe fallback: smallest pack
       await addTradeCredits(userId, credits)
+    } else if (userId && type === 'audio_pack') {
+      const credits = parseInt(session.metadata?.credits || '10', 10)
+      await addAudioCredits(userId, credits)
     } else if (userId) {
       const tier = session.metadata?.tier || 'estreante'
       await upgradeTier(userId, tier, session.customer as string)

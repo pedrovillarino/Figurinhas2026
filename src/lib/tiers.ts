@@ -28,6 +28,20 @@ export const TRADE_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDi
   colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
 }
 
+// ─── Audio pack pricing (Pedro 2026-05-03) ───
+// Free: +10 áudios / Estreante: +30 áudios. Mesmo preço do scan pack pra
+// simplificar UX. Colecionador+Copa não têm pacote (já são ilimitados).
+export const AUDIO_PACK_AMOUNTS: Record<string, number> = {
+  free: 10,
+  estreante: 30,
+}
+export const AUDIO_PACK_AMOUNT = 30 // default fallback
+
+export const AUDIO_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
+  free: { priceBrl: 299, priceDisplay: 'R$2,99' },
+  estreante: { priceBrl: 500, priceDisplay: 'R$5,00' },
+}
+
 // ─── Tier definitions ───
 // audioLimit: lifetime, áudios via WhatsApp (transcrição via Gemini).
 // Pedro 2026-05-02: free=10, estreante=30, colecionador+copa=ilimitado.
