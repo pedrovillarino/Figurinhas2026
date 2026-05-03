@@ -532,14 +532,10 @@ export default function AlbumClient({
         </div>
       </header>
 
-      {/* Stats row — Pedro 2026-05-02: clicáveis (mudam aba + scroll) */}
+      {/* Stats row — Pedro 2026-05-02: SÓ Faltam e Repetidas clicáveis
+          (Coladas é display-only — não tem aba "só coladas"). */}
       <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => goToTab('all')}
-          aria-label="Ver todas as figurinhas"
-          className={`flex-1 flex items-center gap-2.5 bg-white rounded-xl border p-3 active:scale-[0.98] transition-all ${activeTab === 'all' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-100 hover:border-emerald-200'}`}
-        >
+        <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
@@ -547,7 +543,7 @@ export default function AlbumClient({
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.owned}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Coladas</p>
           </div>
-        </button>
+        </div>
         <button
           type="button"
           onClick={() => goToTab('missing')}
