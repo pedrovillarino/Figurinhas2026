@@ -44,3 +44,7 @@ scripts/measure-*.mjs
 .agents/
 supabase/.temp/
 public/.next/
+
+# Pedro 2026-05-03: ignorar worktrees + marketing assets locais
+.claude/worktrees/
+marketing/node_modules/
