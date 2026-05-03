@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
 import { normalizePhoneBR } from '@/lib/phone'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
+import { runAgent, recordBotMessage, getLastBotContext } from '@/lib/whatsapp-agent'
 import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
@@ -2508,6 +2509,42 @@ export async function POST(req: NextRequest) {
           // intent === 'help' is the friendly menu; intent === 'unknown' falls
           // here too because of the `default:` — distinguish the lead line.
           const isUnknown = intent === 'unknown'
+
+          // Pedro 2026-05-03: Fase 1 spike do agente conversacional.
+          // Antes de mostrar menu (que é frustrante quando user fez pergunta
+          // natural), tenta o agent com Gemini function calling. Só ativa
+          // quando intent é unknown E texto é não-trivial (>= 8 chars) —
+          // assim "ok"/"valeu"/etc não disparam LLM.
+          if (isUnknown && text.trim().length >= 8) {
+            const ctx = await getLastBotContext(user.id)
+            const userTierAgent = ((user as { tier?: string }).tier || 'free') as Tier
+            const agentResp = await runAgent({
+              userId: user.id,
+              userMessage: text,
+              lastBotMessage: ctx.message,
+              lastBotMessageAt: ctx.at,
+              userTier: userTierAgent,
+            })
+
+            if (agentResp.kind === 'text' || agentResp.kind === 'tool_result') {
+              await sendText(phone, agentResp.text)
+              await recordBotMessage(user.id, agentResp.text)
+              return NextResponse.json({ ok: true })
+            }
+
+            if (agentResp.kind === 'escalate') {
+              // Por enquanto: só acolhe + log. Na próxima Fase: notifica Pedro
+              // WhatsApp e cria entry em support_escalations.
+              const acknowledge =
+                '🙏 Não fui treinado pra responder essa especificamente. Anotei sua mensagem e nosso *time de atendimento* vai te responder em breve aqui no WhatsApp. ✅'
+              await sendText(phone, acknowledge)
+              await recordBotMessage(user.id, acknowledge)
+              console.log(`[agent_escalate] user=${user.id} reason="${agentResp.reason}" msg="${agentResp.userMessage.slice(0, 100)}"`)
+              return NextResponse.json({ ok: true })
+            }
+            // agentResp.kind === 'error' → cai no fluxo antigo (menu)
+          }
+
           const lead = isUnknown
             ? `${greeting}🤔 Hmm, não peguei essa. Olha o que eu sei fazer:`
             : `${greeting}👋 Aqui vai tudo que eu sei fazer:`
