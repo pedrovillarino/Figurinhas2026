@@ -21,6 +21,10 @@ type Profile = {
   audio_uses_count: number
   referral_code: string | null
   is_minor?: boolean
+  // Pedro 2026-05-03: service recovery — banner de cortesia no profile
+  courtesy_credits_at: string | null
+  courtesy_message: string | null
+  courtesy_seen_at: string | null
 }
 
 type Stats = {
@@ -81,7 +85,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, audio_credits, audio_uses_count, referral_code, is_minor, city, state, location_lat')
+      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, audio_credits, audio_uses_count, referral_code, is_minor, city, state, location_lat, courtesy_credits_at, courtesy_message, courtesy_seen_at')
       .eq('id', user.id)
       .single()
 
@@ -94,6 +98,9 @@ export default function ProfilePage() {
         audio_credits: data.audio_credits || 0,
         audio_uses_count: data.audio_uses_count || 0,
         referral_code: data.referral_code || null,
+        courtesy_credits_at: data.courtesy_credits_at || null,
+        courtesy_message: data.courtesy_message || null,
+        courtesy_seen_at: data.courtesy_seen_at || null,
       })
       setPhone(data.phone || '')
       setDisplayName(data.display_name || '')
@@ -336,6 +343,16 @@ export default function ProfilePage() {
     }
   }
 
+  // Pedro 2026-05-03: dismiss banner de cortesia (service recovery).
+  // Marca courtesy_seen_at = now() — banner some no próximo render.
+  async function dismissCourtesy() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ courtesy_seen_at: now }).eq('id', user.id)
+    setProfile((p) => p ? { ...p, courtesy_seen_at: now } : p)
+  }
+
   async function handleDeleteAccount() {
     setDeleting(true)
     try {
@@ -388,9 +405,41 @@ export default function ProfilePage() {
     || (audioPct >= 70 && audioLimit !== Infinity)
     || (tradePct >= 70 && tradeLimit !== Infinity)
 
+  // Banner de cortesia: aparece se o user recebeu créditos de service
+  // recovery e ainda não dismissou. Pedro 2026-05-03.
+  const showCourtesyBanner = !!profile?.courtesy_credits_at && !profile?.courtesy_seen_at
+
   return (
     <main className="px-4 pt-6 pb-24">
       <h1 className="text-2xl font-bold mb-6">Perfil</h1>
+
+      {/* Banner de cortesia (service recovery) — sutil, dismissable */}
+      {showCourtesyBanner && (
+        <div className="bg-gradient-to-br from-emerald-50 to-brand-light/40 border border-emerald-200 rounded-xl p-4 mb-4 relative">
+          <button
+            type="button"
+            onClick={dismissCourtesy}
+            aria-label="Entendi"
+            className="absolute top-2 right-2 w-7 h-7 rounded-full hover:bg-emerald-100 flex items-center justify-center text-emerald-700 transition"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="flex items-start gap-3 pr-6">
+            <div className="text-2xl">🎁</div>
+            <div>
+              <p className="text-sm font-bold text-emerald-800">Você recebeu uma cortesia!</p>
+              <p className="text-[12px] text-emerald-700 mt-1">
+                {profile?.courtesy_message || 'Pelo trampo, te dei créditos extras.'}
+              </p>
+              <p className="text-[11px] text-emerald-600 mt-2">
+                ➕ <strong>1 scan IA</strong> e <strong>1 áudio</strong> de cortesia, já incluídos no seu saldo.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User info */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
