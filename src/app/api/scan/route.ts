@@ -83,7 +83,13 @@ For EACH physical sticker you can see (front or back), return:
 ⚠️ SYMBOL STICKERS (no player name — you must RECOGNIZE VISUALLY):
 
 Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
-- {COUNTRY}-1: federation BADGE/CREST (CBF, AFA, FFF, US Soccer, etc — usually team-colored background with large crest centered). player_name = "Emblem".
+- {COUNTRY}-1: federation BADGE/CREST. Read the LETTERS on the crest to identify the country. player_name = "Emblem". Common federation acronyms:
+  - CBF=Brazil, AFA=Argentina, FFF=France, DFB=Germany, RFEF=Spain (royal crown), FA=England (Three Lions), FPF=Portugal (5 small blue shields), KNVB=Netherlands, HNS=Croatia, KBVB/URBSFA=Belgium, AUF=Uruguay (4 stars), FCF=Colombia, FEF=Ecuador, APF=Paraguay, FMF=Mexico (eagle), USSF=USA (US flag shield), Canada Soccer=Canada (red maple leaf), FRMF=Morocco, EFA=Egypt, FSF=Senegal, FAF=Algeria, FTF=Tunisia (eagle + Arabic text), CV/FCV=Cabo Verde, FIF=Côte d'Ivoire, GFA=Ghana, FECOFA=DR Congo, SAFA=South Africa, SAFF=Saudi Arabia, JFA=Jordan AND Japan (different visuals), QFA=Qatar (white circle + Arabic text), UFA=Uzbekistan, KFA=Korea Republic, FFA=Australia, NZF=New Zealand, TFF=Türkiye, FAČR=Czechia, FSBiH=Bosnia, NFF=Norway (NORGE text), SvFF=Sweden, SFV=Switzerland (white cross), ÖFB=Austria (black eagle), SFA=Scotland (lion rampant), FEPAFUT=Panama, FHF=Haiti, FFK=Curaçao, FFIRI=Iran, IFA=Iraq.
+  - Crests with similar look — distinguish:
+    - NOR (NFF) vs SUI (Switzerland): both white cross on red. NOR has NORGE+NFF text + lions; SUI has plain cross, no text.
+    - AUT (ÖFB) vs TUN (FTF) vs GHA (Ghana): all have eagle. AUT eagle is black on red/white shield; TUN eagle inside red circle with Arabic text; GHA different layout entirely.
+    - POR (FPF) vs PER: same FPF acronym! POR has 5 blue shields + castles + cross; PER has plain red/white shield with big "FPF".
+    - JFA = Japan AND Jordan! JPN has crow with ball; JOR has falcon/hawk with shield.
 - {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":

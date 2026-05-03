@@ -31,7 +31,13 @@ Para CADA figurinha física visível (frente ou verso):
 ⚠️ SÍMBOLOS (figurinhas SEM nome de jogador — você precisa RECONHECER VISUALMENTE):
 
 Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
-- {PAIS}-1: ESCUDO da federação do país (CBF, AFA, FFF, US Soccer, etc — geralmente fundo de cor do time + escudo grande no centro com letras visíveis tipo CBF/AFA/FA). player_name = "Emblem", country = país.
+- {PAIS}-1: ESCUDO da federação. LEIA AS LETRAS no escudo pra identificar o país. player_name = "Emblem". Acronimos chave:
+  - CBF=Brasil, AFA=Argentina, FFF=França, DFB=Alemanha, RFEF=Espanha (coroa real), FA=Inglaterra (3 leões), FPF=Portugal (5 escudos azuis), KNVB=Holanda, HNS=Croácia, KBVB=Bélgica, AUF=Uruguai (4 estrelas), FCF=Colômbia, FEF=Equador, APF=Paraguai, FMF=México (águia), USSF=USA, Canada Soccer=Canadá (folha bordo), FRMF=Marrocos, EFA=Egito, FSF=Senegal, FAF=Argélia, FTF=Tunísia (águia + texto árabe), FIF=Costa do Marfim, GFA=Gana, FECOFA=R.D. Congo, SAFA=África do Sul, SAFF=Arábia Saudita, JFA=Jordan E Japão (escudos diferentes), QFA=Catar (círculo branco + texto árabe), UFA=Uzbequistão, KFA=Coreia, FFA=Austrália, NZF=N.Zelândia, TFF=Turquia, FAČR=Tchéquia, FSBiH=Bósnia, NFF=Noruega (texto NORGE), SvFF=Suécia, SFV=Suíça (cruz branca), ÖFB=Áustria (águia preta), SFA=Escócia (leão), FEPAFUT=Panamá, FHF=Haiti, FFK=Curaçao, FFIRI=Irã, IFA=Iraque.
+  - Escudos parecidos — diferencie:
+    - NOR (NFF) vs SUI (Suíça): ambos cruz branca em vermelho. NOR tem texto NORGE+NFF + leões; SUI cruz pura, sem texto.
+    - AUT (ÖFB) vs TUN (FTF) vs GHA: todos com águia. AUT águia preta em escudo vermelho/branco; TUN águia em círculo vermelho com texto árabe; GHA layout diferente.
+    - POR (FPF) vs PER: mesma sigla FPF! POR tem 5 escudos azuis + castelos + cruz; PER escudo simples vermelho/branco com "FPF" grande.
+    - JFA = Japão E Jordan! JPN corvo com bola; JOR falcão com escudo.
 - {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":

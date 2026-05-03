@@ -85,7 +85,7 @@ COMO LER UMA FIGURINHA PANINI:
 ⚠️ SÍMBOLOS (NÃO SÃO JOGADORES — figurinhas que você precisa RECONHECER VISUALMENTE):
 
 Cada um dos 48 PAÍSES tem 2 símbolos fixos:
-- {PAIS}-1 (1ª figurinha): ESCUDO da federação (CBF Brasil, AFA Argentina, FFF França, US Soccer, etc). Visual: fundo de cor do país + escudo grande centralizado, geralmente com letras visíveis (CBF/AFA/FA/etc) → player_name "Emblem"
+- {PAIS}-1: ESCUDO. LEIA AS LETRAS pra identificar país. player_name "Emblem". Acrônimos chave: CBF=Brasil, AFA=Argentina, FFF=França, DFB=Alemanha, RFEF=Espanha, FA=Inglaterra, FPF=Portugal, KNVB=Holanda, HNS=Croácia, KBVB=Bélgica, AUF=Uruguai, FCF=Colômbia, FEF=Equador, APF=Paraguai, FMF=México, USSF=USA, FRMF=Marrocos, EFA=Egito, FSF=Senegal, FAF=Argélia, FTF=Tunísia, FIF=C.Marfim, GFA=Gana, FECOFA=R.D.Congo, SAFA=África Sul, SAFF=Arábia Saudita, JFA=Jordan E Japão (visuais diferentes), QFA=Catar, UFA=Uzbequistão, KFA=Coreia, FFA=Austrália, NZF=N.Zelândia, TFF=Turquia, FAČR=Tchéquia, FSBiH=Bósnia, NFF=Noruega, SvFF=Suécia, SFV=Suíça, ÖFB=Áustria, SFA=Escócia, FEPAFUT=Panamá, FHF=Haiti, FFK=Curaçao, FFIRI=Irã, IFA=Iraque. Cuidado escudos parecidos: NOR/SUI (cruz branca em vermelho — NOR tem NORGE escrito), AUT/TUN/GHA (águia, distintas), POR/PER (mesma sigla FPF, escudos diferentes), JFA Japão (corvo) vs Jordan (falcão).
 - {PAIS}-13 (13ª figurinha): foto do TIME juntos posando — fileira de 22+ jogadores de pé/agachados em campo → player_name "Team Photo"
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19):
