@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getCachedStickers } from '@/lib/stickers-cache'
 import AlbumClient from './AlbumClient'
+import CepNudgeWrapper from '@/components/CepNudgeWrapper'
 import type { Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
 
@@ -30,11 +31,18 @@ export default async function AlbumPage() {
   })
 
   return (
-    <AlbumClient
-      stickers={stickers}
-      userStickersMap={userStickersMap}
-      userId={user.id}
-      tier={(profile?.tier || 'free') as Tier}
-    />
+    <>
+      {/* Pedro 2026-05-03: nudge contextual de CEP — só aparece se user
+          tem engajamento mínimo e ainda não preencheu cidade */}
+      <div className="px-4 pt-4">
+        <CepNudgeWrapper userId={user.id} />
+      </div>
+      <AlbumClient
+        stickers={stickers}
+        userStickersMap={userStickersMap}
+        userId={user.id}
+        tier={(profile?.tier || 'free') as Tier}
+      />
+    </>
   )
 }

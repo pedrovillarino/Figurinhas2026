@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getCachedStickers } from '@/lib/stickers-cache'
 import TradesHub from './TradesHub'
+import CepNudgeWrapper from '@/components/CepNudgeWrapper'
 import { type Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
 
@@ -144,17 +145,27 @@ export default async function TradesPage() {
   }
 
   return (
-    <TradesHub
-      userId={user.id}
-      tier={tier}
-      stickers={stickers}
-      userStickersMap={userStickersMap}
-      hasLocation={hasLocation}
-      nearbyCount={nearbyCount}
-      nearbyMatches={nearbyMatches}
-      pendingRequests={pendingRequests}
-      sentRequestUserIds={sentRequestUserIds}
-      approvedTrades={approvedTrades}
-    />
+    <>
+      {/* Pedro 2026-05-03: nudge contextual de CEP — só aparece se user
+          tem engajamento mínimo e ainda não preencheu cidade. /trades é
+          o lugar com mais valor pro CEP (necessário pra match nearby). */}
+      {!hasLocation && (
+        <div className="px-4 pt-4 max-w-md mx-auto">
+          <CepNudgeWrapper userId={user.id} />
+        </div>
+      )}
+      <TradesHub
+        userId={user.id}
+        tier={tier}
+        stickers={stickers}
+        userStickersMap={userStickersMap}
+        hasLocation={hasLocation}
+        nearbyCount={nearbyCount}
+        nearbyMatches={nearbyMatches}
+        pendingRequests={pendingRequests}
+        sentRequestUserIds={sentRequestUserIds}
+        approvedTrades={approvedTrades}
+      />
+    </>
   )
 }

@@ -66,12 +66,94 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { lat, lng, city: bodyCity, neighborhood: bodyNeighborhood, state: bodyState } = body
+    const { lat, lng, city: bodyCity, neighborhood: bodyNeighborhood, state: bodyState, cep: bodyCep } = body
 
     const sanitize = (s: string | undefined) =>
       s ? s.replace(/[<>"'&;]/g, '').trim().slice(0, 100) || null : null
 
     const admin = getAdmin()
+
+    // ── CEP: 8 dígitos → cidade/state via ViaCEP, depois forward → lat/lng ──
+    // Pedro 2026-05-03: nudge de CEP. ViaCEP é gratuito e brasileiro.
+    if (bodyCep) {
+      const cepDigits = String(bodyCep).replace(/\D/g, '')
+      if (cepDigits.length !== 8) {
+        return NextResponse.json({ error: 'CEP inválido. Tem que ter 8 dígitos.' }, { status: 400 })
+      }
+      try {
+        const viacepRes = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, {
+          signal: AbortSignal.timeout(6000),
+        })
+        if (!viacepRes.ok) {
+          return NextResponse.json({ error: 'Erro ao consultar CEP.' }, { status: 502 })
+        }
+        const viacepData = await viacepRes.json()
+        if (viacepData.erro) {
+          return NextResponse.json({ error: 'CEP não encontrado.' }, { status: 404 })
+        }
+        const cepCity = sanitize(viacepData.localidade)
+        const cepState = sanitize(viacepData.uf)
+        const cepNeighborhood = sanitize(viacepData.bairro)
+        if (!cepCity) {
+          return NextResponse.json({ error: 'CEP sem cidade.' }, { status: 502 })
+        }
+        // Forward geocode (cidade + bairro → lat/lng) reusando código abaixo
+        // Substitui as variáveis e cai no fluxo FORWARD
+        ;(body as Record<string, unknown>).city = cepCity
+        ;(body as Record<string, unknown>).state = cepState
+        ;(body as Record<string, unknown>).neighborhood = cepNeighborhood
+        // Reatribui pra escopo local
+        const cleanCity = cepCity
+        const cleanState = cepState
+        const cleanNeighborhood = cepNeighborhood
+
+        const params = new URLSearchParams({
+          format: 'json',
+          country: 'Brazil',
+          city: cleanCity,
+          'accept-language': 'pt',
+          limit: '1',
+        })
+        if (cleanState) params.set('state', cleanState)
+        const url = `https://nominatim.openstreetmap.org/search?${params.toString()}${cleanNeighborhood ? `&q=${encodeURIComponent(`${cleanNeighborhood}, ${cleanCity}, Brasil`)}` : ''}`
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 8000)
+        const geoResponse = await fetch(url, {
+          headers: { 'User-Agent': 'CompleteAi/1.0 (contato@completeai.com.br)' },
+          signal: controller.signal,
+        })
+        clearTimeout(timeout)
+        if (!geoResponse.ok) {
+          return NextResponse.json({ error: 'Erro ao buscar localização do CEP.' }, { status: 502 })
+        }
+        const results = await geoResponse.json()
+        if (!Array.isArray(results) || results.length === 0) {
+          // CEP achou cidade mas Nominatim não geocodou — salva só cidade/estado
+          await admin.from('profiles').update({
+            city: cleanCity,
+            state: cleanState ?? null,
+            cep_nudge_dismissed_at: new Date().toISOString(),
+          }).eq('id', user.id)
+          return NextResponse.json({ ok: true, mode: 'cep', city: cleanCity, state: cleanState, lat: null, lng: null })
+        }
+        const top = results[0]
+        const lat2 = parseFloat(top.lat)
+        const lng2 = parseFloat(top.lon)
+        const update: Record<string, unknown> = {
+          city: cleanCity,
+          state: cleanState ?? null,
+          cep_nudge_dismissed_at: new Date().toISOString(),
+        }
+        if (Number.isFinite(lat2)) update.location_lat = lat2
+        if (Number.isFinite(lng2)) update.location_lng = lng2
+        await admin.from('profiles').update(update).eq('id', user.id)
+        return NextResponse.json({ ok: true, mode: 'cep', city: cleanCity, state: cleanState, neighborhood: cleanNeighborhood, lat: lat2, lng: lng2 })
+      } catch (err) {
+        const isAbort = err instanceof Error && err.name === 'AbortError'
+        return NextResponse.json({ error: isAbort ? 'CEP demorou pra responder.' : 'Erro ao consultar CEP.' }, { status: 502 })
+      }
+    }
 
     // ── REVERSE: lat/lng → city/state ─────────────────────────────────
     if (typeof lat === 'number' && typeof lng === 'number') {
@@ -96,7 +178,7 @@ export async function POST(req: NextRequest) {
       const state = sanitize(address.state)
       const { error: updateError } = await admin
         .from('profiles')
-        .update({ city, state })
+        .update({ city, state, cep_nudge_dismissed_at: new Date().toISOString() })
         .eq('id', user.id)
       if (updateError) {
         console.error('[geocode] Profile update error (reverse):', updateError)
@@ -158,6 +240,7 @@ export async function POST(req: NextRequest) {
       state: cleanState ?? null,
       location_lat: lat2,
       location_lng: lng2,
+      cep_nudge_dismissed_at: new Date().toISOString(),
     }
 
     const { error: updateError } = await admin
