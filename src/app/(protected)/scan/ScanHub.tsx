@@ -431,9 +431,9 @@ export default function ScanHub({
   const progressPct = totalStickers > 0 ? Math.round((ownedCount / totalStickers) * 100) : 0
 
   // ── IDLE ──
-  // Pedro 2026-05-03: layout reconfigurado pra caber sem scroll em iPhone
-  // 14/15 (390×844, ~707px úteis). Header 1 linha, dicas colapsáveis, WhatsApp
-  // foto+áudio em 2 cards lado a lado, "O que posso escanear" virou inline.
+  // Pedro 2026-05-03: layout pensado pra caber sem scroll em iPhone normal
+  // (390×844, ~707px úteis). Dicas SEMPRE abertas + 3 cards "O que posso
+  // escanear" pra ficar claro o que é aceito.
   if (state === 'idle') {
     return (
       <div className="px-4 pt-3 pb-[80px]">
@@ -442,7 +442,7 @@ export default function ScanHub({
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-black tracking-tight text-gray-900 leading-none">Scanner IA</h1>
             <p className="text-[11px] text-gray-500 mt-1">
-              Várias figurinhas por foto · 📖 página · ⚽ cromo · 🃏 vários
+              Cada foto detecta várias figurinhas de uma vez
             </p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
@@ -488,21 +488,35 @@ export default function ScanHub({
           </button>
         </div>
 
-        {/* Dicas: 1 linha sempre visível + colapsável (ainda dá pra abrir e ler tudo) */}
-        <details className="rounded-xl bg-amber-50 border border-amber-200 mb-3 group">
-          <summary className="list-none cursor-pointer px-3 py-2 flex items-center justify-between gap-2">
-            <span className="text-[11px] text-amber-900 leading-snug">
-              📸 <strong className="text-red-700">NITIDEZ é tudo</strong> — nome ou número precisam estar legíveis
-            </span>
-            <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap group-open:hidden">+ dicas</span>
-            <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap hidden group-open:inline">▴</span>
-          </summary>
-          <ul className="text-[11px] text-gray-700 leading-relaxed space-y-1 mx-3 pt-2 pb-2.5 border-t border-amber-200/60">
-            <li>• Até <strong>10 cromos por foto</strong> — mais que isso a IA erra mais</li>
-            <li>• A partir de 5 cromos, prefira <strong>frente do cromo</strong> (foto/nome do jogador)</li>
-            <li>• Boa luz, foco no centro, sem reflexo nem sombra</li>
+        {/* O que posso escanear — 3 cards visuais */}
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">O que posso escanear</p>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-white border border-gray-100 rounded-xl p-2 text-center">
+            <div className="text-xl mb-0.5">📖</div>
+            <p className="text-[10px] font-bold text-gray-700 leading-tight">Página</p>
+            <p className="text-[9px] text-gray-400 leading-tight">do álbum</p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-xl p-2 text-center">
+            <div className="text-xl mb-0.5">⚽</div>
+            <p className="text-[10px] font-bold text-gray-700 leading-tight">Figurinha</p>
+            <p className="text-[9px] text-gray-400 leading-tight">solta na mão</p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-xl p-2 text-center">
+            <div className="text-xl mb-0.5">🃏</div>
+            <p className="text-[10px] font-bold text-gray-700 leading-tight">Várias</p>
+            <p className="text-[9px] text-gray-400 leading-tight">na mesa</p>
+          </div>
+        </div>
+
+        {/* Dicas SEMPRE abertas */}
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-3">
+          <p className="text-[11px] font-bold text-amber-900 mb-1.5">📸 Para o scan acertar</p>
+          <ul className="text-[11px] text-gray-700 leading-relaxed space-y-1">
+            <li>• <strong className="text-red-700">NITIDEZ é tudo</strong> — nome ou número precisam estar legíveis</li>
+            <li>• Até <strong>10 cromos por foto</strong>; acima disso a IA erra mais</li>
+            <li>• 5+ cromos juntos: prefira <strong>frente</strong> (verso fica ilegível)</li>
           </ul>
-        </details>
+        </div>
 
         {/* WhatsApp duo — foto + áudio lado a lado */}
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Pelo WhatsApp</p>
