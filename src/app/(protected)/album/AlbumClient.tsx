@@ -28,7 +28,7 @@ type Sticker = {
 
 type UserStickerInfo = { status: string; quantity: number }
 
-type Tab = 'all' | 'missing' | 'duplicates' | 'extras'
+type Tab = 'all' | 'owned' | 'missing' | 'duplicates' | 'extras'
 type ViewMode = 'grid' | 'sections'
 
 export default function AlbumClient({
@@ -190,6 +190,13 @@ export default function AlbumClient({
         list = list.filter((s) => {
           const us = userMap[s.id]
           return !us || us.status === 'missing'
+        })
+      } else if (activeTab === 'owned') {
+        // Pedro 2026-05-03: filter "Coladas" — só os 980 do álbum que o user
+        // tem (owned ou duplicate, ambos contam como "ja tem").
+        list = list.filter((s) => {
+          const us = userMap[s.id]
+          return us && (us.status === 'owned' || us.status === 'duplicate')
         })
       }
     }
@@ -391,6 +398,7 @@ export default function AlbumClient({
     if (!debouncedSearch.trim()) {
       return {
         all: completable.length,
+        owned: stats.owned,
         missing: stats.missing,
         duplicates: stats.duplicates,
         extras: extrasAll.length,
@@ -398,6 +406,10 @@ export default function AlbumClient({
     }
     const q = debouncedSearch.toLowerCase()
     const searched = completable.filter((s) => matchesSearch(s, q))
+    const searchOwned = searched.filter((s) => {
+      const us = userMap[s.id]
+      return us && (us.status === 'owned' || us.status === 'duplicate')
+    })
     const searchMissing = searched.filter((s) => { const us = userMap[s.id]; return !us || us.status === 'missing' })
     // Duplicates search spans the entire album, not just completable
     const searchDupes = sortedStickers.filter(
@@ -406,6 +418,7 @@ export default function AlbumClient({
     const searchExtras = extrasAll.filter((s) => matchesSearch(s, q))
     return {
       all: searched.length,
+      owned: searchOwned.length,
       missing: searchMissing.length,
       duplicates: searchDupes.length,
       extras: searchExtras.length,
@@ -414,6 +427,7 @@ export default function AlbumClient({
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'all', label: 'Todas', count: tabCounts.all },
+    { key: 'owned', label: 'Coladas', count: tabCounts.owned },
     { key: 'missing', label: 'Faltam', count: tabCounts.missing },
     { key: 'duplicates', label: 'Repetidas', count: tabCounts.duplicates },
     { key: 'extras', label: 'Extras', count: tabCounts.extras },
@@ -532,10 +546,15 @@ export default function AlbumClient({
         </div>
       </header>
 
-      {/* Stats row — Pedro 2026-05-02: SÓ Faltam e Repetidas clicáveis
-          (Coladas é display-only — não tem aba "só coladas"). */}
+      {/* Stats row — Pedro 2026-05-03: Coladas agora também clicável,
+          filtra a lista embaixo só pelas figurinhas que o user tem. */}
       <div className="flex gap-2 mb-4">
-        <div className="flex-1 flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 p-3">
+        <button
+          type="button"
+          onClick={() => goToTab('owned')}
+          aria-label="Ver figurinhas coladas"
+          className={`flex-1 flex items-center gap-2.5 bg-white rounded-xl border p-3 active:scale-[0.98] transition-all ${activeTab === 'owned' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-100 hover:border-emerald-200'}`}
+        >
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
@@ -543,7 +562,7 @@ export default function AlbumClient({
             <p className="text-lg font-bold text-gray-800 leading-none">{stats.owned}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Coladas</p>
           </div>
-        </div>
+        </button>
         <button
           type="button"
           onClick={() => goToTab('missing')}
