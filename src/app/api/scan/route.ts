@@ -97,6 +97,11 @@ Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
     - QAT-1 (QFA): red/white shield with stylized BLACK BALL + Arabic text + "QFA" below
     - AUT-1 (ÖFB): big stylized BLACK EAGLE, RED/WHITE/RED shield in center, "SEIT ÖFB 1904" text
     - KOR-1 (KFA): stylized BLACK TIGER in RECTANGULAR RED frame, "KFA" below, white background
+    - AUS-1 (Football Australia): stylized orange/green BALL centered + "FOOTBALL AUSTRALIA" in big black letters below
+    - ALG-1 (FAF Algeria): BLACK BALL with GREEN WINGS + RED CRESCENT MOON + Arabic text "الجزائر" below, white circular background
+    - GHA-1 (GFA Ghana): white/black BALL centered with GHANA FLAG STRIP (green/yellow/red + BLACK STAR) curved on top + "GHANA FOOTBALL ASSOCIATION" text around
+    - BEL-1 (Royal Belgian FA): BLACK+GOLD CROWN on top + BLACK/YELLOW/RED shield (Belgium colors) with "B" letter and "ROYAL BELGIAN FA · 1895" text + LAUREL BRANCHES below
+    - NED-1 (KNVB Netherlands): RED RAMPANT LION on white shield, "KNVB" text at top of shield
 - {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":

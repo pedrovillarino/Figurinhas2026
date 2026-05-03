@@ -45,6 +45,11 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
     - QAT-1 (QFA): escudo vermelho/branco com BOLA ESTILIZADA preta + texto árabe + "QFA" embaixo
     - AUT-1 (ÖFB): ÁGUIA PRETA estilizada gigante, escudo VERMELHO/BRANCO/VERMELHO no centro, "SEIT ÖFB 1904" texto
     - KOR-1 (KFA): TIGRE estilizado PRETO em moldura RETANGULAR VERMELHA, "KFA" embaixo, fundo branco
+    - AUS-1 (Football Australia): BOLA estilizada laranja/verde no centro + texto "FOOTBALL AUSTRALIA" em letras pretas grandes embaixo
+    - ALG-1 (FAF Argélia): BOLA preta com ASAS VERDES + LUA CRESCENTE vermelha + texto árabe "الجزائر" embaixo, fundo branco circular
+    - GHA-1 (GFA Ghana): BOLA branca/preta no centro com BANDEIRA DE GHANA (faixa verde/amarelo/vermelho + ESTRELA PRETA) curvada por cima + texto "GHANA FOOTBALL ASSOCIATION" em volta
+    - BEL-1 (Royal Belgian FA): COROA preta+amarela no topo + escudo PRETO/AMARELO/VERMELHO (cores Bélgica) com letra "B" e texto "ROYAL BELGIAN FA · 1895" + RAMOS DE LOUROS embaixo
+    - NED-1 (KNVB Holanda): LEÃO VERMELHO RAMPANTE no escudo branco, texto "KNVB" no topo do escudo
 - {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":
