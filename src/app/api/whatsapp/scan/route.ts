@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText } from '@/lib/zapi'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
+import { matchSymbolByName } from '@/lib/symbol-synonyms'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -259,6 +260,15 @@ function matchSticker(
       const found = cache.byNumber.get(`${noSep[1]}-${noSep[2]}`)
       if (found) return found
     }
+  }
+
+  // Priority 1.5: SYMBOL synonyms (Pedro 2026-05-03 caso Taciane)
+  // Scanner devolve "Official Ball" / "World Cup Trophy" — mapeia pro número
+  // canônico antes de tentar fuzzy de nome (que falharia).
+  const symbolNumber = matchSymbolByName(playerName, country)
+  if (symbolNumber) {
+    const found = cache.byNumber.get(symbolNumber)
+    if (found) return found
   }
 
   // Priority 2: name + country

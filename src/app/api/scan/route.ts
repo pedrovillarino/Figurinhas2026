@@ -13,6 +13,7 @@ import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
 import { embedImage } from '@/lib/embeddings'
 import { savePendingSample, computeKnnVerdict, type Face } from '@/lib/sample-store'
+import { findSymbolSticker } from '@/lib/symbol-synonyms'
 
 const ENABLE_KNN_BOOST = process.env.ENABLE_KNN_BOOST === 'true'
 
@@ -705,6 +706,18 @@ export async function POST(request: NextRequest) {
         if (dbSticker) matchType = 'number'
       }
 
+      // ── Priority 1.5: Match by SYMBOL synonyms (Pedro 2026-05-03 caso Taciane) ──
+      // Scanner identifica símbolo visualmente mas devolve nome em inglês
+      // ("Official Ball", "World Cup Trophy") que não casa com nome canônico
+      // do DB. Mapa de sinônimos resolve antes de cair no fuzzy de player.
+      if (!dbSticker && playerName) {
+        const symbolMatch = findSymbolSticker(playerName, countryCode, numberMap)
+        if (symbolMatch) {
+          dbSticker = symbolMatch
+          matchType = 'symbol_synonym'
+        }
+      }
+
       // ── Priority 2: Match by player name + country ──
       if (!dbSticker && normPlayer && normPlayer.length >= 2) {
         if (countryCode) {
@@ -776,6 +789,7 @@ export async function POST(request: NextRequest) {
         number: 0.97,                // Sticker number match = near certain
         exact_name_country: 0.95,    // Exact name + right country = very good
         coca_exact: 0.93,            // Coca-Cola: distinctive visual (red+logo) → high confidence
+        symbol_synonym: 0.90,        // Symbol description matched to canonical sticker (Trophy, Ball, Mascot)
         extras_exact: 0.88,          // Extras: name+tier matched exactly — tier read is the risk
         exact_name_flat: 0.82,       // Exact name, no country verification = good
         fuzzy_name_country: 0.80,    // Fuzzy name + right country = good
