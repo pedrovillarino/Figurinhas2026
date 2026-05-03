@@ -1,45 +1,50 @@
 export type Tier = 'free' | 'estreante' | 'colecionador' | 'copa_completa'
 
-// ─── Scan pack pricing (for estreante & colecionador only) ───
+// ─── Scan pack pricing (Pedro 2026-05-03 — revisão) ─────────────────
+// Filosofia: pacote = "compra de emergência". Cada um vale ~1× tier
+// limit (sente dopamina), mas upgrade rende mais por R$. Preços
+// diminuem por unidade conforme tier sobe (Colec ganha 50% off).
 export const SCAN_PACK_AMOUNTS: Record<string, number> = {
-  free: 10,
-  estreante: 100,
-  colecionador: 100,
+  free: 5,         // = scanLimit free (dobra o que tem)
+  estreante: 30,   // = scanLimit estreante
+  colecionador: 50,
 }
-export const SCAN_PACK_AMOUNT = 100 // default for paid tiers
+export const SCAN_PACK_AMOUNT = 30 // default for paid tiers
 
 export const SCAN_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
   free: { priceBrl: 299, priceDisplay: 'R$2,99' },
-  estreante: { priceBrl: 1000, priceDisplay: 'R$10,00' },
+  estreante: { priceBrl: 500, priceDisplay: 'R$5,00' },
   colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
 }
 
-// ─── Trade pack pricing (for estreante & colecionador only) ───
+// ─── Trade pack pricing (Pedro 2026-05-03 — revisão) ───────────────
+// Trocas têm valor humano (interação real) — preço mais alto/un.
 export const TRADE_PACK_AMOUNTS: Record<string, number> = {
   free: 2,
-  estreante: 10,
+  estreante: 5,
   colecionador: 10,
 }
-export const TRADE_PACK_AMOUNT = 10 // default for paid tiers
+export const TRADE_PACK_AMOUNT = 5 // default fallback
 
 export const TRADE_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
   free: { priceBrl: 299, priceDisplay: 'R$2,99' },
-  estreante: { priceBrl: 1000, priceDisplay: 'R$10,00' },
+  estreante: { priceBrl: 500, priceDisplay: 'R$5,00' },
   colecionador: { priceBrl: 500, priceDisplay: 'R$5,00' },
 }
 
-// ─── Audio pack pricing (Pedro 2026-05-03) ───
-// Free: +7 áudios / Estreante: +30 áudios. Mesmo preço do scan pack pra
-// simplificar UX. Colecionador+Copa não têm pacote (já são ilimitados).
+// ─── Audio pack pricing (Pedro 2026-05-03 — revisão) ───────────────
+// Mais barato que scan (Gemini áudio < Gemini visão).
+// Free +7 / Estreante +15 (½ tier limit, suficiente "emergência").
+// Colec/Copa já ilimitado, sem pacote.
 export const AUDIO_PACK_AMOUNTS: Record<string, number> = {
-  free: 10,
-  estreante: 30,
+  free: 7,
+  estreante: 15,
 }
-export const AUDIO_PACK_AMOUNT = 30 // default fallback
+export const AUDIO_PACK_AMOUNT = 15 // default fallback
 
 export const AUDIO_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDisplay: string }>> = {
-  free: { priceBrl: 299, priceDisplay: 'R$2,99' },
-  estreante: { priceBrl: 500, priceDisplay: 'R$5,00' },
+  free: { priceBrl: 199, priceDisplay: 'R$1,99' },
+  estreante: { priceBrl: 300, priceDisplay: 'R$3,00' },
 }
 
 // ─── Tier definitions ───
