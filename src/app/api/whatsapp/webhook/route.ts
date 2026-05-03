@@ -885,8 +885,11 @@ async function transcribeAudio(audioBase64: string, mimeType: string): Promise<s
         'You receive a Portuguese audio message from a Panini sticker album user listing sticker codes. ' +
         'Transcribe verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. ' +
         'IMPORTANT: Convert ALL spelled-out numbers to digits — "três" → "3", "treze" → "13", ' +
-        '"vinte e cinco" → "25", "número quinze" → "15". Country names stay as spoken: ' +
-        '"Espanha 3", "Cabo Verde 7", "Brasil 12". ' +
+        '"vinte e cinco" → "25", "número quinze" → "15". ' +
+        'Country names stay as spoken — keep multi-word country names INTACT and properly spelled: ' +
+        '"Espanha 3", "Cabo Verde 7", "Brasil 12", "República Tcheca 5" (NOT "techa" or "checa"), ' +
+        '"Côte d\'Ivoire 8", "Coreia do Sul 14", "Arábia Saudita 6", "Estados Unidos 11", ' +
+        '"África do Sul 9", "Nova Zelândia 4". When you hear "tcheca" / "tchéquia" / "checa" → keep as "Tcheca". ' +
         'If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
     })
     const result = await model.generateContent([
