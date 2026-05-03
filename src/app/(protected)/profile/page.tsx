@@ -551,17 +551,40 @@ export default function ProfilePage() {
                   <p className="text-[10px] font-bold text-gold-dark uppercase tracking-wide mt-1">Colecionador</p>
                   <p className="text-lg font-bold text-gold-dark mt-0.5">R$19,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
                   <p className="text-[10px] font-bold text-gold-dark mt-1.5">🎤 Áudio ilimitado</p>
-                  <p className="text-[10px] text-gray-700 leading-tight mt-0.5">150 scans · 15 trocas<br/>Pacotes 50% off · sem ads</p>
+                  <p className="text-[10px] text-gray-700 leading-tight mt-0.5">150 scans · 15 trocas<br/>📬 Trocas: <strong>1×/dia</strong></p>
                 </div>
               )}
               <div className="bg-gradient-to-br from-emerald-50 to-brand-light/40 rounded-lg border-2 border-emerald-300 p-3 text-center relative">
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded-full whitespace-nowrap">🏆 ELITE</span>
                 <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide mt-1">Copa Completa</p>
                 <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
-                <p className="text-[10px] font-bold text-emerald-700 mt-1.5">⚡ Notif tempo real</p>
-                <p className="text-[10px] text-gray-700 leading-tight mt-0.5">500 scans · tudo ∞<br/>🎯 Top dos matches · 🏆 Badge</p>
+                <p className="text-[10px] font-bold text-emerald-700 mt-1.5">⚡ Trocas: <span className="underline">na hora</span></p>
+                <p className="text-[10px] text-gray-700 leading-tight mt-0.5">500 scans · tudo ∞<br/>🎯 Top da fila · 🏆 Badge</p>
               </div>
             </div>
+
+            {/* Pedro 2026-05-03: comparativo direto da diferença chave entre
+                Colec e Copa Completa — frequência das notificações de trocas */}
+            {(tier === 'free' || tier === 'estreante' || tier === 'colecionador') && (
+              <div className="bg-white rounded-lg border border-gray-200 p-3 mb-3">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">
+                  📬 Como você fica sabendo das trocas perto?
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-gold-light/30 rounded-md p-2">
+                    <p className="font-bold text-gold-dark">Colecionador</p>
+                    <p className="text-gray-700 mt-1">📨 <strong>1 mensagem por dia</strong> com potenciais trocas perto de você</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-md p-2 border border-emerald-200">
+                    <p className="font-bold text-emerald-700">Copa Completa</p>
+                    <p className="text-gray-700 mt-1">⚡ <strong>Mensagem na hora</strong> que alguém perto registra a figurinha que falta</p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-500 italic mt-2">
+                  Quem fica sabendo antes, troca antes. ⏰
+                </p>
+              </div>
+            )}
 
             <button
               onClick={() => setShowPaywall(true)}
