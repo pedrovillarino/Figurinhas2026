@@ -83,15 +83,33 @@ export async function createUserViaWhatsApp(input: {
   // Suppress unused warning
   void existingUsers
 
-  // Create auth user (passwordless, email unconfirmed for now)
+  // Create auth user. Pedro 2026-05-03: caso real do "Junior" (Bug G)
+  // mostrou que createUser falhava sem mais informação. Agora:
+  //  1. Geramos password aleatória (Supabase Auth na versão dahlia parece
+  //     exigir, ou pelo menos é mais robusto). User nunca usa essa senha —
+  //     login é via magic link.
+  //  2. email_confirm:true pra pular a etapa de email confirmação (user já
+  //     se identificou pelo phone do WhatsApp, equivalente a verificação).
+  //  3. Log detalhado do erro pra poder diagnosticar próximas falhas.
+  const randomPassword = `wa_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`
   const { data: created, error: createErr } = await supabase.auth.admin.createUser({
     email,
-    email_confirm: false,
+    email_confirm: true,
+    password: randomPassword,
     user_metadata: { display_name: input.name, registration_source: 'whatsapp' },
   })
 
   if (createErr || !created?.user) {
-    // Likely "user already exists in auth" — race or pre-existing
+    // Log estruturado pra debug — antes era só "unknown"
+    console.error('[whatsapp-register] auth.admin.createUser failed:', {
+      email,
+      phone,
+      name: input.name,
+      error_message: createErr?.message,
+      error_code: (createErr as { code?: string } | null)?.code,
+      error_status: (createErr as { status?: number } | null)?.status,
+      full_error: createErr ? JSON.stringify(createErr) : null,
+    })
     return {
       ok: false,
       error: 'auth_create_failed',

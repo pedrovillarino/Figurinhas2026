@@ -183,6 +183,40 @@ async function findUserByPhone(phone: string) {
   return data && data.length > 0 ? data[0] : null
 }
 
+// ─── Diagnostic log for phones that DON'T match (Pedro 2026-05-03) ───
+// Caso Gabriele (Conta Comercial WhatsApp): phone bate exato com DB mas
+// findUserByPhone falhou. Hipótese: Z-API entrega formato peculiar pra
+// Business accounts. Este log captura o phone NÃO-mascarado SÓ no caso
+// de não-match, pra diagnosticar o formato real entregue pelo Z-API.
+// REMOVER APÓS DIAGNOSTICAR (estimativa: 24-48h coletando casos).
+async function logUnrecognizedPhone(phone: string, body: Record<string, unknown>): Promise<void> {
+  const variants = brazilianPhoneVariants(phone)
+  // Tenta ver se o user EXISTE no DB com qualquer phone parecido
+  const supabase = getAdmin()
+  const last7 = phone.replace(/\D/g, '').slice(-7)
+  const { data: similar } = await supabase
+    .from('profiles')
+    .select('phone, email')
+    .like('phone', `%${last7}`)
+    .limit(3)
+
+  console.error('[WA_DIAG_NOMATCH]', JSON.stringify({
+    phone_raw: phone,                // EXATO o que Z-API entregou
+    phone_digits: phone.replace(/\D/g, ''),
+    phone_length: phone.replace(/\D/g, '').length,
+    variants_tried: variants,
+    body_phone: body.phone,
+    body_isBusiness: body.isBusiness,
+    body_isGroup: body.isGroup,
+    body_fromMe: body.fromMe,
+    body_senderPhone: body.senderPhone,
+    body_connectedPhone: body.connectedPhone,
+    body_keys: Object.keys(body),
+    similar_in_db: similar,
+    timestamp: new Date().toISOString(),
+  }))
+}
+
 /**
  * Returns true if the user has any active (non-expired) pending_scan.
  * Used to serialize the WhatsApp scan/register flow — Pedro pediu
@@ -207,6 +241,52 @@ const WAIT_PENDING_MSG =
   '✏️ *TIRAR N* → remove o item N\n' +
   '❌ *NÃO* → cancela\n\n' +
   '_Depois eu processo essa nova mensagem._'
+
+/**
+ * Pedro 2026-05-03 (Fix H — sugestão dele): se a primeira mensagem do user
+ * já contém o email dele (ex: "oi sou Pedro (email: pedro@example.com)"),
+ * tentamos auto-vincular o WhatsApp à conta existente sem passar por todo
+ * o fluxo de registro. Site terá CTA "Conectar WhatsApp" que pré-popula
+ * essa mensagem via `wa.me/?text=...`.
+ *
+ * Retorna o profile vinculado se sucesso, null se:
+ *  - mensagem não tem email
+ *  - email não corresponde a nenhum profile
+ *  - ou erro ao atualizar
+ *
+ * IMPORTANTE: também atualiza phone se já existia outro (user está se
+ * identificando ativamente — esse phone novo é mais confiável que o velho).
+ */
+async function tryAutoLinkByEmailInMessage(
+  phone: string,
+  text: string,
+): Promise<{ id: string; display_name: string | null; phone: string | null; tier: string } | null> {
+  if (!text) return null
+  // Extrai primeiro email da mensagem (regex permissivo mas razoável)
+  const emailMatch = text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)
+  if (!emailMatch) return null
+  const email = emailMatch[0].toLowerCase().trim()
+
+  const supabase = getAdmin()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, display_name, phone, tier')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (!profile) return null
+
+  const digitsPhone = phone.replace(/\D/g, '')
+  // Atualiza phone (mesmo que já tenha um diferente — user está se
+  // identificando ativamente, então esse phone é mais confiável).
+  await supabase
+    .from('profiles')
+    .update({ phone: digitsPhone })
+    .eq('id', profile.id)
+
+  console.log(`[WA_AUTO_LINK] Linked phone=${maskPhone(phone)} to existing email=${email.slice(0, 3)}***`)
+  return { ...profile, phone: digitsPhone }
+}
 
 /**
  * State machine pra cadastro inline via WhatsApp — fluxo email-first.
@@ -243,10 +323,15 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
   // ── Estado 1: aguardando email (primeiro contato) ──
   if (pending.state === 'awaiting_email') {
     if (!isValidEmail(trimmed)) {
-      await sendText(
-        phone,
-        `🤔 Esse email não tá certo. Tem que ter formato tipo *seunome@gmail.com*.\n\nManda de novo?`,
-      )
+      // Pedro 2026-05-03 (Bárbara case): se a mensagem nem tem @, é uma
+      // frase tipo "vou cadastrar" — tom amigável, não acusador.
+      // Se tem @ mas algo não bate, aí sim "esse email não tá certo".
+      const hasAtSign = trimmed.includes('@')
+      const friendlyMsg = hasAtSign
+        ? `🤔 Esse email não tá no formato certo. Tem que ser tipo *seunome@gmail.com*.\n\nManda de novo?`
+        : `Beleza, *${trimmed.length > 30 ? trimmed.slice(0, 30) + '…' : trimmed}* anotado! 😊\n\n` +
+          `Pode mandar seu *email* aí no formato _seunome@gmail.com_? É rapidinho.`
+      await sendText(phone, friendlyMsg)
       return true
     }
     const email = normalizeEmail(trimmed)
@@ -340,12 +425,19 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
       return true
     }
 
-    // Erro raro: race condition (alguém criou conta no meio do flow). Como
-    // já validamos email no awaiting_email, qualquer erro aqui é inesperado.
+    // Erro: criação falhou (Junior 2026-05-02). Pra evitar o user ficar
+    // preso em loop tentando criar de novo, DELETAR o pending e oferecer
+    // um caminho claro pelo site (já com nome+email pré-preenchidos).
     console.error('[register] createUserViaWhatsApp failed:', result)
+    await supabase.from('pending_registrations').delete().eq('id', pending.id)
+    const encodedEmail = encodeURIComponent(email)
+    const encodedName = encodeURIComponent(name)
     await sendText(
       phone,
-      `Hmm, deu um erro tentando criar sua conta agora. Tenta de novo daqui a pouco, ou cadastra pelo site: ${APP_URL}/register?phone=${phone}`,
+      `😔 Ops, deu um erro técnico criando sua conta agora.\n\n` +
+        `Tenta o cadastro pelo site (rapidinho, com Google ou email):\n` +
+        `👉 ${APP_URL}/register?phone=${phone}&email=${encodedEmail}&name=${encodedName}\n\n` +
+        `Lá já vai aparecer seu email e nome preenchidos. Depois de cadastrar, manda *oi* aqui de novo que eu reconheço seu WhatsApp. 💚`,
     )
     return true
   }
@@ -1033,18 +1125,61 @@ export async function POST(req: NextRequest) {
     }
 
     // Find user by phone
-    const user = await findUserByPhone(phone)
+    let user = await findUserByPhone(phone)
 
     // Unknown user → check pending_registration state machine OR send welcome
     if (!user) {
+      // Pedro 2026-05-03: log diagnóstico não-mascarado pra investigar
+      // casos como Gabriele (Conta Comercial). Pode ser removido depois.
+      await logUnrecognizedPhone(phone, body as unknown as Record<string, unknown>)
+
       // Extract message text early (available for any messageType — text/audio
       // transcription happens later, but for registration we only need text).
       const earlyText = (body.text?.message || body.body || body.message || '').toString().trim()
+
+      // Pedro 2026-05-03 (Fix H): se a mensagem inicial já tem o email
+      // do user (ex: vindo do CTA "Conectar WhatsApp" no site), faz
+      // auto-link em 1 round-trip — sem precisar do flow de registration.
+      const linked = await tryAutoLinkByEmailInMessage(phone, earlyText)
+      if (linked) {
+        user = linked
+        const firstName = (linked.display_name || '').split(' ')[0]
+        await sendText(
+          phone,
+          `✅ *Pronto${firstName ? `, ${firstName}` : ''}!* Conectei seu WhatsApp à sua conta. 🔓\n\n` +
+            `Agora pode usar tudo aqui:\n` +
+            `📸 *Foto* das figurinhas — eu identifico com IA\n` +
+            `🎤 *Áudio* falando os códigos\n` +
+            `✏️ *Texto* tipo _"BRA-1 ARG-3"_\n\n` +
+            `Manda *menu* a qualquer hora pra ver tudo. 💚`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
       const handled = await handleRegistrationFlow(phone, earlyText)
       if (handled) {
         return NextResponse.json({ ok: true })
       }
-      await sendText(phone, getWelcomeMessage(phone))
+
+      // Pedro 2026-05-03 (Fix C): se a 1ª mensagem é uma pergunta legítima
+      // (ex: "Tem o álbum capa dura?"), reconhecer a pergunta antes do
+      // welcome padrão. Detecta por: tem "?" OU >25 chars sem ser saudação.
+      const isGreeting = /^(oi+|ol[áa]+|hey|hi|e[ií]+|opa+|bom dia|boa tarde|boa noite|tudo bem|ola+)\s*[!.?]*\s*$/i.test(earlyText)
+      const looksLikeQuestion = !!earlyText && !isGreeting && (
+        earlyText.includes('?')
+        || earlyText.length > 25
+      )
+      if (looksLikeQuestion) {
+        await sendText(
+          phone,
+          `📨 *Anotei sua mensagem!* Sou o assistente do *Complete Aí* ⚽\n\n` +
+            `Pra te responder direito, preciso te conhecer. *Me passa seu email?* 📧\n\n` +
+            `Depois do cadastro eu volto pra sua dúvida. 💚\n\n` +
+            `_Se preferir cadastro completo no site: ${APP_URL}/register?phone=${phone}_`,
+        )
+      } else {
+        await sendText(phone, getWelcomeMessage(phone))
+      }
       // Create pending_registration in awaiting_email state — email-first flow
       // (next message é o email do user). Idempotent: ON CONFLICT reseta state.
       const supabaseAdmin = getAdmin()
@@ -1536,6 +1671,25 @@ export async function POST(req: NextRequest) {
       // Fast keyword matching before calling Gemini
       let intent: string
 
+      // Pedro 2026-05-03 (Fix F): "Outro" / "outra" como follow-up depois
+      // de "faltando X". Sem precisar de contexto, basta dar o caminho:
+      // peça pra especificar país. Match ANTES de outras intents pra não
+      // ser interpretado como "outro" no meio de saudações ("oi outro").
+      if (/^(outr[oa]\b|outra coisa|mostra outr|próximo|proximo|mais um|outro pa[ií]s|outra se[lc])/i.test(lower) && lower.length < 30) {
+        await sendButtonList(
+          phone,
+          `🤔 *Quer ver de outro país?* Me diz qual:\n\n` +
+            `Exemplos:\n` +
+            `▸ *faltando brasil*\n` +
+            `▸ *faltando uruguai*\n` +
+            `▸ *faltando coca cola*\n` +
+            `▸ *faltando intro*\n\n` +
+            `Pode pedir vários juntos: _faltando brasil argentina franca_.`,
+          MAIN_MENU_BUTTONS,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
       if (isQueryStickers) {
         intent = 'query_sticker'
       } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
@@ -1646,9 +1800,14 @@ export async function POST(req: NextRequest) {
               ? `\n\n_Quer ver outra? *faltando <pais>* ou *faltando* (geral)._`
               : ''
 
+          // Pedro 2026-05-03 (Bug E): sendButtonList já adiciona "👇
+          // Próximo passo:" antes dos botões. Removemos o "👉 Próximo
+          // passo: mande uma foto..." daqui pra evitar duplicação.
+          // Sugestão da foto vai como "💡 Dica" no final, mas só quando
+          // tem capacidade de scan (free tem 5 lifetime — depois só áudio/texto).
           await sendButtonList(
             phone,
-            `${header}:\n\n${list}${moreHint}\n\n👉 *Próximo passo:* mande uma *foto* do que você tem ou veja repetidas pra trocar.`,
+            `${header}:\n\n${list}${moreHint}\n\n💡 _Manda uma *foto* das figurinhas que você tem que eu identifico com IA._`,
             [
               { id: 'cmd_duplicates', label: '🔁 Repetidas' },
               { id: 'cmd_trades', label: '🔔 Trocas perto' },
