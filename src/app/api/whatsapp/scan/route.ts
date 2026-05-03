@@ -50,6 +50,7 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
     - GHA-1 (GFA Ghana): BOLA branca/preta no centro com BANDEIRA DE GHANA (faixa verde/amarelo/vermelho + ESTRELA PRETA) curvada por cima + texto "GHANA FOOTBALL ASSOCIATION" em volta
     - BEL-1 (Royal Belgian FA): COROA preta+amarela no topo + escudo PRETO/AMARELO/VERMELHO (cores Bélgica) com letra "B" e texto "ROYAL BELGIAN FA · 1895" + RAMOS DE LOUROS embaixo
     - NED-1 (KNVB Holanda): LEÃO VERMELHO RAMPANTE no escudo branco, texto "KNVB" no topo do escudo
+    - CAN-1 (Canada Soccer): FOLHA DE BORDO VERMELHA grande no topo + bola estilizada vermelha embaixo + texto "CANADA®" preto no centro, fundo branco circular
 - {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":

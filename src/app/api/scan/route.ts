@@ -102,6 +102,7 @@ Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
     - GHA-1 (GFA Ghana): white/black BALL centered with GHANA FLAG STRIP (green/yellow/red + BLACK STAR) curved on top + "GHANA FOOTBALL ASSOCIATION" text around
     - BEL-1 (Royal Belgian FA): BLACK+GOLD CROWN on top + BLACK/YELLOW/RED shield (Belgium colors) with "B" letter and "ROYAL BELGIAN FA · 1895" text + LAUREL BRANCHES below
     - NED-1 (KNVB Netherlands): RED RAMPANT LION on white shield, "KNVB" text at top of shield
+    - CAN-1 (Canada Soccer): big RED MAPLE LEAF on top + red stylized BALL below + "CANADA®" black text in center, white circular background
 - {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":
