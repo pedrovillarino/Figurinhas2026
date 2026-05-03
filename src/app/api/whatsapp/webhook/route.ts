@@ -1871,7 +1871,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      if (isQueryStickers) {
+      // Pedro 2026-05-03 (caso Gianlucca "as repetidas vem em PDF?"):
+      // perguntas naturais com "?" + termo questionador NÃO devem cair em
+      // regex de intent (que ia interpretar como pedido de listagem). Manda
+      // direto pro agent que entende a nuance ("formato de export" vs "lista").
+      // Critério deliberadamente conservador pra não roubar fluxos válidos:
+      //   - termina com "?"
+      //   - contém termo claramente interrogativo (vocês/como/tem/vem/dá pra/etc)
+      //   - NÃO tem códigos de sticker (senão é registro)
+      const isNaturalQuestion =
+        /\?\s*$/.test(text.trim()) &&
+        /\b(voc[êe]s?|como|tem\s|vem\s|d[áa]\s+pra|d[áa]\s+pa|existe|posso|consegue|conseguem|funciona|aceita|tem\s+jeito|tem\s+como|qual\s+a|qual\s+o|onde|quando|porque|por\s+que|cad[êe]|cade|q\s+que|que\s+que)\b/i.test(lower) &&
+        codeMatches.length === 0
+      if (isNaturalQuestion) {
+        intent = 'unknown' // → cai no fallback do agent
+      } else if (isQueryStickers) {
         intent = 'query_sticker'
       } else if (
         // Pedro 2026-05-03 (caso Gianlucca): "Quantos scan?" / "scans restantes" /
