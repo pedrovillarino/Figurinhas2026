@@ -83,24 +83,25 @@ export async function createUserViaWhatsApp(input: {
   // Suppress unused warning
   void existingUsers
 
-  // Create auth user. Pedro 2026-05-03: caso real do "Junior" (Bug G)
-  // mostrou que createUser falhava sem mais informação. Agora:
-  //  1. Geramos password aleatória (Supabase Auth na versão dahlia parece
-  //     exigir, ou pelo menos é mais robusto). User nunca usa essa senha —
-  //     login é via magic link.
-  //  2. email_confirm:true pra pular a etapa de email confirmação (user já
-  //     se identificou pelo phone do WhatsApp, equivalente a verificação).
-  //  3. Log detalhado do erro pra poder diagnosticar próximas falhas.
+  // Pedro 2026-05-03 (caso Gianlucca): o trigger `on_auth_user_created`
+  // criava um profile automaticamente, e nosso INSERT separado batia em
+  // duplicate key violation → função retornava erro → rollback deletava
+  // o auth user → user via "Ops, deu um erro técnico". Resultado: ZERO
+  // cadastros via WhatsApp completados em ~250 tentativas.
+  //
+  // Fix: usar `full_name` no metadata pro trigger pegar como display_name,
+  // e DEPOIS fazer UPDATE pra setar phone/registration_source/terms.
+  // Se o trigger mudar no futuro pra criar profile com mais campos, esse
+  // UPDATE só sobrescreve os campos específicos do bot — sem conflito.
   const randomPassword = `wa_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`
   const { data: created, error: createErr } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,
     password: randomPassword,
-    user_metadata: { display_name: input.name, registration_source: 'whatsapp' },
+    user_metadata: { full_name: input.name, registration_source: 'whatsapp' },
   })
 
   if (createErr || !created?.user) {
-    // Log estruturado pra debug — antes era só "unknown"
     console.error('[whatsapp-register] auth.admin.createUser failed:', {
       email,
       phone,
@@ -119,27 +120,31 @@ export async function createUserViaWhatsApp(input: {
 
   const userId = created.user.id
 
-  // Create profile linked to auth user
-  const { error: profileErr } = await supabase
+  // Trigger `handle_new_user` já criou um profile básico (id, email,
+  // display_name=full_name, avatar_url). Atualiza com os campos
+  // específicos do bot. Phone passa pelo trigger normalize_profile_phone.
+  const { error: updateErr } = await supabase
     .from('profiles')
-    .insert({
-      id: userId,
-      email,
+    .update({
       phone,
       display_name: input.name,
-      tier: 'free',
       registration_source: 'whatsapp',
       terms_accepted_at: new Date().toISOString(),
     })
+    .eq('id', userId)
 
-  if (profileErr) {
-    // Roll back: delete the auth user we just created (so the inconsistent
-    // state doesn't haunt us). Best-effort — if it fails, log and move on.
+  if (updateErr) {
+    console.error('[whatsapp-register] profile UPDATE failed:', {
+      user_id: userId,
+      error_message: updateErr.message,
+    })
+    // Roll back: deleta o auth user pra não deixar estado inconsistente
+    // (auth user existe mas profile sem dados do bot). Best-effort.
     await supabase.auth.admin.deleteUser(userId).catch(() => {})
     return {
       ok: false,
       error: 'profile_create_failed',
-      message: profileErr.message,
+      message: updateErr.message,
     }
   }
 
