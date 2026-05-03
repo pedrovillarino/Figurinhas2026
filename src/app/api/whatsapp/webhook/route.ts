@@ -682,6 +682,7 @@ async function getMissingStickers(
   userId: string,
   limit = 150,
   sectionFilters: string[] = [],
+  offset = 0,
 ) {
   const supabase = getAdmin()
 
@@ -698,7 +699,7 @@ async function getMissingStickers(
     .select('number, player_name, country, section, display_order')
     .eq('counts_for_completion', true)
     .order('display_order')
-    .limit(limit)
+    .range(offset, offset + limit - 1)
 
   if (sectionFilters.length > 0) {
     query = query.in('section', sectionFilters)
@@ -1657,10 +1658,21 @@ export async function POST(req: NextRequest) {
       // múltiplos, é mais provável que seja registro ("tenho BRA-1, ARG-3").
       const codeMatches = (text.match(/[a-z]{2,5}[\s\-]?\d{1,2}/gi) || [])
       const trimmedText = text.trim()
+      // Pedro 2026-05-03 (Bug K): expandido pra cobrir "Eu já tenho",
+      // "tô com a", "será que tenho", "tem essa", "será que falta", etc.
+      // Caso real: g5k perguntou "Eu já tenho ARG 17?" e bot tratou como
+      // register. Agora pega query mesmo com adverbios entre "eu" e "tenho".
       const looksLikeQuestion = (
         /[?]\s*$/.test(trimmedText) ||
-        /^(tenho|eu tenho|tô com|to com|t[ô]o com|preciso|falta|falto|me falta|tem)\s/i.test(trimmedText) ||
-        /\b(repetida|repetido)s?\s*\??\s*$/i.test(trimmedText)
+        // pronomes/expressões de POSSE com possíveis advérbios no meio:
+        // "eu já tenho", "eu ainda tenho", "tô com a", "será que tenho",
+        // "ser[á] que (eu )?tenho", "tem essa", "tenho essa", "tenho ela"
+        /^((eu|tu|n[oó]is)\s+(j[áa]|ainda|ja)?\s*)?(tenho|t[ôo]\s+com|tem|tinha|peguei|colei)\b/i.test(trimmedText) ||
+        /^(ser[áa]\s+que\s+(eu\s+)?(tenho|tem|falta|preciso))/i.test(trimmedText) ||
+        // verbos de FALTA/NECESSIDADE
+        /^(preciso|falta|falto|me falta|n[ãa]o tenho|nao tenho|n[ãa]o peguei|n[ãa]o coloquei)\b/i.test(trimmedText) ||
+        // pergunta específica de repetida
+        /\b(repetida|repetido|dupla|duplicada|sobrando)s?\s*\??\s*$/i.test(trimmedText)
       )
       // Query funciona com 1 ou múltiplos códigos. Ex:
       //   "tenho a BRA-2?" → 1 código
@@ -1687,6 +1699,25 @@ export async function POST(req: NextRequest) {
             `Pode pedir vários juntos: _faltando brasil argentina franca_.`,
           MAIN_MENU_BUTTONS,
         )
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 2026-05-03 (Bug L): conversa casual / agradecimento. Antes
+      // o bot mandava menu rígido — quebra fluxo natural. Agora responde
+      // breve e amigável, sem menu, e segue a vida.
+      // Match cedo (antes das outras intents).
+      const isThanks = /^(obrigad[oa]|valeu|vlw|vlw\!|tks|thx|thanks|brigad[oa]|t[oa] bom|ot[ií]mo|legal|massa|show|dahora|d+a+ +h+o+r+a|👍|👏|🙏|❤️|❤|💚|💙|💛)\s*[!.?]*\s*$/i.test(lower)
+      const isCasualChat = /^(ah\s+(legal|bom|ok|ent[ãa]o)|aham|sim|oh|t[áa]\s*bom|t[áa]\s*ok|certo|ok|okay|tudo bem|tudo certo|maravilha|perfeito|beleza|blz|bom dia|boa tarde|boa noite)\s*[!.?]*\s*$/i.test(lower)
+      // Mensagem só de emojis (≤8 chars, contém um emoji conhecido).
+      // Não usa flag /u pra compat com TS target — fallback simples.
+      const isReadOnly = lower.length <= 8 && /(❤️|❤|💚|💙|💛|👍|👏|🙏|🎉|✨|🔥|💪|😊|🙂|😄|😀|😍|🤩|🤝)/.test(lower)
+      if ((isThanks || isCasualChat || isReadOnly) && codeMatches.length === 0) {
+        const response = isThanks
+          ? `🙌 *Disponha!* Quando precisar, é só me chamar. 💚`
+          : isReadOnly
+            ? `💚`
+            : `Tô por aqui! Se precisar registrar uma figurinha, ver suas faltantes ou achar trocas, é só falar. Manda *menu* pra ver tudo que sei fazer.`
+        await sendText(phone, response)
         return NextResponse.json({ ok: true })
       }
 
@@ -1754,8 +1785,12 @@ export async function POST(req: NextRequest) {
           // Parse country/section filters from the user's actual text (not
           // just the canonical command word). Handles PT/EN/typos/multi.
           const filters = parseSectionFilters(text)
-          const MISSING_LIMIT = 150
-          const missing = await getMissingStickers(user.id, MISSING_LIMIT, filters)
+
+          // Pedro 2026-05-03 (Bug J): "Quais faltando todas" → mostrar
+          // LITERALMENTE TODAS, paginado em múltiplas mensagens. Detecta
+          // intenção pelo texto: "todas", "tudo", "completa", "inteira".
+          const wantsAll = /\b(todas?|tudo|completa?|inteir[ao]|toda\s+lista)\b/i.test(lower)
+
           const stats = await getUserStats(user.id)
 
           if (stats.missing === 0) {
@@ -1766,6 +1801,48 @@ export async function POST(req: NextRequest) {
             ])
             break
           }
+
+          // ── Modo "todas" — pagina toda a lista em múltiplas mensagens ──
+          if (wantsAll) {
+            const allMissing = await getMissingStickers(user.id, 1100, filters)
+            const CHUNK_SIZE = 60
+            const totalChunks = Math.max(1, Math.ceil(allMissing.length / CHUNK_SIZE))
+            const filterLabel = filters.length > 0 ? ` de ${filters.join(' / ')}` : ''
+            // Header inicial
+            await sendText(
+              phone,
+              `🔍 *Faltam ${allMissing.length}${filterLabel}* — te mando a lista completa${totalChunks > 1 ? ` em ${totalChunks} mensagens` : ''}:`,
+            )
+            // waitUntil pra não bloquear o webhook (Z-API tem timeout)
+            const sendAllChunks = async () => {
+              let lastSection: string | null = null
+              for (let i = 0; i < totalChunks; i++) {
+                const chunk = allMissing.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE) as Array<{ number: string; player_name: string; section?: string }>
+                const lines: string[] = []
+                for (const s of chunk) {
+                  if (s.section !== lastSection) {
+                    if (lastSection !== null) lines.push('')
+                    lines.push(`*${s.section || '—'}*`)
+                    lastSection = s.section || null
+                  }
+                  lines.push(`• ${s.number}${s.player_name ? ' — ' + s.player_name : ''}`)
+                }
+                const isLast = i === totalChunks - 1
+                const partLabel = totalChunks > 1 ? `_Parte ${i + 1}/${totalChunks}_\n\n` : ''
+                const footer = isLast
+                  ? `\n\n✅ _Fim da lista. Manda *faltando brasil* (ou outro país) pra filtrar uma seleção._`
+                  : ''
+                await sendText(phone, `${partLabel}${lines.join('\n')}${footer}`)
+                if (!isLast) await new Promise((r) => setTimeout(r, 600))
+              }
+            }
+            waitUntil(sendAllChunks())
+            break
+          }
+
+          // ── Modo padrão (não "todas") — mostra primeiras 150 ──
+          const MISSING_LIMIT = 150
+          const missing = await getMissingStickers(user.id, MISSING_LIMIT, filters)
 
           // Group consecutive items by section so the listing is scannable.
           const lines: string[] = []
