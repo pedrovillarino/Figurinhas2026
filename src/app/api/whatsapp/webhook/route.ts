@@ -6,6 +6,7 @@ import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } f
 import { normalizePhoneBR } from '@/lib/phone'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { runAgent, recordBotMessage, getLastBotContext } from '@/lib/whatsapp-agent'
+import { escalateToSupport } from '@/lib/support'
 import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
@@ -2602,13 +2603,23 @@ export async function POST(req: NextRequest) {
             }
 
             if (agentResp.kind === 'escalate') {
-              // Por enquanto: só acolhe + log. Na próxima Fase: notifica Pedro
-              // WhatsApp e cria entry em support_escalations.
+              // Pedro 2026-05-03: escala pra time de atendimento humano.
+              // Cria entry em support_escalations + notifica Pedro pessoal
+              // (com rate-limit 6h por user). Resposta ao user é a mesma
+              // independente de notify ter ido ou rate-limited.
               const acknowledge =
                 '🙏 Não fui treinado pra responder essa especificamente. Anotei sua mensagem e nosso *time de atendimento* vai te responder em breve aqui no WhatsApp. ✅'
               await sendText(phone, acknowledge)
               await recordBotMessage(user.id, acknowledge)
-              console.log(`[agent_escalate] user=${user.id} reason="${agentResp.reason}" msg="${agentResp.userMessage.slice(0, 100)}"`)
+              const userDisplay = (user as { display_name?: string | null }).display_name ?? null
+              await escalateToSupport({
+                userId: user.id,
+                phone,
+                displayName: userDisplay,
+                lastMessage: agentResp.userMessage,
+                reason: agentResp.reason,
+                classifiedIntent: 'unknown',
+              })
               return NextResponse.json({ ok: true })
             }
             // agentResp.kind === 'error' → cai no fluxo antigo (menu)

@@ -5,6 +5,7 @@ import FunnelAdminSection from './FunnelAdminSection'
 import ScanEngagementAdminSection from './ScanEngagementAdminSection'
 import AudioEngagementAdminSection from './AudioEngagementAdminSection'
 import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
+import SupportAdminSection from './SupportAdminSection'
 import NotificationsAdminSection from './NotificationsAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
@@ -623,6 +624,9 @@ export default async function AdminPage({
           sub="ideal: >20%"
         />
       </div>
+
+      {/* Suporte — escalations do bot WhatsApp pro time de atendimento humano */}
+      <SupportAdminSection />
 
       {/* Conversion funnel — answers "are users converting Free → Paid?" */}
       <FunnelAdminSection days={funnelDays} />
