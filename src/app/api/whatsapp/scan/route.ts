@@ -38,6 +38,13 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
     - AUT (ÖFB) vs TUN (FTF) vs GHA: todos com águia. AUT águia preta em escudo vermelho/branco; TUN águia em círculo vermelho com texto árabe; GHA layout diferente.
     - POR (FPF) vs PER: mesma sigla FPF! POR tem 5 escudos azuis + castelos + cruz; PER escudo simples vermelho/branco com "FPF" grande.
     - JFA = Japão E Jordan! JPN corvo com bola; JOR falcão com escudo.
+  - Descrições visuais detalhadas (referência canônica de escudos):
+    - TUN-1 (FTF): águia BRANCA estilizada em CÍRCULO VERMELHO no centro, texto árabe "تونس" no topo, texto francês "FÉDÉRATION TUNISIENNE DE FOOTBALL" em volta
+    - NOR-1 (NFF): escudo com CRUZ NORUEGUESA (vermelho/branco/azul), "NORGE" texto no topo + "NFF" no meio, com DOIS LEÕES segurando o escudo
+    - URU-1 (AUF): escudo VERMELHO com letras "AUF" em laranja, listras AZUL/BRANCO/AZUL nas laterais, bola embaixo, 4 ESTRELAS DOURADAS no topo (campeão WC 1930+1950)
+    - QAT-1 (QFA): escudo vermelho/branco com BOLA ESTILIZADA preta + texto árabe + "QFA" embaixo
+    - AUT-1 (ÖFB): ÁGUIA PRETA estilizada gigante, escudo VERMELHO/BRANCO/VERMELHO no centro, "SEIT ÖFB 1904" texto
+    - KOR-1 (KFA): TIGRE estilizado PRETO em moldura RETANGULAR VERMELHA, "KFA" embaixo, fundo branco
 - {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":

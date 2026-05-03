@@ -90,6 +90,13 @@ Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
     - AUT (ÖFB) vs TUN (FTF) vs GHA (Ghana): all have eagle. AUT eagle is black on red/white shield; TUN eagle inside red circle with Arabic text; GHA different layout entirely.
     - POR (FPF) vs PER: same FPF acronym! POR has 5 blue shields + castles + cross; PER has plain red/white shield with big "FPF".
     - JFA = Japan AND Jordan! JPN has crow with ball; JOR has falcon/hawk with shield.
+  - Detailed visual descriptions (canonical crest reference):
+    - TUN-1 (FTF): WHITE eagle in RED CIRCLE centered, Arabic text "تونس" at top, French "FÉDÉRATION TUNISIENNE DE FOOTBALL" around
+    - NOR-1 (NFF): shield with NORWEGIAN CROSS (red/white/blue), "NORGE" text top + "NFF" middle, with TWO LIONS holding the shield
+    - URU-1 (AUF): RED shield with "AUF" letters in orange, BLUE/WHITE/BLUE stripes on sides, ball at bottom, 4 GOLD STARS at top (champion WC 1930+1950)
+    - QAT-1 (QFA): red/white shield with stylized BLACK BALL + Arabic text + "QFA" below
+    - AUT-1 (ÖFB): big stylized BLACK EAGLE, RED/WHITE/RED shield in center, "SEIT ÖFB 1904" text
+    - KOR-1 (KFA): stylized BLACK TIGER in RECTANGULAR RED frame, "KFA" below, white background
 - {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":
