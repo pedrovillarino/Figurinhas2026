@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1080px;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0A1628;
+    overflow: hidden;
+    position: relative;
+  }
+  .content {
+    padding: 72px 80px 0;
+  }
+  .tag {
+    text-transform: uppercase;
+    color: #FFB800;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 52px;
+  }
+  .comparison {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 52px;
+  }
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 20px;
+  }
+  .col-label {
+    font-size: 14px;
+    color: #6B7280;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .col-price-red {
+    font-size: 56px;
+    font-weight: 700;
+    color: #EF4444;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .col-price-green {
+    font-size: 56px;
+    font-weight: 700;
+    color: #00C896;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .col-detail {
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.4;
+  }
+  .divider {
+    width: 1px;
+    background: #6B7280;
+    opacity: 0.4;
+    align-self: stretch;
+  }
+  .highlight-bar {
+    background: #FFB800;
+    border-radius: 16px;
+    padding: 28px 40px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .highlight-label {
+    font-size: 20px;
+    color: #0A1628;
+    margin-bottom: 4px;
+  }
+  .highlight-value {
+    font-size: 48px;
+    font-weight: 700;
+    color: #0A1628;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .highlight-sub {
+    font-size: 16px;
+    color: #0A1628;
+  }
+  .disclaimer {
+    font-size: 12px;
+    color: #6B7280;
+    text-align: center;
+  }
+  /* Footer bar */
+  .footer-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+  }
+  .gold-bar {
+    background: #FFB800;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gold-bar-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0A1628;
+  }
+  .footer-bottom {
+    background: #0A1628;
+    padding: 12px 0;
+    text-align: center;
+  }
+  .footer-url {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .footer-handle {
+    color: #00C896;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+  <div class="content">
+    <div class="tag">QUANTO VOCÊ ECONOMIZA</div>
+    <div class="comparison">
+      <div class="col">
+        <div class="col-label">Só comprando pacotes</div>
+        <div class="col-price-red">R$ 7.000+</div>
+        <div class="col-detail">pra completar o álbum<br>(980 + 48 especiais)</div>
+      </div>
+      <div class="divider"></div>
+      <div class="col">
+        <div class="col-label">Com Complete Aí</div>
+        <div class="col-price-green">~R$ 1.000</div>
+        <div class="col-detail">comprando menos<br>+ trocando</div>
+      </div>
+    </div>
+    <div class="highlight-bar">
+      <div class="highlight-label">Você economiza</div>
+      <div class="highlight-value">R$ 6.000+</div>
+      <div class="highlight-sub">trocando em vez de comprar tudo</div>
+    </div>
+    <div class="disclaimer">*Estimativa baseada no preço médio de R$1/figurinha</div>
+  </div>
+  <div class="footer-wrapper">
+    <div class="gold-bar">
+      <div class="gold-bar-text">⭐ COPA100 = GRÁTIS &nbsp;|&nbsp; COPA50 = 50% OFF &nbsp;|&nbsp; ATÉ 30/04</div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-url">completeai.com.br</div>
+      <div class="footer-handle">@completeai</div>
+    </div>
+  </div>
+</body>
+</html>

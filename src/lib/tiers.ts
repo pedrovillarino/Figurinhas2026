@@ -29,7 +29,7 @@ export const TRADE_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDi
 }
 
 // ─── Audio pack pricing (Pedro 2026-05-03) ───
-// Free: +10 áudios / Estreante: +30 áudios. Mesmo preço do scan pack pra
+// Free: +7 áudios / Estreante: +30 áudios. Mesmo preço do scan pack pra
 // simplificar UX. Colecionador+Copa não têm pacote (já são ilimitados).
 export const AUDIO_PACK_AMOUNTS: Record<string, number> = {
   free: 10,
@@ -44,13 +44,14 @@ export const AUDIO_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDi
 
 // ─── Tier definitions ───
 // audioLimit: lifetime, áudios via WhatsApp (transcrição via Gemini).
-// Pedro 2026-05-02: free=10, estreante=30, colecionador+copa=ilimitado.
+// Pedro 2026-05-03: free=7, estreante=30, colecionador+copa=ilimitado.
+// Pedro 2026-05-03: estreante scanLimit 50→30 (mais pressão pra Colec).
 // Foto WhatsApp = scan (usa scanLimit). Texto WhatsApp = sem limite.
 export const TIER_CONFIG = {
   free: {
     label: 'Free',
     scanLimit: 5, // ~40 figurinhas
-    audioLimit: 10,
+    audioLimit: 7,
     canScan: true,
     canTrade: true, // can view matches + 2 included trades
     tradeLimit: 2,
@@ -61,7 +62,7 @@ export const TIER_CONFIG = {
   },
   estreante: {
     label: 'Estreante',
-    scanLimit: 50, // ~400 figurinhas
+    scanLimit: 30, // ~240 figurinhas
     audioLimit: 30,
     canScan: true,
     canTrade: true,

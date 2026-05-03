@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1080px;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #FFFFFF;
+    overflow: hidden;
+    position: relative;
+  }
+  .content {
+    padding: 72px 80px 0;
+  }
+  .tag {
+    text-transform: uppercase;
+    color: #00C896;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+  }
+  .title-stack {
+    margin-bottom: 16px;
+  }
+  .title-line {
+    font-size: 52px;
+    font-weight: 700;
+    color: #0A1628;
+    line-height: 1.15;
+  }
+  .title-green {
+    font-size: 52px;
+    font-weight: 700;
+    color: #00C896;
+    line-height: 1.15;
+  }
+  .subtitle {
+    font-size: 22px;
+    color: #6B7280;
+    margin-bottom: 48px;
+    line-height: 1.4;
+  }
+  /* Phone mockup */
+  .phone {
+    width: 320px;
+    height: 520px;
+    border: 3px solid #0A1628;
+    border-radius: 40px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    background: #FAFAFA;
+  }
+  .phone-notch {
+    width: 120px;
+    height: 6px;
+    background: #0A1628;
+    border-radius: 3px;
+    margin: 0 auto 16px;
+  }
+  .phone-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .phone-logo {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .phone-logo-dark { color: #0A1628; }
+  .phone-logo-green { color: #00C896; }
+  .phone-profile {
+    font-size: 11px;
+    color: #6B7280;
+  }
+  .phone-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .sticker {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 4px;
+  }
+  .sticker-owned {
+    background: #00C896;
+    border: 2px solid #00A67D;
+  }
+  .sticker-missing {
+    background: #E5E7EB;
+    border: 2px solid #D1D5DB;
+    opacity: 0.6;
+  }
+  .phone-nav {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #D1D5DB;
+  }
+  .nav-dot.active {
+    background: #00C896;
+  }
+  /* Footer bar */
+  .footer-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+  }
+  .gold-bar {
+    background: #FFB800;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gold-bar-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0A1628;
+  }
+  .footer-bottom {
+    background: #F3F4F6;
+    padding: 12px 0;
+    text-align: center;
+  }
+  .footer-url {
+    color: #0A1628;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .footer-handle {
+    color: #00C896;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+  <div class="content">
+    <div class="tag">A SOLUÇÃO</div>
+    <div class="title-stack">
+      <div class="title-line">Escaneie.</div>
+      <div class="title-line">Troque.</div>
+      <div class="title-green">Complete.</div>
+    </div>
+    <div class="subtitle">Tudo com IA. Do celular. Sem instalar nada.</div>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="phone-header">
+        <div class="phone-logo"><span class="phone-logo-dark">Complete </span><span class="phone-logo-green">Aí</span></div>
+        <div class="phone-profile">Perfil</div>
+      </div>
+      <div class="phone-grid">
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-owned"></div>
+        <div class="sticker sticker-missing"></div>
+        <div class="sticker sticker-owned"></div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-dot"></div>
+        <div class="nav-dot active"></div>
+        <div class="nav-dot"></div>
+        <div class="nav-dot"></div>
+        <div class="nav-dot"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-wrapper">
+    <div class="gold-bar">
+      <div class="gold-bar-text">⭐ COPA100 = GRÁTIS &nbsp;|&nbsp; COPA50 = 50% OFF &nbsp;|&nbsp; ATÉ 30/04</div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-url">completeai.com.br</div>
+      <div class="footer-handle">@completeai</div>
+    </div>
+  </div>
+</body>
+</html>

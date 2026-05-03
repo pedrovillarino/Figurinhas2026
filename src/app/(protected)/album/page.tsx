@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getCachedStickers } from '@/lib/stickers-cache'
 import AlbumClient from './AlbumClient'
 import CepNudgeWrapper from '@/components/CepNudgeWrapper'
+import AudioRegistrationCTA from '@/components/AudioRegistrationCTA'
 import type { Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
 
@@ -34,8 +35,10 @@ export default async function AlbumPage() {
     <>
       {/* Pedro 2026-05-03: nudge contextual de CEP — só aparece se user
           tem engajamento mínimo e ainda não preencheu cidade */}
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-4 space-y-2">
         <CepNudgeWrapper userId={user.id} />
+        {/* Pedro 2026-05-03: visibilidade do áudio (banner compacto) */}
+        <AudioRegistrationCTA variant="banner" />
       </div>
       <AlbumClient
         stickers={stickers}

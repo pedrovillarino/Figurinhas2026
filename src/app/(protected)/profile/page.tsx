@@ -537,7 +537,7 @@ export default function ProfilePage() {
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Estreante</p>
                   <p className="text-lg font-bold text-brand mt-0.5">R$9,90</p>
                   <p className="text-[10px] text-gray-500">/mês</p>
-                  <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">50 scans · 30 áudios · 5 trocas</p>
+                  <p className="text-[10px] text-gray-700 mt-1.5 leading-tight">30 scans · 30 áudios · 5 trocas</p>
                 </div>
               )}
               {(tier === 'free' || tier === 'estreante') && (
@@ -607,6 +607,17 @@ export default function ProfilePage() {
                   {audiosRemaining} áudio{audiosRemaining !== 1 ? 's' : ''} restante{audiosRemaining !== 1 ? 's' : ''}
                 </p>
               </>
+            )}
+            {/* Pedro 2026-05-03: link sutil pra áudio (só se ainda tem saldo) */}
+            {(audiosRemaining === Infinity || audiosRemaining > 0) && (
+              <a
+                href={`https://wa.me/5521966791113?text=${encodeURIComponent('oi quero registrar por áudio')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-1 text-[11px] text-blue-600 hover:text-blue-800 transition"
+              >
+                🎤 Como usar áudio →
+              </a>
             )}
           </div>
 

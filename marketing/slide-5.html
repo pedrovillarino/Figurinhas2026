@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1080px;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0A1628;
+    overflow: hidden;
+    position: relative;
+  }
+  .content {
+    padding: 72px 80px 0;
+  }
+  .tag {
+    text-transform: uppercase;
+    color: #FFB800;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+  }
+  .title {
+    font-size: 44px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .title-green {
+    font-size: 44px;
+    font-weight: 700;
+    color: #00C896;
+    line-height: 1.2;
+    margin-bottom: 56px;
+  }
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .feature-emoji {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .feature-text {
+    font-size: 18px;
+    color: #FFFFFF;
+    line-height: 1.5;
+  }
+  /* Footer bar */
+  .footer-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+  }
+  .gold-bar {
+    background: #FFB800;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gold-bar-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0A1628;
+  }
+  .footer-bottom {
+    background: #0A1628;
+    padding: 12px 0;
+    text-align: center;
+  }
+  .footer-url {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .footer-handle {
+    color: #00C896;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+  <div class="content">
+    <div class="tag">FUNCIONALIDADE 02</div>
+    <div class="title">Quem tem o que<br>você precisa,</div>
+    <div class="title-green">perto de você.</div>
+    <div class="features">
+      <div class="feature">
+        <span class="feature-emoji">📍</span>
+        <span class="feature-text">Encontra por proximidade (2,5km a 50km)</span>
+      </div>
+      <div class="feature">
+        <span class="feature-emoji">🔔</span>
+        <span class="feature-text">Alerta via WhatsApp quando alguém tem sua faltante</span>
+      </div>
+      <div class="feature">
+        <span class="feature-emoji">✅</span>
+        <span class="feature-text">Troca com aprovação de ambos os lados</span>
+      </div>
+      <div class="feature">
+        <span class="feature-emoji">⭐</span>
+        <span class="feature-text">Avaliação entre colecionadores</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer-wrapper">
+    <div class="gold-bar">
+      <div class="gold-bar-text">⭐ COPA100 = GRÁTIS &nbsp;|&nbsp; COPA50 = 50% OFF &nbsp;|&nbsp; ATÉ 30/04</div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-url">completeai.com.br</div>
+      <div class="footer-handle">@completeai</div>
+    </div>
+  </div>
+</body>
+</html>

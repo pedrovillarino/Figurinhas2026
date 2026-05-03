@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
+import AudioRegistrationCTA from '@/components/AudioRegistrationCTA'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -525,6 +526,11 @@ export default function ScanHub({
             </svg>
           </div>
         </a>
+
+        {/* Pedro 2026-05-03: card destacado de áudio (concorrente da foto) */}
+        <div className="mb-4">
+          <AudioRegistrationCTA variant="card" />
+        </div>
 
         {/* ── Instruções de uso ── */}
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 space-y-2">

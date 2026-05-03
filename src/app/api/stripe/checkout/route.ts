@@ -25,15 +25,15 @@ function getAdmin() {
 const TIER_PRODUCTS: Record<string, { name: string; description: string }> = {
   estreante: {
     name: 'Complete Aí — Estreante',
-    description: '50 scans IA + 5 trocas + sem anúncios',
+    description: '30 scans IA + 30 áudios + 5 trocas + sem anúncios',
   },
   colecionador: {
     name: 'Complete Aí — Colecionador',
-    description: '150 scans IA + 15 trocas + packs baratos',
+    description: '150 scans IA + áudio ilimitado + 15 trocas + packs baratos',
   },
   copa_completa: {
     name: 'Complete Aí — Copa Completa',
-    description: '500 scans IA + trocas ilimitadas',
+    description: '500 scans IA + áudio + trocas ilimitados',
   },
 }
 

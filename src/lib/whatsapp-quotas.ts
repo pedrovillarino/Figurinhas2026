@@ -79,7 +79,7 @@ export async function getQuotas(userId: string, tier: Tier): Promise<Quotas> {
 export function getUpgradeOptions(tier: Tier): string[] {
   const opts: string[] = []
   if (tier === 'free') {
-    opts.push(`💚 *Estreante* — ${TIER_CONFIG.estreante.priceDisplay}/mês (50 scans + 30 áudios)`)
+    opts.push(`💚 *Estreante* — ${TIER_CONFIG.estreante.priceDisplay}/mês (30 scans + 30 áudios)`)
   }
   if (tier === 'free' || tier === 'estreante') {
     opts.push(`⭐ *Colecionador* — ${TIER_CONFIG.colecionador.priceDisplay}/mês (150 scans + áudio ilimitado)`)

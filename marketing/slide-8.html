@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1080px;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #0A1628;
+    overflow: hidden;
+    position: relative;
+  }
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 56px 80px 0;
+  }
+  .tag-pill {
+    background: #FFB800;
+    color: #0A1628;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 20px;
+    border-radius: 50px;
+    margin-bottom: 28px;
+  }
+  .title-white {
+    font-size: 52px;
+    font-weight: 700;
+    color: #FFFFFF;
+    text-align: center;
+    line-height: 1.1;
+  }
+  .title-green {
+    font-size: 52px;
+    font-weight: 700;
+    color: #00C896;
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 32px;
+  }
+  .steps {
+    width: 100%;
+    margin-bottom: 28px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .step-num {
+    width: 32px;
+    height: 32px;
+    background: #00C896;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    flex-shrink: 0;
+  }
+  .step-text {
+    font-size: 20px;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+  .coupons {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  .coupon-card {
+    flex: 1;
+    border-radius: 20px;
+    padding: 24px 24px 28px;
+    text-align: center;
+  }
+  .coupon-gold { background: #FFB800; }
+  .coupon-green { background: #00C896; }
+  .coupon-tier {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0A1628;
+    margin-bottom: 8px;
+  }
+  .coupon-value {
+    font-size: 48px;
+    font-weight: 700;
+    color: #0A1628;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .coupon-desc {
+    font-size: 18px;
+    color: #0A1628;
+    margin-bottom: 14px;
+  }
+  .coupon-code {
+    display: inline-block;
+    background: #FFFFFF;
+    color: #0A1628;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 50px;
+  }
+  .validity {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFB800;
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+  }
+  .cta-button {
+    background: #FFFFFF;
+    color: #0A1628;
+    font-size: 20px;
+    font-weight: 700;
+    padding: 16px 40px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 28px;
+    display: inline-block;
+  }
+  .footer {
+    text-align: center;
+  }
+  .footer-url {
+    color: #FFFFFF;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .footer-handle {
+    color: #00C896;
+    font-size: 16px;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+  <div class="content">
+    <div class="tag-pill">VEM PRA DENTRO</div>
+    <div class="title-white">Comece grátis.</div>
+    <div class="title-green">Ganhe Premium.</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Cadastra grátis em completeai.com.br</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">No upgrade, aplica o cupom:</div>
+      </div>
+    </div>
+    <div class="coupons">
+      <div class="coupon-card coupon-gold">
+        <div class="coupon-tier">100 PRIMEIROS</div>
+        <div class="coupon-value">100% OFF</div>
+        <div class="coupon-desc">Premium grátis</div>
+        <div class="coupon-code">COPA100</div>
+      </div>
+      <div class="coupon-card coupon-green">
+        <div class="coupon-tier">+500 SEGUINTES</div>
+        <div class="coupon-value">50% OFF</div>
+        <div class="coupon-desc">em todos os planos</div>
+        <div class="coupon-code">COPA50</div>
+      </div>
+    </div>
+    <div class="validity">CUPONS VÁLIDOS ATÉ 30/04</div>
+    <div class="cta-button">Garantir meu cupom →</div>
+    <div class="footer">
+      <div class="footer-url">completeai.com.br</div>
+      <div class="footer-handle">@completeai</div>
+    </div>
+  </div>
+</body>
+</html>

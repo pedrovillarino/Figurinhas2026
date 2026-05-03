@@ -320,6 +320,16 @@ async function getMetrics() {
       .limit(5),
   ])
 
+  // Pedro 2026-05-03: DAU/WAU/MAU via RPC (qualquer evento conta).
+  type ActiveMetrics = { dau: number; wau: number; mau: number; total_30d: number; total_users: number }
+  let activeMetrics: ActiveMetrics = { dau: 0, wau: 0, mau: 0, total_30d: 0, total_users: 0 }
+  try {
+    const { data, error } = await sb.rpc('get_active_users_metrics')
+    if (!error && data) activeMetrics = data as ActiveMetrics
+  } catch (err) {
+    console.error('Active metrics fetch failed:', err)
+  }
+
   // Process tier counts
   const tierCounts: Record<string, number> = { free: 0, estreante: 0, colecionador: 0, copa_completa: 0 }
   if (tierCountsRes.data) {
@@ -375,6 +385,7 @@ async function getMetrics() {
     rejectedTrades: rejectedTradesRes.count ?? 0,
     expiredTrades: expiredTradesRes.count ?? 0,
     topScanners,
+    activeMetrics,
   }
 }
 
@@ -581,6 +592,33 @@ export default async function AdminPage({
           label="Receita estimada"
           value={`R$${m.revenue.toFixed(2).replace('.', ',')}`}
           sub="mensal"
+        />
+      </div>
+
+      {/* Pedro 2026-05-03: Usuários ativos (DAU/WAU/MAU) — qualquer evento.
+          Mostra % do total cadastrado e absoluto. Sweet spot: WAU/MAU acima
+          de 50% indica boa retenção. */}
+      <SectionTitle>Usuarios ativos (qualquer evento)</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard
+          label="Ativos hoje (DAU)"
+          value={m.activeMetrics.dau}
+          sub={m.activeMetrics.total_users > 0 ? `${Math.round((m.activeMetrics.dau / m.activeMetrics.total_users) * 100)}% dos cadastrados` : undefined}
+        />
+        <StatCard
+          label="Ativos 7d (WAU)"
+          value={m.activeMetrics.wau}
+          sub={m.activeMetrics.total_users > 0 ? `${Math.round((m.activeMetrics.wau / m.activeMetrics.total_users) * 100)}% dos cadastrados` : undefined}
+        />
+        <StatCard
+          label="Ativos 30d (MAU)"
+          value={m.activeMetrics.mau}
+          sub={m.activeMetrics.total_users > 0 ? `${Math.round((m.activeMetrics.mau / m.activeMetrics.total_users) * 100)}% dos cadastrados` : undefined}
+        />
+        <StatCard
+          label="Stickiness (DAU/MAU)"
+          value={m.activeMetrics.mau > 0 ? `${Math.round((m.activeMetrics.dau / m.activeMetrics.mau) * 100)}%` : '—'}
+          sub="ideal: >20%"
         />
       </div>
 

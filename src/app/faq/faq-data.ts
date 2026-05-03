@@ -46,7 +46,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'Quantos scans posso fazer?',
-        a: 'Depende do seu plano: Grátis = 5 scans, Estreante = 50 scans, Colecionador = 150 scans, Copa Completa = ilimitado. Cada foto enviada (pelo site ou WhatsApp) conta como 1 scan.',
+        a: 'Depende do seu plano: Grátis = 5 scans + 7 áudios, Estreante = 30 scans + 30 áudios, Colecionador = 150 scans + áudio ilimitado, Copa Completa = tudo ilimitado. Cada foto (pelo site ou WhatsApp) conta como 1 scan; áudio pelo WhatsApp tem limite próprio.',
       },
       {
         q: 'Posso escanear pelo WhatsApp?',
@@ -82,7 +82,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'Quais são os planos?',
-        a: 'Temos 4 planos: Grátis (R$0 — controle manual, 5 scans, 2 trocas), Estreante (R$9,90 — 50 scans, 5 trocas, sem anúncios), Colecionador (R$19,90 — 150 scans, 15 trocas, sem anúncios) e Copa Completa (R$29,90 — scans e trocas ilimitados). Pagamento único!',
+        a: 'Temos 4 planos: Grátis (R$0 — 5 scans + 7 áudios + 2 trocas), Estreante (R$9,90 — 30 scans + 30 áudios + 5 trocas, sem anúncios), Colecionador (R$19,90 — 150 scans + áudio ilimitado + 15 trocas, sem anúncios) e Copa Completa (R$29,90 — tudo ilimitado). Pagamento único!',
       },
       {
         q: 'O pagamento é único ou mensal?',

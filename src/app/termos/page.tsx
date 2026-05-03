@@ -152,22 +152,22 @@ export default function TermosPage() {
                   <tr>
                     <td className="px-3 py-2 font-medium">Free</td>
                     <td className="px-3 py-2">Grátis</td>
-                    <td className="px-3 py-2">Controle manual do álbum, 5 scans com IA (~40 figurinhas), 2 trocas incluídas, com anúncios</td>
+                    <td className="px-3 py-2">Controle manual do álbum, 5 scans com IA (~40 figurinhas), 7 áudios pelo WhatsApp, 2 trocas incluídas, com anúncios</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium">Estreante</td>
                     <td className="px-3 py-2">R$&nbsp;9,90 (pagamento único)</td>
-                    <td className="px-3 py-2">50 scans com IA (~400 figurinhas), 5 trocas incluídas, sem anúncios</td>
+                    <td className="px-3 py-2">30 scans com IA (~240 figurinhas), 30 áudios pelo WhatsApp, 5 trocas incluídas, sem anúncios</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium">Colecionador</td>
                     <td className="px-3 py-2">R$&nbsp;19,90 (pagamento único)</td>
-                    <td className="px-3 py-2">150 scans com IA (~1.200 figurinhas), 15 trocas incluídas, packs avulsos mais baratos, sem anúncios</td>
+                    <td className="px-3 py-2">150 scans com IA (~1.200 figurinhas), áudio ilimitado, 15 trocas incluídas, packs avulsos mais baratos, sem anúncios</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium">Copa Completa</td>
                     <td className="px-3 py-2">R$&nbsp;29,90 (pagamento único)</td>
-                    <td className="px-3 py-2">500 scans com IA (~4.000 figurinhas), trocas ilimitadas, sem anúncios</td>
+                    <td className="px-3 py-2">500 scans com IA (~4.000 figurinhas), áudio ilimitado, trocas ilimitadas, sem anúncios</td>
                   </tr>
                 </tbody>
               </table>

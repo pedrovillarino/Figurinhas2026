@@ -15,19 +15,21 @@ const PAID_TIERS: Tier[] = ['estreante', 'colecionador', 'copa_completa']
 
 const TIER_HIGHLIGHTS: Record<string, string[]> = {
   estreante: [
-    '50 scans com IA (~400 figurinhas)',
+    '30 scans com IA (~240 figurinhas)',
+    '30 áudios pelo WhatsApp',
     '5 trocas incluídas',
     'Sem anúncios',
   ],
   colecionador: [
     '150 scans com IA (~1.200 figurinhas)',
+    'Áudio ilimitado pelo WhatsApp',
     '15 trocas incluídas',
     'Packs avulsos mais baratos',
     'Sem anúncios',
   ],
   copa_completa: [
     '500 scans com IA (~4.000 figurinhas)',
-    'Trocas ilimitadas',
+    'Áudio e trocas ilimitados',
     'Sem anúncios',
     'Experiência completa',
   ],

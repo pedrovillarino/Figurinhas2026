@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1080px;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #FFFFFF;
+    overflow: hidden;
+    position: relative;
+  }
+  .content {
+    padding: 72px 80px 0;
+  }
+  .tag {
+    text-transform: uppercase;
+    color: #00C896;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+  }
+  .title {
+    font-size: 44px;
+    font-weight: 700;
+    color: #0A1628;
+    line-height: 1.2;
+    margin-bottom: 52px;
+  }
+  .ranking-cards {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+  .ranking-card {
+    flex: 1;
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .ranking-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+  }
+  .ranking-card.green::before { background: #00C896; }
+  .ranking-card.gold::before { background: #FFB800; }
+  .ranking-card.navy::before { background: #0A1628; }
+  .card-emoji {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+  .card-type {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6B7280;
+    margin-bottom: 8px;
+  }
+  .card-rank {
+    font-size: 32px;
+    font-weight: 700;
+    color: #0A1628;
+  }
+  .card-total {
+    font-size: 14px;
+    color: #6B7280;
+  }
+  .qr-note {
+    font-size: 18px;
+    color: #00A67D;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .compare-sub {
+    font-size: 18px;
+    color: #6B7280;
+    text-align: center;
+  }
+  /* Footer bar */
+  .footer-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+  }
+  .gold-bar {
+    background: #FFB800;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gold-bar-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0A1628;
+  }
+  .footer-bottom {
+    background: #F3F4F6;
+    padding: 12px 0;
+    text-align: center;
+  }
+  .footer-url {
+    color: #0A1628;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .footer-handle {
+    color: #00C896;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+  <div class="content">
+    <div class="tag">FUNCIONALIDADE 03</div>
+    <div class="title">Quem cola mais<br>no seu bairro?</div>
+    <div class="ranking-cards">
+      <div class="ranking-card green">
+        <div class="card-emoji">🌍</div>
+        <div class="card-type">Geral</div>
+        <div class="card-rank">#1</div>
+        <div class="card-total">de 5.000</div>
+      </div>
+      <div class="ranking-card gold">
+        <div class="card-emoji">📍</div>
+        <div class="card-type">Bairro</div>
+        <div class="card-rank">#3</div>
+        <div class="card-total">de 42</div>
+      </div>
+      <div class="ranking-card navy">
+        <div class="card-emoji">👥</div>
+        <div class="card-type">Amigos</div>
+        <div class="card-rank">#1</div>
+        <div class="card-total">de 8</div>
+      </div>
+    </div>
+    <div class="qr-note">📱 QR Code para comparar álbuns na hora</div>
+    <div class="compare-sub">Compare. Compartilhe. Desafie seus amigos.</div>
+  </div>
+  <div class="footer-wrapper">
+    <div class="gold-bar">
+      <div class="gold-bar-text">⭐ COPA100 = GRÁTIS &nbsp;|&nbsp; COPA50 = 50% OFF &nbsp;|&nbsp; ATÉ 30/04</div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-url">completeai.com.br</div>
+      <div class="footer-handle">@completeai</div>
+    </div>
+  </div>
+</body>
+</html>

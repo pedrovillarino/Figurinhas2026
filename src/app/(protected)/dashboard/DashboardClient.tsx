@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
+import AudioRegistrationCTA from '@/components/AudioRegistrationCTA'
 
 type Sticker = {
   id: number
@@ -796,6 +797,11 @@ export default function DashboardClient({
           </div>
         </div>
       )}
+      {/* Pedro 2026-05-03: visibilidade do áudio (concorrente da foto) */}
+      <div className="mb-4">
+        <AudioRegistrationCTA variant="card" />
+      </div>
+
       {/* ─── WhatsApp Bot Discovery ─── */}
       <a
         href="https://wa.me/5521966791113?text=oi"
