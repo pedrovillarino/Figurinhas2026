@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } from '@/lib/zapi'
 import { normalizePhoneBR } from '@/lib/phone'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
-import { runAgent, recordBotMessage, getLastBotContext } from '@/lib/whatsapp-agent'
+import { runAgent, recordBotMessage, getLastBotContext, sendBotTextFor } from '@/lib/whatsapp-agent'
 import { escalateToSupport } from '@/lib/support'
 import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
@@ -1376,7 +1376,9 @@ export async function POST(req: NextRequest) {
       // Serializa: 1 registro por vez. Se já tem pending, segura essa foto.
       const pendingItemsImg = await countPendingScanItems(user.id)
       if (pendingItemsImg > 0) {
-        await sendText(phone, buildWaitPendingMsg(pendingItemsImg))
+        // sendBotTextFor: salva o texto como last_bot_message pra que se
+        // user responder ("sim", "tira o 2"), agent veja contexto.
+        await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
         return NextResponse.json({ ok: true })
       }
 
@@ -1680,7 +1682,8 @@ export async function POST(req: NextRequest) {
             reply += `\n✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} (troque pelo número que quer remover)`
           }
           reply += '\n❌ *NÃO* → cancela tudo'
-          await sendText(phone, reply)
+          // Mensagem interativa — user vai responder SIM/NÃO/TIRAR.
+          await sendBotTextFor(user.id, phone, reply)
         }
         return NextResponse.json({ ok: true })
       }
@@ -2291,7 +2294,7 @@ export async function POST(req: NextRequest) {
           // Serializa: 1 registro por vez. Se já tem pending, segura a mensagem.
           const pendingItemsReg = await countPendingScanItems(user.id)
           if (pendingItemsReg > 0) {
-            await sendText(phone, buildWaitPendingMsg(pendingItemsReg))
+            await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsReg))
             break
           }
 
@@ -2452,7 +2455,9 @@ export async function POST(req: NextRequest) {
           msg += '\n❌ *NÃO* → cancela'
           msg += '\n\n⏰ _Expira em 1h se não responder_'
 
-          await sendText(phone, msg)
+          // Mensagem interativa — user vai responder SIM/NÃO/TIRAR. Salva
+          // contexto pro agent caso resposta seja ambígua ("ok pode mandar").
+          await sendBotTextFor(user.id, phone, msg)
           break
         }
 
