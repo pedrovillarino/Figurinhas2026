@@ -53,6 +53,7 @@ export default function RegulamentoConcursoPage() {
           <p>Para concorrer, o participante deve cumprir cumulativamente:</p>
           <ol className="list-[lower-alpha] pl-5 space-y-1">
             <li>Seguir o perfil <strong>@completeai</strong> no Instagram</li>
+            <li><strong>Curtir</strong> o post oficial do concurso</li>
             <li>
               Comentar no post oficial do concurso marcando{' '}
               <strong>pelo menos 1 amigo</strong> (sem limite de comentários — ver item 5)
