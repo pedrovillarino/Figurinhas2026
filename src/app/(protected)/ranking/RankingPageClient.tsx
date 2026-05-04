@@ -220,7 +220,22 @@ export default function RankingPageClient({
   function copyInvite() {
     navigator.clipboard.writeText(inviteUrl).catch(() => {})
     setCopiedInvite(true)
+    // Pedro 2026-05-04: track REFERRAL_LINK_SHARED pra ranking embaixadores
+    fetch('/api/funnel/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'referral_link_shared', metadata: { via: 'copy_link', source: 'ranking' } }),
+      keepalive: true,
+    }).catch(() => {})
     setTimeout(() => setCopiedInvite(false), 2000)
+  }
+  function trackWhatsAppShare() {
+    fetch('/api/funnel/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'referral_link_shared', metadata: { via: 'whatsapp', source: 'ranking' } }),
+      keepalive: true,
+    }).catch(() => {})
   }
 
   const myInitial = (userDisplayName || '?')[0].toUpperCase()
@@ -504,6 +519,7 @@ export default function RankingPageClient({
               href={whatsappShareUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={trackWhatsAppShare}
               className="block w-full text-center bg-[#25D366] text-white rounded-xl py-2.5 text-xs font-bold hover:opacity-90 transition shadow-sm shadow-[#25D366]/30"
             >
               📱 Compartilhar no WhatsApp

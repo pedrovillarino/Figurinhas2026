@@ -34,6 +34,8 @@ type UserStats = {
   tier: Tier
   ownedUnique: number
   scansUsed: number
+  shareCount: number  // Pedro 2026-05-04: # de vezes que copiou/compartilhou link
+  clickCount: number  // # de vezes que alguém abriu o link de ref dele
 }
 
 export default async function EmbaixadoresAdminSection() {
@@ -114,7 +116,7 @@ export default async function EmbaixadoresAdminSection() {
   const userStats = new Map<string, UserStats>()
   if (ranking.length > 0) {
     const userIds = ranking.map((r) => r.user_id)
-    const [tiersRes, ownedRes, scansRes] = await Promise.all([
+    const [tiersRes, ownedRes, scansRes, sharedRes, clickedRes] = await Promise.all([
       admin.from('profiles').select('id, tier').in('id', userIds),
       admin.from('user_stickers')
         .select('user_id, sticker:stickers!inner(counts_for_completion)')
@@ -122,9 +124,19 @@ export default async function EmbaixadoresAdminSection() {
         .gt('quantity', 0)
         .eq('sticker.counts_for_completion', true),
       admin.from('scan_usage').select('user_id, scan_count').in('user_id', userIds),
+      // Pedro 2026-05-04: # de vezes que cada user disparou "compartilhar link"
+      admin.from('funnel_events')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('event_name', 'referral_link_shared'),
+      // # de vezes que o link de ref foi clicado (eventos atribuídos ao referrer)
+      admin.from('funnel_events')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('event_name', 'referral_link_clicked'),
     ])
 
-    for (const id of userIds) userStats.set(id, { tier: 'free', ownedUnique: 0, scansUsed: 0 })
+    for (const id of userIds) userStats.set(id, { tier: 'free', ownedUnique: 0, scansUsed: 0, shareCount: 0, clickCount: 0 })
 
     for (const row of (tiersRes.data || []) as Array<{ id: string; tier: string | null }>) {
       const s = userStats.get(row.id)
@@ -137,6 +149,14 @@ export default async function EmbaixadoresAdminSection() {
     for (const row of (scansRes.data || []) as Array<{ user_id: string; scan_count: number | null }>) {
       const s = userStats.get(row.user_id)
       if (s) s.scansUsed += row.scan_count ?? 0
+    }
+    for (const row of (sharedRes.data || []) as Array<{ user_id: string }>) {
+      const s = userStats.get(row.user_id)
+      if (s) s.shareCount += 1
+    }
+    for (const row of (clickedRes.data || []) as Array<{ user_id: string }>) {
+      const s = userStats.get(row.user_id)
+      if (s) s.clickCount += 1
     }
   }
 
@@ -172,7 +192,7 @@ export default async function EmbaixadoresAdminSection() {
         ) : (
           <div className="divide-y divide-gray-100">
             {ranking.map((r) => {
-              const stats = userStats.get(r.user_id) ?? { tier: 'free' as Tier, ownedUnique: 0, scansUsed: 0 }
+              const stats = userStats.get(r.user_id) ?? { tier: 'free' as Tier, ownedUnique: 0, scansUsed: 0, shareCount: 0, clickCount: 0 }
               const albumPct = (stats.ownedUnique / ALBUM_COMPLETABLE_TOTAL) * 100
               return (
                 <div key={r.user_id} className="flex items-center gap-3 px-4 py-2.5 text-sm flex-wrap">
@@ -190,6 +210,12 @@ export default async function EmbaixadoresAdminSection() {
                   </span>
                   <span className="text-[11px] text-gray-600 w-20 text-right tabular-nums">
                     {stats.scansUsed} scans
+                  </span>
+                  <span className="text-[11px] text-blue-600 w-20 text-right tabular-nums" title="Vezes que copiou/compartilhou o link de indicação">
+                    📤 {stats.shareCount}
+                  </span>
+                  <span className="text-[11px] text-purple-600 w-20 text-right tabular-nums" title="Vezes que alguém clicou no link de indicação">
+                    👆 {stats.clickCount}
                   </span>
                   <span className="text-xs text-gray-600 w-20 text-right tabular-nums">
                     {r.confirmed_count} cadastros

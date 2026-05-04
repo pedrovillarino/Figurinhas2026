@@ -746,6 +746,13 @@ export default function ProfilePage() {
               onClick={() => {
                 navigator.clipboard.writeText(`https://www.completeai.com.br/?ref=${profile.referral_code}`)
                 setCopied(true)
+                // Pedro 2026-05-04: track REFERRAL_LINK_SHARED pra ranking embaixadores
+                fetch('/api/funnel/track', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ event: 'referral_link_shared', metadata: { via: 'copy_link', source: 'profile' } }),
+                  keepalive: true,
+                }).catch(() => {})
                 setTimeout(() => setCopied(false), 2000)
               }}
               className="flex-shrink-0 bg-brand-light text-brand rounded-lg px-3 py-2 text-xs font-semibold hover:bg-brand/20 transition"
@@ -761,6 +768,15 @@ export default function ProfilePage() {
             )}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              // Pedro 2026-05-04: track ao clicar no botão do WhatsApp share
+              fetch('/api/funnel/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ event: 'referral_link_shared', metadata: { via: 'whatsapp', source: 'profile' } }),
+                keepalive: true,
+              }).catch(() => {})
+            }}
             className="flex items-center justify-center gap-2 w-full bg-emerald-500 text-white rounded-lg px-4 py-2.5 text-xs font-semibold hover:bg-emerald-600 transition mb-3"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">

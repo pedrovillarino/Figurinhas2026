@@ -55,12 +55,11 @@ const PORTRAIT_REGION = { x: 60, y: 8, w: 340, h: 500 }
 
 // Pills inferiores (cobrir + re-renderizar texto novo)
 // IMPORTANTE: dimensões precisam cobrir COMPLETAMENTE os pills do template
-// (que têm "JOÃO PEDRO / 26-9-2001..." e "CHELSEA FC (ENG)"). Calibradas
-// após observar que o pill nome+stats vai de ~y=515 a ~y=585, e o pill
-// clube de ~y=590 a ~y=618.
-const PILL_NAME = { x: 13, y: 510, w: 320, h: 75, radius: 36 }
-// Pill clube — não pode estender até o canto direito senão cobre logo Panini
-const PILL_CLUB = { x: 108, y: 587, w: 220, h: 32, radius: 16 }
+// (que têm "JOÃO PEDRO / 26-9-2001..." e "CHELSEA FC (ENG)"). v4 calibrado
+// re-medindo o template: pill grande começa em y=538 e vai até y=600
+// (largura x=22..338), pill clube começa em y=603 (x=105..325).
+const PILL_NAME = { x: 22, y: 536, w: 316, h: 64, radius: 30 }
+const PILL_CLUB = { x: 105, y: 602, w: 220, h: 32, radius: 14 }
 
 // Prompt focado APENAS no retrato — sem layout, sem fundo gráfico, sem texto.
 const PORTRAIT_PROMPT = `Gere SOMENTE um retrato fotorrealista profissional da pessoa na foto enviada, no estilo "jogador da seleção brasileira posando para foto oficial de figurinha Panini Copa do Mundo 2026".
@@ -294,14 +293,14 @@ export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> 
 
   const nameTextBuf = await renderText(name, {
     fontfile: FONT_BOLD_PATH,
-    fontPxSize: 24,
+    fontPxSize: 22, // v4: reduzido pra caber em nomes longos
     width: PILL_NAME.w - 16, // padding 8px cada lado
     color: COLORS.textWhite,
   })
   const statsTextBuf = stats
     ? await renderText(stats, {
         fontfile: FONT_REGULAR_PATH,
-        fontPxSize: 13,
+        fontPxSize: 12,
         width: PILL_NAME.w - 16,
         color: COLORS.textWhite,
       })
@@ -309,22 +308,29 @@ export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> 
   const clubTextBuf = club
     ? await renderText(club, {
         fontfile: FONT_BOLD_PATH,
-        fontPxSize: 12,
+        fontPxSize: 11,
         width: PILL_CLUB.w - 12,
         color: COLORS.textWhite,
       })
     : null
 
-  // Posições — centralizar texto horizontal dentro do pill
+  // Posições — centralizar texto horizontal e empilhar nome+stats verticalmente
+  // dentro do PILL_NAME, club no centro vertical do PILL_CLUB.
   const nameMeta = await sharp(nameTextBuf).metadata()
-  const nameLeft = PILL_NAME.x + Math.round((PILL_NAME.w - (nameMeta.width || 0)) / 2)
-  const nameTop = PILL_NAME.y + 8
+  const nameW = nameMeta.width || 0
+  const nameH = nameMeta.height || 0
+  const nameLeft = PILL_NAME.x + Math.round((PILL_NAME.w - nameW) / 2)
+  // v4: se TEM stats, nome fica em cima (linha 1); se não tem, centraliza vertical
+  const nameTop = stats
+    ? PILL_NAME.y + 8
+    : PILL_NAME.y + Math.round((PILL_NAME.h - nameH) / 2)
 
   let statsLeft = 0, statsTop = 0
   if (statsTextBuf) {
     const m = await sharp(statsTextBuf).metadata()
     statsLeft = PILL_NAME.x + Math.round((PILL_NAME.w - (m.width || 0)) / 2)
-    statsTop = PILL_NAME.y + 42
+    // Logo abaixo do nome: nameTop + nameHeight + gap pequeno
+    statsTop = nameTop + nameH + 4
   }
 
   let clubLeft = 0, clubTop = 0

@@ -120,10 +120,25 @@ export default function CampanhaClient({
     )
   }, [displayName, referralUrl])
 
+  // Pedro 2026-05-04: dispara REFERRAL_LINK_SHARED pro funil — alimenta
+  // a coluna "envios" no ranking de embaixadores admin.
+  function trackShared(via: 'copy_link' | 'copy_text' | 'native_share') {
+    fetch('/api/funnel/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'referral_link_shared',
+        metadata: { via, source: 'campanha' },
+      }),
+      keepalive: true,
+    }).catch(() => {})
+  }
+
   async function copy(text: string, kind: 'link' | 'text') {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(kind)
+      trackShared(kind === 'link' ? 'copy_link' : 'copy_text')
       setTimeout(() => setCopied(null), 2000)
     } catch {
       // ignore
@@ -138,6 +153,7 @@ export default function CampanhaClient({
           text: shareText,
           url: referralUrl,
         })
+        trackShared('native_share')
       } catch {
         // user cancelled
       }

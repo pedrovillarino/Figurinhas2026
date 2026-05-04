@@ -39,6 +39,7 @@ export const FUNNEL_EVENTS = {
   PAYMENT_FAILED: 'payment_failed',
   // Engagement signals (not strict funnel, but useful for cohort)
   REFERRAL_LINK_SHARED: 'referral_link_shared',
+  REFERRAL_LINK_CLICKED: 'referral_link_clicked',
   CAMPAIGN_OPTED_IN: 'campaign_opted_in',
 } as const
 

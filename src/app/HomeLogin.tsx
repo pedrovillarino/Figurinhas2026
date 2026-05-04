@@ -136,11 +136,26 @@ export default function HomeLogin() {
   const supabase = createClient()
   const strength = usePasswordStrength(password)
 
-  // Capture referral code from URL (?ref=CODE) and store in localStorage
+  // Capture referral code from URL (?ref=CODE) and store in localStorage.
+  // Also fire a REFERRAL_LINK_CLICKED event so the referrer gets credit
+  // for the click in the embaixadores ranking (Pedro 2026-05-04).
   useEffect(() => {
     const ref = searchParams.get('ref')
     if (ref) {
-      localStorage.setItem('referral_code', ref.trim().toUpperCase())
+      const code = ref.trim().toUpperCase()
+      localStorage.setItem('referral_code', code)
+      // Dedup: only fire once per browser per code. Avoids inflating ranking
+      // when user reloads the home page.
+      const dedupKey = `referral_clicked_${code}`
+      if (!localStorage.getItem(dedupKey)) {
+        localStorage.setItem(dedupKey, '1')
+        fetch('/api/referral/track-click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referral_code: code }),
+          keepalive: true,
+        }).catch(() => {})
+      }
     }
   }, [searchParams])
 
