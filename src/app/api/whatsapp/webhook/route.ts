@@ -94,6 +94,8 @@ COMO LER UMA FIGURINHA PANINI:
 - ⚠️ NÃO confunda: ano de 4 dígitos (2010, 2019) = ano de estreia, NÃO é número da figurinha. Altura/peso também NÃO.
 - O NÚMERO DA FIGURINHA tem formato CÓDIGO-NÚMERO (ex: "BRA 17"). Se não conseguir ver, deixe "" — o sistema encontra pelo nome.
 
+⚠️ VERSO DE FIGURINHA: tem texto "FIFA OFFICIAL LICENSED PRODUCT" + Panini + número em pequeno num canto. Se conseguir ler número → face="back", number="PAIS-N". Se NÃO ler número → 0 figurinhas (NÃO chute FWC-0 só pelo fundo foil).
+
 ⚠️ SÍMBOLOS (NÃO SÃO JOGADORES — figurinhas que você precisa RECONHECER VISUALMENTE):
 
 Cada um dos 48 PAÍSES tem 2 símbolos fixos:
@@ -1729,8 +1731,11 @@ export async function POST(req: NextRequest) {
         const kept = stickers.filter((_, i) => !indices.includes(i + 1))
 
         if (kept.length === 0) {
+          // Pedro 2026-05-04: user removeu TODAS as figurinhas detectadas →
+          // não vai registrar nenhuma. Refunda o scan (1 pending = 1 scan).
           await supabaseAdmin.from('pending_scans').delete().eq('id', latestPending.id)
-          await sendText(phone, `❌ Removidas todas as ${removed.length} figurinha(s) do registro. Manda outra foto, áudio ou texto se quiser!`)
+          await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id, p_count: 1 })
+          await sendText(phone, `❌ Removidas todas as ${removed.length} figurinha(s) do registro. *Não contou scan* — manda outra foto, áudio ou texto se quiser!`)
         } else {
           await supabaseAdmin.from('pending_scans').update({ scan_data: kept }).eq('id', latestPending.id)
           const removedSummary = removed.map((s) => `${s.number} ${s.player_name}`.trim()).join(', ')
@@ -1815,8 +1820,15 @@ export async function POST(req: NextRequest) {
           .gt('expires_at', new Date().toISOString())
 
         if (allPending && allPending.length > 0) {
+          // Pedro 2026-05-04: user cancelou tudo → não registrou nada → refunda
+          // os scans (1 por pending_scan, já que cada um custou 1 scan).
+          const refundCount = allPending.length
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
-          await sendText(phone, `❌ Cancelado. Nada foi registrado.\nManda outra foto, áudio ou texto se quiser tentar de novo!`)
+          await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id, p_count: refundCount })
+          const refundNote = refundCount > 1
+            ? `*Não contou ${refundCount} scans* — `
+            : `*Não contou scan* — `
+          await sendText(phone, `❌ Cancelado. Nada foi registrado.\n${refundNote}manda outra foto, áudio ou texto se quiser tentar de novo!`)
           return NextResponse.json({ ok: true })
         }
       }

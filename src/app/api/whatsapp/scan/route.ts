@@ -28,6 +28,12 @@ Para CADA figurinha física visível (frente ou verso):
 - confidence: 0.0–1.0 honesto. Abaixo de 0.4, pule.
 - tier: SÓ pra PANINI Extras. "ouro" | "prata" | "bronze" | "regular". Omita pra figurinhas normais.
 
+⚠️ VERSO DE FIGURINHA — IMPORTANTE:
+- Verso da figurinha Panini tem: texto "FIFA OFFICIAL LICENSED PRODUCT", logo "26 FIFA" + troféu, "PANINI" embaixo, texto regulatório em letras pequenas, E o NÚMERO da figurinha em pequeno num canto (ex: "BRA 1", "RSA 14").
+- Se conseguir LER o número no verso → retorne face="back", number="<PAIS>-<N>" (ex: "BRA-1"). Conta como detecção válida.
+- Se NÃO conseguir ler número (verso ilegível/borrado/cortado) → retorne array stickers VAZIO. NÃO chute FWC-0 ou qualquer outra figurinha só pelo fundo holográfico/foil ser parecido. Verso sem número = 0 figurinhas detectadas.
+- ⚠️ NUNCA infira FWC-0 "We are Panini" só pela foto ter visual foil. FWC-0 mostra foto REAL de jogador chutando bicicleta na FRENTE. Se a foto só tem texto licenciado/logos/Panini sem foto de jogador, é VERSO — NÃO É FWC-0.
+
 ⚠️ SÍMBOLOS (figurinhas SEM nome de jogador — você precisa RECONHECER VISUALMENTE):
 
 Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):

@@ -77,6 +77,12 @@ For EACH physical sticker you can see (front or back), return:
 - sticker_number: only if a clear CODE-NUMBER like "BRA-17" or "BRA 17" is visible (use hyphen). Else "".
 - status: "filled" if a real sticker is present (front OR back). "empty" only for an album slot that has NO sticker — just a blank rectangle with the player name printed BELOW it as placeholder.
 - face: "front" (player photo + name) or "back" (large number, no player photo).
+
+⚠️ STICKER BACK (verso) — IMPORTANT:
+- The back of a Panini sticker has: text "FIFA OFFICIAL LICENSED PRODUCT", "26 FIFA" + trophy logo, "PANINI" wordmark, regulatory text in tiny print, AND the sticker number printed in small at one corner (e.g. "BRA 1", "RSA 14", "FWC 5").
+- If you can READ the small number on the back → return face="back", sticker_number="<COUNTRY>-<N>" (e.g. "BRA-1"), player_name="" or "(back)". This counts as a valid detection.
+- If you CANNOT read any number on the back (verso ilegível, off-center, blurry) → return EMPTY stickers array (NO detection). DO NOT guess FWC-0 or any other sticker just because the foil background looks similar. A blank/illegible back = 0 stickers detected.
+- ⚠️ NEVER infer FWC-0 "We are Panini" from a foil-backed image alone. FWC-0 must show a real-photo player doing a bicycle kick on the FRONT. If the photo only shows licensing text/logos/Panini logo without a player photo, it's a back — NOT FWC-0.
 - confidence: 0.0–1.0 honest. Below 0.4 → skip the sticker entirely.
 - tier: ONLY for PANINI Extras (see below). "ouro" | "prata" | "bronze" | "regular". Omit for non-extras.
 
