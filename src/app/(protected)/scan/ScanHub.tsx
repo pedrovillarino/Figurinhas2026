@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
@@ -41,6 +42,7 @@ export default function ScanHub({
   totalStickers: number
   tier: Tier
 }) {
+  const waToken = useWaLinkToken()
   const [showPaywall, setShowPaywall] = useState(false)
   const [state, setState] = useState<ScanState>('idle')
   const [imageData, setImageData] = useState<string | null>(null)
@@ -538,7 +540,7 @@ export default function ScanHub({
           </a>
 
           <a
-            href={`https://wa.me/5521966791113?text=${encodeURIComponent('Gostaria de registrar minhas figurinhas por áudio.')}`}
+            href={buildWaDeepLink('5521966791113', 'Gostaria de registrar minhas figurinhas por áudio.', waToken)}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-xl bg-gradient-to-br from-navy to-navy/80 p-3 active:scale-[0.98] transition-transform shadow-sm"

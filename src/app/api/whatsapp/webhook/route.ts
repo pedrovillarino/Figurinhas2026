@@ -368,6 +368,69 @@ async function tryAutoLinkByEmailInMessage(
 }
 
 /**
+ * Pedro 2026-05-04 (caso Enzo): user clicou em deep-link wa.me dentro do
+ * site (logado) → mensagem chegou com `[link:TOKEN]` no final. Token foi
+ * gerado por /api/whatsapp/link-token e está atrelado ao user_id. Aqui
+ * a gente extrai, valida (não expirado, não usado), vincula o phone ao
+ * user e marca o token como consumido.
+ *
+ * Returns o profile linkado (igual tryAutoLinkByEmailInMessage) ou null.
+ */
+async function tryAutoLinkByTokenInMessage(
+  phone: string,
+  text: string,
+): Promise<{ id: string; display_name: string | null; phone: string | null; tier: string } | null> {
+  if (!text) return null
+  const tokenMatch = text.match(/\[link:([a-f0-9]{8,32})\]/i)
+  if (!tokenMatch) return null
+  const token = tokenMatch[1].toLowerCase()
+
+  const supabase = getAdmin()
+  const { data: tokenRow } = await supabase
+    .from('wa_link_tokens')
+    .select('user_id, expires_at, used_at')
+    .eq('token', token)
+    .maybeSingle()
+
+  if (!tokenRow) {
+    console.warn(`[WA_TOKEN_LINK] Token not found: ${token.slice(0, 4)}***`)
+    return null
+  }
+  if (tokenRow.used_at) {
+    console.warn(`[WA_TOKEN_LINK] Token already used: ${token.slice(0, 4)}***`)
+    return null
+  }
+  if (new Date(tokenRow.expires_at).getTime() < Date.now()) {
+    console.warn(`[WA_TOKEN_LINK] Token expired: ${token.slice(0, 4)}***`)
+    return null
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, display_name, phone, tier')
+    .eq('id', tokenRow.user_id)
+    .maybeSingle()
+
+  if (!profile) return null
+
+  const digitsPhone = phone.replace(/\D/g, '')
+  // Vincula o phone à conta e marca o token como consumido (idempotente)
+  await supabase.from('profiles').update({ phone: digitsPhone }).eq('id', profile.id)
+  await supabase
+    .from('wa_link_tokens')
+    .update({ used_at: new Date().toISOString(), used_phone: digitsPhone })
+    .eq('token', token)
+
+  console.log(`[WA_TOKEN_LINK] Linked phone=${maskPhone(phone)} via token=${token.slice(0, 4)}***`)
+  return { ...profile, phone: digitsPhone }
+}
+
+/** Remove o marker `[link:TOKEN]` do texto pra não poluir o resto do processamento. */
+function stripLinkToken(text: string): string {
+  return text.replace(/\s*\[link:[a-f0-9]{8,32}\]\s*/gi, ' ').trim()
+}
+
+/**
  * State machine pra cadastro inline via WhatsApp — fluxo email-first.
  *
  * Estados:
@@ -384,13 +447,46 @@ async function tryAutoLinkByEmailInMessage(
  * Aceite dos Termos: implicito ao continuar usando, registrado ao criar
  * conta (terms_accepted_at no profile).
  */
+/**
+ * Pedro 2026-05-04: após signup completar (auto-link OU conta nova),
+ * se a 1ª mensagem original do user era uma dúvida/intenção, manda
+ * follow-up direcionado em vez de só "boas-vindas genéricas".
+ *
+ * Heurísticas pra identificar a intenção (regex, sem custo de IA):
+ *   - "áudio" → pede pra mandar áudio agora
+ *   - "foto" → pede pra mandar foto
+ *   - "texto" / códigos → pede pra mandar
+ *   - default → ecoa a pergunta original e diz "manda de novo que eu respondo"
+ */
+async function sendPostSignupFollowUp(phone: string, pendingMessage: string | null): Promise<void> {
+  if (!pendingMessage) return
+  const lower = pendingMessage.toLowerCase()
+  let followUp: string
+
+  if (/\b[áa]udio\b/.test(lower)) {
+    followUp = `🎤 Você queria *registrar por áudio* — manda um áudio agora falando os códigos das figurinhas (ex: _"Brasil 1, Argentina 3, Marrocos 5"_) que eu transcrevo e registro!`
+  } else if (/\bfoto|imagem|c[âa]mera|tirar foto\b/.test(lower)) {
+    followUp = `📸 Você queria *registrar por foto* — manda agora uma foto bem iluminada das figurinhas que eu identifico e registro!`
+  } else if (/\btexto|c[oó]digo|escrever\b/.test(lower)) {
+    followUp = `✏️ Você queria *registrar por texto* — manda os códigos tipo _"BRA-1 ARG-3 FRA-10"_ ou _"Brasil 1, Argentina 3"_ que eu registro!`
+  } else if (/\btroca|trocar\b/.test(lower)) {
+    followUp = `🔁 Você perguntou sobre *trocas* — abre as opções com *trocas* aqui, ou no site em ${APP_URL}/trades pra ver quem perto de você precisa do que você tem.`
+  } else {
+    // Default: ecoa a mensagem original
+    const truncated = pendingMessage.length > 100 ? pendingMessage.slice(0, 100) + '…' : pendingMessage
+    followUp = `💬 Antes você me perguntou: _"${truncated}"_\n\nManda de novo se ainda quiser que eu responda — agora que tô conectado com sua conta posso ajudar melhor. 💚`
+  }
+
+  await sendText(phone, followUp)
+}
+
 async function handleRegistrationFlow(phone: string, text: string): Promise<boolean> {
   if (!text) return false
   const supabase = getAdmin()
 
   const { data: pending } = await supabase
     .from('pending_registrations')
-    .select('id, state, name, email')
+    .select('id, state, name, email, pending_message')
     .eq('phone', phone)
     .gt('expires_at', new Date().toISOString())
     .maybeSingle()
@@ -430,6 +526,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
           .from('profiles')
           .update({ phone: digitsPhone })
           .eq('id', existing.id)
+        const pendingMsg = pending.pending_message
         await supabase.from('pending_registrations').delete().eq('id', pending.id)
         const firstName = (existing.display_name || '').split(' ')[0]
         await sendText(
@@ -441,6 +538,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
             `✏️ *Texto* tipo _"BRA-1 ARG-3"_ ou _"Brasil 1"_\n\n` +
             `Manda *menu* a qualquer hora pra ver tudo. 💚`,
         )
+        await sendPostSignupFollowUp(phone, pendingMsg)
         return true
       }
       // Caso B: profile já tem outro phone → manda pro site
@@ -487,6 +585,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
     const result = await createUserViaWhatsApp({ phone, name, email })
 
     if (result.ok) {
+      const pendingMsg = pending.pending_message
       await supabase.from('pending_registrations').delete().eq('id', pending.id)
       const firstName = name.split(' ')[0] || ''
       await sendText(
@@ -501,6 +600,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
           `Bom proveito! 💚\n\n` +
           `_Ao usar o serviço você aceita os Termos (${APP_URL}/termos) e a Privacidade (${APP_URL}/privacidade)._`,
       )
+      await sendPostSignupFollowUp(phone, pendingMsg)
       return true
     }
 
@@ -1304,7 +1404,33 @@ export async function POST(req: NextRequest) {
 
       // Extract message text early (available for any messageType — text/audio
       // transcription happens later, but for registration we only need text).
-      const earlyText = (body.text?.message || body.body || body.message || '').toString().trim()
+      const earlyTextRaw = (body.text?.message || body.body || body.message || '').toString().trim()
+
+      // Pedro 2026-05-04 (caso Enzo): se a mensagem traz `[link:TOKEN]`,
+      // significa que o user logado clicou num deep-link wa.me dentro do
+      // site. Token mapeia pro user_id → vincula phone direto sem pedir
+      // email. Roda ANTES do email-check (mais rápido, mais confiável).
+      const tokenLinked = await tryAutoLinkByTokenInMessage(phone, earlyTextRaw)
+      if (tokenLinked) {
+        user = tokenLinked
+        const firstName = (tokenLinked.display_name || '').split(' ')[0]
+        await sendText(
+          phone,
+          `✅ *Pronto${firstName ? `, ${firstName}` : ''}!* Conectei seu WhatsApp à sua conta. 🔓\n\n` +
+            `Já pode usar tudo aqui:\n` +
+            `📸 *Foto* das figurinhas — eu identifico com IA\n` +
+            `🎤 *Áudio* falando os códigos\n` +
+            `✏️ *Texto* tipo _"BRA-1 ARG-3"_ ou _"Brasil 1"_\n\n` +
+            `Manda *menu* a qualquer hora pra ver tudo. 💚`,
+        )
+        // Re-processa a mensagem original (sem o marker [link:TOKEN]) — bot
+        // segue o fluxo normal pro intent dela. Ex: "Gostaria de registrar
+        // por áudio" cai em sendPostSignupFollowUp pra orientar o user.
+        await sendPostSignupFollowUp(phone, stripLinkToken(earlyTextRaw))
+        return NextResponse.json({ ok: true })
+      }
+
+      const earlyText = stripLinkToken(earlyTextRaw)
 
       // Pedro 2026-05-03 (Fix H): se a mensagem inicial já tem o email
       // do user (ex: vindo do CTA "Conectar WhatsApp" no site), faz
@@ -1351,10 +1477,21 @@ export async function POST(req: NextRequest) {
       }
       // Create pending_registration in awaiting_email state — email-first flow
       // (next message é o email do user). Idempotent: ON CONFLICT reseta state.
+      // Pedro 2026-05-04: ALÉM do upsert, salva pending_message quando a 1ª
+      // mensagem foi uma dúvida legítima (looksLikeQuestion) — após signup
+      // completar, re-processamos essa mensagem como follow-up.
       const supabaseAdmin = getAdmin()
       await supabaseAdmin
         .from('pending_registrations')
-        .upsert({ phone, state: 'awaiting_email', expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }, { onConflict: 'phone' })
+        .upsert(
+          {
+            phone,
+            state: 'awaiting_email',
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            pending_message: looksLikeQuestion ? earlyText : null,
+          },
+          { onConflict: 'phone' },
+        )
       return NextResponse.json({ ok: true })
     }
 

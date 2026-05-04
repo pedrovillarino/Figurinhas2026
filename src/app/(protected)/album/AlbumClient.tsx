@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
 import PremiumBanner from '@/components/PremiumBanner'
@@ -42,6 +43,7 @@ export default function AlbumClient({
   userId: string
   tier?: Tier
 }) {
+  const waToken = useWaLinkToken()
   const [userMap, setUserMap] = useState(initialMap)
   const [activeTab, setActiveTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
@@ -618,7 +620,7 @@ export default function AlbumClient({
           <span className="text-xs font-semibold text-gray-700">Scan por foto</span>
         </Link>
         <a
-          href={`https://wa.me/5521966791113?text=${encodeURIComponent('Gostaria de registrar minhas figurinhas por áudio.')}`}
+          href={buildWaDeepLink('5521966791113', 'Gostaria de registrar minhas figurinhas por áudio.', waToken)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 px-3 py-2 bg-navy/5 border border-navy/15 rounded-lg active:scale-[0.98] transition"
