@@ -1,66 +1,84 @@
 /**
  * Pedro 2026-05-04: gera figurinha digital personalizada estilo Copa 2026.
  *
- * Pipeline (Opção B — template + composição):
+ * Pipeline (Opção C — template real + composição):
  *   1. recebe foto base64 + dados (nome/data/altura/peso/clube)
  *   2. chama Gemini Image SOMENTE pra gerar o RETRATO (cintura pra cima,
- *      camisa amarela do Brasil, fundo TRANSPARENTE) — não pede o layout
- *      completo da figurinha (LLM não copia layout pixel-perfect)
- *   3. compõe template SVG (fundo turquesa + "26" + faixas + logos + textos)
- *      em cima do retrato via Sharp — layout 100% fiel à Panini garantido
+ *      camisa amarela do Brasil, fundo turquesa idêntico ao template)
+ *   3. carrega o template real (figurinha BRA original em alta-res),
+ *      sobrepõe o retrato cobrindo o jogador original, cobre as faixas
+ *      de texto e renderiza nome/stats/clube novos por cima
  *   4. retorna PNG final composto
  *
- * Watermark é aplicado por aplicarPreviewWatermark() em camada separada,
- * pra que a versão paga (limpa) reuse a mesma composição base.
+ * Watermark é aplicado por applyPreviewWatermark() em camada separada.
  */
 import sharp from 'sharp'
+import path from 'path'
+import { promises as fs } from 'fs'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
 const MODEL = 'gemini-2.5-flash-image'
 
-// ─── Dimensões da figurinha (5:7, padrão Panini) ───
-const STICKER_W = 1000
-const STICKER_H = 1400
+// ─── Template real ───
+// Imagem 480×639 com a figurinha do João Pedro. Vamos cobrir o jogador
+// e os textos de nome/stats/clube. Resto do template (cor de fundo,
+// "26" decorativo, FIFA, bandeira, "BRA" vertical, logo Panini) fica
+// preservado.
+const TEMPLATE_PATH = path.join(process.cwd(), 'public', 'sticker-templates', 'copa2026-bra-base.jpg')
 
-// Cores oficiais Copa 2026 (extraídas da figurinha real do Vinícius Júnior)
+// Cores extraídas do template (estimadas — pode ajustar visualmente)
 const COLORS = {
-  bgTurquoise: '#6FC9C0',
-  bgTurquoiseDark: '#2A8B82',
-  numberGreen: '#1B5E4F',
-  numberYellow: '#FFD23F',
-  jerseyYellow: '#FFD400',
-  jerseyGreen: '#009C3B',
+  bgTurquoise: '#6FC9C0',     // fundo principal da figurinha
+  bgPillDark: '#2D9489',      // pill da faixa nome+stats
+  bgPillLight: '#3FA89B',     // pill da faixa clube (um tom mais claro)
   textWhite: '#FFFFFF',
   textCream: '#E8D78F',
-  paniniRed: '#D62828',
 } as const
+
+// ─── Coordenadas calibradas no template 480×639 ───
+//
+// Pedro 2026-05-04: medidas a olho na imagem do João Pedro. Se Pedro
+// trocar o template-fonte por outra figurinha (ou versão maior), pode
+// precisar recalibrar.
+const TEMPLATE_W = 480
+const TEMPLATE_H = 639
+
+// Área onde o retrato gerado vai ser sobreposto (cobre o jogador original).
+// Largura ampla pra cobrir cabelo/ombros, altura do topo até logo acima da pill.
+const PORTRAIT_REGION = { x: 60, y: 8, w: 340, h: 500 }
+
+// Pills inferiores (cobrir + re-renderizar texto novo)
+// Pill grande: nome + linha de stats
+const PILL_NAME = { x: 15, y: 515, w: 315, h: 60, radius: 30 }
+// Pill clube
+const PILL_CLUB = { x: 110, y: 580, w: 215, h: 25, radius: 12 }
 
 // Prompt focado APENAS no retrato — sem layout, sem fundo gráfico, sem texto.
 const PORTRAIT_PROMPT = `Gere SOMENTE um retrato fotorrealista profissional da pessoa na foto enviada, no estilo "jogador da seleção brasileira posando para foto oficial de figurinha Panini Copa do Mundo 2026".
 
-═══ O QUE GERAR ═══
+═══ ENQUADRAMENTO (CRÍTICO — bate com slot da figurinha) ═══
 
-ENQUADRAMENTO:
-- Pessoa da CINTURA PARA CIMA (busto + cabeça + parte dos ombros).
-- Pose neutra, séria, ombros ligeiramente abertos para a câmera.
-- Olhar diretamente pra frente (lente da câmera).
-- Cabeça centralizada, levemente acima do meio-vertical.
+- Pessoa da CINTURA PARA CIMA — cabeça + pescoço + busto + ombros + parte do peito até logo abaixo do escudo.
+- Cabeça centralizada horizontalmente, ocupando a TERÇA SUPERIOR da imagem.
+- Pose neutra, séria, ombros levemente abertos para a câmera (pose simétrica frontal).
+- Olhar diretamente pra frente, expressão neutra/séria.
+- Não corte a cabeça nem mostre só rosto — quero busto completo.
 
-VESTUÁRIO (camisa oficial Brasil 2026):
-- Camisa AMARELO-OURO sólido (HEX #FFD400).
+═══ VESTUÁRIO (camisa oficial Brasil 2026) ═══
+
+- Camisa AMARELO-OURO sólido (HEX #FFD400) com TEXTURA de listras verticais discretas/franjas sutis (igual à camisa original do Brasil 2024-2026).
 - Gola V em VERDE-BRASIL (HEX #009C3B), discreta, ajustada ao pescoço.
-- Detalhes de ombro/manga em verde Brasil sutis.
-- No peito esquerdo (olhando pra figurinha): escudo da CBF — escudo azul-marinho com 5 estrelinhas amarelas em arco no topo + sigla "CBF" amarela ao centro.
-- No peito direito: logo discreto do fornecedor (Nike swoosh branco pequeno).
-- No peito central, palavra "BRASIL" em verde escuro pequena (opcional, sutil).
+- Detalhes de ombro/manga com pequenos detalhes verdes.
+- No peito esquerdo (lado direito da imagem olhando pra figurinha): escudo da CBF — escudo azul-marinho com 5 estrelinhas amarelas em arco no topo + sigla "CBF" amarela ao centro.
+- No peito direito (lado esquerdo da imagem): logo Nike swoosh BRANCO discreto.
 
 ═══ FUNDO ═══
 
 ⚠️ FUNDO COR SÓLIDA TURQUESA #6FC9C0 (cor água-marinha clara, idêntica ao fundo da figurinha Panini Copa 2026).
 - ❌ Nada de gradiente, paisagem, estádio, holograma, textura, ruído.
-- ❌ Nada de letras, números (especialmente NADA de "26"), logos, frames, bordas.
+- ❌ Nada de letras, números (especialmente NADA de "26" verde), logos, frames, bordas.
 - ❌ Nada de marca d'água, rótulo, escrita.
-- ❌ Nada de bandeira, escudo, símbolos extras.
+- ❌ Nada de bandeira, escudo, símbolos extras atrás.
 - ✅ APENAS cor sólida #6FC9C0 100% uniforme atrás da pessoa.
 - ✅ A pessoa centralizada, recortada com bordas naturais (cabelos, ombros, pescoço — bordas suaves, sem artefatos).
 
@@ -69,7 +87,7 @@ VESTUÁRIO (camisa oficial Brasil 2026):
 A pessoa enviada tem o ROSTO que quero usar. O resultado precisa parecer UM ÚNICO RETRATO PROFISSIONAL — nunca montagem.
 
 OBRIGATÓRIO:
-- TOM DE PELE perfeitamente uniforme entre rosto, pescoço, orelhas e parte do braço/mão visível. Equalize variações da foto original (luz amarelada, branco automático, sombras duras).
+- TOM DE PELE perfeitamente uniforme entre rosto, pescoço, orelhas e qualquer parte do braço/mão visível. Equalize variações da foto original (luz amarelada, branco automático, sombras duras).
 - ILUMINAÇÃO única vinda do alto-frente (estilo estúdio): sombra suave embaixo do queixo + leve sombra na lateral oposta do nariz. Mesma direção em todo o corpo.
 - PESCOÇO ANATÔMICO completo: trapézios descendo pros ombros. Não deixe rosto "flutuando" sobre a camisa.
 - Gola da camisa ABRAÇA o pescoço naturalmente (sem linha de corte visível, sem aparência de Photoshop colado).
@@ -78,16 +96,15 @@ OBRIGATÓRIO:
 
 ═══ NÃO FAÇA ═══
 
-- ❌ Não desenhe o número "26" gigante atrás (vou compor depois)
-- ❌ Não desenhe faixa de nome embaixo (vou compor depois)
-- ❌ Não desenhe bandeira, logos FIFA/Panini, "BRA" vertical (vou compor depois)
+- ❌ Não desenhe o número "26" (vou compor depois)
+- ❌ Não desenhe faixas de nome embaixo (vou compor depois)
+- ❌ Não desenhe bandeira, logos FIFA/Panini, "BRA" vertical (já estão no template)
 - ❌ Não desenhe outras seleções — sempre Brasil
 - ❌ Não estilize cartoon/anime/ilustração — é FOTOGRAFIA real
 - ❌ Não adicione bordas, frame, sombra projetada, watermark
 - ❌ Não mude pose dramática, ângulo lateral, expressão sorridente — neutra/séria sempre
-- ❌ Não corte a cabeça nem mostre só rosto — quero busto completo
 
-OUTPUT: PNG fundo transparente (ou verde-lima sólido se transparência indisponível), 1024×1024 ou maior, retrato vertical da pessoa com camisa Brasil.`
+OUTPUT: PNG retrato vertical (proporção próxima a 2:3) com APENAS a pessoa + fundo turquesa sólido.`
 
 export type GenerateStickerInput = {
   photoBase64: string         // foto da pessoa, sem data URL prefix
@@ -99,7 +116,7 @@ export type GenerateStickerInput = {
   clubName?: string           // ex: "Real Madrid CF"
   clubCountry?: string        // ex: "ESP"
   countryCode?: string        // sempre "BRA" (MVP só Brasil)
-  variant?: 'copa2026'        // futuro: 'vintage' | 'holo' | etc
+  variant?: 'copa2026'
 }
 
 export type GenerateStickerResult =
@@ -107,7 +124,7 @@ export type GenerateStickerResult =
   | { ok: false; error: string; promptUsed: string }
 
 /**
- * Gera figurinha completa: retrato via Gemini + composição do template via Sharp.
+ * Gera figurinha completa: retrato via Gemini + composição sobre o template real via Sharp.
  *
  * Custo: ~$0.04 por imagem (Gemini Image).
  */
@@ -116,7 +133,7 @@ export async function generateSticker(input: GenerateStickerInput): Promise<Gene
   const portraitResult = await generatePortrait(input)
   if (!portraitResult.ok) return portraitResult
 
-  // 2. Compõe template + retrato + textos via Sharp
+  // 2. Compõe template real + retrato + textos via Sharp
   try {
     const finalBuffer = await composeStickerFinal({
       portraitPngBase64: portraitResult.pngBase64,
@@ -126,7 +143,6 @@ export async function generateSticker(input: GenerateStickerInput): Promise<Gene
       weightKg: input.weightKg,
       clubName: input.clubName,
       clubCountry: input.clubCountry,
-      countryCode: input.countryCode || 'BRA',
     })
     return {
       ok: true,
@@ -144,7 +160,7 @@ export async function generateSticker(input: GenerateStickerInput): Promise<Gene
 
 /**
  * Chama Gemini Image pra gerar SOMENTE o retrato (sem template).
- * Retorna PNG base64 da pessoa em camisa do Brasil, fundo idealmente transparente.
+ * Retorna PNG base64 da pessoa em camisa do Brasil, fundo turquesa sólido.
  */
 async function generatePortrait(input: GenerateStickerInput): Promise<GenerateStickerResult> {
   const prompt = PORTRAIT_PROMPT
@@ -216,44 +232,37 @@ type ComposeInput = {
   weightKg?: string
   clubName?: string
   clubCountry?: string
-  countryCode: string
 }
 
 /**
  * Compõe a figurinha final:
- *   1. Renderiza o template SVG de fundo (turquesa + "26" + lateral "BRA" + bandeira + faixas vazias)
- *   2. Recorta/redimensiona o retrato e tenta remover fundo verde se Gemini retornou chroma key
- *   3. Composita o retrato no centro, atrás do "BRA" mas na frente do "26"
- *   4. Renderiza camada de texto (nome, stats, clube, logos FIFA/Panini)
+ *   1. Carrega o template real (figurinha BRA original)
+ *   2. Recorta/redimensiona o retrato gerado pra encaixar no slot do jogador
+ *   3. Composita retrato (cobre jogador original); fundo turquesa do retrato
+ *      blenda com fundo do template, e o "26" continua visível nas bordas
+ *   4. Composita overlay SVG com:
+ *      - 2 retângulos turquesa-escuros pra cobrir as pills antigas (nome/clube)
+ *      - Textos novos: nome, stats, clube
  *   5. Output PNG final
  */
 export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> {
-  // 1. Template de fundo
-  const bgSvg = buildBackgroundSvg()
+  // 1. Carrega o template real
+  const templateBuffer = await fs.readFile(TEMPLATE_PATH)
 
-  // 2. Prepara o retrato — redimensiona pra caber + tenta chroma-key se for verde sólido
+  // 2. Prepara o retrato pra encaixar no slot do jogador
   const portraitRaw = Buffer.from(input.portraitPngBase64, 'base64')
-  const portraitProcessed = await processPortrait(portraitRaw)
-
-  // Posicionamento do retrato: ocupa do topo (~y=120) até início da faixa (~y=1080).
-  // Largura proporcional (~ 78% da largura, centralizado).
-  const portraitW = Math.round(STICKER_W * 0.78)
-  const portraitH = Math.round(STICKER_H * 0.70) // 70% da altura
-  const portraitX = Math.round((STICKER_W - portraitW) / 2)
-  const portraitY = Math.round(STICKER_H * 0.075) // 7.5% do topo
-
-  const portraitResized = await sharp(portraitProcessed)
-    .resize(portraitW, portraitH, { fit: 'cover', position: 'top' })
+  const portraitResized = await sharp(portraitRaw)
+    .resize(PORTRAIT_REGION.w, PORTRAIT_REGION.h, { fit: 'cover', position: 'top' })
     .png()
     .toBuffer()
 
-  // 3. Camada de overlay: lateral "BRA" + faixas inferiores + textos + logos
+  // 3. Overlay com pills cobrindo + textos novos
   const overlaySvg = buildOverlaySvg(input)
 
-  // 4. Composita: bg → retrato → overlay
-  const composed = await sharp(Buffer.from(bgSvg))
+  // 4. Compõe: template → retrato → overlay
+  const composed = await sharp(templateBuffer)
     .composite([
-      { input: portraitResized, top: portraitY, left: portraitX },
+      { input: portraitResized, top: PORTRAIT_REGION.y, left: PORTRAIT_REGION.x },
       { input: Buffer.from(overlaySvg), top: 0, left: 0 },
     ])
     .png()
@@ -263,199 +272,75 @@ export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> 
 }
 
 /**
- * Tenta limpar o fundo do retrato:
- * - Se o retrato veio com alpha (Gemini respeitou transparência), passa adiante
- * - Se veio com fundo verde-lima sólido (chroma key), remove via threshold
- * - Senão, mantém como está e o overlay vai sobrepor
- *
- * Pedro 2026-05-04: Sharp não tem chroma key nativo, então fazemos um
- * threshold simples no canal verde + alpha. Em produção pode-se trocar
- * por uma chamada a um serviço de remove.bg ou similar.
- */
-async function processPortrait(raw: Buffer): Promise<Buffer> {
-  const meta = await sharp(raw).metadata()
-  // Se já tem alpha, assume transparência ok — só garante PNG.
-  if (meta.hasAlpha) {
-    return await sharp(raw).png().toBuffer()
-  }
-  // Senão, retorna como está. Implementação futura: chroma key via threshold.
-  return await sharp(raw).png().toBuffer()
-}
-
-/**
- * SVG do template de fundo: cor turquesa + "26" gigante decorativo +
- * brilho holográfico sutil (gradiente).
- */
-function buildBackgroundSvg(): string {
-  const w = STICKER_W
-  const h = STICKER_H
-  // "26" gigante no centro: 2 ocupa esquerda, 6 ocupa direita.
-  // Posições calibradas pra ficar atrás do jogador.
-  const numFontSize = Math.round(h * 0.62) // bem grande
-  const numY = Math.round(h * 0.62)         // baseline
-  const num2X = Math.round(w * 0.04)
-  const num6X = Math.round(w * 0.96)
-
-  return `
-<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-  <defs>
-    <linearGradient id="holo" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.10"/>
-      <stop offset="40%"  stop-color="#FFFFFF" stop-opacity="0"/>
-      <stop offset="60%"  stop-color="#FFFFFF" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Fundo turquesa -->
-  <rect width="${w}" height="${h}" fill="${COLORS.bgTurquoise}"/>
-
-  <!-- "26" gigante (2 verde-escuro à esquerda + 6 amarelo à direita) -->
-  <text x="${num2X}" y="${numY}"
-        font-family="Impact, 'Arial Black', sans-serif"
-        font-size="${numFontSize}" font-weight="900"
-        fill="${COLORS.numberGreen}"
-        text-anchor="start">2</text>
-  <text x="${num6X}" y="${numY}"
-        font-family="Impact, 'Arial Black', sans-serif"
-        font-size="${numFontSize}" font-weight="900"
-        fill="${COLORS.numberYellow}"
-        text-anchor="end">6</text>
-
-  <!-- Brilho holográfico sutil -->
-  <rect width="${w}" height="${h}" fill="url(#holo)"/>
-</svg>`.trim()
-}
-
-/**
- * SVG do overlay (frente): faixa inferior nome+stats+clube, "BRA" vertical
- * direita, bandeira circular Brasil, logos FIFA + Panini.
+ * SVG que cobre as pills antigas (nome/stats/clube) e renderiza textos novos.
+ * Não desenha logos FIFA, Panini, "26", "BRA" — esses ficam intactos no template.
  */
 function buildOverlaySvg(input: ComposeInput): string {
-  const w = STICKER_W
-  const h = STICKER_H
+  const w = TEMPLATE_W
+  const h = TEMPLATE_H
 
   const name = (input.personName || 'COMPLETE AÍ').toUpperCase()
   const stats = formatStatsLine(input)
   const club = formatClubLine(input)
-  const country3 = (input.countryCode || 'BRA').toUpperCase().slice(0, 3)
 
-  // ─── Faixas inferiores ───
-  // Faixa principal: ~14% da altura, contém nome + stats
-  const mainBarH = Math.round(h * 0.14)
-  const mainBarY = Math.round(h * 0.78)
-  // Faixa do clube: ~6% da altura
-  const clubBarH = Math.round(h * 0.06)
-  const clubBarY = mainBarY + mainBarH
-  // Sobra (panini) ocupa o resto
-  const paniniBarY = clubBarY + clubBarH
-  const paniniBarH = h - paniniBarY
+  // Tamanhos calibrados pra resolução 480×639
+  const nameFontSize = 22
+  const statsFontSize = 12
+  const clubFontSize = 11
 
-  // Tamanhos de texto
-  const nameFontSize = Math.round(w * 0.058)
-  const statsFontSize = Math.round(w * 0.027)
-  const clubFontSize = Math.round(w * 0.030)
-
-  // ─── Lateral direita "BRA" vertical ───
-  const braFontSize = Math.round(w * 0.10)
-  const braX = Math.round(w * 0.945)
-  const braYStart = Math.round(h * 0.32)
-
-  // ─── Bandeira circular Brasil (canto superior direito-acima do BRA) ───
-  const flagCx = Math.round(w * 0.92)
-  const flagCy = Math.round(h * 0.15)
-  const flagR = Math.round(w * 0.045)
-
-  // ─── Logo FIFA (canto superior direito) ───
-  const fifaX = Math.round(w * 0.045)
-  const fifaY = Math.round(h * 0.06)
-  const fifaFontSize = Math.round(w * 0.038)
+  // Posições dos textos dentro das pills
+  const nameY = PILL_NAME.y + 25 // baseline ~25px do topo da pill
+  const statsY = PILL_NAME.y + 48
+  const clubY = PILL_CLUB.y + 17
 
   return `
 <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-  <!-- ═══ Logo FIFA canto superior esquerdo ═══ -->
-  <g transform="translate(${fifaX}, ${fifaY})">
-    <text x="0" y="0" font-family="'Helvetica Neue', Arial, sans-serif"
-          font-size="${fifaFontSize}" font-weight="900"
-          fill="${COLORS.textWhite}" letter-spacing="2">FIFA</text>
-    <text x="0" y="${fifaFontSize * 1.0}" font-family="Arial, sans-serif"
-          font-size="${Math.round(fifaFontSize * 0.32)}" font-weight="700"
-          fill="${COLORS.textWhite}" letter-spacing="1">WORLD CUP 26</text>
-  </g>
+  <!-- ═══ Cobre pill nome+stats antiga ═══ -->
+  <rect x="${PILL_NAME.x}" y="${PILL_NAME.y}"
+        width="${PILL_NAME.w}" height="${PILL_NAME.h}"
+        rx="${PILL_NAME.radius}" ry="${PILL_NAME.radius}"
+        fill="${COLORS.bgPillDark}"/>
 
-  <!-- ═══ Bandeira circular Brasil (lateral direita topo) ═══ -->
-  <g>
-    <!-- aro branco -->
-    <circle cx="${flagCx}" cy="${flagCy}" r="${flagR + 3}" fill="${COLORS.textWhite}"/>
-    <!-- verde -->
-    <circle cx="${flagCx}" cy="${flagCy}" r="${flagR}" fill="${COLORS.jerseyGreen}"/>
-    <!-- losango amarelo -->
-    <polygon points="${flagCx},${flagCy - flagR * 0.7}
-                     ${flagCx + flagR * 0.78},${flagCy}
-                     ${flagCx},${flagCy + flagR * 0.7}
-                     ${flagCx - flagR * 0.78},${flagCy}"
-             fill="${COLORS.numberYellow}"/>
-    <!-- círculo azul -->
-    <circle cx="${flagCx}" cy="${flagCy}" r="${flagR * 0.42}" fill="#002776"/>
-    <!-- estrelinhas brancas (3 pontos representando) -->
-    <circle cx="${flagCx - flagR * 0.15}" cy="${flagCy - flagR * 0.05}" r="${flagR * 0.04}" fill="${COLORS.textWhite}"/>
-    <circle cx="${flagCx + flagR * 0.10}" cy="${flagCy + flagR * 0.10}" r="${flagR * 0.04}" fill="${COLORS.textWhite}"/>
-    <circle cx="${flagCx + flagR * 0.20}" cy="${flagCy - flagR * 0.18}" r="${flagR * 0.03}" fill="${COLORS.textWhite}"/>
-  </g>
-
-  <!-- ═══ Lateral direita "BRA" vertical (rotacionado 90°) ═══ -->
-  <g transform="translate(${braX}, ${braYStart}) rotate(90)">
-    <text x="0" y="0" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="${braFontSize}" font-weight="900"
-          fill="${COLORS.textWhite}"
-          letter-spacing="6">${country3}</text>
-  </g>
-
-  <!-- ═══ Faixa principal (nome + stats) ═══ -->
-  <rect x="0" y="${mainBarY}" width="${w}" height="${mainBarH}" fill="${COLORS.bgTurquoiseDark}"/>
-  <text x="${Math.round(w * 0.05)}" y="${mainBarY + mainBarH * 0.50}"
-        font-family="'Helvetica Neue', Arial, sans-serif"
+  <!-- Linha 1: NOME (branco bold) -->
+  <text x="${PILL_NAME.x + PILL_NAME.w / 2}" y="${nameY}"
+        font-family="Helvetica, Arial, sans-serif"
         font-size="${nameFontSize}" font-weight="900"
         fill="${COLORS.textWhite}"
+        text-anchor="middle"
         dominant-baseline="middle"
-        letter-spacing="1">${escapeXml(name)}</text>
-  ${stats ? `<text x="${Math.round(w * 0.05)}" y="${mainBarY + mainBarH * 0.85}"
-        font-family="Arial, sans-serif"
-        font-size="${statsFontSize}" font-weight="600"
-        fill="${COLORS.textCream}"
-        dominant-baseline="middle"
-        letter-spacing="2">${escapeXml(stats)}</text>` : ''}
+        letter-spacing="0.5">${escapeXml(name)}</text>
 
-  <!-- ═══ Faixa do clube ═══ -->
-  <rect x="0" y="${clubBarY}" width="${w}" height="${clubBarH}" fill="${COLORS.bgTurquoiseDark}" opacity="0.85"/>
-  ${club ? `<text x="${Math.round(w * 0.05)}" y="${clubBarY + clubBarH * 0.62}"
-        font-family="Arial, sans-serif"
+  <!-- Linha 2: STATS (creme/dourado) -->
+  ${stats ? `<text x="${PILL_NAME.x + PILL_NAME.w / 2}" y="${statsY}"
+        font-family="Helvetica, Arial, sans-serif"
+        font-size="${statsFontSize}" font-weight="600"
+        fill="${COLORS.textWhite}"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        letter-spacing="0.3">${escapeXml(stats)}</text>` : ''}
+
+  <!-- ═══ Cobre pill clube antiga ═══ -->
+  <rect x="${PILL_CLUB.x}" y="${PILL_CLUB.y}"
+        width="${PILL_CLUB.w}" height="${PILL_CLUB.h}"
+        rx="${PILL_CLUB.radius}" ry="${PILL_CLUB.radius}"
+        fill="${COLORS.bgPillLight}"/>
+
+  ${club ? `<text x="${PILL_CLUB.x + PILL_CLUB.w / 2}" y="${clubY}"
+        font-family="Helvetica, Arial, sans-serif"
         font-size="${clubFontSize}" font-weight="700"
         fill="${COLORS.textWhite}"
+        text-anchor="middle"
         dominant-baseline="middle"
-        letter-spacing="1">${escapeXml(club)}</text>` : ''}
-
-  <!-- ═══ Logo Panini canto inferior direito ═══ -->
-  <g transform="translate(${Math.round(w * 0.78)}, ${paniniBarY + Math.round(paniniBarH * 0.15)})">
-    <rect x="0" y="0" width="${Math.round(w * 0.18)}" height="${Math.round(paniniBarH * 0.70)}"
-          fill="${COLORS.paniniRed}" rx="4"/>
-    <text x="${Math.round(w * 0.09)}" y="${Math.round(paniniBarH * 0.50)}"
-          font-family="'Brush Script MT', 'Lucida Handwriting', cursive"
-          font-size="${Math.round(w * 0.040)}" font-weight="900"
-          fill="${COLORS.numberYellow}"
-          text-anchor="middle"
-          dominant-baseline="middle"
-          font-style="italic">Panini</text>
-  </g>
+        letter-spacing="0.5">${escapeXml(club)}</text>` : ''}
 </svg>`.trim()
 }
 
 function formatStatsLine(input: ComposeInput): string {
   const parts: string[] = []
   if (input.birthDate) parts.push(input.birthDate)
-  if (input.heightM)   parts.push(`${input.heightM} m`)
+  if (input.heightM)   parts.push(`${input.heightM}m`)
   if (input.weightKg)  parts.push(`${input.weightKg} kg`)
-  return parts.join('   |   ')
+  return parts.join(' | ')
 }
 
 function formatClubLine(input: ComposeInput): string {
@@ -487,8 +372,8 @@ function escapeXml(s: string): string {
 export async function applyPreviewWatermark(pngBase64: string): Promise<Buffer> {
   const img = sharp(Buffer.from(pngBase64, 'base64'))
   const meta = await img.metadata()
-  const w = meta.width || STICKER_W
-  const h = meta.height || STICKER_H
+  const w = meta.width || TEMPLATE_W
+  const h = meta.height || TEMPLATE_H
 
   const tileFontSize = Math.round(w * 0.07)
   const ctaFontSize = Math.round(w * 0.085)
