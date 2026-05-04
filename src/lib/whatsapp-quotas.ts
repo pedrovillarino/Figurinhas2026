@@ -79,13 +79,13 @@ export async function getQuotas(userId: string, tier: Tier): Promise<Quotas> {
 export function getUpgradeOptions(tier: Tier): string[] {
   const opts: string[] = []
   if (tier === 'free') {
-    opts.push(`💚 *Estreante* — ${TIER_CONFIG.estreante.priceDisplay}/mês (30 scans + 30 áudios)`)
+    opts.push(`💚 *Estreante* — ${TIER_CONFIG.estreante.priceDisplay} (pagamento único — 30 scans + 30 áudios)`)
   }
   if (tier === 'free' || tier === 'estreante') {
-    opts.push(`⭐ *Colecionador* — ${TIER_CONFIG.colecionador.priceDisplay}/mês (150 scans + áudio ilimitado)`)
+    opts.push(`⭐ *Colecionador* — ${TIER_CONFIG.colecionador.priceDisplay} (pagamento único — 150 scans + áudio ilimitado)`)
   }
   if (tier !== 'copa_completa') {
-    opts.push(`🏆 *Copa Completa* — ${TIER_CONFIG.copa_completa.priceDisplay}/mês (500 scans + tudo ilimitado)`)
+    opts.push(`🏆 *Copa Completa* — ${TIER_CONFIG.copa_completa.priceDisplay} (pagamento único — 500 scans + tudo ilimitado)`)
   }
   return opts
 }

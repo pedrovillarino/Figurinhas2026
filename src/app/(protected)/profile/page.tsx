@@ -540,7 +540,7 @@ export default function ProfilePage() {
               {tier === 'free' && (
                 <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
                   <p className="text-[10px] font-bold text-brand uppercase tracking-wide">Estreante</p>
-                  <p className="text-lg font-bold text-brand mt-0.5">R$9,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
+                  <p className="text-lg font-bold text-brand mt-0.5">R$9,90<span className="text-[10px] text-gray-500 font-normal"> · pagamento único</span></p>
                   <p className="text-[10px] font-semibold text-gray-700 mt-1.5">6× mais scans + áudios</p>
                   <p className="text-[10px] text-gray-500 leading-tight mt-0.5">30 scans · 30 áudios<br/>5 trocas · sem ads</p>
                 </div>
@@ -549,7 +549,7 @@ export default function ProfilePage() {
                 <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg border-2 border-gold/60 p-3 text-center relative shadow-sm">
                   <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gold text-[9px] font-bold text-white px-2 py-0.5 rounded-full whitespace-nowrap">⭐ MELHOR ESCOLHA</span>
                   <p className="text-[10px] font-bold text-gold-dark uppercase tracking-wide mt-1">Colecionador</p>
-                  <p className="text-lg font-bold text-gold-dark mt-0.5">R$19,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
+                  <p className="text-lg font-bold text-gold-dark mt-0.5">R$19,90<span className="text-[10px] text-gray-500 font-normal"> · pagamento único</span></p>
                   <p className="text-[10px] font-bold text-gold-dark mt-1.5">🎤 Áudio ilimitado</p>
                   <p className="text-[10px] text-gray-700 leading-tight mt-0.5">150 scans · 15 trocas<br/>📬 Trocas: <strong>1×/dia</strong></p>
                 </div>
@@ -557,7 +557,7 @@ export default function ProfilePage() {
               <div className="bg-gradient-to-br from-emerald-50 to-brand-light/40 rounded-lg border-2 border-emerald-300 p-3 text-center relative">
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded-full whitespace-nowrap">🏆 ELITE</span>
                 <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide mt-1">Copa Completa</p>
-                <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90<span className="text-[10px] text-gray-500 font-normal">/mês</span></p>
+                <p className="text-lg font-bold text-emerald-600 mt-0.5">R$29,90<span className="text-[10px] text-gray-500 font-normal"> · pagamento único</span></p>
                 <p className="text-[10px] font-bold text-emerald-700 mt-1.5">⚡ Trocas: <span className="underline">na hora</span></p>
                 <p className="text-[10px] text-gray-700 leading-tight mt-0.5">500 scans · tudo ∞<br/>🎯 Top da fila · 🏆 Badge</p>
               </div>
