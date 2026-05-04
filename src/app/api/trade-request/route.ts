@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { sendText, formatPhone } from '@/lib/zapi'
+import { sendText, formatPhone, maskPhone } from '@/lib/zapi'
 import { sendPushToUser } from '@/lib/push'
 import { sendEmail, tradeRequestEmailHtml } from '@/lib/email'
 import { cookies } from 'next/headers'
@@ -236,15 +236,40 @@ export async function POST(req: NextRequest) {
     const channel = targetProfile.notify_channel || 'whatsapp'
     const phone = targetProfile.phone ? formatPhone(targetProfile.phone) : null
 
-    // Fire notifications in background (non-blocking)
+    // Pedro 2026-05-04: log estruturado das notificações pra debug.
+    // Antes era fire-and-forget silencioso — ninguém sabia se WhatsApp
+    // chegou ou falhou. Agora cada canal grava em notifications_sent
+    // (sucesso ou erro) pra Pedro ver no admin / pesquisar no DB.
     const whatsappSent = !!(phone && (channel === 'whatsapp' || channel === 'both'))
-    const notifyAsync = async () => {
-      const notifications: Promise<unknown>[] = []
+    const tradeReqId = tradeReq?.id
 
-      if (whatsappSent) {
+    const logNotif = async (
+      channelKind: string,
+      recipient: string,
+      ok: boolean,
+      info: string,
+    ): Promise<void> => {
+      try {
+        await admin.from('notifications_sent').insert({
+          user_id: target_user_id,
+          type: ok ? `trade_request_${channelKind}_ok` : `trade_request_${channelKind}_fail`,
+          channel: channelKind,
+          recipient,
+          message_preview: `[trade=${tradeReqId}] ${info}`.slice(0, 500),
+          sent_at: new Date().toISOString(),
+        })
+      } catch (logErr) {
+        console.error('[trade-notify] log failed', logErr)
+      }
+    }
+
+    const notifyAsync = async () => {
+      const requestId = `trade=${tradeReqId} requester=${user.id} target=${target_user_id}`
+
+      // ── WhatsApp ──
+      if (whatsappSent && phone) {
         const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
         const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
-
         const msg =
           `🔔 *Solicitação de troca!*\n\n` +
           `*${requesterName}* (a ${distStr} de você) quer trocar figurinhas!\n\n` +
@@ -255,10 +280,19 @@ export async function POST(req: NextRequest) {
           `❌ *Recusar*:\n${rejectUrl}\n\n` +
           `Ou abra o app para ver detalhes:\n${APP_URL}/trades`
 
-        notifications.push(sendText(phone, msg))
+        try {
+          const okWa = await sendText(phone, msg)
+          console.log(`[trade-notify] whatsapp ${okWa ? 'OK' : 'FAIL'} ${requestId} phone=${maskPhone(phone)}`)
+          await logNotif('whatsapp', phone, okWa, `to=${maskPhone(phone)} match=${realIHave}+${realTheyHave}`)
+        } catch (err) {
+          console.error(`[trade-notify] whatsapp ERROR ${requestId}`, err)
+          await logNotif('whatsapp', phone, false, `error=${String(err).slice(0, 200)}`)
+        }
+      } else {
+        console.log(`[trade-notify] whatsapp SKIP ${requestId} reason=${!phone ? 'no_phone' : 'channel=' + channel}`)
       }
 
-      // Email notification to target user
+      // ── Email ──
       const targetEmail = targetProfile.email
       if (targetEmail && (channel === 'email' || channel === 'both' || !phone)) {
         const approveUrl = `${APP_URL}/trade-approve?token=${token}&action=approve`
@@ -268,17 +302,29 @@ export async function POST(req: NextRequest) {
           realTheyHave, realIHave,
           approveUrl, rejectUrl, APP_URL
         )
-        notifications.push(sendEmail(targetEmail, `🔔 ${requesterName} quer trocar figurinhas com você!`, html))
+        try {
+          const okEmail = await sendEmail(targetEmail, `🔔 ${requesterName} quer trocar figurinhas com você!`, html)
+          console.log(`[trade-notify] email ${okEmail ? 'OK' : 'FAIL'} ${requestId}`)
+          await logNotif('email', targetEmail, !!okEmail, `to=${targetEmail.replace(/(.{2}).*(@.*)/, '$1***$2')}`)
+        } catch (err) {
+          console.error(`[trade-notify] email ERROR ${requestId}`, err)
+          await logNotif('email', targetEmail, false, `error=${String(err).slice(0, 200)}`)
+        }
       }
 
-      // Push notification to target user
-      notifications.push(sendPushToUser(target_user_id, {
-        title: '🔔 Solicitação de troca!',
-        body: `${requesterName} (a ${distStr}) quer trocar ${totalTrade} figurinhas com você!`,
-        url: '/trades',
-      }))
-
-      await Promise.allSettled(notifications)
+      // ── Push ──
+      try {
+        const okPush = await sendPushToUser(target_user_id, {
+          title: '🔔 Solicitação de troca!',
+          body: `${requesterName} (a ${distStr}) quer trocar ${totalTrade} figurinhas com você!`,
+          url: '/trades',
+        })
+        console.log(`[trade-notify] push ${okPush ? 'OK' : 'FAIL'} ${requestId}`)
+        await logNotif('push', target_user_id, !!okPush, 'web push notification')
+      } catch (err) {
+        console.error(`[trade-notify] push ERROR ${requestId}`, err)
+        await logNotif('push', target_user_id, false, `error=${String(err).slice(0, 200)}`)
+      }
     }
     notifyAsync().catch(err => console.error('Async trade-request notification error:', err))
 
