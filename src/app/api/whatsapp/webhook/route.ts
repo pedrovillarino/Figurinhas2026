@@ -1723,7 +1723,15 @@ export async function POST(req: NextRequest) {
         const indices: number[] = Array.from(new Set<number>(parsed)).sort((a, b) => a - b)
 
         if (indices.length === 0) {
-          await sendText(phone, `❓ Não entendi o número. A lista tem ${stickers.length} item(s) — tenta: *tirar 1* ou *tirar 1,3*.`)
+          await sendText(
+            phone,
+            `❓ Não entendi o número. A lista tem ${stickers.length} item(s).\n\n` +
+              `Como usar:\n` +
+              `• *tirar 1* — só o item 1\n` +
+              `• *tirar 1,3* — items 1 e 3\n` +
+              `• *tirar 1 e 3* — items 1 e 3\n` +
+              `• *tirar 1, 3 e 5* — items 1, 3 e 5`,
+          )
           return NextResponse.json({ ok: true })
         }
 
