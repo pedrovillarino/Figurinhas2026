@@ -48,14 +48,27 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let body: { photoBase64?: string; photoMimeType?: string; personName?: string }
+  let body: {
+    photoBase64?: string
+    photoMimeType?: string
+    personName?: string
+    birthDate?: string
+    heightM?: string
+    weightKg?: string
+    clubName?: string
+    clubCountry?: string
+    countryCode?: string
+  }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
   }
 
-  const { photoBase64, photoMimeType, personName } = body
+  const {
+    photoBase64, photoMimeType, personName,
+    birthDate, heightM, weightKg, clubName, clubCountry, countryCode,
+  } = body
 
   if (!photoBase64 || typeof photoBase64 !== 'string') {
     return NextResponse.json({ error: 'photoBase64 obrigatório' }, { status: 400 })
@@ -93,6 +106,12 @@ export async function POST(req: NextRequest) {
     photoBase64,
     photoMimeType,
     personName,
+    birthDate,
+    heightM,
+    weightKg,
+    clubName,
+    clubCountry,
+    countryCode,
     variant: 'copa2026',
   })
 

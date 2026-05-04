@@ -27,6 +27,12 @@ export default function CriarFigurinhaClient(props: Props) {
   const [photoMimeType, setPhotoMimeType] = useState<string>('image/jpeg')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [personName, setPersonName] = useState<string>(props.defaultName)
+  const [birthDate, setBirthDate] = useState<string>('')
+  const [heightM, setHeightM] = useState<string>('')
+  const [weightKg, setWeightKg] = useState<string>('')
+  const [clubName, setClubName] = useState<string>('')
+  const [clubCountry, setClubCountry] = useState<string>('')
+  const [countryCode, setCountryCode] = useState<string>('BRA')
   const [stickerId, setStickerId] = useState<number | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [cleanUrl, setCleanUrl] = useState<string | null>(null)
@@ -86,7 +92,16 @@ export default function CriarFigurinhaClient(props: Props) {
       const res = await fetch('/api/generated-stickers/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoBase64, photoMimeType, personName: personName || undefined }),
+        body: JSON.stringify({
+          photoBase64, photoMimeType,
+          personName: personName || undefined,
+          birthDate: birthDate || undefined,
+          heightM: heightM || undefined,
+          weightKg: weightKg || undefined,
+          clubName: clubName || undefined,
+          clubCountry: clubCountry || undefined,
+          countryCode: countryCode || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -140,6 +155,12 @@ export default function CriarFigurinhaClient(props: Props) {
     setPhotoBase64(null)
     setPhotoMimeType('image/jpeg')
     setPhotoPreview(null)
+    setBirthDate('')
+    setHeightM('')
+    setWeightKg('')
+    setClubName('')
+    setClubCountry('')
+    setCountryCode('BRA')
     setStickerId(null)
     setPreviewUrl(null)
     setCleanUrl(null)
@@ -323,24 +344,103 @@ export default function CriarFigurinhaClient(props: Props) {
             Trocar foto
           </button>
 
-          <label className="block mb-3">
-            <span className="text-[11px] font-medium text-gray-600 block mb-1">Nome (opcional)</span>
+          <p className="text-[11px] font-bold text-gray-700 uppercase tracking-wider mt-3 mb-2">Dados da figurinha</p>
+
+          <label className="block mb-2">
+            <span className="text-[11px] font-medium text-gray-600 block mb-1">Nome completo *</span>
             <input
               type="text"
               value={personName}
               onChange={(e) => setPersonName(e.target.value)}
-              placeholder="Como aparecerá na figurinha"
+              placeholder="Ex: Vinícius Júnior"
               maxLength={40}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
             />
           </label>
 
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <label className="block">
+              <span className="text-[11px] font-medium text-gray-600 block mb-1">Nascimento</span>
+              <input
+                type="text"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                placeholder="12-7-2000"
+                maxLength={12}
+                className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-gray-600 block mb-1">Altura</span>
+              <input
+                type="text"
+                value={heightM}
+                onChange={(e) => setHeightM(e.target.value)}
+                placeholder="1,76"
+                maxLength={5}
+                className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-gray-600 block mb-1">Peso (kg)</span>
+              <input
+                type="text"
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                placeholder="73"
+                maxLength={4}
+                className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-[2fr_1fr] gap-2 mb-2">
+            <label className="block">
+              <span className="text-[11px] font-medium text-gray-600 block mb-1">Time / clube</span>
+              <input
+                type="text"
+                value={clubName}
+                onChange={(e) => setClubName(e.target.value)}
+                placeholder="Ex: Real Madrid CF"
+                maxLength={40}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium text-gray-600 block mb-1">País clube</span>
+              <input
+                type="text"
+                value={clubCountry}
+                onChange={(e) => setClubCountry(e.target.value.toUpperCase())}
+                placeholder="ESP"
+                maxLength={3}
+                className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm uppercase"
+              />
+            </label>
+          </div>
+
+          <label className="block mb-3">
+            <span className="text-[11px] font-medium text-gray-600 block mb-1">Seleção (3 letras, ex: BRA)</span>
+            <input
+              type="text"
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
+              placeholder="BRA"
+              maxLength={3}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase"
+            />
+          </label>
+
           <button
             onClick={onGenerate}
-            className="w-full bg-brand text-white font-bold py-3 rounded-xl active:scale-[0.98] transition"
+            disabled={!personName.trim()}
+            className="w-full bg-brand text-white font-bold py-3 rounded-xl active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             🎨 Gerar figurinha
           </button>
+          {!personName.trim() && (
+            <p className="text-[11px] text-gray-400 text-center mt-2">Preencha pelo menos o nome</p>
+          )}
         </>
       )}
 
