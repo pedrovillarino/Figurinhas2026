@@ -16,7 +16,7 @@
 import sharp from 'sharp'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
-const MODEL = 'gemini-2.5-flash-image-preview'
+const MODEL = 'gemini-2.5-flash-image'
 
 const STYLE_PROMPT_COPA_2026 = `Crie uma figurinha estilo Panini FIFA World Cup 2026 (idêntica às figurinhas oficiais do álbum Panini Copa 2026), usando a foto da pessoa que enviei.
 
