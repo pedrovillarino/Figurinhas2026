@@ -437,13 +437,17 @@ export async function POST(req: NextRequest) {
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸')
+      // Pedro 2026-05-04: 0 figurinhas → não cobra scan
+      await adminDb.rpc('decrement_scan_usage', { p_user_id: userId })
+      await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸 (não contou scan)')
       return NextResponse.json({ ok: true })
     }
 
     const parsed = JSON.parse(jsonMatch[0])
     if (!parsed.stickers || !Array.isArray(parsed.stickers) || parsed.stickers.length === 0) {
-      await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸')
+      // Pedro 2026-05-04: 0 figurinhas → não cobra scan
+      await adminDb.rpc('decrement_scan_usage', { p_user_id: userId })
+      await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸 (não contou scan)')
       return NextResponse.json({ ok: true })
     }
 
@@ -457,7 +461,9 @@ export async function POST(req: NextRequest) {
     })
 
     if (filledStickers.length === 0) {
-      await sendText(phone, 'Não encontrei figurinhas coladas nessa foto. Tenta outra! 📸')
+      // Pedro 2026-05-04: só vimos slots vazios → não cobra scan
+      await adminDb.rpc('decrement_scan_usage', { p_user_id: userId })
+      await sendText(phone, 'Não encontrei figurinhas coladas nessa foto. Tenta outra! 📸 (não contou scan)')
       return NextResponse.json({ ok: true })
     }
 

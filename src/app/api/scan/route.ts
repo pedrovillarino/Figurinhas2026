@@ -537,10 +537,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (parsed.error) {
+      // Pedro 2026-05-04: 0 figurinhas detectadas → não cobra scan
+      await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id })
       const msg = parsed.error === 'not_album_page'
         ? 'Essa foto não parece ser de figurinhas. Tente fotografar figurinhas do álbum.'
         : (parsed.message as string) || 'Não conseguimos identificar figurinhas.'
-      return NextResponse.json({ error: msg }, { status: 422 })
+      return NextResponse.json({ error: msg, refunded: true }, { status: 422 })
     }
 
     const stickersArr = parsed.stickers as Array<{
@@ -557,8 +559,10 @@ export async function POST(request: NextRequest) {
     }> | undefined
 
     if (!stickersArr || !Array.isArray(stickersArr) || stickersArr.length === 0) {
+      // Pedro 2026-05-04: 0 figurinhas detectadas → não cobra scan
+      await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id })
       return NextResponse.json(
-        { error: 'Não encontramos figurinhas nessa foto. Tente chegar mais perto.' },
+        { error: 'Não encontramos figurinhas nessa foto. Tente chegar mais perto.', refunded: true },
         { status: 422 }
       )
     }
@@ -581,8 +585,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (filledStickers.length === 0) {
+      // Pedro 2026-05-04: 0 figurinhas detectadas → não cobra scan
+      await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id })
       return NextResponse.json(
-        { error: 'Só vimos slots vazios nessa foto. Tente fotografar as figurinhas coladas.' },
+        { error: 'Só vimos slots vazios nessa foto. Tente fotografar as figurinhas coladas.', refunded: true },
         { status: 422 }
       )
     }
