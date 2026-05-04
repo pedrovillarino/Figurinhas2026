@@ -460,7 +460,16 @@ function stripLinkToken(text: string): string {
  */
 async function sendPostSignupFollowUp(phone: string, pendingMessage: string | null): Promise<void> {
   if (!pendingMessage) return
-  const lower = pendingMessage.toLowerCase()
+  const lower = pendingMessage.toLowerCase().trim()
+
+  // Pedro 2026-05-04: frases padrão de deep-link genérico ("Oi! Vim do meu
+  // perfil/álbum/app") são SAUDAÇÕES, não perguntas. Welcome do bot já
+  // cobre. NÃO ecoar.
+  const isGenericDeepLink =
+    /^oi[!,.\s]*\s*vim\s+do\s+(meu\s+)?(perfil|[áa]lbum|app|site|scan|ranking|trocas?)/i.test(lower) ||
+    /^oi[!,.\s]*\s*vim\s+do\s+(meu\s+)?app[,.]?\s+queria\s+conhecer/i.test(lower)
+  if (isGenericDeepLink) return
+
   let followUp: string
 
   if (/\b[áa]udio\b/.test(lower)) {
@@ -472,7 +481,7 @@ async function sendPostSignupFollowUp(phone: string, pendingMessage: string | nu
   } else if (/\btroca|trocar\b/.test(lower)) {
     followUp = `🔁 Você perguntou sobre *trocas* — abre as opções com *trocas* aqui, ou no site em ${APP_URL}/trades pra ver quem perto de você precisa do que você tem.`
   } else {
-    // Default: ecoa a mensagem original
+    // Default: ecoa a mensagem original (só pra perguntas reais)
     const truncated = pendingMessage.length > 100 ? pendingMessage.slice(0, 100) + '…' : pendingMessage
     followUp = `💬 Antes você me perguntou: _"${truncated}"_\n\nManda de novo se ainda quiser que eu responda — agora que tô conectado com sua conta posso ajudar melhor. 💚`
   }
