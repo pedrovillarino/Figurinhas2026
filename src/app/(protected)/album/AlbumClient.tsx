@@ -815,7 +815,7 @@ export default function AlbumClient({
 
       {/* ── WhatsApp Promo Banner ── */}
       <a
-        href="https://wa.me/5521966791113?text=oi"
+        href={buildWaDeepLink('5521966791113', 'Oi! Vim do meu álbum.', waToken)}
         target="_blank"
         rel="noopener noreferrer"
         className="block mt-6 rounded-2xl border border-emerald-100 bg-white p-4 active:scale-[0.99] transition-transform shadow-sm"

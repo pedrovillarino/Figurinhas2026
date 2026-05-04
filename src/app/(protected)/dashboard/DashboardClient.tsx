@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
+import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
 
@@ -146,6 +147,7 @@ export default function DashboardClient({
   stickers: Sticker[]
   userStickersMap: Record<number, UserStickerInfo>
 }) {
+  const waToken = useWaLinkToken()
   const [showAll, setShowAll] = useState(false)
 
   // Only completable stickers (counts_for_completion=true) move the X/980
@@ -798,7 +800,7 @@ export default function DashboardClient({
       )}
       {/* ─── WhatsApp Bot Discovery ─── */}
       <a
-        href="https://wa.me/5521966791113?text=oi"
+        href={buildWaDeepLink('5521966791113', 'Oi! Vim do app, queria conhecer o bot.', waToken)}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 mb-4 hover:bg-emerald-50 transition active:scale-[0.98]"

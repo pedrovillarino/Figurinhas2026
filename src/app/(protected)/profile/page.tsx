@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -38,6 +39,7 @@ type Stats = {
 export default function ProfilePage() {
   const supabase = createClient()
   const router = useRouter()
+  const waToken = useWaLinkToken()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [phone, setPhone] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -462,9 +464,7 @@ export default function ProfilePage() {
             automaticamente pelo email na 1ª mensagem. */}
         {!profile?.phone && profile?.email && (
           <a
-            href={`https://wa.me/5521966791113?text=${encodeURIComponent(
-              `oi sou ${profile.display_name || 'novo usuário'} (email: ${profile.email})`
-            )}`}
+            href={buildWaDeepLink('5521966791113', `oi sou ${profile.display_name || 'novo usuário'} (email: ${profile.email})`, waToken)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full bg-emerald-500 text-white rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-emerald-600 transition mb-3 active:scale-[0.98]"
@@ -940,7 +940,7 @@ export default function ProfilePage() {
       {/* WhatsApp Bot */}
       <div className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden">
         <a
-          href="https://wa.me/5521966791113?text=oi"
+          href={buildWaDeepLink('5521966791113', 'Oi! Vim do meu perfil.', waToken)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 px-4 py-3.5"

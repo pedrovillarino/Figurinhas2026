@@ -524,7 +524,7 @@ export default function ScanHub({
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Pelo WhatsApp</p>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <a
-            href="https://wa.me/5521966791113?text=oi"
+            href={buildWaDeepLink('5521966791113', 'Quero registrar minhas figurinhas por foto.', waToken)}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 active:scale-[0.98] transition-transform shadow-sm"
@@ -821,7 +821,7 @@ export default function ScanHub({
 
         {/* WhatsApp hint */}
         <a
-          href="https://wa.me/5521966791113?text=oi"
+          href={buildWaDeepLink('5521966791113', 'Quero registrar minhas figurinhas por foto.', waToken)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 mt-6 px-3 py-2 rounded-lg bg-emerald-50/60 border border-emerald-100"

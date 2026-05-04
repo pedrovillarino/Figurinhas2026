@@ -1682,6 +1682,43 @@ export async function POST(req: NextRequest) {
 
       const lower = text.trim().toLowerCase()
 
+      // ─── Deep-link CTAs do site (Pedro 2026-05-04) ───
+      // User logado clica num botão WhatsApp dentro do site → abre wa.me
+      // com frase contextual ("Quero registrar minhas figurinhas por foto",
+      // etc). Bot reconhece e dispara CTA da modalidade — sem precisar passar
+      // por intent classifier. Match no INÍCIO da mensagem pra não confundir
+      // com queries livres tipo "como faço pra registrar por foto?".
+      if (/^(quero|gostaria de|gostaria|quero come[çc]ar a|vou) registrar (minhas )?figurinhas? por foto/i.test(lower)) {
+        await sendText(
+          phone,
+          `📸 *Manda a foto agora!* Eu identifico todas as figurinhas com IA.\n\n` +
+            `_Dica: foto bem iluminada, até 10 figurinhas por vez = scan perfeito._`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+      if (/^(quero|gostaria de|gostaria|quero come[çc]ar a|vou) registrar (minhas )?figurinhas? por [áa]udio/i.test(lower)) {
+        await sendText(
+          phone,
+          `🎤 *Manda um áudio agora* falando os códigos das figurinhas.\n\n` +
+            `Exemplos:\n` +
+            `• _"Brasil 1, Argentina 3, Marrocos 5"_\n` +
+            `• _"BRA 14, FRA 10, ESP 4"_\n\n` +
+            `Eu transcrevo e registro tudo. 💚`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+      if (/^(quero|gostaria de|gostaria|quero come[çc]ar a|vou) registrar (minhas )?figurinhas? por texto/i.test(lower)) {
+        await sendText(
+          phone,
+          `✏️ *Manda os códigos por texto!*\n\n` +
+            `Exemplos:\n` +
+            `• _"BRA-1 ARG-3 FRA-10"_\n` +
+            `• _"Brasil 1, Argentina 3"_\n\n` +
+            `Eu registro de uma vez só. 💚`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
       // ─── Pending corrections (bug auditoria → SIM/NÃO) ───
       // Quando o admin (ou um script) detecta um cromo registrado errado e
       // enfileira uma `pending_correction`, o user recebe uma mensagem
