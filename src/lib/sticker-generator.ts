@@ -48,10 +48,13 @@ const TEMPLATE_H = 639
 const PORTRAIT_REGION = { x: 60, y: 8, w: 340, h: 500 }
 
 // Pills inferiores (cobrir + re-renderizar texto novo)
-// Pill grande: nome + linha de stats
-const PILL_NAME = { x: 15, y: 515, w: 315, h: 60, radius: 30 }
-// Pill clube
-const PILL_CLUB = { x: 110, y: 580, w: 215, h: 25, radius: 12 }
+// IMPORTANTE: dimensões precisam cobrir COMPLETAMENTE os pills do template
+// (que têm "JOÃO PEDRO / 26-9-2001..." e "CHELSEA FC (ENG)"). Calibradas
+// após observar que o pill nome+stats vai de ~y=515 a ~y=585, e o pill
+// clube de ~y=590 a ~y=618.
+const PILL_NAME = { x: 13, y: 510, w: 320, h: 75, radius: 36 }
+// Pill clube — não pode estender até o canto direito senão cobre logo Panini
+const PILL_CLUB = { x: 108, y: 587, w: 220, h: 32, radius: 16 }
 
 // Prompt focado APENAS no retrato — sem layout, sem fundo gráfico, sem texto.
 const PORTRAIT_PROMPT = `Gere SOMENTE um retrato fotorrealista profissional da pessoa na foto enviada, no estilo "jogador da seleção brasileira posando para foto oficial de figurinha Panini Copa do Mundo 2026".
@@ -72,15 +75,18 @@ const PORTRAIT_PROMPT = `Gere SOMENTE um retrato fotorrealista profissional da p
 - No peito esquerdo (lado direito da imagem olhando pra figurinha): escudo da CBF — escudo azul-marinho com 5 estrelinhas amarelas em arco no topo + sigla "CBF" amarela ao centro.
 - No peito direito (lado esquerdo da imagem): logo Nike swoosh BRANCO discreto.
 
-═══ FUNDO ═══
+═══ FUNDO (CRÍTICO — copy this color exactly) ═══
 
-⚠️ FUNDO COR SÓLIDA TURQUESA #6FC9C0 (cor água-marinha clara, idêntica ao fundo da figurinha Panini Copa 2026).
-- ❌ Nada de gradiente, paisagem, estádio, holograma, textura, ruído.
-- ❌ Nada de letras, números (especialmente NADA de "26" verde), logos, frames, bordas.
-- ❌ Nada de marca d'água, rótulo, escrita.
-- ❌ Nada de bandeira, escudo, símbolos extras atrás.
-- ✅ APENAS cor sólida #6FC9C0 100% uniforme atrás da pessoa.
-- ✅ A pessoa centralizada, recortada com bordas naturais (cabelos, ombros, pescoço — bordas suaves, sem artefatos).
+⚠️ FUNDO COR SÓLIDA EXATA: HEX #6FC9C0 (turquesa água-marinha clara).
+A SEGUNDA IMAGEM que estou enviando é a figurinha Panini Copa 2026 oficial — copie EXATAMENTE essa cor de fundo turquesa para o seu fundo. RGB(111, 201, 192). Não use cinza, não use azul, não use verde — APENAS esse turquesa específico.
+
+- ❌ Nada de cinza neutro (commits frequentes — NÃO COMETA)
+- ❌ Nada de gradiente, paisagem, estádio, holograma, textura, ruído
+- ❌ Nada de letras, números (especialmente NADA de "26" verde), logos, frames, bordas
+- ❌ Nada de marca d'água, rótulo, escrita
+- ❌ Nada de bandeira, escudo, símbolos extras atrás
+- ✅ APENAS cor sólida #6FC9C0 100% uniforme atrás da pessoa, idêntica à segunda imagem
+- ✅ Pessoa centralizada, bordas naturais (cabelos, ombros, pescoço — sem artefatos)
 
 ═══ INTEGRAÇÃO ROSTO/PESCOÇO/CAMISA ═══
 
@@ -165,16 +171,30 @@ export async function generateSticker(input: GenerateStickerInput): Promise<Gene
 async function generatePortrait(input: GenerateStickerInput): Promise<GenerateStickerResult> {
   const prompt = PORTRAIT_PROMPT
   try {
+    // Carrega o template como SEGUNDA imagem de referência —
+    // Gemini vê a cor exata do fundo turquesa que precisa replicar.
+    let templateBase64: string | null = null
+    try {
+      const tplBuffer = await fs.readFile(TEMPLATE_PATH)
+      templateBase64 = tplBuffer.toString('base64')
+    } catch (e) {
+      console.warn('[sticker-gen] template not found, prompt-only mode:', e)
+    }
+
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`
+    const requestParts: Array<Record<string, unknown>> = [
+      { text: prompt },
+      { inline_data: { mime_type: input.photoMimeType, data: input.photoBase64 } },
+    ]
+    if (templateBase64) {
+      requestParts.push({ inline_data: { mime_type: 'image/jpeg', data: templateBase64 } })
+    }
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: input.photoMimeType, data: input.photoBase64 } },
-          ],
+          parts: requestParts,
         }],
         generationConfig: {
           responseModalities: ['Text', 'Image'],
@@ -284,14 +304,19 @@ function buildOverlaySvg(input: ComposeInput): string {
   const club = formatClubLine(input)
 
   // Tamanhos calibrados pra resolução 480×639
-  const nameFontSize = 22
-  const statsFontSize = 12
-  const clubFontSize = 11
+  const nameFontSize = 24
+  const statsFontSize = 13
+  const clubFontSize = 12
 
-  // Posições dos textos dentro das pills
-  const nameY = PILL_NAME.y + 25 // baseline ~25px do topo da pill
-  const statsY = PILL_NAME.y + 48
-  const clubY = PILL_CLUB.y + 17
+  // Posições dos textos dentro das pills (centralizado vertical)
+  const nameY = PILL_NAME.y + 28 // linha 1 do pill
+  const statsY = PILL_NAME.y + 56 // linha 2 do pill
+  const clubY = PILL_CLUB.y + PILL_CLUB.h / 2
+
+  // Vercel Lambda só tem fontes Linux: DejaVu Sans, Liberation Sans, Noto Sans.
+  // Helvetica/Arial NÃO existem — caía em fallback que renderizava tofu (□□□).
+  // DejaVu Sans Bold é a escolha mais segura, suporta UTF-8 PT-BR completo.
+  const FONT_BOLD = "'DejaVu Sans', 'Liberation Sans', sans-serif"
 
   return `
 <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
@@ -303,21 +328,19 @@ function buildOverlaySvg(input: ComposeInput): string {
 
   <!-- Linha 1: NOME (branco bold) -->
   <text x="${PILL_NAME.x + PILL_NAME.w / 2}" y="${nameY}"
-        font-family="Helvetica, Arial, sans-serif"
-        font-size="${nameFontSize}" font-weight="900"
+        font-family="${FONT_BOLD}"
+        font-size="${nameFontSize}" font-weight="bold"
         fill="${COLORS.textWhite}"
         text-anchor="middle"
-        dominant-baseline="middle"
-        letter-spacing="0.5">${escapeXml(name)}</text>
+        dominant-baseline="middle">${escapeXml(name)}</text>
 
-  <!-- Linha 2: STATS (creme/dourado) -->
+  <!-- Linha 2: STATS (branco menor) -->
   ${stats ? `<text x="${PILL_NAME.x + PILL_NAME.w / 2}" y="${statsY}"
-        font-family="Helvetica, Arial, sans-serif"
-        font-size="${statsFontSize}" font-weight="600"
+        font-family="${FONT_BOLD}"
+        font-size="${statsFontSize}" font-weight="normal"
         fill="${COLORS.textWhite}"
         text-anchor="middle"
-        dominant-baseline="middle"
-        letter-spacing="0.3">${escapeXml(stats)}</text>` : ''}
+        dominant-baseline="middle">${escapeXml(stats)}</text>` : ''}
 
   <!-- ═══ Cobre pill clube antiga ═══ -->
   <rect x="${PILL_CLUB.x}" y="${PILL_CLUB.y}"
@@ -326,12 +349,11 @@ function buildOverlaySvg(input: ComposeInput): string {
         fill="${COLORS.bgPillLight}"/>
 
   ${club ? `<text x="${PILL_CLUB.x + PILL_CLUB.w / 2}" y="${clubY}"
-        font-family="Helvetica, Arial, sans-serif"
-        font-size="${clubFontSize}" font-weight="700"
+        font-family="${FONT_BOLD}"
+        font-size="${clubFontSize}" font-weight="bold"
         fill="${COLORS.textWhite}"
         text-anchor="middle"
-        dominant-baseline="middle"
-        letter-spacing="0.5">${escapeXml(club)}</text>` : ''}
+        dominant-baseline="middle">${escapeXml(club)}</text>` : ''}
 </svg>`.trim()
 }
 
@@ -377,8 +399,11 @@ export async function applyPreviewWatermark(pngBase64: string): Promise<Buffer> 
 
   const tileFontSize = Math.round(w * 0.07)
   const ctaFontSize = Math.round(w * 0.085)
-  const ctaHeight = Math.round(h * 0.14)
-  const ctaY = Math.round(h * 0.42) // central-superior pra cobrir rosto
+  const ctaHeight = Math.round(h * 0.12)
+  // Posiciona a barra central NO ROSTO (não cobre os pills inferiores).
+  // Rosto está em ~y=15-180px (proporcional 2.3-28%); barra em 22-34% cobre
+  // a região nariz+queixo perfeitamente sem invadir o nome.
+  const ctaY = Math.round(h * 0.22)
 
   // SVG: 3 camadas — overlay escuro semi-transparente + texto diagonal denso + barra central
   const svg = `
