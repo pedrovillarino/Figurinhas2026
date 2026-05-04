@@ -84,6 +84,32 @@ async function addAudioCredits(userId: string, credits: number) {
   return true
 }
 
+// Pedro 2026-05-04: marca figurinha gerada como paga + libera o user
+// (depois disso o /api/generated-stickers/[id]/clean retorna signed URL).
+async function markGeneratedStickerPaid(
+  stickerId: number,
+  amountPaidCents: number,
+  withPrintPdf: boolean,
+) {
+  const supabase = getAdminClient()
+  const { error } = await supabase
+    .from('generated_stickers')
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      paid_amount_brl: amountPaidCents,
+      paid_with_print_pdf: withPrintPdf,
+      paid_with_quota: false,
+    })
+    .eq('id', stickerId)
+  if (error) {
+    console.error('[generated-sticker] mark paid error:', error)
+    return false
+  }
+  console.log(`[generated-sticker] sticker ${stickerId} marked paid (R$${amountPaidCents/100}) print_pdf=${withPrintPdf}`)
+  return true
+}
+
 async function grantReferralUpgradeReward(userId: string, amountPaid: number, tier?: string) {
   // ── Embaixadores campaign (2026-04-29) ──
   // When a paid tier is purchased:
@@ -299,6 +325,18 @@ export async function POST(req: NextRequest) {
         const credits = parseInt(session.metadata?.credits || '10', 10) // safe fallback: smallest pack
         const ok = await addAudioCredits(userId, credits)
         if (!ok) return NextResponse.json({ error: 'Audio credits update failed' }, { status: 500 })
+      } else if (userId && type === 'generated_sticker') {
+        // Pedro 2026-05-04: figurinha digital personalizada
+        const stickerId = parseInt(session.metadata?.sticker_id || '0', 10)
+        const withPrintPdf = session.metadata?.with_print_pdf === '1'
+        if (stickerId > 0) {
+          const ok = await markGeneratedStickerPaid(
+            stickerId,
+            session.amount_total || 0,
+            withPrintPdf,
+          )
+          if (!ok) return NextResponse.json({ error: 'Generated sticker update failed' }, { status: 500 })
+        }
       } else if (userId) {
         // Tier upgrade
         const tier = session.metadata?.tier || 'estreante'
@@ -335,6 +373,12 @@ export async function POST(req: NextRequest) {
     } else if (userId && type === 'audio_pack') {
       const credits = parseInt(session.metadata?.credits || '10', 10)
       await addAudioCredits(userId, credits)
+    } else if (userId && type === 'generated_sticker') {
+      const stickerId = parseInt(session.metadata?.sticker_id || '0', 10)
+      const withPrintPdf = session.metadata?.with_print_pdf === '1'
+      if (stickerId > 0) {
+        await markGeneratedStickerPaid(stickerId, session.amount_total || 0, withPrintPdf)
+      }
     } else if (userId) {
       const tier = session.metadata?.tier || 'estreante'
       await upgradeTier(userId, tier, session.customer as string)
