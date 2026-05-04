@@ -270,16 +270,59 @@ type ComposeInput = {
  *      - Textos novos: nome, stats, clube
  *   5. Output PNG final
  */
+/**
+ * Chroma key manual — varre pixels RGBA do buffer e seta alpha=0 nos que
+ * estão "próximos" da cor turquesa do template (#6FC9C0). Pedro 2026-05-04:
+ * sem isso, o retrato gerado pelo Gemini tem fundo opaco que cobre o "26"
+ * verde do template no centro da figurinha.
+ *
+ * @param tolerance distância máxima (em RGB euclidiano) pra considerar pixel
+ *   "turquesa". Valores típicos: 25 (estrito) a 50 (folga).
+ *   40 = compromisso bom: pega variações de tom do Gemini sem morder cabelo
+ *   ou camisa amarela.
+ */
+async function chromaKeyTurquoise(pngBuf: Buffer, tolerance: number): Promise<Buffer> {
+  const target = { r: 0x6F, g: 0xC9, b: 0xC0 }
+  const tolSq = tolerance * tolerance
+
+  const { data, info } = await sharp(pngBuf)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  // RGBA flat — 4 bytes por pixel
+  for (let i = 0; i < data.length; i += 4) {
+    const dr = data[i] - target.r
+    const dg = data[i + 1] - target.g
+    const db = data[i + 2] - target.b
+    const distSq = dr * dr + dg * dg + db * db
+    if (distSq <= tolSq) {
+      data[i + 3] = 0 // transparente
+    }
+  }
+
+  return await sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer()
+}
+
 export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> {
   // 1. Carrega o template real
   const templateBuffer = await fs.readFile(TEMPLATE_PATH)
 
   // 2. Prepara o retrato pra encaixar no slot do jogador
+  // v5 (Pedro 2026-05-04): "26" do template não aparecia atrás do jogador
+  // porque o retrato tinha fundo turquesa sólido que cobria o "26" inteiro.
+  // Aplica chroma key — pixels próximos ao turquesa #6FC9C0 viram alpha=0,
+  // então o "26" do template aparece atrás da silhueta do jogador.
   const portraitRaw = Buffer.from(input.portraitPngBase64, 'base64')
-  const portraitResized = await sharp(portraitRaw)
+  const portraitResizedOpaque = await sharp(portraitRaw)
     .resize(PORTRAIT_REGION.w, PORTRAIT_REGION.h, { fit: 'cover', position: 'top' })
     .png()
     .toBuffer()
+  const portraitResized = await chromaKeyTurquoise(portraitResizedOpaque, 40)
 
   // 3. Overlay SVG com SÓ os retângulos das pills (cobrir texto antigo)
   const pillsSvg = buildPillsSvg()
@@ -412,16 +455,18 @@ function buildPillsSvg(): string {
 }
 
 function formatStatsLine(input: ComposeInput): string {
-  const parts: string[] = []
-  if (input.birthDate) parts.push(input.birthDate)
-  if (input.heightM)   parts.push(`${input.heightM}m`)
-  if (input.weightKg)  parts.push(`${input.weightKg} kg`)
-  return parts.join(' | ')
+  // Pedro 2026-05-04: figurinha sem stats fica "esquisita" (pill vazio).
+  // Aplica defaults amigáveis quando user não preenche, mantendo aparência
+  // de figurinha legítima.
+  const birthDate = input.birthDate?.trim() || '01-01-2000'
+  const heightM   = input.heightM?.trim() || '1,80'
+  const weightKg  = input.weightKg?.trim() || '75'
+  return `${birthDate} | ${heightM}m | ${weightKg} kg`
 }
 
 function formatClubLine(input: ComposeInput): string {
-  if (!input.clubName) return ''
-  const club = input.clubName.toUpperCase()
+  // Pedro 2026-05-04: default amigável pra clube (consistente com fan art)
+  const club = (input.clubName?.trim() || 'ATLETA AMADOR').toUpperCase()
   return input.clubCountry
     ? `${club} (${input.clubCountry.toUpperCase().slice(0, 3)})`
     : club
@@ -451,47 +496,42 @@ export async function applyPreviewWatermark(pngBase64: string): Promise<Buffer> 
   const w = meta.width || TEMPLATE_W
   const h = meta.height || TEMPLATE_H
 
-  const tileFontSize = Math.round(w * 0.07)
-  const ctaFontSize = Math.round(w * 0.085)
-  const ctaHeight = Math.round(h * 0.12)
-  // Posiciona a barra central NO ROSTO (não cobre os pills inferiores).
-  // Rosto está em ~y=15-180px (proporcional 2.3-28%); barra em 22-34% cobre
-  // a região nariz+queixo perfeitamente sem invadir o nome.
-  const ctaY = Math.round(h * 0.22)
+  const tileFontSize = Math.round(w * 0.06)
+  const ctaFontSize = Math.round(w * 0.075)
+  const ctaHeight = Math.round(h * 0.10)
+  // v5 (Pedro 2026-05-04): "agressivo demais" — afastei texto do diagonal,
+  // baixei opacidade do tile e do overlay. Mantém "preview inutilizável"
+  // mas a figurinha continua reconhecível pra o user querer pagar.
+  const ctaY = Math.round(h * 0.30) // central rosto, mas mais baixo
 
-  // SVG: 3 camadas — overlay escuro semi-transparente + texto diagonal denso + barra central
+  // SVG: 3 camadas mais sutis
   const svg = `
     <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <pattern id="wm" patternUnits="userSpaceOnUse" width="${w * 0.45}" height="${h * 0.18}" patternTransform="rotate(-28)">
+        <!-- v5: tile maior (texto mais espaçado) + opacidade menor -->
+        <pattern id="wm" patternUnits="userSpaceOnUse" width="${Math.round(w * 0.7)}" height="${Math.round(h * 0.25)}" patternTransform="rotate(-25)">
           <text x="0" y="${tileFontSize}" font-family="Arial Black, Helvetica, sans-serif" font-size="${tileFontSize}"
-                font-weight="900" fill="rgba(255,255,255,0.65)"
-                stroke="rgba(0,0,0,0.7)" stroke-width="3">
+                font-weight="900" fill="rgba(255,255,255,0.40)"
+                stroke="rgba(0,0,0,0.35)" stroke-width="1.5">
             COMPLETE AÍ
           </text>
-          <text x="0" y="${tileFontSize * 2.2}" font-family="Arial Black, Helvetica, sans-serif" font-size="${Math.round(tileFontSize * 0.7)}"
-                font-weight="900" fill="rgba(255,80,80,0.85)"
-                stroke="rgba(0,0,0,0.7)" stroke-width="2">
-            PREVIEW · PAGUE PARA LIBERAR
+          <text x="0" y="${tileFontSize * 2.4}" font-family="Arial Black, Helvetica, sans-serif" font-size="${Math.round(tileFontSize * 0.65)}"
+                font-weight="900" fill="rgba(255,80,80,0.50)"
+                stroke="rgba(0,0,0,0.35)" stroke-width="1">
+            PREVIEW
           </text>
         </pattern>
       </defs>
-      <!-- 1. Overlay escuro pra reduzir uso "como está" -->
-      <rect width="100%" height="100%" fill="rgba(0,0,0,0.30)"/>
-      <!-- 2. Padrão diagonal cobrindo tudo -->
+      <!-- 1. Overlay escuro suave (reduzido de 30% pra 15%) -->
+      <rect width="100%" height="100%" fill="rgba(0,0,0,0.15)"/>
+      <!-- 2. Padrão diagonal mais espaçado e translúcido -->
       <rect width="100%" height="100%" fill="url(#wm)"/>
-      <!-- 3. Barra central horizontal de alto impacto -->
-      <rect x="0" y="${ctaY}" width="${w}" height="${ctaHeight}" fill="rgba(220,30,30,0.85)"/>
-      <text x="${w / 2}" y="${ctaY + ctaHeight * 0.60}" font-family="Arial Black, sans-serif"
+      <!-- 3. Barra central — único elemento de alto contraste -->
+      <rect x="0" y="${ctaY}" width="${w}" height="${ctaHeight}" fill="rgba(220,30,30,0.80)"/>
+      <text x="${w / 2}" y="${ctaY + ctaHeight * 0.62}" font-family="Arial Black, sans-serif"
             font-size="${ctaFontSize}" font-weight="900" fill="white"
-            text-anchor="middle"
-            stroke="rgba(0,0,0,0.6)" stroke-width="2">
-        PREVIEW · NÃO USE
-      </text>
-      <text x="${w / 2}" y="${ctaY + ctaHeight * 0.92}" font-family="Arial, sans-serif"
-            font-size="${Math.round(ctaFontSize * 0.45)}" font-weight="700" fill="white"
             text-anchor="middle">
-        Pague para liberar a versão limpa
+        PREVIEW · PAGUE PARA LIBERAR
       </text>
     </svg>
   `

@@ -393,10 +393,11 @@ export default function CriarFigurinhaClient(props: Props) {
               />
             </label>
           </div>
+          <p className="text-[10px] text-gray-400 mb-3 -mt-1">Stats opcionais — se vazio, usamos defaults</p>
 
           <div className="grid grid-cols-[2fr_1fr] gap-2 mb-2">
             <label className="block">
-              <span className="text-[11px] font-medium text-gray-600 block mb-1">Time / clube</span>
+              <span className="text-[11px] font-medium text-gray-600 block mb-1">Time / clube *</span>
               <input
                 type="text"
                 value={clubName}
@@ -428,13 +429,13 @@ export default function CriarFigurinhaClient(props: Props) {
 
           <button
             onClick={onGenerate}
-            disabled={!personName.trim()}
+            disabled={!personName.trim() || !clubName.trim()}
             className="w-full bg-brand text-white font-bold py-3 rounded-xl active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             🎨 Gerar figurinha
           </button>
-          {!personName.trim() && (
-            <p className="text-[11px] text-gray-400 text-center mt-2">Preencha pelo menos o nome</p>
+          {(!personName.trim() || !clubName.trim()) && (
+            <p className="text-[11px] text-gray-400 text-center mt-2">Preencha nome e clube pra continuar</p>
           )}
         </>
       )}
