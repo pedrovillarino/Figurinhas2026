@@ -102,6 +102,7 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos:
 
 Descrições visuais detalhadas (escudos confundíveis):
 - RSA-1 (SAFA África do Sul): retângulo BRANCO com BOLA preto-e-branca à ESQUERDA + MAPA DOURADO/MARROM (continente africano OU contorno África do Sul) à DIREITA. Texto "FIFA WORLD CUP 2026" no topo. Logo "PANINI" amarelo embaixo. Fundo HOLOGRÁFICO/FOIL prismático (vermelho/verde/azul/roxo). ⚠️ NÃO CONFUNDIR com FWC-0 "We are Panini" — FWC-0 tem foto de jogador chutando de bicicleta. RSA-1 tem só bola+mapa abstratos. Se ver bola+mapa = RSA-1.
+- BRA-1 (CBF Brasil): ÓVALO/CÍRCULO BRANCO com escudo CBF AZUL-MARINHO + cruz amarela em X + "CBF" branco. CINCO ESTRELAS AMARELAS em arco no topo. "BRASIL" em VERDE embaixo. Faixas diagonais verde+amarelo+azul. Texto "FIFA WORLD CUP 2026" branco no topo. Fundo PRATA FOIL HOLOGRÁFICO com "Panini" repetido.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19):
 - FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de JOGADOR REAL chutando de bicicleta, logo "PANINI" amarelo embaixo. ⚠️ Se a figurinha NÃO TEM jogador chutando, NÃO É FWC-0. Provavelmente é um escudo de país (RSA-1, etc).
@@ -114,7 +115,7 @@ Seção FIFA WORLD CUP (FWC-0 a FWC-19):
 - FWC-7: "Taça México" — TAÇA DOURADA em fundo VERDE + texto "FIFA WORLD CUP 2026 CAN MEX USA"
 - FWC-8: "Taça USA" — TAÇA DOURADA em fundo AZUL + texto "FIFA WORLD CUP 2026 CAN MEX USA"
 - ⚠️ NÃO CONFUNDIR FWC-6/7/8 (taça com fundo colorido sólido + "CAN MEX USA") com FWC-1/2/4 (também tem taça mas sem texto CAN MEX USA).
-- FWC-9 a FWC-19: SÉRIE HISTÓRICA. Foto preto-e-branco/sépia ANTIGA + ano impresso embaixo. player_name = "{Campeão} {Ano}" formato "Uruguay 1950", "Brazil 1970", "Argentina 2022", "Italy 2006" etc — NÃO é nome de jogador.
+- FWC-9 a FWC-19: SÉRIE HISTÓRICA "FIFA MUSEUM". FOTO COLORIDA (não P&B/sépia) do time campeão posando em fileira. Embaixo faixa MARROM/VINHO ESCURO com logo "FIFA MUSEUM" à esquerda + NOME DO PAÍS em letras brancas grandes + ANO no canto direito. Bordas PRATA FOIL HOLOGRÁFICO com "Panini" repetido. Exemplos: "ARGENTINA 1986", "BRAZIL 1994", "URUGUAY 1950", "ITALY 2006", "GERMANY 2014", "ARGENTINA 2022". player_name = "{Campeão} {Ano}". NÃO é nome de jogador.
 
 REGRAS GERAIS:
 - CRÍTICO: Leia o nome EXATO. "MARQUINHOS" ≠ "NEYMAR JR" ≠ "CASEMIRO".
