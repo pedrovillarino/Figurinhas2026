@@ -41,7 +41,7 @@ return "unknown" if you genuinely cannot guess.
 
 Return ONLY valid JSON:
 {
-  "intent": "status|missing|duplicates|trades|ranking|register|help|unknown",
+  "intent": "status|missing|duplicates|owned|inventory_ambiguous|trades|ranking|register|help|unknown",
   "confidence": 0.95,
   "response_hint": "brief note about what the user wants"
 }
@@ -53,9 +53,21 @@ Intent definitions:
 - missing: user wants list of stickers they still need. Examples:
   "faltando", "faltam", "que falta", "o que falta", "oque ta faltando", "preciso",
   "necessito", "minhas faltantes", "tô precisando", "cade o que falta"
-- duplicates: user wants list of sticker duplicates. Examples:
+- duplicates: user wants list of sticker duplicates SPECIFICALLY (the ones they
+  have extras of, for trading). Examples:
   "repetidas", "minhas repe", "minhas dupes", "duplicatas", "que sobrou",
-  "pra trocar", "o que tenho a mais", "as repetidinhas", "tenho repetida"
+  "pra trocar", "o que tenho a mais", "as repetidinhas", "tenho repetida",
+  "minhas a mais"
+- owned: user wants list of stickers they ALREADY HAVE PASTED in the album
+  (only stickers they own at least 1 copy of, including duplicates). Examples:
+  "coladas", "minhas coladas", "lista das coladas", "que ja colei",
+  "o que ta no album", "que ja peguei e colei", "ja peguei essa", "as do album"
+- inventory_ambiguous: user asks vaguely about what they have but does NOT
+  specify whether they want duplicates or pasted/owned. We must ask back which
+  one. Examples (BE GENEROUS HERE — when ambiguous, prefer this over guessing):
+  "quais tenho", "quais eu tenho", "o que eu tenho", "o que tenho",
+  "tenho o que", "minhas figurinhas", "lista das minhas", "minhas",
+  "as que tenho", "tenho quais"
 - trades: user wants to see pending trade requests/notifications. Examples:
   "trocas", "trocas pendentes", "pendentes", "alguem quer trocar",
   "tem solicitação", "minhas trocas", "novas trocas", "recebi pedido"
@@ -853,6 +865,31 @@ async function getDuplicateStickers(userId: string) {
   })
 }
 
+// ─── Get owned stickers (status owned OR duplicate, "as coladas") ───
+// Pedro 2026-05-04: usuária perguntou "quais tenho" e bot interpretou como
+// duplicates. Distinguir: owned = todas que tem >=1 cópia (coladas no álbum),
+// duplicates = só as que tem 2+ (sobra pra trocar).
+async function getOwnedStickers(userId: string) {
+  const supabase = getAdmin()
+  const { data } = await supabase
+    .from('user_stickers')
+    .select('quantity, sticker_id, status, stickers(number, player_name, country, display_order)')
+    .eq('user_id', userId)
+    .in('status', ['owned', 'duplicate'])
+    .order('display_order', { foreignTable: 'stickers' })
+
+  return (data || []).map((d: Record<string, unknown>) => {
+    const sticker = d.stickers as Record<string, string | number> | null
+    return {
+      number: (sticker?.number as string) || '?',
+      player_name: (sticker?.player_name as string) || '',
+      country: (sticker?.country as string) || '',
+      quantity: (d.quantity as number) || 1,
+      isDuplicate: d.status === 'duplicate',
+    }
+  })
+}
+
 // ─── Detect intent via Gemini ───
 async function detectIntent(text: string): Promise<{ intent: string; confidence: number }> {
   try {
@@ -1126,6 +1163,7 @@ const BUTTON_ID_TO_TEXT: Record<string, string> = {
   cmd_status: 'status',
   cmd_missing: 'faltando',
   cmd_duplicates: 'repetidas',
+  cmd_owned: 'coladas',
   cmd_trades: 'trocas',
   cmd_ranking: 'ranking',
   cmd_help: 'ajuda',
@@ -1931,6 +1969,21 @@ export async function POST(req: NextRequest) {
         intent = 'missing'
       } else if (/(repet|duplic|sobr|troc?ar|pra troc|minhas repetidas|minhas figurinhas repetidas)/.test(lower) && codeMatches.length === 0) {
         intent = 'duplicates'
+      } else if (/(\bcolad[ao]s?\b|j[áa]\s+colei|j[áa]\s+peguei\s+e\s+colei|do\s+[áa]lbum|no\s+[áa]lbum|que\s+est(ão|a)\s+no\s+[áa]lbum)/.test(lower) && codeMatches.length === 0) {
+        // Pedro 2026-05-04: "coladas" = lista das que já tem ≥1 cópia (owned ou duplicate)
+        intent = 'owned'
+      } else if (
+        // Pedro 2026-05-04 (caso 19 98338-1116): "quais tenho" foi interpretado
+        // como duplicates. Era ambíguo. Quando user pergunta de forma vaga
+        // sobre "o que tem" / "minhas figurinhas" SEM dizer repetidas/coladas,
+        // a gente pergunta de volta com 2 botões.
+        codeMatches.length === 0 &&
+        (/^\s*(quais|que|o\s+que|oque|que\s+que)\s+(eu\s+)?(tenho|tem)\s*\??$/.test(lower) ||
+         /^\s*(tenho|tem)\s+(o\s+)?(que|qua[il]s)\s*\??$/.test(lower) ||
+         /^\s*minhas?\s*(figurinhas?)?\s*\??$/.test(lower) ||
+         /^\s*(lista\s+das\s+minhas|as\s+que\s+tenho)\s*\??$/.test(lower))
+      ) {
+        intent = 'inventory_ambiguous'
       } else if (/(troca|pendente|solicita|aceitar|minhas trocas|ver trocas)/.test(lower)) {
         intent = 'trades'
       } else if (/\b(ranking|posição|posicao|colocação|colocacao|placar)\b/.test(lower)) {
@@ -2148,6 +2201,59 @@ export async function POST(req: NextRequest) {
               ],
             )
           }
+          break
+        }
+
+        case 'owned': {
+          // Pedro 2026-05-04: lista das figurinhas que o user já colou no
+          // álbum (status owned ou duplicate, ≥1 cópia). Mostra também x2/x3
+          // se for repetida.
+          const ownedList = await getOwnedStickers(user.id)
+          if (ownedList.length === 0) {
+            await sendButtonList(
+              phone,
+              'Você ainda não tem nenhuma figurinha registrada. 📸 Mande uma *foto* do que coletou pra eu detectar e adicionar.',
+              MAIN_MENU_BUTTONS,
+            )
+          } else {
+            const list = ownedList
+              .map(
+                (s) =>
+                  `${s.number}${s.player_name ? ' ' + s.player_name : ''}${s.quantity > 1 ? ` (x${s.quantity})` : ''}`
+              )
+              .join('\n')
+            const moreHint = ownedList.length > 80
+              ? `\n\n_Lista completa com ${ownedList.length} figurinhas. Manda \"faltam\" pra ver o que ainda falta._`
+              : ''
+            await sendButtonList(
+              phone,
+              `✅ *Minhas coladas* (${ownedList.length} figurinhas):\n\n${list}${moreHint}\n\n` +
+                `📲 _Complete Aí_ (www.completeai.com.br)`,
+              [
+                { id: 'cmd_missing', label: '🔍 O que falta' },
+                { id: 'cmd_duplicates', label: '🔁 Repetidas' },
+                { id: 'cmd_status', label: '📊 Progresso' },
+              ],
+            )
+          }
+          break
+        }
+
+        case 'inventory_ambiguous': {
+          // Pedro 2026-05-04: usuária mandou "quais tenho" — ambíguo. Bot
+          // antes chutava duplicates. Agora pergunta de volta com 2 botões.
+          await sendButtonList(
+            phone,
+            `Posso te mostrar duas listas — qual você quer?\n\n` +
+              `🔁 *Repetidas* — as que você tem a mais (pra trocar)\n` +
+              `✅ *Coladas* — todas que você já tem no álbum\n` +
+              `🔍 *O que falta* — as que ainda precisa pegar`,
+            [
+              { id: 'cmd_duplicates', label: '🔁 Repetidas' },
+              { id: 'cmd_owned', label: '✅ Coladas' },
+              { id: 'cmd_missing', label: '🔍 O que falta' },
+            ],
+          )
           break
         }
 
