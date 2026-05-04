@@ -103,6 +103,7 @@ Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
     - BEL-1 (Royal Belgian FA): BLACK+GOLD CROWN on top + BLACK/YELLOW/RED shield (Belgium colors) with "B" letter and "ROYAL BELGIAN FA · 1895" text + LAUREL BRANCHES below
     - NED-1 (KNVB Netherlands): RED RAMPANT LION on white shield, "KNVB" text at top of shield
     - CAN-1 (Canada Soccer): big RED MAPLE LEAF on top + red stylized BALL below + "CANADA®" black text in center, white circular background
+    - RSA-1 (SAFA South Africa): WHITE rectangle/shield containing TWO main elements side-by-side — BLACK-AND-WHITE soccer BALL on the LEFT and a GOLDEN/BROWN map-shape (Africa continent silhouette OR South Africa country outline) on the RIGHT. Text "FIFA WORLD CUP 2026" at top in BLACK letters. Yellow "PANINI" logo at the bottom-center. Background HOLOGRAPHIC/FOIL with PRISMATIC shimmery colors (red/green/blue/purple) — easy to mistake for FWC-0 "We are Panini" because of the foil background, BUT FWC-0 has a real-photo player doing a bicycle kick (NO ball+map together). RSA-1 has the abstract ball+continent graphic. If you see ball+map graphic → RSA-1. If you see player photo → FWC-0.
 - {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":

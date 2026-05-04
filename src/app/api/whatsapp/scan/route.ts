@@ -51,6 +51,7 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
     - BEL-1 (Royal Belgian FA): COROA preta+amarela no topo + escudo PRETO/AMARELO/VERMELHO (cores Bélgica) com letra "B" e texto "ROYAL BELGIAN FA · 1895" + RAMOS DE LOUROS embaixo
     - NED-1 (KNVB Holanda): LEÃO VERMELHO RAMPANTE no escudo branco, texto "KNVB" no topo do escudo
     - CAN-1 (Canada Soccer): FOLHA DE BORDO VERMELHA grande no topo + bola estilizada vermelha embaixo + texto "CANADA®" preto no centro, fundo branco circular
+    - RSA-1 (SAFA África do Sul): retângulo BRANCO com DOIS elementos lado-a-lado — BOLA preto-e-branca de futebol à ESQUERDA e silhueta de MAPA DOURADO/MARROM (continente africano OU contorno da África do Sul) à DIREITA. Texto "FIFA WORLD CUP 2026" no topo em letras PRETAS. Logo "PANINI" amarelo embaixo. Fundo HOLOGRÁFICO/FOIL com cores PRISMÁTICAS brilhantes (vermelho/verde/azul/roxo). ⚠️ FÁCIL CONFUNDIR com FWC-0 "We are Panini" pelo fundo foil — MAS FWC-0 tem foto REAL de jogador chutando de bicicleta (sem bola+mapa). RSA-1 tem o gráfico abstrato bola+continente. Se ver bola+mapa juntos = RSA-1. Se ver foto de jogador chutando = FWC-0.
 - {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":
