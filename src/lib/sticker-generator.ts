@@ -18,50 +18,72 @@ import sharp from 'sharp'
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
 const MODEL = 'gemini-2.5-flash-image'
 
-const STYLE_PROMPT_COPA_2026 = `Crie uma figurinha IDÊNTICA ao layout do álbum Panini FIFA World Cup 2026 (Brasil), usando a foto da pessoa que enviei. Use a figurinha oficial do "Vinícius Júnior" como referência exata de layout.
+const STYLE_PROMPT_COPA_2026 = `Reproduza FIELMENTE uma figurinha do álbum Panini FIFA World Cup 2026 — exatamente como a figurinha oficial "BRA-14 Vinícius Júnior" da seleção brasileira. É REPRODUÇÃO, não reinterpretação. Toda figurinha deve ser IDÊNTICA em layout, cores e posicionamento — apenas o ROSTO e os DADOS do nome/clube/data mudam.
 
-LAYOUT EXATO (copie fielmente, posições e cores):
+═══ COMPOSIÇÃO EXATA DA FIGURINHA BRA (BRASIL) ═══
 
-1. PROPORÇÃO: retrato vertical 5:7 (5,7×7,6cm — figurinha Panini standard).
+PROPORÇÃO: retrato vertical 5:7 (formato figurinha Panini standard).
 
-2. FUNDO: cor sólida turquesa/verde-água (#4ECDC4 / #5DD3CB), com um GRANDE número "26" estilizado atrás do jogador, em verde-escuro (#1A5F4E) ocupando largura inteira. O "2" ocupa metade esquerda, o "6" metade direita, ambos translúcidos atrás da pessoa.
+FUNDO (4 camadas, do mais distante pro mais próximo):
+1. Fundo base: turquesa médio/azul-piscina sólido (HEX #6FC9C0 a #5DBDB3, igual ao da figurinha do Vinícius — tom água-marinha clara, NÃO verde-bandeira nem verde-CBF).
+2. Atrás do jogador, ocupando largura inteira: o número "26" GIGANTE estilizado, fonte Panini WC 2026 (sans-serif bold, traços largos). O "2" ocupa metade esquerda em VERDE-ESCURO (HEX #1B5E4F, tom CBF escuro). O "6" ocupa metade direita em AMARELO-OURO (HEX #FFD23F, tom CBF amarelo). Os dois números ficam ATRÁS do jogador, semi-cortados pela silhueta dele.
+3. Brilho "foil" sutil no fundo (efeito holográfico discreto, como nas figurinhas reais Panini).
 
-3. PESSOA: foto da cintura pra cima, centralizada, sem fundo (recortada), vestindo uma camiseta esportiva (cor a definir conforme dados; default amarela do Brasil com gola verde). Pose: olhando pra frente, neutra/séria.
+JOGADOR (centralizado, da cintura pra cima):
+- Foto recortada SEM fundo (apenas a pessoa).
+- Vestindo CAMISA AMARELA do Brasil (HEX #FFD400) com:
+  • Gola e detalhe nos ombros em VERDE Brasil (HEX #009C3B)
+  • Escudo da CBF no peito esquerdo (escudo azul com CBF amarelo + 5 estrelas)
+  • No peito central, palavra "BRASIL" em verde escuro pequena
+  • Logo da fabricante (Nike) discreto no peito direito
+- Pose neutra/séria, olhar adiante, ombros relaxados.
+- Pessoa ocupa do alto (logo embaixo do "26") até o início da faixa de nome embaixo.
 
-4. CAMISA: gola verde, mangas curtas, com escudo do clube no peito esquerdo (use o do time fornecido). No peito central pode ter o nome do país escrito pequeno tipo "BRASIL".
+CANTO SUPERIOR DIREITO:
+- Logo FIFA branco oficial — troféu estilizado pequeno + texto "FIFA" embaixo, branco sobre a cor de fundo.
 
-5. CANTO SUPERIOR DIREITO:
-   - Logo "FIFA" branco com troféu pequeno, num quadrado branco
-   - Logo "FIFA" branco também com troféu estilizado nos topo
+LATERAL DIREITA (descendente, alinhada à direita):
+- Bandeira do BRASIL em formato CIRCULAR pequena (verde/amarelo/azul com losango).
+- Logo abaixo da bandeira: texto VERTICAL em 3 letras maiúsculas BRANCAS, fonte bold ENORME, dizendo "BRA" — orientado de cima pra baixo (rotacionado 90°), descendo até quase o canto inferior direito.
 
-6. LATERAL DIREITA (vertical, descendente):
-   - Pequena bandeira do país (default Brasil verde/amarela), formato circular
-   - Texto VERTICAL grande do código do país em 3 letras BRANCAS (ex: "BRA"), virado 90° pra direita
+FAIXA INFERIOR (3 partes empilhadas, ocupando ~22% da altura):
+1. Faixa principal turquesa-escuro (HEX #2A8B82, mais escuro que o fundo):
+   • Linha 1 (fonte grande, BRANCA, bold maiúsculas, sans-serif): NOME COMPLETO da pessoa
+   • Linha 2 (fonte pequena, BEGE/DOURADA HEX #E8D78F): "DD-MM-AAAA | X,XX m | XX kg" (data, altura, peso)
+2. Faixa inferior fina turquesa-escuro:
+   • Texto pequeno BRANCO/CLARO: "TIME (PAÍS)" — ex: "REAL MADRID CF (ESP)"
+3. CANTO INFERIOR DIREITO da faixa inferior: pequeno retângulo VERMELHO com logo "Panini" em AMARELO + escudo decorativo amarelo ao lado.
 
-7. FAIXA HORIZONTAL EMBAIXO (estilo "barra" turquesa escuro):
-   Linha 1: NOME em maiúsculas brancas, fonte sans-serif bold
-   Linha 2: pequena, fonte bege/dourada: "DD-MM-AAAA | X,XX m | XX kg"
+═══ INSTRUÇÃO CRÍTICA — INTEGRAÇÃO ROSTO/PESCOÇO/CAMISA ═══
 
-8. FAIXA INFERIOR (linha embaixo da faixa de nome):
-   Texto em verde-água claro: "TIME (PAÍS)" — ex: "REAL MADRID CF (ESP)"
+A pessoa que enviei na foto tem o ROSTO que eu quero usar. Mas o resultado precisa parecer UM ÚNICO RETRATO PROFISSIONAL — não montagem.
 
-9. CANTO INFERIOR DIREITO: logo "Panini" amarelo no fundo vermelho retangular pequeno + escudo decorativo amarelo.
+Faça:
+- TOM DE PELE perfeitamente uniforme entre rosto, pescoço, orelhas e qualquer parte do braço/mão visível. Se a foto original tem variação de cor (luz amarelada, branco automático ruim), EQUALIZE pra um tom consistente.
+- ILUMINAÇÃO única: a luz da camisa e do rosto vem da mesma direção, mesma intensidade. Sombra suave embaixo do queixo conectando ao pescoço e à gola, sem linha de corte visível.
+- PESCOÇO ANATÔMICO: gere o pescoço a partir do rosto, com músculo trapézio levando aos ombros. Não deixe o rosto "flutuando" sobre a camisa.
+- GOLA da camisa abraça o pescoço naturalmente (não "embaixo" do rosto colado).
+- Se a foto enviada tem cabelo cortado ou pescoço ausente, COMPLETE com geração natural.
+- Se a foto tem fundo, IGNORE o fundo. Apenas o sujeito.
 
-ACABAMENTO: aspecto de papel impresso fosco (não brilhante demais), cantos arredondados sutilmente, formato Panini standard.
+═══ NÃO FAÇA ═══
 
-⚠️ CRÍTICO — INTEGRAÇÃO DO ROSTO COM A CAMISA:
-- A transição entre o ROSTO/PESCOÇO da pessoa e a CAMISA deve ser PERFEITAMENTE NATURAL (pele continua fluida até a gola).
-- NÃO faça parecer montagem/colagem (sem linhas duras, sem mismatch de tom de pele, sem "head pasted on body").
-- O pescoço deve ter sombra natural conectando-se ao tronco e à gola da camisa.
-- Iluminação consistente: o rosto e a camisa têm a MESMA fonte de luz e tom.
-- Se a foto enviada tem fundo, REMOVA o fundo do recorte da pessoa antes de compor — só o sujeito deve aparecer.
-- Tom da pele do rosto e do pescoço/braços deve ser idêntico (mesmo que a foto original tenha cores levemente diferentes — equalize).
+- ❌ Outras seleções (não tem opção: SEMPRE Brasil)
+- ❌ Outras paletas de cor (sempre turquesa #6FC9C0 + 26 verde+amarelo)
+- ❌ Estilizar exageradamente, "cartoon", anime, ilustração — é FOTOGRAFIA real
+- ❌ Bordas, frames, marca d'água, texto extra
+- ❌ Reinterpretação artística — é cópia 1:1 do layout Panini
+- ❌ Mudar pose, ângulo da câmera, expressão — neutra/séria sempre
 
-IMPORTANTE GERAL:
-- NÃO adicione bordas ou marca d'água
-- A pessoa deve ocupar do "26" pra baixo até o início da faixa do nome
-- Mantenha o LAYOUT FIEL — é uma reprodução do estilo Panini, não uma reinterpretação
-- Se algum dado não for fornecido, use placeholder coerente (ex: clube "COMPLETE AÍ FC")`
+═══ DADOS PADRÃO QUANDO FALTAR ═══
+
+Se algum dado abaixo não for fornecido, use:
+- Nome: "FIGURINHA COMPLETE AÍ"
+- Data: "01-01-2000"
+- Altura: "1,80"
+- Peso: "75"
+- Clube: "COMPLETE AÍ FC"
+- País clube: "BRA"`
 
 export type GenerateStickerInput = {
   photoBase64: string         // foto da pessoa, sem data URL prefix

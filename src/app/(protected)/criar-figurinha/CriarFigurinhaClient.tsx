@@ -32,7 +32,8 @@ export default function CriarFigurinhaClient(props: Props) {
   const [weightKg, setWeightKg] = useState<string>('')
   const [clubName, setClubName] = useState<string>('')
   const [clubCountry, setClubCountry] = useState<string>('')
-  const [countryCode, setCountryCode] = useState<string>('BRA')
+  // Pedro 2026-05-04: figurinha é sempre Brasil, sem opção
+  const countryCode = 'BRA'
   const [stickerId, setStickerId] = useState<number | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [cleanUrl, setCleanUrl] = useState<string | null>(null)
@@ -160,7 +161,6 @@ export default function CriarFigurinhaClient(props: Props) {
     setWeightKg('')
     setClubName('')
     setClubCountry('')
-    setCountryCode('BRA')
     setStickerId(null)
     setPreviewUrl(null)
     setCleanUrl(null)
@@ -419,17 +419,12 @@ export default function CriarFigurinhaClient(props: Props) {
             </label>
           </div>
 
-          <label className="block mb-3">
-            <span className="text-[11px] font-medium text-gray-600 block mb-1">Seleção (3 letras, ex: BRA)</span>
-            <input
-              type="text"
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-              placeholder="BRA"
-              maxLength={3}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase"
-            />
-          </label>
+          <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
+            <span className="text-lg">🇧🇷</span>
+            <p className="text-[11px] text-yellow-900">
+              <strong>Seleção: Brasil</strong> — sua figurinha vai ter o layout oficial Brasil (camisa amarela, escudo CBF, código BRA).
+            </p>
+          </div>
 
           <button
             onClick={onGenerate}
