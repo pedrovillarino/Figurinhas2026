@@ -85,10 +85,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Não é possível solicitar troca consigo mesmo' }, { status: 400 })
     }
 
-    // Sanitize numeric fields
-    const safeTheyHave = typeof they_have === 'number' && they_have >= 0 ? Math.round(they_have) : 0
-    const safeIHave = typeof i_have === 'number' && i_have >= 0 ? Math.round(i_have) : 0
-    const safeMatchScore = typeof match_score === 'number' && match_score >= 0 ? Math.min(Math.round(match_score), 10000) : 0
+    // Pedro 2026-05-04: client values são ignorados — server calcula
+    // os reais abaixo (após carregar profiles). Mantém só pra logging.
+    void they_have
+    void i_have
+    void match_score
 
     const admin = getAdmin()
 
@@ -155,6 +156,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
 
+    // 3.5. ⚠️ Validação BILATERAL real (Pedro 2026-05-04 caso Nathallya):
+    // antes confiávamos nos valores que o client mandava — bug permitia
+    // pedido com i_have=0 (nada pra dar). Agora server calcula sozinho.
+    // Query inline pega user_stickers dos 2 e calcula o match em memória.
+    const { data: pairRows } = await admin
+      .from('user_stickers')
+      .select('sticker_id, status, user_id')
+      .in('user_id', [user.id, target_user_id])
+      .in('status', ['owned', 'duplicate'])
+    type PairRow = { sticker_id: number; status: string; user_id: string }
+    const pairList = (pairRows || []) as PairRow[]
+    const reqDup = new Set(pairList.filter((r) => r.user_id === user.id && r.status === 'duplicate').map((r) => r.sticker_id))
+    const reqHave = new Set(pairList.filter((r) => r.user_id === user.id).map((r) => r.sticker_id))
+    const tgtDup = new Set(pairList.filter((r) => r.user_id === target_user_id && r.status === 'duplicate').map((r) => r.sticker_id))
+    const tgtHave = new Set(pairList.filter((r) => r.user_id === target_user_id).map((r) => r.sticker_id))
+    const realIHave = Array.from(reqDup).filter((id) => !tgtHave.has(id)).length
+    const realTheyHave = Array.from(tgtDup).filter((id) => !reqHave.has(id)).length
+
+    if (realIHave === 0 || realTheyHave === 0) {
+      console.warn(`[trade-request] BLOCKED unilateral: requester=${user.id} target=${target_user_id} i_have=${realIHave} they_have=${realTheyHave}`)
+      return NextResponse.json({
+        error: realIHave === 0
+          ? 'Você não tem figurinhas que esse usuário precisa pra trocar. Trocas exigem que ambos tenham figurinhas pra dar.'
+          : 'Esse usuário não tem figurinhas que você precisa pra trocar.',
+        unilateral: true,
+      }, { status: 400 })
+    }
+    // Sobrescreve os valores recebidos do client com os reais
+    const realMatchScore = realIHave + realTheyHave
+
     // 4. Calculate distance
     let distance: number | null = null
     if (requesterProfile?.location_lat && requesterProfile?.location_lng &&
@@ -178,9 +209,9 @@ export async function POST(req: NextRequest) {
         requester_id: user.id,
         target_id: target_user_id,
         status: 'pending',
-        match_score: safeMatchScore,
-        they_have: safeTheyHave,
-        i_have: safeIHave,
+        match_score: realMatchScore, // server-side, não confia client
+        they_have: realTheyHave,
+        i_have: realIHave,
         distance_km: distance,
         token,
         expires_at: expiresAt,
@@ -200,7 +231,7 @@ export async function POST(req: NextRequest) {
     // 7. Send WhatsApp notification to target user
     const requesterName = requesterProfile?.display_name?.split(' ')[0] || 'Alguém'
     const distStr = distance != null ? (distance < 1 ? 'menos de 1km' : `${Math.round(distance)}km`) : 'sua região'
-    const totalTrade = safeTheyHave + safeIHave
+    const totalTrade = realTheyHave + realIHave
 
     const channel = targetProfile.notify_channel || 'whatsapp'
     const phone = targetProfile.phone ? formatPhone(targetProfile.phone) : null
@@ -218,8 +249,8 @@ export async function POST(req: NextRequest) {
           `🔔 *Solicitação de troca!*\n\n` +
           `*${requesterName}* (a ${distStr} de você) quer trocar figurinhas!\n\n` +
           `📊 Potencial: *${totalTrade} figurinhas* para trocar\n` +
-          `   • ${they_have || 0} que você precisa\n` +
-          `   • ${i_have || 0} que você tem pra dar\n\n` +
+          `   • ${realTheyHave} que você precisa\n` +
+          `   • ${realIHave} que você tem pra dar\n\n` +
           `✅ *Aceitar* (compartilhar seu contato):\n${approveUrl}\n\n` +
           `❌ *Recusar*:\n${rejectUrl}\n\n` +
           `Ou abra o app para ver detalhes:\n${APP_URL}/trades`
@@ -234,7 +265,7 @@ export async function POST(req: NextRequest) {
         const rejectUrl = `${APP_URL}/trade-approve?token=${token}&action=reject`
         const html = tradeRequestEmailHtml(
           requesterName, distStr, totalTrade,
-          they_have || 0, i_have || 0,
+          realTheyHave, realIHave,
           approveUrl, rejectUrl, APP_URL
         )
         notifications.push(sendEmail(targetEmail, `🔔 ${requesterName} quer trocar figurinhas com você!`, html))
