@@ -222,22 +222,42 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Pedro 2026-05-03: notificação em TEMPO REAL pra Copa Completa ──
+    // ── Pedro 2026-05-03: notificação "tempo real" pra Copa Completa ──
     // Recipientes Copa Completa não esperam o cron diário — recebem msg
-    // imediata quando alguém perto registra figurinha que falta a eles.
-    // Diferencial premium do plano. Não bloqueia o response (waitUntil).
+    // mais rápido quando alguém perto registra figurinha que falta a eles.
+    // Diferencial premium do plano.
+    //
+    // Pedro 2026-05-04: a Karla recebeu 82 msgs em 26h (37 numa hora só) —
+    // FLOOD. Adicionado 3 camadas de proteção:
+    //   1. Cooldown de 6h (last_match_notified_at)
+    //   2. Quiet hours BRT 22h–8h (igual cron diário)
+    //   3. Limite diário de 2 mensagens
     if (candidates.length > 0) {
+      // Quiet hours guard (BRT = UTC-3)
+      const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+      const hourBRT = nowSP.getHours()
+      const isQuietHours = hourBRT < 8 || hourBRT >= 22
+
       const recipientIds = Array.from(new Set(candidates.map((c) => c.recipient_id)))
       const { data: copaProfiles } = await supabase
         .from('profiles')
-        .select('id, display_name, phone, tier, notify_channel')
+        .select('id, display_name, phone, tier, notify_channel, last_match_notified_at')
         .eq('tier', 'copa_completa')
         .in('id', recipientIds)
-      if (copaProfiles && copaProfiles.length > 0) {
+      if (copaProfiles && copaProfiles.length > 0 && !isQuietHours) {
         // Fire and forget — não bloqueia
         const realtimeNotify = async () => {
           const { sendText, formatPhone } = await import('@/lib/zapi')
           const { logNotificationSent } = await import('@/lib/notification-queue')
+
+          const COOLDOWN_HOURS = 6
+          const DAILY_LIMIT = 2
+          const cooldownMs = COOLDOWN_HOURS * 60 * 60 * 1000
+          const todayStart = new Date(nowSP); todayStart.setHours(0, 0, 0, 0)
+          // todayStart é em SP local, mas comparamos com sent_at em UTC.
+          // Convertendo de volta pra UTC (subtrai offset SP que é -3h, então UTC = SP+3h)
+          const todayStartUTC = new Date(todayStart.getTime() + nowSP.getTimezoneOffset() * 60_000)
+
           // Buscar nomes das figurinhas pra mensagem
           const stickerIds = Array.from(new Set(candidates.map((c) => c.sticker_id)))
           const { data: stickerInfo } = await supabase
@@ -247,8 +267,31 @@ export async function POST(req: NextRequest) {
           const stickerById = new Map((stickerInfo || []).map((s) => [s.id, s]))
           const scannerProfile = await supabase.from('profiles').select('display_name').eq('id', user_id).maybeSingle()
           const scannerName = scannerProfile.data?.display_name?.split(' ')[0] || 'alguém'
-          for (const copa of copaProfiles as Array<{ id: string; display_name: string | null; phone: string | null; notify_channel: string | null }>) {
+
+          for (const copa of copaProfiles as Array<{ id: string; display_name: string | null; phone: string | null; notify_channel: string | null; last_match_notified_at: string | null }>) {
             if (copa.notify_channel === 'none' || !copa.phone) continue
+
+            // Camada 1: cooldown 6h
+            if (copa.last_match_notified_at) {
+              const since = Date.now() - new Date(copa.last_match_notified_at).getTime()
+              if (since < cooldownMs) {
+                console.log(`[copa realtime] skip ${copa.id} — cooldown (${Math.round(since / 60000)}min)`)
+                continue
+              }
+            }
+
+            // Camada 2: limite diário (2 msgs/dia)
+            const { count: todayCount } = await supabase
+              .from('notifications_sent')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', copa.id)
+              .eq('type', 'copa_realtime_match')
+              .gte('sent_at', todayStartUTC.toISOString())
+            if ((todayCount ?? 0) >= DAILY_LIMIT) {
+              console.log(`[copa realtime] skip ${copa.id} — daily limit (${todayCount}/${DAILY_LIMIT})`)
+              continue
+            }
+
             const userCandidates = candidates.filter((c) => c.recipient_id === copa.id)
             const stickerLines = userCandidates.slice(0, 5).map((c) => {
               const s = stickerById.get(c.sticker_id)
@@ -257,11 +300,11 @@ export async function POST(req: NextRequest) {
             const moreCount = Math.max(0, userCandidates.length - 5)
             const firstName = copa.display_name?.split(' ')[0] || ''
             const msg =
-              `🏆 *${firstName ? firstName + ', ' : ''}match em tempo real!*\n\n` +
+              `🏆 *${firstName ? firstName + ', ' : ''}match perto de você!*\n\n` +
               `*${scannerName}* registrou figurinha${userCandidates.length > 1 ? 's' : ''} que você precisa:\n\n` +
               `${stickerLines}` +
               `${moreCount > 0 ? `\n_+${moreCount} outras_` : ''}\n\n` +
-              `_Notificação imediata é exclusiva do seu plano *Copa Completa*._\n` +
+              `_Notificação prioritária do seu plano *Copa Completa* (máx 2/dia, 6h entre uma e outra)._\n` +
               `🔔 Veja as trocas: ${process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'}/trades`
             try {
               const phone = formatPhone(copa.phone)
@@ -288,6 +331,8 @@ export async function POST(req: NextRequest) {
         } catch {
           realtimeNotify().catch(() => {})
         }
+      } else if (isQuietHours) {
+        console.log(`[copa realtime] skip all — quiet hours (${hourBRT}h BRT)`)
       }
     }
 
