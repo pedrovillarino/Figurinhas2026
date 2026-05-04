@@ -26,6 +26,12 @@ const MODEL = 'gemini-2.5-flash-image'
 // preservado.
 const TEMPLATE_PATH = path.join(process.cwd(), 'public', 'sticker-templates', 'copa2026-bra-base.jpg')
 
+// ─── Fontes bundladas (Inter Bold/Regular) ───
+// Pedro 2026-05-04: fontes do sistema Vercel Lambda eram tofu (□□□).
+// Bundlamos Inter TTF em public/fonts/ e passamos via fontfile pro Sharp/Pango.
+const FONT_BOLD_PATH = path.join(process.cwd(), 'public', 'fonts', 'Inter-Bold.ttf')
+const FONT_REGULAR_PATH = path.join(process.cwd(), 'public', 'fonts', 'Inter-Regular.ttf')
+
 // Cores extraídas do template (estimadas — pode ajustar visualmente)
 const COLORS = {
   bgTurquoise: '#6FC9C0',     // fundo principal da figurinha
@@ -276,15 +282,69 @@ export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> 
     .png()
     .toBuffer()
 
-  // 3. Overlay com pills cobrindo + textos novos
-  const overlaySvg = buildOverlaySvg(input)
+  // 3. Overlay SVG com SÓ os retângulos das pills (cobrir texto antigo)
+  const pillsSvg = buildPillsSvg()
 
-  // 4. Compõe: template → retrato → overlay
+  // 4. Renderiza textos como bitmaps via Sharp.text() com fontfile bundlado.
+  // Pedro 2026-05-04: SVG-text caía pra fonte de sistema (não existe) → tofu.
+  // Sharp.text() usa Pango + fontfile direto — render correto.
+  const name = (input.personName || 'COMPLETE AÍ').toUpperCase()
+  const stats = formatStatsLine(input)
+  const club = formatClubLine(input)
+
+  const nameTextBuf = await renderText(name, {
+    fontfile: FONT_BOLD_PATH,
+    fontPxSize: 24,
+    width: PILL_NAME.w - 16, // padding 8px cada lado
+    color: COLORS.textWhite,
+  })
+  const statsTextBuf = stats
+    ? await renderText(stats, {
+        fontfile: FONT_REGULAR_PATH,
+        fontPxSize: 13,
+        width: PILL_NAME.w - 16,
+        color: COLORS.textWhite,
+      })
+    : null
+  const clubTextBuf = club
+    ? await renderText(club, {
+        fontfile: FONT_BOLD_PATH,
+        fontPxSize: 12,
+        width: PILL_CLUB.w - 12,
+        color: COLORS.textWhite,
+      })
+    : null
+
+  // Posições — centralizar texto horizontal dentro do pill
+  const nameMeta = await sharp(nameTextBuf).metadata()
+  const nameLeft = PILL_NAME.x + Math.round((PILL_NAME.w - (nameMeta.width || 0)) / 2)
+  const nameTop = PILL_NAME.y + 8
+
+  let statsLeft = 0, statsTop = 0
+  if (statsTextBuf) {
+    const m = await sharp(statsTextBuf).metadata()
+    statsLeft = PILL_NAME.x + Math.round((PILL_NAME.w - (m.width || 0)) / 2)
+    statsTop = PILL_NAME.y + 42
+  }
+
+  let clubLeft = 0, clubTop = 0
+  if (clubTextBuf) {
+    const m = await sharp(clubTextBuf).metadata()
+    clubLeft = PILL_CLUB.x + Math.round((PILL_CLUB.w - (m.width || 0)) / 2)
+    clubTop = PILL_CLUB.y + Math.round((PILL_CLUB.h - (m.height || 0)) / 2)
+  }
+
+  // 5. Compõe: template → retrato → pills (SVG) → textos (bitmaps)
+  const composites: sharp.OverlayOptions[] = [
+    { input: portraitResized, top: PORTRAIT_REGION.y, left: PORTRAIT_REGION.x },
+    { input: Buffer.from(pillsSvg), top: 0, left: 0 },
+    { input: nameTextBuf, top: nameTop, left: nameLeft },
+  ]
+  if (statsTextBuf) composites.push({ input: statsTextBuf, top: statsTop, left: statsLeft })
+  if (clubTextBuf) composites.push({ input: clubTextBuf, top: clubTop, left: clubLeft })
+
   const composed = await sharp(templateBuffer)
-    .composite([
-      { input: portraitResized, top: PORTRAIT_REGION.y, left: PORTRAIT_REGION.x },
-      { input: Buffer.from(overlaySvg), top: 0, left: 0 },
-    ])
+    .composite(composites)
     .png()
     .toBuffer()
 
@@ -292,68 +352,56 @@ export async function composeStickerFinal(input: ComposeInput): Promise<Buffer> 
 }
 
 /**
- * SVG que cobre as pills antigas (nome/stats/clube) e renderiza textos novos.
- * Não desenha logos FIFA, Panini, "26", "BRA" — esses ficam intactos no template.
+ * Renderiza uma string como PNG bitmap RGBA usando Sharp.text() com
+ * fontfile bundlado. Sharp/Pango lê o TTF direto, contornando a falta
+ * de fontes do sistema no Vercel Lambda.
+ *
+ * O `font` precisa do nome interno do TTF (não do basename do arquivo);
+ * Inter usa "Inter Bold" / "Inter Regular".
  */
-function buildOverlaySvg(input: ComposeInput): string {
+async function renderText(
+  text: string,
+  opts: { fontfile: string; fontPxSize: number; width: number; color: string },
+): Promise<Buffer> {
+  // Sharp.text usa pontos (pt) e não pixels. Conversão aproximada: pt = px * 0.75
+  // Mas Sharp aceita "Inter Bold 24" diretamente como Pango font specifier,
+  // onde 24 é tamanho em pontos. Aqui usamos px direto via dpi=72 (1pt = 1px).
+  return await sharp({
+    text: {
+      text: `<span foreground="${opts.color}">${escapePango(text)}</span>`,
+      font: `Inter ${opts.fontPxSize}px`,
+      fontfile: opts.fontfile,
+      rgba: true,
+      width: opts.width,
+      dpi: 72,
+    },
+  }).png().toBuffer()
+}
+
+/** Escapa caracteres especiais pra Pango markup (& < >). */
+function escapePango(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * SVG só com os retângulos arredondados que cobrem as pills do template.
+ * Os textos ficam de fora — renderizados via Sharp.text com fontfile.
+ */
+function buildPillsSvg(): string {
   const w = TEMPLATE_W
   const h = TEMPLATE_H
-
-  const name = (input.personName || 'COMPLETE AÍ').toUpperCase()
-  const stats = formatStatsLine(input)
-  const club = formatClubLine(input)
-
-  // Tamanhos calibrados pra resolução 480×639
-  const nameFontSize = 24
-  const statsFontSize = 13
-  const clubFontSize = 12
-
-  // Posições dos textos dentro das pills (centralizado vertical)
-  const nameY = PILL_NAME.y + 28 // linha 1 do pill
-  const statsY = PILL_NAME.y + 56 // linha 2 do pill
-  const clubY = PILL_CLUB.y + PILL_CLUB.h / 2
-
-  // Vercel Lambda só tem fontes Linux: DejaVu Sans, Liberation Sans, Noto Sans.
-  // Helvetica/Arial NÃO existem — caía em fallback que renderizava tofu (□□□).
-  // DejaVu Sans Bold é a escolha mais segura, suporta UTF-8 PT-BR completo.
-  const FONT_BOLD = "'DejaVu Sans', 'Liberation Sans', sans-serif"
-
   return `
 <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
-  <!-- ═══ Cobre pill nome+stats antiga ═══ -->
+  <!-- Cobre pill nome+stats antiga -->
   <rect x="${PILL_NAME.x}" y="${PILL_NAME.y}"
         width="${PILL_NAME.w}" height="${PILL_NAME.h}"
         rx="${PILL_NAME.radius}" ry="${PILL_NAME.radius}"
         fill="${COLORS.bgPillDark}"/>
-
-  <!-- Linha 1: NOME (branco bold) -->
-  <text x="${PILL_NAME.x + PILL_NAME.w / 2}" y="${nameY}"
-        font-family="${FONT_BOLD}"
-        font-size="${nameFontSize}" font-weight="bold"
-        fill="${COLORS.textWhite}"
-        text-anchor="middle"
-        dominant-baseline="middle">${escapeXml(name)}</text>
-
-  <!-- Linha 2: STATS (branco menor) -->
-  ${stats ? `<text x="${PILL_NAME.x + PILL_NAME.w / 2}" y="${statsY}"
-        font-family="${FONT_BOLD}"
-        font-size="${statsFontSize}" font-weight="normal"
-        fill="${COLORS.textWhite}"
-        text-anchor="middle"
-        dominant-baseline="middle">${escapeXml(stats)}</text>` : ''}
-
-  <!-- ═══ Cobre pill clube antiga ═══ -->
+  <!-- Cobre pill clube antiga -->
   <rect x="${PILL_CLUB.x}" y="${PILL_CLUB.y}"
         width="${PILL_CLUB.w}" height="${PILL_CLUB.h}"
         rx="${PILL_CLUB.radius}" ry="${PILL_CLUB.radius}"
         fill="${COLORS.bgPillLight}"/>
-
-  ${club ? `<text x="${PILL_CLUB.x + PILL_CLUB.w / 2}" y="${clubY}"
-        font-family="${FONT_BOLD}"
-        font-size="${clubFontSize}" font-weight="bold"
-        fill="${COLORS.textWhite}"
-        text-anchor="middle"
-        dominant-baseline="middle">${escapeXml(club)}</text>` : ''}
 </svg>`.trim()
 }
 
