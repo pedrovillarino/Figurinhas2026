@@ -47,6 +47,40 @@ export const AUDIO_PACK_CONFIG: Partial<Record<Tier, { priceBrl: number; priceDi
   estreante: { priceBrl: 300, priceDisplay: 'R$3,00' },
 }
 
+// ─── Generated stickers (Pedro 2026-05-04) ─────────────────────────
+// Figurinha digital personalizada com foto da pessoa, estilo Copa 2026.
+// Não é figurinha física do álbum — é imagem alta resolução. Add-on
+// opcional: PDF formato Panini (5,7×7,6cm + sangria) pra imprimir em
+// gráfica.
+//
+// Cota lifetime nos planos pagos:
+export const GENERATED_STICKER_QUOTA: Record<Tier, number> = {
+  free: 0,           // free só vê preview com marca d'água
+  estreante: 1,
+  colecionador: 3,
+  copa_completa: 5,
+}
+
+// Pricing avulso (acima da cota OU pra free):
+export const GENERATED_STICKER_PRICING: Record<Tier, { digital: { priceBrl: number; priceDisplay: string }; withPrintPdf: { priceBrl: number; priceDisplay: string } }> = {
+  free: {
+    digital:      { priceBrl: 490, priceDisplay: 'R$4,90' },
+    withPrintPdf: { priceBrl: 690, priceDisplay: 'R$6,90' },
+  },
+  estreante: {
+    digital:      { priceBrl: 390, priceDisplay: 'R$3,90' },
+    withPrintPdf: { priceBrl: 590, priceDisplay: 'R$5,90' },
+  },
+  colecionador: {
+    digital:      { priceBrl: 290, priceDisplay: 'R$2,90' },
+    withPrintPdf: { priceBrl: 490, priceDisplay: 'R$4,90' },
+  },
+  copa_completa: {
+    digital:      { priceBrl: 290, priceDisplay: 'R$2,90' },
+    withPrintPdf: { priceBrl: 490, priceDisplay: 'R$4,90' },
+  },
+}
+
 // ─── Tier definitions ───
 // audioLimit: lifetime, áudios via WhatsApp (transcrição via Gemini).
 // Pedro 2026-05-03: free=7, estreante=30, colecionador+copa=ilimitado.
