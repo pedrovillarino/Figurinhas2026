@@ -1,23 +1,26 @@
 /**
  * Pedro 2026-05-04: gera figurinha digital personalizada estilo Copa 2026.
  *
- * Pipeline (Opção C — template real + composição):
+ * Pipeline (Opção B v2 — InstantID + template real + composição):
  *   1. recebe foto base64 + dados (nome/data/altura/peso/clube)
- *   2. chama Gemini Image SOMENTE pra gerar o RETRATO (cintura pra cima,
- *      camisa amarela do Brasil, fundo turquesa idêntico ao template)
+ *   2. chama InstantID via Replicate pra gerar RETRATO PRESERVANDO O
+ *      ROSTO da pessoa (Gemini Imagen criava rosto aleatório similar —
+ *      InstantID/PhotoMaker preservam identidade real)
  *   3. carrega o template real (figurinha BRA original em alta-res),
  *      sobrepõe o retrato cobrindo o jogador original, cobre as faixas
  *      de texto e renderiza nome/stats/clube novos por cima
- *   4. retorna PNG final composto
+ *   4. chroma key com FEATHERING nas bordas (em vez de threshold duro)
+ *      pra eliminar aparência "colado" — silhueta funde com fundo
+ *   5. retorna PNG final composto
  *
  * Watermark é aplicado por applyPreviewWatermark() em camada separada.
  */
 import sharp from 'sharp'
 import path from 'path'
 import { promises as fs } from 'fs'
+import { runInstantID } from './replicate'
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
-const MODEL = 'gemini-2.5-flash-image'
+const MODEL = 'replicate/zsxkib/instant-id'
 
 // ─── Template real ───
 // Imagem 480×639 com a figurinha do João Pedro. Vamos cobrir o jogador
@@ -61,61 +64,21 @@ const PORTRAIT_REGION = { x: 60, y: 8, w: 340, h: 500 }
 const PILL_NAME = { x: 22, y: 536, w: 316, h: 64, radius: 30 }
 const PILL_CLUB = { x: 105, y: 602, w: 220, h: 32, radius: 14 }
 
-// Prompt focado APENAS no retrato — sem layout, sem fundo gráfico, sem texto.
-const PORTRAIT_PROMPT = `Gere SOMENTE um retrato fotorrealista profissional da pessoa na foto enviada, no estilo "jogador da seleção brasileira posando para foto oficial de figurinha Panini Copa do Mundo 2026".
-
-═══ ENQUADRAMENTO (CRÍTICO — bate com slot da figurinha) ═══
-
-- Pessoa da CINTURA PARA CIMA — cabeça + pescoço + busto + ombros + parte do peito até logo abaixo do escudo.
-- Cabeça centralizada horizontalmente, ocupando a TERÇA SUPERIOR da imagem.
-- Pose neutra, séria, ombros levemente abertos para a câmera (pose simétrica frontal).
-- Olhar diretamente pra frente, expressão neutra/séria.
-- Não corte a cabeça nem mostre só rosto — quero busto completo.
-
-═══ VESTUÁRIO (camisa oficial Brasil 2026) ═══
-
-- Camisa AMARELO-OURO sólido (HEX #FFD400) com TEXTURA de listras verticais discretas/franjas sutis (igual à camisa original do Brasil 2024-2026).
-- Gola V em VERDE-BRASIL (HEX #009C3B), discreta, ajustada ao pescoço.
-- Detalhes de ombro/manga com pequenos detalhes verdes.
-- No peito esquerdo (lado direito da imagem olhando pra figurinha): escudo da CBF — escudo azul-marinho com 5 estrelinhas amarelas em arco no topo + sigla "CBF" amarela ao centro.
-- No peito direito (lado esquerdo da imagem): logo Nike swoosh BRANCO discreto.
-
-═══ FUNDO (CRÍTICO — copy this color exactly) ═══
-
-⚠️ FUNDO COR SÓLIDA EXATA: HEX #6FC9C0 (turquesa água-marinha clara).
-A SEGUNDA IMAGEM que estou enviando é a figurinha Panini Copa 2026 oficial — copie EXATAMENTE essa cor de fundo turquesa para o seu fundo. RGB(111, 201, 192). Não use cinza, não use azul, não use verde — APENAS esse turquesa específico.
-
-- ❌ Nada de cinza neutro (commits frequentes — NÃO COMETA)
-- ❌ Nada de gradiente, paisagem, estádio, holograma, textura, ruído
-- ❌ Nada de letras, números (especialmente NADA de "26" verde), logos, frames, bordas
-- ❌ Nada de marca d'água, rótulo, escrita
-- ❌ Nada de bandeira, escudo, símbolos extras atrás
-- ✅ APENAS cor sólida #6FC9C0 100% uniforme atrás da pessoa, idêntica à segunda imagem
-- ✅ Pessoa centralizada, bordas naturais (cabelos, ombros, pescoço — sem artefatos)
-
-═══ INTEGRAÇÃO ROSTO/PESCOÇO/CAMISA ═══
-
-A pessoa enviada tem o ROSTO que quero usar. O resultado precisa parecer UM ÚNICO RETRATO PROFISSIONAL — nunca montagem.
-
-OBRIGATÓRIO:
-- TOM DE PELE perfeitamente uniforme entre rosto, pescoço, orelhas e qualquer parte do braço/mão visível. Equalize variações da foto original (luz amarelada, branco automático, sombras duras).
-- ILUMINAÇÃO única vinda do alto-frente (estilo estúdio): sombra suave embaixo do queixo + leve sombra na lateral oposta do nariz. Mesma direção em todo o corpo.
-- PESCOÇO ANATÔMICO completo: trapézios descendo pros ombros. Não deixe rosto "flutuando" sobre a camisa.
-- Gola da camisa ABRAÇA o pescoço naturalmente (sem linha de corte visível, sem aparência de Photoshop colado).
-- Se a foto enviada cortou cabelo/pescoço, COMPLETE com geração natural respeitando estilo de cabelo da pessoa.
-- Mantenha 100% das características faciais (formato do rosto, traços, pele, cabelo, expressão). NÃO embeleze, NÃO suavize pele exageradamente, NÃO mude idade aparente.
-
-═══ NÃO FAÇA ═══
-
-- ❌ Não desenhe o número "26" (vou compor depois)
-- ❌ Não desenhe faixas de nome embaixo (vou compor depois)
-- ❌ Não desenhe bandeira, logos FIFA/Panini, "BRA" vertical (já estão no template)
-- ❌ Não desenhe outras seleções — sempre Brasil
-- ❌ Não estilize cartoon/anime/ilustração — é FOTOGRAFIA real
-- ❌ Não adicione bordas, frame, sombra projetada, watermark
-- ❌ Não mude pose dramática, ângulo lateral, expressão sorridente — neutra/séria sempre
-
-OUTPUT: PNG retrato vertical (proporção próxima a 2:3) com APENAS a pessoa + fundo turquesa sólido.`
+// Pedro 2026-05-04: prompt curto e focado pra InstantID. Modelo é SDXL +
+// IP-Adapter de identidade — entende prompt natural mas precisa preservar
+// rosto da imagem (não inventar). NÃO precisa do nível de detalhe que o
+// Gemini Imagen pedia (esse era prompt-only); InstantID já replica o rosto
+// fielmente através do IP-Adapter facial.
+const PORTRAIT_PROMPT =
+  'professional studio headshot photograph, person from waist up, ' +
+  'wearing the official yellow Brazil national football team jersey ' +
+  '(Brazilian national team 2024-2026 kit, bright yellow with subtle ' +
+  'vertical pattern, green V-collar, CBF crest visible on left chest, ' +
+  'small Nike swoosh logo on right chest), neutral serious expression, ' +
+  'looking directly at camera, shoulders slightly open, ' +
+  'solid plain turquoise teal background color #6FC9C0 (no gradient, ' +
+  'no scenery, no logos, no text), even soft studio lighting, ' +
+  'high quality, photorealistic, sharp focus on the face'
 
 export type GenerateStickerInput = {
   photoBase64: string         // foto da pessoa, sem data URL prefix
@@ -160,7 +123,7 @@ export async function generateSticker(input: GenerateStickerInput): Promise<Gene
       pngBase64: finalBuffer.toString('base64'),
       promptUsed: portraitResult.promptUsed,
       modelUsed: MODEL,
-      estimatedCostUsd: 0.04,
+      estimatedCostUsd: 0.05,
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -170,80 +133,35 @@ export async function generateSticker(input: GenerateStickerInput): Promise<Gene
 }
 
 /**
- * Chama Gemini Image pra gerar SOMENTE o retrato (sem template).
- * Retorna PNG base64 da pessoa em camisa do Brasil, fundo turquesa sólido.
+ * Chama InstantID via Replicate pra gerar retrato PRESERVANDO O ROSTO da
+ * pessoa enviada. Diferente de Gemini Imagen (que cria rosto novo similar),
+ * InstantID usa IP-Adapter facial — o rosto na saída é REALMENTE da pessoa.
+ *
+ * Retorna PNG base64 do retrato com fundo turquesa próximo ao do template.
  */
 async function generatePortrait(input: GenerateStickerInput): Promise<GenerateStickerResult> {
   const prompt = PORTRAIT_PROMPT
-  try {
-    // Carrega o template como SEGUNDA imagem de referência —
-    // Gemini vê a cor exata do fundo turquesa que precisa replicar.
-    let templateBase64: string | null = null
-    try {
-      const tplBuffer = await fs.readFile(TEMPLATE_PATH)
-      templateBase64 = tplBuffer.toString('base64')
-    } catch (e) {
-      console.warn('[sticker-gen] template not found, prompt-only mode:', e)
-    }
+  const result = await runInstantID({
+    faceImageBase64: input.photoBase64,
+    faceMimeType: input.photoMimeType,
+    prompt,
+    // ipAdapterScale alto = preserva rosto fiel; baixo = mais estilo, menos identidade.
+    // 0.8 é o sweet-spot recomendado: identidade clara + composição livre.
+    ipAdapterScale: 0.8,
+    width: 768,
+    height: 1024, // ~3:4 — InstantID lida bem com retratos verticais
+  })
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`
-    const requestParts: Array<Record<string, unknown>> = [
-      { text: prompt },
-      { inline_data: { mime_type: input.photoMimeType, data: input.photoBase64 } },
-    ]
-    if (templateBase64) {
-      requestParts.push({ inline_data: { mime_type: 'image/jpeg', data: templateBase64 } })
-    }
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: requestParts,
-        }],
-        generationConfig: {
-          responseModalities: ['Text', 'Image'],
-          temperature: 0.35, // baixa pra fidelidade
-        },
-      }),
-    })
+  if (!result.ok) {
+    return { ok: false, error: result.error, promptUsed: prompt }
+  }
 
-    if (!res.ok) {
-      const errBody = await res.text()
-      console.error('[sticker-gen] Gemini error:', res.status, errBody.slice(0, 500))
-      return { ok: false, error: `Gemini API ${res.status}: ${errBody.slice(0, 200)}`, promptUsed: prompt }
-    }
-
-    type GeminiResponse = {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{
-            inlineData?: { data: string; mimeType: string }
-            text?: string
-          }>
-        }
-      }>
-    }
-    const data = (await res.json()) as GeminiResponse
-    const parts = data?.candidates?.[0]?.content?.parts || []
-    const imagePart = parts.find((p) => p.inlineData?.data)
-
-    if (!imagePart?.inlineData?.data) {
-      console.error('[sticker-gen] no image in response:', JSON.stringify(data).slice(0, 400))
-      return { ok: false, error: 'Gemini não retornou imagem', promptUsed: prompt }
-    }
-
-    return {
-      ok: true,
-      pngBase64: imagePart.inlineData.data,
-      promptUsed: prompt,
-      modelUsed: MODEL,
-      estimatedCostUsd: 0.04,
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[sticker-gen] portrait exception:', msg)
-    return { ok: false, error: msg, promptUsed: prompt }
+  return {
+    ok: true,
+    pngBase64: result.pngBase64,
+    promptUsed: prompt,
+    modelUsed: MODEL,
+    estimatedCostUsd: result.estimatedCostUsd,
   }
 }
 
@@ -271,34 +189,45 @@ type ComposeInput = {
  *   5. Output PNG final
  */
 /**
- * Chroma key manual — varre pixels RGBA do buffer e seta alpha=0 nos que
- * estão "próximos" da cor turquesa do template (#6FC9C0). Pedro 2026-05-04:
- * sem isso, o retrato gerado pelo Gemini tem fundo opaco que cobre o "26"
- * verde do template no centro da figurinha.
+ * Chroma key COM FEATHERING — varre pixels RGBA do buffer e ajusta alpha
+ * baseado na distância da cor turquesa do template (#6FC9C0):
+ *   - distância ≤ innerTol  → alpha=0 (totalmente transparente)
+ *   - distância ≥ outerTol  → alpha=255 (mantém opaco)
+ *   - faixa intermediária   → gradiente linear (transição suave nas bordas)
  *
- * @param tolerance distância máxima (em RGB euclidiano) pra considerar pixel
- *   "turquesa". Valores típicos: 25 (estrito) a 50 (folga).
- *   40 = compromisso bom: pega variações de tom do Gemini sem morder cabelo
- *   ou camisa amarela.
+ * Pedro 2026-05-04: v5 usava threshold duro (binary alpha), criava bordas
+ * serrilhadas e aparência "foto colada". Feathering suaviza pra parecer
+ * recortado profissionalmente.
  */
-async function chromaKeyTurquoise(pngBuf: Buffer, tolerance: number): Promise<Buffer> {
+async function chromaKeyTurquoise(
+  pngBuf: Buffer,
+  innerTol: number = 30,
+  outerTol: number = 55,
+): Promise<Buffer> {
   const target = { r: 0x6F, g: 0xC9, b: 0xC0 }
-  const tolSq = tolerance * tolerance
+  const innerSq = innerTol * innerTol
+  const outerSq = outerTol * outerTol
+  const featherRange = outerSq - innerSq
 
   const { data, info } = await sharp(pngBuf)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true })
 
-  // RGBA flat — 4 bytes por pixel
   for (let i = 0; i < data.length; i += 4) {
     const dr = data[i] - target.r
     const dg = data[i + 1] - target.g
     const db = data[i + 2] - target.b
     const distSq = dr * dr + dg * dg + db * db
-    if (distSq <= tolSq) {
-      data[i + 3] = 0 // transparente
+
+    if (distSq <= innerSq) {
+      data[i + 3] = 0 // totalmente transparente
+    } else if (distSq < outerSq) {
+      // Zona de feathering — alpha gradiente linear
+      const t = (distSq - innerSq) / featherRange  // 0..1
+      data[i + 3] = Math.round(255 * t)
     }
+    // else: pixel fica opaco (sem alteração)
   }
 
   return await sharp(data, {
