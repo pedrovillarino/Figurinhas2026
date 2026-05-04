@@ -112,9 +112,10 @@ FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":
 - FWC-3: "Mascote Oficial" — cartoon drawing of the 3 mascots (ZAYU llama, MAPLE moose, CLUTCH eagle) together
 - FWC-4: "Troféu Oficial" likely — another official symbol sticker (TBC)
 - FWC-5: "TRIONDA - Bola Oficial" — FOIL/HOLOGRAPHIC sticker of the TRIONDA ball: colorful ball (white + blue + red + green) with FIFA logo visible on the side, on grass field, dark shimmery background
-- FWC-6: "Emblema Canadá" — Canada Soccer crest (red maple leaf)
-- FWC-7: "Emblema México" — FMF Mexico crest (eagle)
-- FWC-8: "Emblema USA" — US Soccer crest (blue/red/white shield)
+- FWC-6: "Taça Canadá (fundo vermelho)" — GOLDEN TROPHY on RED background + "FIFA WORLD CUP 2026 CAN MEX USA" text. Tribute to Canada (host). NOT the Canada Soccer crest (maple leaf).
+- FWC-7: "Taça México (fundo verde)" — GOLDEN TROPHY on GREEN background + "FIFA WORLD CUP 2026 CAN MEX USA" text. Tribute to Mexico. NOT the FMF crest.
+- FWC-8: "Taça USA (fundo azul)" — GOLDEN TROPHY on BLUE background + "FIFA WORLD CUP 2026 CAN MEX USA" text. Tribute to USA. NOT the US Soccer crest.
+- ⚠️ DON'T CONFUSE: FWC-1/2/4 also feature the trophy but with different backgrounds. FWC-6/7/8 ALWAYS have a SOLID COLOR background + "CAN MEX USA" text below the trophy.
 - FWC-9 to FWC-19: HISTORICAL SERIES. Old B&W or sepia photo + year printed below. player_name = "{Champion} {Year}" format like "Uruguay 1950", "Brazil 1962", "Argentina 1986", "Italy 2006", "Germany 2014", "Argentina 2022" etc. NOT a player name.
 
 KEY RULE: if the sticker has NO player name printed at the bottom, it's a SYMBOL. Recognize visually and use the canonical label from the list above — DO NOT invent a name.
@@ -645,7 +646,7 @@ export async function POST(request: NextRequest) {
         null
 
       let dbSticker: CachedSticker | null = null
-      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' | 'extras_exact' | 'extras_fuzzy' | 'coca_exact' | 'coca_fuzzy' = 'fuzzy_cross_country'
+      let matchType: 'number' | 'exact_name_country' | 'fuzzy_name_country' | 'exact_name_flat' | 'fuzzy_cross_country' | 'extras_exact' | 'extras_fuzzy' | 'coca_exact' | 'coca_fuzzy' | 'symbol_synonym' = 'fuzzy_cross_country'
 
       // ── Priority 0a: Coca-Cola (country_code='COCA') ──
       // Same isolation reasoning as Extras: CC stickers share player names
