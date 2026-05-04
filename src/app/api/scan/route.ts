@@ -114,7 +114,7 @@ Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
 - {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":
-- FWC-0: "We are Panini" — FOIL/HOLOGRAPHIC sticker with prismatic multicolor shimmery background, real-photo player doing bicycle kick, yellow "PANINI" logo at bottom
+- FWC-0: "We are Panini" — FOIL/HOLOGRAPHIC sticker with prismatic multicolor shimmery background, real-photo player doing bicycle kick, yellow "PANINI" logo at bottom. ⚠️ The album physically PRINTS "00" in the slot label for this sticker (not "FWC-0"). If you see slot label "00", it's FWC-0. When user types/says "00" alone, it's also FWC-0.
 - FWC-1: "Taça Oficial (parte de cima)" — TOP HALF of the FIFA trophy (gold statuette: human figure holding the gold globe at top). Cropped upper half of the trophy
 - FWC-2: "Taça Oficial (parte de baixo)" likely — BOTTOM HALF of the trophy (gold base + "FIFA WORLD CUP" engraved text). Cropped lower half, complements FWC-1
 - FWC-3: "Mascote Oficial" — CARTOON DRAWING (animated, not photo) of the 3 official mascots TOGETHER: ZAYU (yellow/red llama with poncho), MAPLE (red moose), CLUTCH (bald eagle white-headed). They appear posing together in cartoon style, no real photo. ⚠️ If the sticker has NO cartoon mascots visible, it's NOT FWC-3.

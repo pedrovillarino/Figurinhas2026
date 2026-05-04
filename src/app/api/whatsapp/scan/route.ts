@@ -62,7 +62,7 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
 - {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":
-- FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de jogador real chutando de bicicleta, logo "PANINI" amarelo embaixo
+- FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de jogador real chutando de bicicleta, logo "PANINI" amarelo embaixo. ⚠️ O álbum físico imprime "00" no rótulo do slot dessa figurinha (não "FWC-0"). Se ver "00" no slot, é FWC-0. Quando user digita/fala "00" sozinho, também é FWC-0.
 - FWC-1: "Taça Oficial (parte de cima)" — PARTE SUPERIOR da taça FIFA (estatueta dourada brilhante: figura humana segurando o globo dourado no topo). Recorte da metade de cima da taça
 - FWC-2: "Taça Oficial (parte de baixo)" provável — PARTE INFERIOR da taça (base dourada + texto "FIFA WORLD CUP" gravado). Recorte da metade de baixo, complementa FWC-1
 - FWC-3: "Mascote Oficial" — DESENHO CARTOON ANIMADO (não foto real) dos 3 MASCOTES JUNTOS: ZAYU (lhama amarela/vermelha com poncho), MAPLE (alce vermelho), CLUTCH (águia careca branco-preta). Posando juntos em estilo cartoon. ⚠️ Se NÃO tem mascotes cartoon visíveis, NÃO é FWC-3.

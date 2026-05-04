@@ -107,7 +107,7 @@ Descrições visuais detalhadas (escudos confundíveis):
 - BRA-1 (CBF Brasil): ÓVALO/CÍRCULO BRANCO com escudo CBF AZUL-MARINHO + cruz amarela em X + "CBF" branco. CINCO ESTRELAS AMARELAS em arco no topo. "BRASIL" em VERDE embaixo. Faixas diagonais verde+amarelo+azul. Texto "FIFA WORLD CUP 2026" branco no topo. Fundo PRATA FOIL HOLOGRÁFICO com "Panini" repetido.
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19):
-- FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de JOGADOR REAL chutando de bicicleta, logo "PANINI" amarelo embaixo. ⚠️ Se a figurinha NÃO TEM jogador chutando, NÃO É FWC-0. Provavelmente é um escudo de país (RSA-1, etc).
+- FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido, foto de JOGADOR REAL chutando de bicicleta, logo "PANINI" amarelo embaixo. ⚠️ Se a figurinha NÃO TEM jogador chutando, NÃO É FWC-0. ⚠️ O álbum imprime "00" no slot dela — se ver "00", é FWC-0.
 - FWC-1: "Taça Oficial (parte de cima)" — figurinha da PARTE SUPERIOR da taça FIFA (estatueta dourada brilhante: figura humana segurando o globo dourado no topo). Recorte da metade de cima da taça
 - FWC-2: "Taça Oficial (parte de baixo)" provável — PARTE INFERIOR da taça (base dourada + texto "FIFA WORLD CUP" gravado). Recorte da metade de baixo, complementa FWC-1
 - FWC-3: "Mascote Oficial" — DESENHO CARTOON ANIMADO dos 3 mascotes JUNTOS (ZAYU lhama amarela, MAPLE alce vermelho, CLUTCH águia branco-preta). NÃO é foto real. Se NÃO tem mascotes cartoon, NÃO é FWC-3.
@@ -1704,16 +1704,27 @@ export async function POST(req: NextRequest) {
             return ns.map((n) => `${country}-${n}`).join(' ')
           },
         )
+      // Pedro 2026-05-04 (caso giorgia): álbum Panini imprime "00" no slot
+      // da figurinha "We are Panini" (que no DB chamamos FWC-0). User digita
+      // "00" achando que é o código. Aceitar standalone "00" / "0" como
+      // FWC-0 — só quando NÃO precedido por letras (senão "BRA 00" viraria
+      // "BRA-00 FWC-0", o que não queremos).
+      const expandStandaloneZero = (txt: string) =>
+        txt.replace(/(^|[\s,;.])(00?)([\s,;.]|$)/g, (_m, before, _zeros, after) => `${before}FWC-0${after}`)
+
       // Pipeline:
       // 1) "Espanha três" → "Espanha 3"  (convertSpelledNumbersToDigits)
       // 2) "Espanha 3"   → "ESP 3"        (expandCountryNamesToCodes)
       // 3) "ESP: 1, 2"   → "ESP-1 ESP-2"  (expandWithColon)
       // 4) "ESP 1 2 3"   → "ESP-1 ESP-2 ESP-3" (expandMultiNoColon)
+      // 5) " 00 " / " 0 " → " FWC-0 "    (expandStandaloneZero)
       // O passo 1 é crítico pra áudio: Gemini frequentemente transcreve
       // números por extenso quando o user fala o país por nome.
-      const text = expandMultiNoColon(
-        expandWithColon(
-          expandCountryNamesToCodes(convertSpelledNumbersToDigits(rawText)),
+      const text = expandStandaloneZero(
+        expandMultiNoColon(
+          expandWithColon(
+            expandCountryNamesToCodes(convertSpelledNumbersToDigits(rawText)),
+          ),
         ),
       )
 
