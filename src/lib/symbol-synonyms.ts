@@ -37,18 +37,33 @@ export function matchSymbolByName(
   }
 
   // ─── Taça / Trophy ───
-  // Hoje DB tem 2 partes: FWC-1 (cima), FWC-2 (baixo provável).
-  // Default = FWC-1 quando ambiguo. Se contexto diz "lower"/"baixo"/"bottom"/"base", FWC-2.
+  // FWC-1 (cima), FWC-2 (baixo), FWC-4 (Troféu Oficial completo),
+  // FWC-6/7/8 (Taça em fundo vermelho/verde/azul — países-sede).
+  //
+  // Heurística: usa COR DO FUNDO se mencionada (vermelho→FWC-6, verde→FWC-7,
+  // azul→FWC-8). Se menciona "CAN MEX USA" ou país (Canadá/México/USA) →
+  // FWC-6/7/8. Se "lower"/"baixo" → FWC-2. Se "upper"/"cima" → FWC-1.
+  // Senão default FWC-4 (Troféu Oficial).
   if (
     /\b(world\s+cup\s+)?(trophy|trofeu|trofeo)\b/.test(name) ||
     /\bfifa\s+trophy\b/.test(name) ||
     /\b(taca|taça|cup)\s+(oficial|do\s+mundo|fifa)\b/.test(name) ||
     /\b(taca|taça)\b/.test(name)
   ) {
-    if (/\b(lower|bottom|baixo|inferior|base|down|stand|pedestal)\b/.test(name)) {
-      return 'FWC-2'
-    }
-    return 'FWC-1'
+    // Países-sede pelo país/cor mencionado
+    if (/\bcanad[áa]\b|\bcanada\b/.test(name) && /\b(red|vermelho|vermelha)\b/.test(name)) return 'FWC-6'
+    if (/\bcanad[áa]\b|\bcanada\b/.test(name)) return 'FWC-6'
+    if (/\bm[ée]xico\b|\bmexico\b|\bmexican\b/.test(name) && /\b(green|verde)\b/.test(name)) return 'FWC-7'
+    if (/\bm[ée]xico\b|\bmexico\b|\bmexican\b/.test(name)) return 'FWC-7'
+    if (/\busa\b|\bunited\s+states\b|\bamericano\b/.test(name) && /\b(blue|azul)\b/.test(name)) return 'FWC-8'
+    if (/\busa\b|\bunited\s+states\b|\bamericano\b/.test(name)) return 'FWC-8'
+    // CAN MEX USA todos juntos = série de países-sede; sem cor explícita,
+    // não dá pra escolher 1, deixa Gemini ou o número decidir.
+    // Cima/baixo
+    if (/\b(lower|bottom|baixo|inferior|base|pedestal)\b/.test(name)) return 'FWC-2'
+    if (/\b(upper|top|cima|topo|superior)\b/.test(name)) return 'FWC-1'
+    // Default: Troféu Oficial completo
+    return 'FWC-4'
   }
 
   // ─── Mascote(s) → FWC-3 ───

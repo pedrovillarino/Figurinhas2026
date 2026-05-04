@@ -60,9 +60,10 @@ Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":
 - FWC-3: "Mascote Oficial" — desenho cartoon dos 3 mascotes da Copa 2026 (ZAYU lhama, MAPLE alce, CLUTCH águia) juntos
 - FWC-4: "Troféu Oficial" provável — outra figurinha de símbolo oficial (a confirmar)
 - FWC-5: "TRIONDA - Bola Oficial" — figurinha FOIL/HOLOGRÁFICA da bola TRIONDA: bola colorida (branca + azul + vermelha + verde) com logo FIFA visível na lateral, em campo gramado, fundo escuro com efeito brilhoso
-- FWC-6: "Emblema Canadá" — escudo Canada Soccer (folha de bordo vermelha)
-- FWC-7: "Emblema México" — escudo FMF México (águia mexicana)
-- FWC-8: "Emblema USA" — escudo US Soccer (azul/vermelho/branco)
+- FWC-6: "Taça Canadá (fundo vermelho)" — TAÇA DOURADA da Copa em fundo VERMELHO + texto "FIFA WORLD CUP 2026 CAN MEX USA". É homenagem ao país-sede Canadá. NÃO é o escudo Canada Soccer (folha bordo).
+- FWC-7: "Taça México (fundo verde)" — TAÇA DOURADA em fundo VERDE + texto "FIFA WORLD CUP 2026 CAN MEX USA". Homenagem ao México. NÃO é o escudo FMF.
+- FWC-8: "Taça USA (fundo azul)" — TAÇA DOURADA em fundo AZUL + texto "FIFA WORLD CUP 2026 CAN MEX USA". Homenagem aos USA. NÃO é o escudo US Soccer.
+- ⚠️ NÃO CONFUNDIR: FWC-1/2/4 também têm taça mas são fundos diferentes. FWC-6/7/8 SEMPRE têm fundo de cor sólida + texto "CAN MEX USA" embaixo da taça.
 - FWC-9 a FWC-19: SÉRIE HISTÓRICA. Foto antiga em P&B ou sépia + ano embaixo. player_name = "{Campeão} {Ano}" formato "Uruguay 1950", "Brazil 1962", "Argentina 1986", "Italy 2006", "Germany 2014", "Argentina 2022" etc. NÃO é nome de jogador.
 
 REGRA-CHAVE: se a figurinha não tem nome de jogador impresso embaixo, é um SÍMBOLO. Reconheça visualmente e use o rótulo da lista acima — NÃO inventa nome.

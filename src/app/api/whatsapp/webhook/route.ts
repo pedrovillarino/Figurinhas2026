@@ -95,9 +95,10 @@ Seção FIFA WORLD CUP (FWC-0 a FWC-19):
 - FWC-3: "Mascote Oficial" — desenho cartoon dos 3 mascotes da Copa 2026 (ZAYU lhama, MAPLE alce, CLUTCH águia) juntos
 - FWC-4: "Troféu Oficial" provável — outra figurinha de símbolo oficial (a confirmar)
 - FWC-5: "TRIONDA - Bola Oficial" — figurinha FOIL/HOLOGRÁFICA da bola TRIONDA: bola colorida (branca + azul + vermelha + verde) com logo FIFA visível na lateral, em campo gramado, fundo escuro com efeito brilhoso
-- FWC-6: "Emblema Canadá" — escudo Canada Soccer (folha de bordo vermelha)
-- FWC-7: "Emblema México" — escudo FMF (águia mexicana)
-- FWC-8: "Emblema USA" — escudo US Soccer (escudo azul/vermelho/branco)
+- FWC-6: "Taça Canadá" — TAÇA DOURADA em fundo VERMELHO + texto "FIFA WORLD CUP 2026 CAN MEX USA". É homenagem ao país-sede.
+- FWC-7: "Taça México" — TAÇA DOURADA em fundo VERDE + texto "FIFA WORLD CUP 2026 CAN MEX USA"
+- FWC-8: "Taça USA" — TAÇA DOURADA em fundo AZUL + texto "FIFA WORLD CUP 2026 CAN MEX USA"
+- ⚠️ NÃO CONFUNDIR FWC-6/7/8 (taça com fundo colorido sólido + "CAN MEX USA") com FWC-1/2/4 (também tem taça mas sem texto CAN MEX USA).
 - FWC-9 a FWC-19: SÉRIE HISTÓRICA. Foto preto-e-branco/sépia ANTIGA + ano impresso embaixo. player_name = "{Campeão} {Ano}" formato "Uruguay 1950", "Brazil 1970", "Argentina 2022", "Italy 2006" etc — NÃO é nome de jogador.
 
 REGRAS GERAIS:
