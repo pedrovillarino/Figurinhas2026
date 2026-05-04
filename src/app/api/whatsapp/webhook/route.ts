@@ -110,8 +110,8 @@ Seção FIFA WORLD CUP (FWC-0 a FWC-19):
 - FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de JOGADOR REAL chutando de bicicleta, logo "PANINI" amarelo embaixo. ⚠️ Se a figurinha NÃO TEM jogador chutando, NÃO É FWC-0. Provavelmente é um escudo de país (RSA-1, etc).
 - FWC-1: "Taça Oficial (parte de cima)" — figurinha da PARTE SUPERIOR da taça FIFA (estatueta dourada brilhante: figura humana segurando o globo dourado no topo). Recorte da metade de cima da taça
 - FWC-2: "Taça Oficial (parte de baixo)" provável — PARTE INFERIOR da taça (base dourada + texto "FIFA WORLD CUP" gravado). Recorte da metade de baixo, complementa FWC-1
-- FWC-3: "Mascote Oficial" — desenho cartoon dos 3 mascotes da Copa 2026 (ZAYU lhama, MAPLE alce, CLUTCH águia) juntos
-- FWC-4: "Troféu Oficial" provável — outra figurinha de símbolo oficial (a confirmar)
+- FWC-3: "Mascote Oficial" — DESENHO CARTOON ANIMADO dos 3 mascotes JUNTOS (ZAYU lhama amarela, MAPLE alce vermelho, CLUTCH águia branco-preta). NÃO é foto real. Se NÃO tem mascotes cartoon, NÃO é FWC-3.
+- FWC-4: "Troféu Oficial" — FOIL HOLOGRÁFICO multicolor (verde/azul/roxo/vermelho iridescente). Troféu ESTILIZADO em VERDE no centro (silhueta, NÃO a estatueta dourada da FWC-1/2). Texto "FIFA" pequeno topo-esquerdo. Logo Panini embaixo. ⚠️ NÃO confunda com FWC-0 (jogador chutando), FWC-1/2 (taça dourada), FWC-6/7/8 (fundo sólido + CAN MEX USA).
 - FWC-5: "TRIONDA - Bola Oficial" — figurinha FOIL/HOLOGRÁFICA da bola TRIONDA: bola colorida (branca + azul + vermelha + verde) com logo FIFA visível na lateral, em campo gramado, fundo escuro com efeito brilhoso
 - FWC-6: "Taça Canadá" — TAÇA DOURADA em fundo VERMELHO + texto "FIFA WORLD CUP 2026 CAN MEX USA". É homenagem ao país-sede.
 - FWC-7: "Taça México" — TAÇA DOURADA em fundo VERDE + texto "FIFA WORLD CUP 2026 CAN MEX USA"
@@ -303,6 +303,27 @@ async function countPendingScanItems(userId: string): Promise<number> {
  * "TIRAR N" porque o N parecia parte do comando. Trocamos pra exemplo
  * com número de verdade.
  */
+// Pedro 2026-05-04 (caso Pedro Arcari): user mandou 3 mensagens em sequência
+// e o bot enviou a msg "Você ainda tem registro aguardando" 3x — flood. Esse
+// throttle por user evita repetir a mesma orientação em < 30s.
+const recentWaitPendingSent = new Map<string, number>()
+const WAIT_PENDING_DEDUP_MS = 30 * 1000
+
+function shouldSendWaitPending(userId: string): boolean {
+  const now = Date.now()
+  const last = recentWaitPendingSent.get(userId) || 0
+  if (now - last < WAIT_PENDING_DEDUP_MS) return false
+  recentWaitPendingSent.set(userId, now)
+  // GC simples — limpa entradas antigas se o map crescer
+  if (recentWaitPendingSent.size > 200) {
+    const cutoff = now - WAIT_PENDING_DEDUP_MS
+    recentWaitPendingSent.forEach((t, k) => {
+      if (t < cutoff) recentWaitPendingSent.delete(k)
+    })
+  }
+  return true
+}
+
 function buildWaitPendingMsg(itemCount: number): string {
   const head = '⏳ *Você ainda tem um registro aguardando confirmação.*\n\n' +
     'Responde primeiro a anterior:\n'
@@ -1277,6 +1298,9 @@ function cleanupExpiredScans() {
 const BUTTON_ID_TO_TEXT: Record<string, string> = {
   cmd_status: 'status',
   cmd_missing: 'faltando',
+  cmd_missing_top50: 'faltando top50',
+  cmd_missing_brasil: 'faltando brasil',
+  cmd_missing_all: 'faltando todas',
   cmd_duplicates: 'repetidas',
   cmd_owned: 'coladas',
   cmd_trades: 'trocas',
@@ -1591,7 +1615,11 @@ export async function POST(req: NextRequest) {
       if (pendingItemsImg > 0) {
         // sendBotTextFor: salva o texto como last_bot_message pra que se
         // user responder ("sim", "tira o 2"), agent veja contexto.
-        await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
+        // Pedro 2026-05-04: throttle 30s pra não floodar caso user mande
+        // várias mensagens em sequência rápida.
+        if (shouldSendWaitPending(user.id)) {
+          await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
+        }
         return NextResponse.json({ ok: true })
       }
 
@@ -1690,6 +1718,28 @@ export async function POST(req: NextRequest) {
       )
 
       const lower = text.trim().toLowerCase()
+
+      // ─── Promessa de envio (Pedro 2026-05-04, caso Pedro Arcari) ───
+      // User mandou "Vou mandar as q faltam" — claramente promessa de envio
+      // futuro, NÃO pedido de listagem. Bot antes interpretava como intent
+      // 'missing' e mandava lista das 979 faltantes. Errado.
+      // Detecta: verbo no futuro próximo ("vou X" / "tô indo X" / "ja vou X"
+      // / "irei X") + algo sobre figurinhas/fotos/áudio/texto/que faltam.
+      // Apenas no INÍCIO da mensagem pra evitar falsos positivos.
+      const promiseMatch =
+        /^(j[áa]\s+)?(vou|tou\s+indo|to\s+indo|t[ôo]\s+indo|t[ôo]\s+pra|ir(ei|ia)\s+|vou\s+ja\s+)\s*(mand|envi|post|tirar|fazer|colocar|botar|jogar|pass|gravar|escrev|registr|tentar)/i.test(lower)
+      const aboutStickers =
+        /(figurinha|cromo|foto|audio|[áa]udio|texto|que\s+faltam?|repetidas?|coladas?)/i.test(lower)
+      if (promiseMatch && aboutStickers) {
+        await sendText(
+          phone,
+          `👍 *Beleza, pode mandar!* Tô esperando aqui.\n\n` +
+            `📸 *Foto* das figurinhas — eu identifico com IA\n` +
+            `🎤 *Áudio* falando os códigos (ex: _"Brasil 1, Argentina 3"_)\n` +
+            `✏️ *Texto* tipo _"BRA-1 ARG-3"_`,
+        )
+        return NextResponse.json({ ok: true })
+      }
 
       // ─── Deep-link CTAs do site (Pedro 2026-05-04) ───
       // User logado clica num botão WhatsApp dentro do site → abre wa.me
@@ -1950,7 +2000,14 @@ export async function POST(req: NextRequest) {
       }
 
       // ─── Check for pending scan confirmation ───
-      if (/^(sim|s|yes|y|confirma|ok)$/i.test(lower.trim())) {
+      // Pedro 2026-05-04: além de "sim", aceita variantes naturais como
+      // "registra tudo", "salva todas", "confirma tudo" — caso real do
+      // Pedro Arcari que mandou "registre todas" e bot não entendeu.
+      const isYesConfirm =
+        /^(sim|s|yes|y|confirma|confirmar|ok|okay|🆗|👍|✅|isso|isso ai|isso aí)\.?$/i.test(lower.trim()) ||
+        /^(registra|registre|registrar|salva|salve|salvar|confirma|confirme|confirmar|cola|cole|colar)\s+(tud[oa]|tods?|toda?s|os\s+(tr[êe]s|dois|\d+))\.?$/i.test(lower.trim()) ||
+        /^(pode|p[oô]e|colocar|registrar|salvar)\s+(tudo|todas|todos)\b/i.test(lower.trim())
+      if (isYesConfirm) {
         const supabaseAdmin = getAdmin()
         const { data: allPending } = await supabaseAdmin
           .from('pending_scans')
@@ -2327,8 +2384,30 @@ export async function POST(req: NextRequest) {
             break
           }
 
-          // ── Modo padrão (não "todas") — mostra primeiras 150 ──
-          const MISSING_LIMIT = 150
+          // ── Pedro 2026-05-04 (caso Pedro Arcari): se SEM filtro E muito
+          // a listar (>80), perguntar antes pra evitar bombardear caixa do
+          // user com 150+ itens não solicitados. ──
+          if (filters.length === 0 && stats.missing > 80) {
+            await sendButtonList(
+              phone,
+              `🔍 *Você tem ${stats.missing} figurinhas faltando!*\n\n` +
+                `É bastante coisa pra listar de uma vez. Como prefere ver?`,
+              [
+                { id: 'cmd_missing_top50', label: '👀 Top 50' },
+                { id: 'cmd_missing_brasil', label: '🇧🇷 Só Brasil' },
+                { id: 'cmd_missing_all', label: '📃 Tudo (em partes)' },
+              ],
+            )
+            await sendText(
+              phone,
+              `_Ou pede direto: *faltando brasil*, *faltando argentina*, *faltando coca cola*, *faltando intro*. Pode pedir várias: *faltando brasil argentina franca*._`,
+            )
+            break
+          }
+
+          // ── Modo padrão (não "todas") — mostra primeiras 50 ──
+          // Pedro 2026-05-04: reduzido de 150→50 pra não floodar o user
+          const MISSING_LIMIT = 50
           const missing = await getMissingStickers(user.id, MISSING_LIMIT, filters)
 
           // Group consecutive items by section so the listing is scannable.
@@ -2630,7 +2709,10 @@ export async function POST(req: NextRequest) {
           // Serializa: 1 registro por vez. Se já tem pending, segura a mensagem.
           const pendingItemsReg = await countPendingScanItems(user.id)
           if (pendingItemsReg > 0) {
-            await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsReg))
+            // Pedro 2026-05-04: throttle anti-flood (caso Pedro Arcari)
+            if (shouldSendWaitPending(user.id)) {
+              await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsReg))
+            }
             break
           }
 
