@@ -182,8 +182,11 @@ export async function POST(req: NextRequest) {
       : originalPrice
 
     // Create Stripe checkout session
+    // Pedro 2026-05-05: explicit payment_method_types pra incluir Pix.
+    // Webhook já trata pagamento assíncrono (checkout.session.async_payment_succeeded).
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
+      payment_method_types: ['card', 'boleto', 'pix'],
       customer_email: profile?.email || user.email,
       line_items: [
         {
