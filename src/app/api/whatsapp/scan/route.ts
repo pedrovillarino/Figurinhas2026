@@ -21,6 +21,34 @@ function getAdmin() {
 const SCAN_INSTRUCTION = `Você identifica figurinhas Panini Copa do Mundo 2026. Retorne JSON apenas.
 
 ═══════════════════════════════════════════════════════════════════════
+🧭 PRIMEIRA DECISÃO: QUE TIPO DE PÁGINA É A FOTO?
+
+Antes de qualquer coisa, classifique a página:
+
+A) PÁGINA DE PAÍS (header "WE ARE [PAÍS]" + bandeira + escudo + grid de
+   slots numerados com código tipo MEX-3, BRA-12 etc) → use MODO
+   CHECKLIST DE PÁGINA (próxima seção).
+
+B) PÁGINA ESPECIAL (FIFA World Cup section / Coca-Cola / PANINI Extras
+   / abertura do álbum / contracapa). Aqui o layout NÃO é o grid padrão
+   de país. → use modo OBJECT DETECTION: identifique cada figurinha
+   visível usando as descrições visuais detalhadas das seções FIFA WORLD
+   CUP, PANINI EXTRAS e COCA-COLA mais abaixo. NÃO aplique checklist
+   posicional aqui.
+
+C) FOTO DE FIGURINHA(S) AVULSA(S) (pacotinho aberto, mão segurando
+   figurinha, várias figurinhas espalhadas na mesa) → modo OBJECT
+   DETECTION normal pra cada figurinha individual visível.
+
+═══════════════════════════════════════════════════════════════════════
+⚠️ ATENÇÃO ESPECIAL — INFO DE GROUP STAGE NAS PÁGINAS DE PAÍS:
+Páginas de país frequentemente têm uma SEÇÃO INFERIOR/LATERAL com
+informações da fase de grupos: mini-card "GROUP A/B/C…" + 4 BANDEIRAS
+PEQUENAS dos times do grupo + lista de jogos com data/estádio/ícone de
+bola. ⚠️ NADA disso são figurinhas — são informação impressa do álbum.
+NÃO retorne esses elementos no array de stickers.
+
+═══════════════════════════════════════════════════════════════════════
 🎯 MODO CHECKLIST DE PÁGINA (use SEMPRE que a foto mostrar uma página
 de país aberta — header tipo "WE ARE MEXICO" + bandeira + grid de slots
 numerados). Esta é a abordagem PRINCIPAL pra páginas de país.

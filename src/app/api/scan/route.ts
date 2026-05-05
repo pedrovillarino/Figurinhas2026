@@ -72,6 +72,34 @@ function buildSystemInstruction(validCodes: string[]): string {
   return `You identify Panini FIFA World Cup 2026 stickers in photos. Output JSON only.
 
 ═══════════════════════════════════════════════════════════════════════
+🧭 FIRST DECISION: WHAT TYPE OF PAGE IS THIS PHOTO?
+
+Before anything else, classify the page:
+
+A) COUNTRY PAGE (header "WE ARE [COUNTRY]" + flag + crest + grid of
+   numbered slots with codes like MEX-3, BRA-12 etc) → use PAGE
+   CHECKLIST MODE (next section).
+
+B) SPECIAL PAGE (FIFA World Cup section / Coca-Cola / PANINI Extras /
+   album intro / back cover). Layout here is NOT the standard country
+   grid. → use OBJECT DETECTION mode: identify each visible sticker
+   using the detailed visual descriptions in the FIFA WORLD CUP, PANINI
+   EXTRAS and COCA-COLA sections below. DO NOT apply positional
+   checklist here.
+
+C) LOOSE STICKER(S) (opened pack, hand holding sticker, multiple
+   stickers spread on a table) → normal OBJECT DETECTION for each
+   individual visible sticker.
+
+═══════════════════════════════════════════════════════════════════════
+⚠️ SPECIAL ATTENTION — GROUP STAGE INFO IN COUNTRY PAGES:
+Country pages often include a BOTTOM/SIDE SECTION with group stage
+info: mini-card "GROUP A/B/C…" + 4 SMALL FLAGS of the group teams + a
+list of fixtures with date/stadium/ball icon. ⚠️ NONE of this is a
+sticker — they are printed album info. DO NOT return these elements in
+the stickers array.
+
+═══════════════════════════════════════════════════════════════════════
 🎯 PAGE CHECKLIST MODE (use this ALWAYS when the photo shows an open
 country page — header like "WE ARE MEXICO" + flag + grid of numbered
 slots). This is the PRIMARY approach for country pages.
