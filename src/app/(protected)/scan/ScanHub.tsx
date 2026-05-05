@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
-import FreeUserAd from '@/components/FreeUserAd'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -732,11 +731,8 @@ export default function ScanHub({
             <button onClick={reset} className="mt-4 bg-brand text-white rounded-xl px-6 py-3 text-sm font-medium">
               Tentar Novamente
             </button>
-            {/* Pedro 2026-05-05: ad contextual — user free com 0 figurinhas
-                detectadas pode estar precisando comprar pacotes. */}
-            <div className="mt-6 max-w-sm mx-auto text-left">
-              <FreeUserAd placement="scan_no_results" tier={tier} />
-            </div>
+            {/* Pedro 2026-05-05: removido ad scan_no_results — UX ruim
+                (reforço negativo após scan falho). */}
           </div>
         ) : (
           <>

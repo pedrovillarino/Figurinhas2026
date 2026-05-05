@@ -48,11 +48,18 @@ export default function FreeUserAd({
   // Paid users → null (early return via state, depois do mount)
   const showForTier = hasAds(tier)
 
+  // Pedro 2026-05-05: dismiss em GRUPO pra album_progress_* — user dispensa
+  // 1 milestone, não vê nenhum dos outros por 24h. Evita spam ao subir
+  // múltiplos brackets num scan só.
+  const dismissKey = placement.startsWith('album_progress_')
+    ? 'ad_dismissed_album_progress'
+    : `ad_dismissed_${placement}`
+
   useEffect(() => {
     if (!showForTier) return
 
     // Checa dismiss local (24h)
-    const dismissedAt = localStorage.getItem(`ad_dismissed_${placement}`)
+    const dismissedAt = localStorage.getItem(dismissKey)
     if (dismissedAt) {
       const ageMs = Date.now() - parseInt(dismissedAt, 10)
       if (ageMs < 24 * 60 * 60 * 1000) {
@@ -60,7 +67,7 @@ export default function FreeUserAd({
         return
       }
       // expirado — limpa
-      localStorage.removeItem(`ad_dismissed_${placement}`)
+      localStorage.removeItem(dismissKey)
     }
 
     setDismissed(false)
@@ -97,7 +104,7 @@ export default function FreeUserAd({
   function handleDismiss(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    localStorage.setItem(`ad_dismissed_${placement}`, String(Date.now()))
+    localStorage.setItem(dismissKey, String(Date.now()))
     setDismissed(true)
   }
 

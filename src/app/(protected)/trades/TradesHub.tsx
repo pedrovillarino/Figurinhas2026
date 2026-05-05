@@ -765,6 +765,14 @@ export default function TradesHub({
               initialApprovedTrades={initialApprovedTrades}
             />
 
+            {/* Pedro 2026-05-05: ad contextual quando user TEM pedidos
+                pendentes — momento de alta intenção (vai trocar agora). */}
+            {pendingRequests.length > 0 && (
+              <div className="mb-3">
+                <FreeUserAd placement="trades_notification" tier={tier} />
+              </div>
+            )}
+
             {/* Match cards */}
             <div className="space-y-2">
               {matches.map((match) => {
@@ -913,11 +921,7 @@ export default function TradesHub({
             <p className="text-2xl mb-2">🔍</p>
             <p className="text-xs text-gray-500 font-medium">Ninguém encontrado em {radius} km</p>
             <p className="text-[10px] text-gray-400 mt-1">Tente aumentar o raio de busca</p>
-            {/* Pedro 2026-05-05: ad pra free users sem matches.
-                Sugere comprar pacotes pra ter mais cromos pra trocar. */}
-            <div className="mt-4 max-w-sm mx-auto text-left">
-              <FreeUserAd placement="trades_empty" tier={tier} />
-            </div>
+            {/* Pedro 2026-05-05: removido ad trades_empty — reforço negativo. */}
           </div>
         )}
       </div>

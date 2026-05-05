@@ -7,6 +7,7 @@ import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
 import PremiumBanner from '@/components/PremiumBanner'
 import FreeUserAd from '@/components/FreeUserAd'
+import { pickAlbumMilestonePlacement } from '@/lib/store'
 import ExportModal from '@/components/ExportModal'
 import UndoToast from '@/components/UndoToast'
 import OnboardingModal from '@/components/OnboardingModal'
@@ -658,16 +659,20 @@ export default function AlbumClient({
 
       {/* Pedro 2026-05-05: ads contextuais pra free users.
           - 0 cromos: sugere comprar álbum (album_empty)
-          - 50%+ progresso: sugere mais pacotes (album_progress_50)
-          - Footer: rotativo (album_footer) */}
+          - 10/20/30/.../100%: milestone-based, escolhe placement
+            de acordo com o bracket atual. Dismiss em grupo via
+            FreeUserAd.tsx (esconde toda a série por 24h se 1 dispensar). */}
       {stats.owned === 0 && (
         <div className="mb-3">
           <FreeUserAd placement="album_empty" tier={tier} />
         </div>
       )}
-      {stats.owned > 0 && progressPct >= 50 && (
+      {stats.owned > 0 && pickAlbumMilestonePlacement(progressPct) && (
         <div className="mb-3">
-          <FreeUserAd placement="album_progress_50" tier={tier} />
+          <FreeUserAd
+            placement={pickAlbumMilestonePlacement(progressPct)!}
+            tier={tier}
+          />
         </div>
       )}
 
