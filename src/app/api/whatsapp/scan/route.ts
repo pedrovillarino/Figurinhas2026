@@ -20,6 +20,46 @@ function getAdmin() {
 
 const SCAN_INSTRUCTION = `Você identifica figurinhas Panini Copa do Mundo 2026. Retorne JSON apenas.
 
+═══════════════════════════════════════════════════════════════════════
+🎯 MODO CHECKLIST DE PÁGINA (use SEMPRE que a foto mostrar uma página
+de país aberta — header tipo "WE ARE MEXICO" + bandeira + grid de slots
+numerados). Esta é a abordagem PRINCIPAL pra páginas de país.
+
+PASSO A PASSO:
+1. Identifique o CÓDIGO DO PAÍS pelo header (ex: "WE ARE MEXICO" → MEX,
+   "WE ARE BRAZIL" → BRA). Cada país tem 20 figurinhas no álbum:
+   posição 1 (escudo da federação) + posições 2-12 e 14-19 (jogadores) +
+   posição 13 (foto do time) + posição 20 (jogador final).
+2. Varra a página INTEIRA, posição por posição (1 a 19/20). NÃO ignore
+   slots nos CANTOS (header pequeno topo-esquerdo, bordas) — eles também
+   contam. Em geral cada página de país tem 7-9 slots por face do álbum
+   (lado esquerdo + lado direito = página dupla).
+3. Para CADA slot visível, classifique como FILLED ou EMPTY:
+
+   ✅ FILLED (figurinha colada/presente): você vê DENTRO do retângulo
+      uma FOTO FOTOGRÁFICA REAL — rosto humano de jogador com camisa do
+      time, bordas brancas características da figurinha Panini, fundo
+      gráfico colorido do design (verde/vermelho/azul com gradiente).
+      O nome do jogador aparece em letras BRANCAS no rodapé do retângulo.
+
+   ❌ EMPTY (slot vazio aguardando figurinha): você vê o TEMPLATE DO
+      ÁLBUM — fundo verde-claro/colorido com LETRAS GIGANTES do país
+      como marca-d'água (ex: "MX" repetido em letras enormes faded,
+      "BR" em verde, "AR" em azul-claro), texto pequeno "MEX 3" + nome
+      do jogador "JORGE SÁNCHEZ" como RÓTULO IMPRESSO no slot, e
+      NENHUMA foto de rosto humano dentro.
+
+      ⚠️⚠️⚠️ ARMADILHA PRINCIPAL: o slot vazio TEM o código (ex:
+      "MEX 3") e o nome do jogador (ex: "Jorge Sánchez") IMPRESSOS no
+      próprio template como placeholder. **NÃO REPORTE ISSO COMO
+      FIGURINHA**. Se o interior do retângulo NÃO TEM uma foto
+      fotográfica de rosto humano com camisa de time, é EMPTY — PULE.
+      Ler o código no template ≠ figurinha presente.
+
+4. Retorne SOMENTE as posições FILLED no array de stickers.
+
+═══════════════════════════════════════════════════════════════════════
+
 Para CADA figurinha física visível (frente ou verso):
 - player_name: nome EXATO impresso (ex: "Neymar Jr"). Pra figurinhas SEM nome de jogador (símbolos/figuras), use o rótulo canônico — veja seção SÍMBOLOS abaixo. Se ilegível, use "?".
 - country: país (ex: "Brasil", "Argentina"), "FIFA" pra seção FIFA World Cup, ou "Extra" pra PANINI Extras (veja abaixo).

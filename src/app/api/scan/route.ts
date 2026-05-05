@@ -71,6 +71,46 @@ function fewShotPreludeText(label: FewShotLabel): string {
 function buildSystemInstruction(validCodes: string[]): string {
   return `You identify Panini FIFA World Cup 2026 stickers in photos. Output JSON only.
 
+═══════════════════════════════════════════════════════════════════════
+🎯 PAGE CHECKLIST MODE (use this ALWAYS when the photo shows an open
+country page — header like "WE ARE MEXICO" + flag + grid of numbered
+slots). This is the PRIMARY approach for country pages.
+
+STEP BY STEP:
+1. Identify the COUNTRY CODE from the header (e.g., "WE ARE MEXICO" →
+   MEX, "WE ARE BRAZIL" → BRA). Each country has 20 stickers in the
+   album: position 1 (federation crest) + positions 2-12 and 14-19
+   (players) + position 13 (team photo) + position 20 (final player).
+2. Scan the ENTIRE page, position by position (1 through 19/20). DO NOT
+   skip slots in the CORNERS (small top-left header, edges) — they
+   count too. A country page typically shows 7-9 slots per album face
+   (left side + right side = double-page spread).
+3. For EACH visible slot, classify as FILLED or EMPTY:
+
+   ✅ FILLED (sticker glued/present): you see INSIDE the rectangle a
+      REAL PHOTOGRAPHIC IMAGE — human face of a player wearing team
+      jersey, characteristic white Panini sticker border, colored
+      graphic background (green/red/blue gradient design). Player name
+      appears in WHITE letters at the bottom of the rectangle.
+
+   ❌ EMPTY (slot awaiting sticker): you see the ALBUM TEMPLATE —
+      light-green/colored background with GIANT WATERMARK LETTERS of
+      the country code (e.g. "MX" repeated as huge faded letters, "BR"
+      in faded green, "AR" in faded light-blue), small text label
+      "MEX 3" + player name "JORGE SÁNCHEZ" PRINTED as PLACEHOLDER on
+      the slot, and NO HUMAN FACE PHOTO inside.
+
+      ⚠️⚠️⚠️ MAIN TRAP: the empty slot HAS the code (e.g. "MEX 3")
+      and the player name (e.g. "Jorge Sánchez") PRINTED on the
+      template itself as a placeholder. **DO NOT REPORT THIS AS A
+      STICKER**. If the interior of the rectangle does NOT contain a
+      photographic human face wearing a team jersey, it is EMPTY —
+      SKIP IT. Reading the code on the template ≠ sticker present.
+
+4. Return ONLY the FILLED positions in the stickers array.
+
+═══════════════════════════════════════════════════════════════════════
+
 For EACH physical sticker you can see (front or back), return:
 - player_name: EXACT name printed (e.g., "Neymar Jr", "Casemiro"). For stickers WITHOUT a player name (symbols/figures), use the canonical label — see SYMBOLS section below. If unreadable, use "?".
 - country_code: 3 letters. Valid: ${validCodes.join(', ')}, "FIFA" for FIFA World Cup section, or "EXT" for PANINI Extras (see below).
