@@ -20,8 +20,10 @@ const VALID_CATEGORIES: StoreCategory[] = [
 
 function checkAuth(req: NextRequest): boolean {
   const provided = req.headers.get('x-admin-secret')
-  const expected = process.env.ADMIN_SECRET
-  return !!expected && provided === expected
+  // Pedro 2026-05-05: usa mesmo fallback do /admin/page.tsx pra funcionar
+  // mesmo sem ADMIN_SECRET nas env vars do Vercel.
+  const expected = process.env.ADMIN_SECRET || 'completeai2026'
+  return provided === expected
 }
 
 export async function POST(req: NextRequest) {
