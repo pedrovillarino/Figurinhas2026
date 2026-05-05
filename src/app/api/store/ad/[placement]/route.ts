@@ -17,9 +17,9 @@ import { getAdForPlacement, getStoreAdmin, type StoreProduct } from '@/lib/store
 export const dynamic = 'force-dynamic'
 
 // IDs dos produtos que entram na rotação do trades_notification.
-// Pedro 2026-05-05: camisa adulto Nike + bola Trionda + mascotes pop.
-// TODO: adicionar camisa INFANTIL quando Pedro mandar link (id ?).
-const TRADES_NOTIFICATION_ROTATION_IDS = [17, 18, 22]
+// Pedro 2026-05-05: camisa adulto Nike (17) + bola Trionda (18) +
+// mascotes pop (22) + uniforme INFANTIL Brasil (23).
+const TRADES_NOTIFICATION_ROTATION_IDS = [17, 18, 22, 23]
 
 export async function GET(_req: NextRequest, { params }: { params: { placement: string } }) {
   const placement = params.placement
