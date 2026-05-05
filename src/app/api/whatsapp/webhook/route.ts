@@ -493,11 +493,15 @@ async function sendPostSignupFollowUp(phone: string, pendingMessage: string | nu
 
   let followUp: string
 
-  if (/\b[áa]udio\b/.test(lower)) {
+  // Pedro 2026-05-04 (caso Vinicius): regex `\b[áa]udio\b` falhava com UTF-8
+  // (word boundary em JS sem flag /u trata `á` como non-word). Usando
+  // substring simples + fallback de "audio" sem acento. Cobre os 2 casos
+  // (Gemini transcribe pode dar com ou sem acento).
+  if (/[áa]udio/i.test(lower)) {
     followUp = `🎤 Você queria *registrar por áudio* — manda um áudio agora falando os códigos das figurinhas (ex: _"Brasil 1, Argentina 3, Marrocos 5"_) que eu transcrevo e registro!`
-  } else if (/\bfoto|imagem|c[âa]mera|tirar foto\b/.test(lower)) {
+  } else if (/\b(foto|imagem|c[âa]mera|tirar foto)\b/i.test(lower)) {
     followUp = `📸 Você queria *registrar por foto* — manda agora uma foto bem iluminada das figurinhas que eu identifico e registro!`
-  } else if (/\btexto|c[oó]digo|escrever\b/.test(lower)) {
+  } else if (/\b(texto|c[oó]digo|escrever)\b/i.test(lower)) {
     followUp = `✏️ Você queria *registrar por texto* — manda os códigos tipo _"BRA-1 ARG-3 FRA-10"_ ou _"Brasil 1, Argentina 3"_ que eu registro!`
   } else if (/\btroca|trocar\b/.test(lower)) {
     followUp = `🔁 Você perguntou sobre *trocas* — abre as opções com *trocas* aqui, ou no site em ${APP_URL}/trades pra ver quem perto de você precisa do que você tem.`
@@ -2070,7 +2074,19 @@ export async function POST(req: NextRequest) {
         // No pending scan — fall through to normal intent handling
       }
 
-      if (/^(n[aã]o|n|cancelar|cancel)$/i.test(lower.trim())) {
+      // Pedro 2026-05-04 (caso Vinicius): user tentou cancelar 5x com frases
+      // diferentes ("deixa quieto", "vou mandar por escrito", "cancela tudo",
+      // "cancele os registros anteriores"). Antes só pegava "não" exato.
+      // Agora detecta intent de cancelamento de forma muito mais permissiva.
+      const trimmedLower = lower.trim()
+      const isCancelIntent =
+        /^(n[aã]o|n|nao|cancelar|cancel|cancela|cancele)\.?$/i.test(trimmedLower) ||
+        /\b(cancel|cancela|cancele|esquece|esquec[íi])\b.*\b(tud[oa]|registro|anterior|anteriores|isso|essa|essas?)\b/i.test(trimmedLower) ||
+        /^(deixa\s+(quieto|pra\s+l[áa]|pra\s+la|de\s+lado)|esquece(\s+isso)?|para\s+tudo|pare|stop)\b/i.test(trimmedLower) ||
+        /\bvou\s+mandar\s+(por\s+)?(outro|escrito|texto|de\s+novo|outra\s+forma)\b/i.test(trimmedLower) ||
+        /\b(prefiro|quero)\s+(mandar|enviar)\s+(por\s+)?(escrito|texto|outra)/i.test(trimmedLower) ||
+        /^(cancele?(\s+os)?(\s+registros?)?(\s+anteriores)?)\.?$/i.test(trimmedLower)
+      if (isCancelIntent) {
         const supabaseAdmin = getAdmin()
         const { data: allPending } = await supabaseAdmin
           .from('pending_scans')
@@ -2252,7 +2268,12 @@ export async function POST(req: NextRequest) {
         // como duplicates. Era ambíguo. Quando user pergunta de forma vaga
         // sobre "o que tem" / "minhas figurinhas" SEM dizer repetidas/coladas,
         // a gente pergunta de volta com 2 botões.
+        // Pedro 2026-05-04 (caso Vinicius): "aqui estão todas as minhas figurinhas"
+        // virou inventory_ambiguous mas era PRESENTAÇÃO de lista. Adicionada
+        // negação: se a frase tem "aqui (estão|estao|tá|ta|tem|seguem)" → NÃO
+        // é pergunta, é apresentação. Cai no flow normal (com agent).
         codeMatches.length === 0 &&
+        !/\baqui\s+(est[ãa]o|s[ãa]o|t[ãa]o|t[áa]|tem|seguem|seg[ue][m]?)\b/i.test(lower) &&
         (/^\s*(quais|que|o\s+que|oque|que\s+que)\s+(eu\s+)?(tenho|tem)\s*\??$/.test(lower) ||
          /^\s*(tenho|tem)\s+(o\s+)?(que|qua[il]s)\s*\??$/.test(lower) ||
          /^\s*minhas?\s*(figurinhas?)?\s*\??$/.test(lower) ||
@@ -2717,26 +2738,74 @@ export async function POST(req: NextRequest) {
         }
 
         case 'register': {
-          // Serializa: 1 registro por vez. Se já tem pending, segura a mensagem.
-          const pendingItemsReg = await countPendingScanItems(user.id)
-          if (pendingItemsReg > 0) {
-            // Pedro 2026-05-04: throttle anti-flood (caso Pedro Arcari)
-            if (shouldSendWaitPending(user.id)) {
-              await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsReg))
-            }
-            break
-          }
-
           // Parse sticker codes from text (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, arg 3").
-          // Mesmo flow que foto: cria pending_scan e pede confirmação (sim/tirar N/não)
-          // em vez de salvar direto. Pedro pediu (2026-05-01) consistência entre
-          // os caminhos de entrada — código digitado, áudio transcrito e foto
-          // todos passam pela mesma etapa de revisão.
           const codePattern = /([a-z]{2,5})[\s\-]?(\d{1,2})/gi
           const matches: string[] = []
           let match
           while ((match = codePattern.exec(text)) !== null) {
             matches.push(`${match[1].toUpperCase()}-${match[2]}`)
+          }
+
+          // Pedro 2026-05-04 (caso Vinicius): se já tem pending ativo, em vez
+          // de bloquear ("registro aguardando"), MERGEAR a nova lista no
+          // pending existente. Não perde dados. User confirma o consolidado
+          // no fim com SIM/TIRAR/NÃO.
+          const supabaseAdminPre = getAdmin()
+          const { data: activePending } = await supabaseAdminPre
+            .from('pending_scans')
+            .select('id, scan_data')
+            .eq('user_id', user.id)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (activePending && matches.length > 0) {
+            // Resolver os matches em sticker_ids
+            const { data: foundNew } = await supabaseAdminPre
+              .from('stickers')
+              .select('id, number, player_name, country')
+              .in('number', matches)
+            const foundList = (foundNew || []) as Array<{ id: number; number: string; player_name: string; country: string }>
+            if (foundList.length > 0) {
+              // Lê scan_data atual + merge (dedup por sticker_id, soma quantity)
+              const oldData = (activePending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity: number }>) || []
+              const byId = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
+              for (const it of oldData) byId.set(it.sticker_id, { ...it })
+              for (const s of foundList) {
+                const existing = byId.get(s.id)
+                if (existing) existing.quantity += 1
+                else byId.set(s.id, { sticker_id: s.id, number: s.number, player_name: s.player_name || '', quantity: 1 })
+              }
+              const merged = Array.from(byId.values())
+              await supabaseAdminPre
+                .from('pending_scans')
+                .update({ scan_data: merged })
+                .eq('id', activePending.id)
+
+              // Mensagem: "Adicionei X. Total agora Y. SIM/NÃO"
+              const addedCount = foundList.length
+              const totalCount = merged.length
+              const lines = merged.slice(0, 15).map((s, i) => {
+                const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
+                return `*${i + 1}.* ${s.number}${s.player_name ? ' ' + s.player_name : ''}${qtyLabel}`
+              })
+              const moreHint = merged.length > 15 ? `\n_+${merged.length - 15} outras na lista_` : ''
+              let reply = `➕ Adicionei *${addedCount}* figurinha${addedCount > 1 ? 's' : ''} ao registro anterior. Total agora: *${totalCount}*\n\n`
+              reply += lines.join('\n') + moreHint + '\n\n'
+              reply += `✅ *SIM* → registra os ${totalCount} itens\n`
+              if (totalCount >= 2) reply += `✏️ *TIRAR ${Math.min(totalCount, 2)}* → remove o item ${Math.min(totalCount, 2)} (troque pelo número que quer remover)\n`
+              reply += `❌ *NÃO* → cancela tudo`
+              await sendBotTextFor(user.id, phone, reply)
+              break
+            }
+            // Pending existe mas nenhum sticker do DB — não cria pending novo
+            // paralelo. Se chegou aqui, mostra wait_pending normal.
+            if (shouldSendWaitPending(user.id)) {
+              const oldCount = ((activePending.scan_data as unknown[]) || []).length
+              await sendBotTextFor(user.id, phone, buildWaitPendingMsg(oldCount))
+            }
+            break
           }
 
           if (matches.length === 0) {
