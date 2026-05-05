@@ -2222,62 +2222,90 @@ export async function POST(req: NextRequest) {
         const supabaseAdmin = getAdmin()
         const { data: allPending } = await supabaseAdmin
           .from('pending_scans')
-          .select('id, user_id, scan_data, expires_at, created_at')
+          .select('id, user_id, scan_data, source, expires_at, created_at')
           .eq('user_id', user.id)
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true })
 
         if (allPending && allPending.length > 0) {
-          // Merge all pending scans into one list, summing quantities for same sticker
-          const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
-          for (const pending of allPending) {
-            const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity?: number }>
-            for (const s of scanData) {
-              const existing = allStickers.get(s.sticker_id)
-              if (existing) {
-                existing.quantity += (s.quantity || 1)
-              } else {
-                allStickers.set(s.sticker_id, { ...s, quantity: s.quantity || 1 })
+          // Pedro 2026-05-05: separa pendings de REGISTRO vs REMOÇÃO
+          const removePendings = allPending.filter((p: { source: string | null }) => p.source === 'remove_text')
+          const registerPendings = allPending.filter((p: { source: string | null }) => p.source !== 'remove_text')
+
+          // ── Processa REMOÇÕES ──
+          let removedCount = 0
+          const removedNumbers: string[] = []
+          if (removePendings.length > 0) {
+            const stickerIdsToRemove = new Set<number>()
+            for (const pending of removePendings) {
+              const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string }>
+              for (const s of scanData) {
+                stickerIdsToRemove.add(s.sticker_id)
+                if (!removedNumbers.includes(s.number)) removedNumbers.push(s.number)
               }
             }
-          }
-          const mergedStickers = Array.from(allStickers.values())
-
-          // Batch save using shared helper (single insert + single upsert instead of N queries)
-          const { saved, numbers: savedNumbers } = await batchSaveStickers(
-            supabaseAdmin,
-            user.id,
-            mergedStickers.map((s) => ({ sticker_id: s.sticker_id, number: s.number, quantity: s.quantity }))
-          )
-          const savedLines = savedNumbers.map((n) => `• ${n}`)
-
-          // Pedro 2026-05-04: enfileira match_candidates pro cron diário/horário
-          // notificar pessoas perto que precisam dessas figurinhas. Antes só
-          // o registro via web/app fazia isso — registro via WhatsApp ficava
-          // órfão, o que explica porque ninguém recebia alertas.
-          // Fire-and-forget: não bloqueia a resposta do bot.
-          ;(async () => {
-            try {
-              const { enqueueMatchCandidates } = await import('@/lib/match-enqueue')
-              const stickerIds = mergedStickers.map((s) => s.sticker_id)
-              const enqueued = await enqueueMatchCandidates(user.id, stickerIds)
-              console.log(`[wa-confirm] match_candidates enqueued=${enqueued} for ${stickerIds.length} stickers`)
-            } catch (err) {
-              console.error('[wa-confirm] enqueueMatchCandidates failed:', err)
+            if (stickerIdsToRemove.size > 0) {
+              const { error: delErr, count } = await supabaseAdmin
+                .from('user_stickers')
+                .delete({ count: 'exact' })
+                .eq('user_id', user.id)
+                .in('sticker_id', Array.from(stickerIdsToRemove))
+              if (delErr) console.error('[wa-confirm-remove] delete err:', delErr)
+              removedCount = count ?? stickerIdsToRemove.size
             }
-          })()
+          }
 
-          // Delete all pending scans
+          // ── Processa REGISTROS ──
+          let saved = 0
+          const savedNumbers: string[] = []
+          let mergedStickers: Array<{ sticker_id: number; number: string; player_name: string; quantity: number }> = []
+          if (registerPendings.length > 0) {
+            const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
+            for (const pending of registerPendings) {
+              const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity?: number }>
+              for (const s of scanData) {
+                const existing = allStickers.get(s.sticker_id)
+                if (existing) existing.quantity += (s.quantity || 1)
+                else allStickers.set(s.sticker_id, { ...s, quantity: s.quantity || 1 })
+              }
+            }
+            mergedStickers = Array.from(allStickers.values())
+            const result = await batchSaveStickers(
+              supabaseAdmin,
+              user.id,
+              mergedStickers.map((s) => ({ sticker_id: s.sticker_id, number: s.number, quantity: s.quantity })),
+            )
+            saved = result.saved
+            savedNumbers.push(...result.numbers)
+
+            // Enfileira match_candidates (pro cron horário notificar pessoas perto)
+            ;(async () => {
+              try {
+                const { enqueueMatchCandidates } = await import('@/lib/match-enqueue')
+                const stickerIds = mergedStickers.map((s) => s.sticker_id)
+                const enqueued = await enqueueMatchCandidates(user.id, stickerIds)
+                console.log(`[wa-confirm] match_candidates enqueued=${enqueued} for ${stickerIds.length} stickers`)
+              } catch (err) {
+                console.error('[wa-confirm] enqueueMatchCandidates failed:', err)
+              }
+            })()
+          }
+
+          // Limpa todos os pendings consumidos
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
 
-          // Get updated stats
           const stats = await getUserStats(user.id)
 
-          // Com a serialização (1 pending por vez), allPending sempre tem
-          // length 1. Mantemos a defesa pra legacy data, mas a copy fica
-          // genérica (sem citar "fotos").
-          let reply = `✅ *${saved} figurinha(s) registrada(s)!*\n\n`
-          reply += savedLines.join('\n') + '\n\n'
+          // Monta resposta — pode ter registro, remoção, ou ambos
+          let reply = ''
+          if (saved > 0) {
+            reply += `✅ *${saved} figurinha(s) registrada(s)!*\n`
+            reply += savedNumbers.map((n) => `• ${n}`).join('\n') + '\n\n'
+          }
+          if (removedCount > 0) {
+            reply += `🗑️ *${removedCount} figurinha(s) removida(s) do álbum:*\n`
+            reply += removedNumbers.map((n) => `• ${n}`).join('\n') + '\n\n'
+          }
           reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
 
           await sendText(phone, reply)
@@ -2498,6 +2526,14 @@ export async function POST(req: NextRequest) {
         intent = 'ranking'
       } else if (/\b(hist[oó]rico|hist[oó]ria|meus scans|[uú]ltim[ao]s figurinhas|o que registrei|que salvei|que entrou|salvei|registrei)\b/.test(lower)) {
         intent = 'history'
+      } else if (
+        // Pedro 2026-05-05 (caso +55 31 99195-7476): "Tirar cc13" virou register
+        // (bot achou que era código novo). User queria REMOVER do álbum.
+        // Detect: verbo de remoção + código(s) válido(s) → intent='remove'.
+        /^\s*(tirar|tira|remover|remove|deletar|delete|apagar|apaga|excluir|exclui)\s+/i.test(lower) &&
+        codeMatches.length >= 1
+      ) {
+        intent = 'remove'
       } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && codeMatches.length >= 1) {
         // Looks like sticker codes: "BRA-1 ARG-3" or "bra 1, arg 3" or "BRA1"
         intent = 'register'
@@ -2946,6 +2982,78 @@ export async function POST(req: NextRequest) {
           }
 
           await sendText(phone, lines.join('\n'))
+          break
+        }
+
+        case 'remove': {
+          // Pedro 2026-05-05 (caso 31 99195-7476): user mandou "Tirar cc13"
+          // querendo REMOVER do álbum, mas bot tratou como registro novo.
+          // Agora detecta intent de remoção + cria pending_scan especial
+          // (source='remove_text') que pede SIM/NÃO antes de remover.
+          const codePattern = /([a-z]{2,5})[\s\-]?(\d{1,2})/gi
+          const matches: string[] = []
+          let m
+          while ((m = codePattern.exec(text)) !== null) {
+            matches.push(`${m[1].toUpperCase()}-${m[2]}`)
+          }
+          if (matches.length === 0) {
+            await sendText(phone, '🤔 Não entendi qual figurinha você quer remover. Manda no formato: *remover BRA-1*, *tirar ARG-3*, *deletar FWC-5*.')
+            break
+          }
+
+          const supabaseAdminRem = getAdmin()
+          // Resolve sticker_ids
+          const { data: foundStickers } = await supabaseAdminRem
+            .from('stickers')
+            .select('id, number, player_name')
+            .in('number', matches)
+          const found = (foundStickers || []) as Array<{ id: number; number: string; player_name: string | null }>
+          if (found.length === 0) {
+            await sendText(phone, `🤔 Não achei essas figurinhas no álbum: *${matches.join(', ')}*. Confere os códigos.`)
+            break
+          }
+
+          // Filtra só as que o user TEM no álbum (status owned ou duplicate)
+          const { data: userOwns } = await supabaseAdminRem
+            .from('user_stickers')
+            .select('sticker_id, status, quantity')
+            .eq('user_id', user.id)
+            .in('sticker_id', found.map((s) => s.id))
+            .in('status', ['owned', 'duplicate'])
+          const ownsMap = new Map((userOwns || []).map((u: { sticker_id: number; status: string; quantity: number }) => [u.sticker_id, u]))
+          const haveItems = found.filter((s) => ownsMap.has(s.id))
+          const dontHaveItems = found.filter((s) => !ownsMap.has(s.id))
+
+          if (haveItems.length === 0) {
+            await sendText(phone, `🤔 Você não tem essas figurinhas registradas: *${matches.join(', ')}*. Não tem o que remover.`)
+            break
+          }
+
+          // Cria pending de remoção (não cobra scan)
+          const removeData = haveItems.map((s) => {
+            const u = ownsMap.get(s.id)
+            return { sticker_id: s.id, number: s.number, player_name: s.player_name || '', quantity: 1, current_qty: u?.quantity ?? 1 }
+          })
+          await supabaseAdminRem.from('pending_scans').insert({
+            user_id: user.id,
+            phone,
+            scan_data: removeData,
+            source: 'remove_text',
+          })
+
+          let reply = `🗑️ *Você quer REMOVER ${haveItems.length} figurinha${haveItems.length > 1 ? 's' : ''} do seu álbum?*\n\n`
+          reply += haveItems.map((s, i) => {
+            const u = ownsMap.get(s.id)
+            const qtyTail = (u?.quantity ?? 1) > 1 ? ` _(você tem ${u?.quantity})_` : ''
+            return `*${i + 1}.* ${s.number}${s.player_name ? ' — ' + s.player_name : ''}${qtyTail}`
+          }).join('\n')
+          if (dontHaveItems.length > 0) {
+            reply += `\n\n_(${dontHaveItems.map((s) => s.number).join(', ')} não estão no seu álbum — não vou mexer.)_`
+          }
+          reply += `\n\n⚠️ *Ação não pode ser desfeita.*\n\n`
+          reply += `✅ *SIM* → remove\n`
+          reply += `❌ *NÃO* → cancela`
+          await sendBotTextFor(user.id, phone, reply)
           break
         }
 
