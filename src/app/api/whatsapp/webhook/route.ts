@@ -1241,6 +1241,13 @@ async function batchSaveStickers(supabase: any, userId: string, stickers: { stic
     if (!ex) {
       toInsert.push({ user_id: userId, sticker_id: sticker.sticker_id, status: qty > 1 ? 'duplicate' : 'owned', quantity: qty })
       savedNumbers.push(qty > 1 ? `${sticker.number} (x${qty})` : sticker.number)
+    } else if (ex.status === 'missing' || ex.quantity === 0) {
+      // Pedro 2026-05-05: bug do "0 figurinhas registradas" — quando user
+      // tem sticker_row com status='missing' e quantity=0 (estado inicial
+      // OU removeu antes), batchSaveStickers IGNORAVA. Fix: trata como
+      // primeira aquisição — vira 'owned' (ou 'duplicate' se qty>1).
+      toUpdate.push({ sticker_id: sticker.sticker_id, status: qty > 1 ? 'duplicate' : 'owned', quantity: qty })
+      savedNumbers.push(qty > 1 ? `${sticker.number} (x${qty})` : sticker.number)
     } else if (ex.status === 'owned') {
       toUpdate.push({ sticker_id: sticker.sticker_id, status: 'duplicate', quantity: ex.quantity + qty })
       savedNumbers.push(`${sticker.number} (rep${qty > 1 ? ` x${ex.quantity + qty}` : ''})`)
@@ -3313,12 +3320,14 @@ export async function POST(req: NextRequest) {
           const sourceLabel = cameFromAudio ? 'no áudio' : 'no que você digitou'
 
           // Numbered preview matching the photo flow
+          // Pedro 2026-05-05: status='missing' tratado como 🆕 (user removeu
+          // antes OU é estado inicial — não é repetida)
           const previewLines = scanData.map((s, idx) => {
             const ex = existingMap.get(s.sticker_id) as { status: string; quantity: number } | undefined
             const label = `${s.number} ${s.player_name || ''}`.trim()
             const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
             const n = idx + 1
-            if (!ex) return `*${n}.* 🆕 ${label}${qtyLabel}`
+            if (!ex || ex.status === 'missing' || ex.quantity === 0) return `*${n}.* 🆕 ${label}${qtyLabel}`
             if (ex.status === 'owned') return `*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_`
             return `*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + s.quantity})_`
           })
