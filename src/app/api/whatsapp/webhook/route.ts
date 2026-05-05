@@ -1805,9 +1805,10 @@ export async function POST(req: NextRequest) {
       const isResetIntent = /^(zerar|resetar|apagar|limpar|deletar|excluir)\s+(?:o\s+|todas?\s+(?:as\s+)?)?(progress[oa]|progess[oa]|[áa]lbum|tudo|figurinhas|cromos|cole[çc][ãa]o|cadastro)\.?$/i.test(lower) ||
         /^(zerar|reset|apagar tudo|limpar tudo|come[çc]ar do zero|recome[çc]ar)\.?$/i.test(lower)
 
-      // Confirmação STRICT: exige exatamente "APAGAR TUDO" em maiúsculas
-      // (deliberado — evita reset acidental por user que digita "sim" rápido).
-      const userTypedApagarTudoCaps = text.trim() === 'APAGAR TUDO'
+      // Confirmação: exige exatamente "apagar tudo" (qualquer caixa).
+      // Pedro 2026-05-05: case-insensitive ok, mas qualquer outra coisa
+      // cancela (evita reset acidental por user que digita "sim" rápido).
+      const userTypedApagarTudoCaps = text.trim().toLowerCase() === 'apagar tudo'
 
       // Verifica se há pending de reset esperando confirmação
       const supabaseResetCheck = getAdmin()
@@ -1876,7 +1877,7 @@ export async function POST(req: NextRequest) {
           phone,
           `⚠️ *Atenção: isto vai APAGAR ${ownedCount} figurinha(s)* marcadas no seu álbum.\n\n` +
             `Essa ação *não pode ser desfeita*.\n\n` +
-            `Se tiver certeza, responde exatamente:\n*APAGAR TUDO*\n_(em letras maiúsculas)_\n\n` +
+            `Se tiver certeza, responde exatamente:\n*APAGAR TUDO*\n\n` +
             `Qualquer outra resposta cancela.`,
         )
         return NextResponse.json({ ok: true })
