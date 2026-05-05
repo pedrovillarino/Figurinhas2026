@@ -1729,7 +1729,15 @@ export async function POST(req: NextRequest) {
 
     // ─── Text ───
     if (messageType === 'text') {
-      const rawText = body.text?.message || body.body || body.message || ''
+      // Pedro 2026-05-05 (caso Enzo "Oi! Vim do meu perfil. [link:TOKEN]"):
+      // pra user JÁ conhecido (passou aqui na linha 1488), o auto-link não
+      // roda — então o marker `[link:TOKEN]` ficava no texto e poluía o
+      // matcher de figurinhas, que interpretava `[link:20...` como
+      // pseudo-código `LINK-20` e pedaços do hex como `FC-65`. Strip
+      // imediato resolve. Pra user desconhecido, o auto-link já roda
+      // antes (linha 1504) e usa o token; depois o stripLinkToken roda
+      // também (linha 1524). Aqui é a redundância pra user conhecido.
+      const rawText = stripLinkToken(body.text?.message || body.body || body.message || '')
 
       if (!rawText.trim()) {
         return NextResponse.json({ ok: true })
@@ -1882,7 +1890,7 @@ export async function POST(req: NextRequest) {
             `Exemplos:\n` +
             `• _"Brasil 1, Argentina 3, Marrocos 5"_\n` +
             `• _"BRA 14, FRA 10, ESP 4"_\n\n` +
-            `Eu transcrevo e registro tudo. 💚`,
+            `Nós transcrevemos e registramos tudo. ⚽`,
         )
         return NextResponse.json({ ok: true })
       }
@@ -3403,7 +3411,7 @@ export async function POST(req: NextRequest) {
             `  • Boa luz, sem reflexo, foco no centro\n` +
             `  • Com 5+ cromos, prefira todos virados *de frente* (lado do nome)\n\n` +
             `🎤 *Por áudio*\n` +
-            `Manda um áudio falando os códigos. Ex.: _"BRA 1, ARG 3, FRA 10"_ ou _"Brasil 1 e Argentina 3"_. Eu transcrevo e te mostro pra confirmar antes de salvar.\n\n` +
+            `Manda um áudio falando os códigos. Ex.: _"BRA 1, ARG 3, FRA 10"_ ou _"Brasil 1 e Argentina 3"_. Nós transcrevemos e te mostramos pra confirmar antes de salvar.\n\n` +
             `✏️ *Por texto*\n` +
             `Digita os códigos. Aceita vários formatos: _BRA-1 ARG-3 FRA-10_, _bra 1, arg 3_ ou _BRA1 BRA5_.\n\n` +
             `*📊 Outras coisas:*\n` +
