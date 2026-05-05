@@ -45,7 +45,7 @@ export default function TermosPage() {
 
       <h1 className="text-2xl font-black text-navy mb-2">Termos de Serviço</h1>
       <p className="text-xs text-gray-400 mb-8">
-        Última atualização: 30 de abril de 2026 — Versão 1.5
+        Última atualização: 5 de maio de 2026 — Versão 1.6
       </p>
 
       <div className="bg-gold-light border border-gold rounded-lg p-4 mb-8">
@@ -167,7 +167,7 @@ export default function TermosPage() {
                   <tr>
                     <td className="px-3 py-2 font-medium">Copa Completa</td>
                     <td className="px-3 py-2">R$&nbsp;29,90 (pagamento único)</td>
-                    <td className="px-3 py-2">500 scans com IA (~4.000 figurinhas), áudio ilimitado, trocas ilimitadas, sem anúncios</td>
+                    <td className="px-3 py-2">Scans com IA, áudios e trocas <strong>ilimitados</strong> (sujeito à política de uso justo — ver item&nbsp;4.9), match em tempo real de trocas perto, prioridade na fila de trocas, badge dourado, sem anúncios</td>
                   </tr>
                 </tbody>
               </table>
@@ -259,6 +259,40 @@ export default function TermosPage() {
               <strong>Aviso prévio:</strong> modificações estruturais que afetem usuários existentes
               serão comunicadas com no mínimo 30 (trinta) dias de antecedência por meio do App,
               e-mail ou WhatsApp.
+            </P>
+          </SubSection>
+
+          <SubSection id="4.9">
+            <p className="text-sm font-semibold text-navy">4.9. Política de uso justo (fair-use) do plano Copa Completa</p>
+            <P>
+              O plano Copa Completa oferece <strong>scans, áudios e trocas ilimitados</strong> para
+              uso pessoal e de boa-fé na coleção de <strong>um (1) único álbum</strong> da edição vigente
+              por usuário.
+            </P>
+            <P>
+              Para garantir a estabilidade do Serviço e a sustentabilidade dos custos de inteligência
+              artificial, os scans são liberados em <strong>lotes de 500</strong>. Sempre que o usuário se
+              aproximar do limite do lote atual e o uso for compatível com a coleção de um álbum
+              (sem indícios de abuso, revenda ou automação), <strong>um novo lote de 500 scans será
+              liberado automaticamente, sem custo adicional</strong>, mantendo a experiência ilimitada
+              prometida no plano.
+            </P>
+            <P>
+              Caracterizam <strong>uso fora do contemplado por esta política</strong>:
+            </P>
+            <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1 my-2">
+              <li>utilização do scanner para <strong>terceiros, revenda ou prestação de serviços</strong>;</li>
+              <li>utilização para <strong>álbuns de outras pessoas</strong> ou para múltiplos álbuns simultaneamente;</li>
+              <li><strong>automação, scripts, bots</strong> ou padrões de uso claramente não-humanos;</li>
+              <li>tentativa de uso para <strong>álbuns ou produtos não suportados</strong> pelo Complete Aí;</li>
+              <li>volume manifestamente <strong>incompatível com a coleção de 1 (um) álbum por usuário</strong> (por exemplo, milhares de scans em poucos dias após múltiplos lotes liberados, sem evolução proporcional do álbum no app).</li>
+            </ul>
+            <P>
+              Ao identificar uso fora desta política, o Complete Aí poderá <strong>pausar a liberação
+              automática de novos lotes</strong> e entrar em contato com o usuário pelos canais cadastrados
+              (e-mail e/ou WhatsApp) para esclarecimento, antes de qualquer outra medida sempre que
+              viável. O direito ao reembolso integral previsto no item&nbsp;4.3 (art.&nbsp;49 do CDC)
+              permanece preservado nos prazos legais.
             </P>
           </SubSection>
         </Section>

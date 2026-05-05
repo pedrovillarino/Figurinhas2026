@@ -15,26 +15,26 @@ const PAID_TIERS: Tier[] = ['estreante', 'colecionador', 'copa_completa']
 
 const TIER_HIGHLIGHTS: Record<string, string[]> = {
   estreante: [
-    '30 scans com IA (~240 figurinhas)',
-    '30 áudios pelo WhatsApp',
-    '5 trocas incluídas',
-    'Sem anúncios',
+    '📸 30 scans com IA — escaneia ~240 figurinhas em fotos rápidas',
+    '🎤 30 áudios pelo WhatsApp — fala os códigos de boca',
+    '🔁 5 trocas com gente perto de você',
+    '🚫 Adeus anúncios',
   ],
   colecionador: [
-    '150 scans com IA (~1.200 figurinhas)',
-    'Áudio ilimitado pelo WhatsApp',
-    '15 trocas incluídas',
-    '📬 1 mensagem por dia com potenciais trocas perto',
-    'Packs avulsos mais baratos',
-    'Sem anúncios',
+    '📸 150 scans com IA (5× mais) — escaneia ~1.200 figurinhas',
+    '🎤 Áudio ILIMITADO no WhatsApp — manda quantos áudios quiser',
+    '🔁 15 trocas (3× mais que o Estreante)',
+    '📬 1 alerta por dia de trocas perto bilaterais (motor de fechamento)',
+    '💸 Packs avulsos com preço de apoiador',
+    '🚫 Sem anúncios',
   ],
   copa_completa: [
-    '500 scans com IA (~4.000 figurinhas)',
-    'Áudio e trocas ilimitados',
-    '⚡ Mensagem NA HORA que alguém perto registra figurinha sua faltante',
+    '📸 Scans ILIMITADOS com IA — escaneia quantas figurinhas do seu álbum quiser',
+    '🎤 Áudio ilimitado · 🔁 TROCAS ILIMITADAS',
+    '⚡ Match em TEMPO REAL — avisamos NA HORA que alguém perto registra figurinha que você precisa E você tem repetida pra trocar',
     '🎯 Aparece primeiro na fila das trocas perto',
     '🏆 Badge dourado exclusivo no ranking e nas trocas',
-    'Sem anúncios · experiência elite',
+    '🚫 Sem anúncios · experiência elite',
   ],
 }
 

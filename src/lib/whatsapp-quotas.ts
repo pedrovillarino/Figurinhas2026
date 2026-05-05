@@ -8,9 +8,16 @@
 // Pedro 2026-05-05: copy reescrita pra ser mais sensibilizadora — conta
 // história do app (pai ajudando filhos sem falir), enfatiza trocas como
 // coração do produto, e fixa URL pra /upgrade (era /planos = 404).
+//
+// Pedro 2026-05-05 (fair-use Copa Completa): marketing fala "scans
+// ilimitados", mas backend libera em lotes de 500. getQuotas chama
+// release_copa_scan_batch_if_needed antes de calcular cota — se user
+// está perto do limite, libera +500 automaticamente. Termos cláusula 4.9.
+// Alerta admin via Z-API a partir do 3º lote (1500 scans = 1.4× álbum).
 
 import { createClient } from '@supabase/supabase-js'
 import { type Tier, getScanLimit, getAudioLimit } from '@/lib/tiers'
+import { sendText } from '@/lib/zapi'
 
 function getAdmin() {
   return createClient(
@@ -18,6 +25,63 @@ function getAdmin() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } },
   )
+}
+
+/**
+ * Fair-use auto-release pra Copa Completa. Idempotente: chama toda vez
+ * que getQuotas roda. RPC verifica se vale a pena liberar (threshold) e
+ * libera +500 scan_credits + log de auditoria. Retorna true se liberou.
+ *
+ * Side-effect: alerta admin via Z-API quando suspicious ou batches >= 3.
+ */
+async function maybeReleaseCopaBatch(userId: string): Promise<boolean> {
+  try {
+    const supabase = getAdmin()
+    const { data, error } = await supabase.rpc('release_copa_scan_batch_if_needed', {
+      p_user_id: userId,
+    })
+    if (error) {
+      console.error('[copa-fair-use] RPC error:', error)
+      return false
+    }
+    if (!data || typeof data !== 'object') return false
+    const result = data as {
+      released: boolean
+      reason?: string
+      batch_number?: number
+      scans_used?: number
+      stickers_count?: number
+      capture_rate?: number
+      suspicious?: boolean
+      should_alert_admin?: boolean
+    }
+
+    // Alerta admin se foi liberado lote alto OU se foi bloqueado por suspeita
+    const adminPhone = process.env.ADMIN_PHONE
+    if (adminPhone && (result.should_alert_admin || result.reason === 'paused_for_review')) {
+      const tag = result.released ? '🟡 Fair-use lote liberado' : '🚨 Fair-use BLOQUEADO'
+      const msg =
+        `${tag}\n\n` +
+        `User: ${userId}\n` +
+        `Lote nº: ${result.batch_number ?? '—'}\n` +
+        `Scans usados: ${result.scans_used}\n` +
+        `Cromos no álbum: ${result.stickers_count}\n` +
+        `Capture rate: ${result.capture_rate?.toFixed(2) ?? 'n/a'}\n` +
+        `Suspicious: ${result.suspicious ? 'sim' : 'não'}` +
+        (result.reason === 'paused_for_review'
+          ? `\n⚠️ Liberação pausada — revisar manualmente.`
+          : '')
+      // fire-and-forget — não bloqueia a request
+      sendText(adminPhone, msg).catch((err: unknown) => {
+        console.error('[copa-fair-use] admin alert send failed:', err)
+      })
+    }
+
+    return !!result.released
+  } catch (err) {
+    console.error('[copa-fair-use] unexpected:', err)
+    return false
+  }
 }
 
 export type Quotas = {
@@ -34,6 +98,13 @@ export async function getQuotas(userId: string, tier: Tier): Promise<Quotas> {
   const supabase = getAdmin()
   const scansLimit = getScanLimit(tier)
   const audiosLimit = getAudioLimit(tier)
+
+  // Fair-use Copa Completa: tenta liberar +500 scans antes de calcular
+  // a cota. RPC é idempotente — só libera se user está perto do limite.
+  // Marketing fala "ilimitado", Termos 4.9 cobrem o lote-em-lote.
+  if (tier === 'copa_completa') {
+    await maybeReleaseCopaBatch(userId)
+  }
 
   const { data: scanRows } = await supabase
     .from('scan_usage')
@@ -79,15 +150,16 @@ export function buildSupporterFooter(tier: Tier, appUrl: string): string {
   if (tier === 'free' || tier === 'estreante') {
     tiers.push(
       `💎 *Colecionador R$19,90* (mais escolhido)\n` +
-      `   • 150 scans + áudio ilimitado\n` +
-      `   • 15 trocas + 🔁 alertas de troca`,
+      `   • 150 scans (*5× mais*) + áudio *ILIMITADO*\n` +
+      `   • 15 trocas + 🔁 1 alerta/dia de trocas perto`,
     )
   }
   if (tier !== 'copa_completa') {
     tiers.push(
       `🏆 *Copa Completa R$29,90*\n` +
-      `   • Tudo ilimitado: scans, áudios, *TROCAS*\n` +
-      `   • Match em *TEMPO REAL*: avisamos quando alguém perto registra figurinha que você precisa E você tem repetida pra trocar`,
+      `   • Scans, áudios e *TROCAS ILIMITADOS*\n` +
+      `   • ⚡ *Match em TEMPO REAL*: avisamos NA HORA que alguém perto registra figurinha que você precisa E você tem repetida pra trocar\n` +
+      `   • 🏆 Badge dourado e prioridade na fila de trocas`,
     )
   }
 
