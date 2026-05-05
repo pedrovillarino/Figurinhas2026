@@ -169,16 +169,21 @@ export default function UpgradePlans({
         </div>
       )}
 
-      {/* Pedro 2026-05-05: bloco de sensibilização — somos um app pequeno
-          que precisa de apoiadores. Mesmo tom do paywall WhatsApp. */}
-      <div className="mb-4 rounded-2xl bg-gradient-to-br from-brand-light/40 to-amber-50 border border-brand/15 p-4">
+      {/* Pedro 2026-05-05: bloco de sensibilização + reforço WhatsApp-first.
+          Mesmo tom do paywall WhatsApp e do landing. */}
+      <div className="mb-4 rounded-2xl bg-gradient-to-br from-brand-light/40 to-amber-50 border border-brand/15 p-4 space-y-2">
         <p className="text-[12px] text-gray-700 leading-relaxed">
           💛 <span className="font-semibold">Por que apoiar o Complete Aí?</span>{' '}
           Somos um app pequeno que surgiu da dor de um pai ajudar os filhos a
-          completarem o álbum sem falir 🤣 — então sabemos como dói não fechar
-          as últimas figurinhas. <span className="font-semibold">Trocas perto
-          de você é o coração do app.</span> Cada apoiador ajuda a manter o
-          app evoluindo pra todo mundo. ⚽
+          completarem o álbum sem falir e sem gastar muito tempo 🤣 — então
+          sabemos como dói não fechar as últimas figurinhas.{' '}
+          <span className="font-semibold">Trocas perto de você é o coração do app.</span>{' '}
+          Cada apoiador ajuda a manter o app evoluindo pra todo mundo. ⚽
+        </p>
+        <p className="text-[12px] text-gray-700 leading-relaxed">
+          ✨ <span className="font-semibold">E o melhor:</span> registra tudo
+          direto no WhatsApp — sem baixar nada, sem entrar em conta nenhuma no
+          dia a dia. Foto, áudio ou texto.
         </p>
       </div>
 

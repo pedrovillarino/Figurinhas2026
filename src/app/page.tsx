@@ -52,20 +52,46 @@ export default async function Home() {
 
           {/* Headline */}
           <h1 className="text-[22px] font-black text-center leading-tight animate-fade-up-delay tracking-tight">
-            Escaneie. Troque.{' '}
+            Complete o álbum sem sair do{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-dark">
-              Complete.
+              WhatsApp
             </span>
           </h1>
 
           <p className="text-sm text-gray-500 mt-2 text-center leading-relaxed max-w-[280px] animate-fade-up-delay">
-            Escaneie suas figurinhas com IA e encontre trocas perto de você.
+            Foto, áudio ou texto. A gente identifica e registra na hora.
           </p>
 
           {/* CTA */}
           <div className="mt-6 w-full max-w-xs animate-fade-up-delay-2">
             <Suspense><HomeLogin /></Suspense>
           </div>
+        </div>
+      </section>
+
+      {/* ── Manifesto / Por que existe ── */}
+      {/* Pedro 2026-05-05: storytelling de apoiador (sem cara de mendigo) +
+          diferencial principal (vive no WhatsApp, sem download diário). */}
+      <section className="px-6 py-8 max-w-md mx-auto">
+        <div className="rounded-2xl bg-gradient-to-br from-brand-light/40 to-amber-50 border border-brand/15 p-5 space-y-3">
+          <h2 className="text-base font-black text-navy leading-tight">
+            O álbum que mora dentro do WhatsApp
+          </h2>
+          <p className="text-[13px] text-gray-700 leading-relaxed">
+            Nada pra baixar, nada pra logar no dia a dia. Manda foto, áudio ou
+            texto e a gente registra na hora:
+          </p>
+          <ul className="space-y-1.5 text-[13px] text-gray-700">
+            <li>📸 <strong className="font-semibold">Foto</strong> das figurinhas — IA identifica em segundos</li>
+            <li>🎤 <strong className="font-semibold">Áudio</strong> falando os códigos — <em>&ldquo;Brasil 1, 7, 15, Argentina 3&rdquo;</em></li>
+            <li>✏️ <strong className="font-semibold">Texto</strong> rápido — <em>&ldquo;BRA-1 ARG-3&rdquo;</em></li>
+          </ul>
+          <p className="text-[13px] text-gray-700 leading-relaxed pt-1">
+            Nasceu da dor de um pai completar o álbum dos filhos sem falir e
+            sem gastar muito tempo 🤣 — por isso construímos exatamente o que
+            a gente queria ter: rápido, sem fricção, no canal que a galera já
+            usa. Sem grande empresa — só nós, o álbum e a paixão de colecionar.
+          </p>
         </div>
       </section>
 
@@ -189,7 +215,7 @@ export default async function Home() {
       {/* ── Footer ── */}
       <footer className="px-6 py-6 border-t border-gray-100 text-center space-y-2">
         <p className="text-xs text-gray-500">
-          Complete Aí — Seu álbum de figurinhas
+          Feito por um pai pra outros pais. Pagamento único, sem mensalidade.
         </p>
         <p className="text-xs text-gray-500">
           contato@completeai.com.br

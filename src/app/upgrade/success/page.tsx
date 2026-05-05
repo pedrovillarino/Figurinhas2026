@@ -80,16 +80,23 @@ export default function UpgradeSuccessPage() {
     <div className="min-h-screen bg-white flex items-center justify-center px-6">
       <div className="max-w-sm w-full">
         {/* Header */}
+        {/* Pedro 2026-05-05: copy de fidelização — apoiador, não pagante.
+            Sem "café da família", sem mendigar — fala do impacto real. */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4 animate-bounce">🎉</div>
+          <div className="text-5xl mb-3 animate-bounce">🏆</div>
           <h1 className="text-2xl font-black text-gray-900 mb-2">
-            Upgrade feito!
+            Bem-vindo ao time dos apoiadores.
           </h1>
-          <p className="text-sm text-gray-500">
-            {hasPhone
-              ? 'Tudo pronto! Suas novas funcionalidades já estão ativas.'
-              : 'Adicione seu celular para receber alertas de troca (opcional).'}
+          <p className="text-[13px] text-gray-600 leading-relaxed">
+            Acabou de ajudar a gente a manter e melhorar o app pra milhares de
+            famílias criarem memórias inesquecíveis e completarem seus álbuns.
+            Obrigado. ⚽
           </p>
+          {!hasPhone && (
+            <p className="text-xs text-gray-400 mt-3">
+              Adicione o celular abaixo para receber alertas de troca (opcional).
+            </p>
+          )}
         </div>
 
         {/* Unlocked features */}
