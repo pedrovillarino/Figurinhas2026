@@ -1796,6 +1796,121 @@ export async function POST(req: NextRequest) {
 
       const lower = text.trim().toLowerCase()
 
+      // ─── Reset álbum / zerar progresso (Pedro 2026-05-05, caso Enzo) ───
+      // Two-phase: 1) detecta intenção → mostra contagem + pede confirmação
+      // explícita "APAGAR TUDO". 2) Próxima mensagem: se for "APAGAR TUDO"
+      // executa, qualquer outra coisa cancela. Pending guardado em
+      // pending_scans com source='reset_album_confirm'.
+      // Cobre typos ("progesso") e variantes ("deletar todas as figurinhas")
+      const isResetIntent = /^(zerar|resetar|apagar|limpar|deletar|excluir)\s+(?:o\s+|todas?\s+(?:as\s+)?)?(progress[oa]|progess[oa]|[áa]lbum|tudo|figurinhas|cromos|cole[çc][ãa]o|cadastro)\.?$/i.test(lower) ||
+        /^(zerar|reset|apagar tudo|limpar tudo|come[çc]ar do zero|recome[çc]ar)\.?$/i.test(lower)
+
+      // Confirmação STRICT: exige exatamente "APAGAR TUDO" em maiúsculas
+      // (deliberado — evita reset acidental por user que digita "sim" rápido).
+      const userTypedApagarTudoCaps = text.trim() === 'APAGAR TUDO'
+
+      // Verifica se há pending de reset esperando confirmação
+      const supabaseResetCheck = getAdmin()
+      const { data: resetPending } = await supabaseResetCheck
+        .from('pending_scans')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('source', 'reset_album_confirm')
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle()
+
+      if (resetPending) {
+        // Tem pending de reset — esta mensagem é a confirmação
+        if (userTypedApagarTudoCaps) {
+          // Executa reset: apaga TODOS os user_stickers
+          const { error: delErr, count } = await supabaseResetCheck
+            .from('user_stickers')
+            .delete({ count: 'exact' })
+            .eq('user_id', user.id)
+          if (delErr) {
+            console.error('[wa-reset] delete err:', delErr)
+            await sendText(phone, '❌ Erro ao zerar o álbum. Tenta de novo daqui a pouco.')
+          } else {
+            // Limpa o pending
+            await supabaseResetCheck.from('pending_scans').delete().eq('id', resetPending.id)
+            await sendText(
+              phone,
+              `🗑️ *Álbum zerado.* Apagamos *${count ?? 0}* figurinha(s) do seu álbum.\n\n` +
+                `Pode começar do zero quando quiser. ⚽`,
+            )
+          }
+        } else {
+          // Qualquer outra mensagem → cancela o reset
+          await supabaseResetCheck.from('pending_scans').delete().eq('id', resetPending.id)
+          await sendText(
+            phone,
+            `✅ *Reset cancelado.* Suas figurinhas estão a salvo.\n\n` +
+              `_Se mudar de ideia, manda *zerar progresso* de novo._`,
+          )
+        }
+        return NextResponse.json({ ok: true })
+      }
+
+      if (isResetIntent) {
+        // Conta as figurinhas atuais e cria pending de confirmação
+        const { count: ownedCount } = await supabaseResetCheck
+          .from('user_stickers')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if (!ownedCount) {
+          await sendText(phone, '🤔 Seu álbum já está vazio — não tem nada pra zerar.')
+          return NextResponse.json({ ok: true })
+        }
+
+        // Insere pending com TTL curto (10 minutos)
+        await supabaseResetCheck.from('pending_scans').insert({
+          user_id: user.id,
+          phone,
+          scan_data: [],
+          source: 'reset_album_confirm',
+          expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        })
+
+        await sendText(
+          phone,
+          `⚠️ *Atenção: isto vai APAGAR ${ownedCount} figurinha(s)* marcadas no seu álbum.\n\n` +
+            `Essa ação *não pode ser desfeita*.\n\n` +
+            `Se tiver certeza, responde exatamente:\n*APAGAR TUDO*\n_(em letras maiúsculas)_\n\n` +
+            `Qualquer outra resposta cancela.`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      // ─── Vincular conta / conectar (Pedro 2026-05-05, caso Enzo) ───
+      // User pediu pra conectar conta. Se já tá conhecido por phone,
+      // explica que já tá conectado + oferece troca via email. Se for
+      // unknown, cai no fluxo de cadastro normal (não chega aqui).
+      // Cobre: "conectar conta", "quero conectar a conta", "mas eu quero
+      // vincular minha conta", "vincular whatsapp", "linkar email", etc.
+      const isConnectAccountIntent =
+        /^(?:(?:mas|mais|por[ée]m)\s+)?(?:eu\s+)?(?:quero|gostaria(?:\s+de)?|preciso|posso|como)?\s*(?:conectar|vincular|ligar|associar|linkar|registrar)\s+(?:a\s+|minha\s+|meu\s+)?(?:conta|whatsapp|wpp|wassap|email|cadastro)\.?$/i.test(lower)
+
+      if (isConnectAccountIntent) {
+        // Aqui o user já é conhecido (passou pela findUserByPhone). Logo,
+        // já está conectado. Explica e oferece a troca de email.
+        const supabaseAdminCC = getAdmin()
+        const { data: profCC } = await supabaseAdminCC
+          .from('profiles')
+          .select('email, display_name')
+          .eq('id', user.id)
+          .maybeSingle()
+        const firstName = (profCC?.display_name || '').split(' ')[0]
+        const emailMasked = profCC?.email ? `${profCC.email.slice(0, 3)}***${profCC.email.slice(profCC.email.indexOf('@'))}` : ''
+        await sendText(
+          phone,
+          `🔗 *${firstName ? firstName + ', s' : 'S'}eu WhatsApp já está conectado* à conta ${emailMasked || 'cadastrada'}. ✅\n\n` +
+            `Se quiser trocar pra outra conta, manda o *email da nova conta* aqui que a gente vincula.\n\n` +
+            `_Ou se quiser ver tudo que dá pra fazer aqui, manda *menu*._`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
       // ─── Comandos de alertas de match (Pedro 2026-05-04) ───
       // "parar alertas", "menos alertas", "mais alertas", "alertas" (sozinho).
       // Atualiza profiles.match_alerts_freq e responde com status.
