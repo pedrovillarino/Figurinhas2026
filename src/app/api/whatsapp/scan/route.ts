@@ -559,10 +559,12 @@ export async function POST(req: NextRequest) {
     })
 
     // Save pending scan (expires in 1 hour — DB default)
+    // Pedro 2026-05-04: source=photo pra mensagem agregada agrupar por origem
     await adminDb.from('pending_scans').insert({
       user_id: userId,
       phone,
       scan_data: scanData,
+      source: 'photo',
     })
 
     // Check how many total pending scans this user has now

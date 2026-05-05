@@ -324,6 +324,60 @@ function shouldSendWaitPending(userId: string): boolean {
   return true
 }
 
+/**
+ * Pedro 2026-05-04 (caso Vinicius): pendings podem ser paralelos (foto+texto+
+ * áudio em sequência rápida). Mensagem agregada agrupa por origem
+ * ("📸 Registro 1 — foto: ..., ✏️ Registro 2 — texto: ...") e dá opções
+ * de cancelar registro inteiro OU item específico.
+ *
+ * Items são numerados GLOBALMENTE (1..N atravessando os pendings na ordem
+ * de criação). "tirar N" e "cancelar registro N" são manipulados separadamente.
+ */
+type PendingItem = { sticker_id: number; number: string; player_name: string; quantity: number }
+type PendingScanRow = { id: number; scan_data: PendingItem[]; source: string | null; created_at: string }
+
+function sourceLabel(source: string | null | undefined): { emoji: string; label: string } {
+  switch (source) {
+    case 'photo': return { emoji: '📸', label: 'foto' }
+    case 'audio': return { emoji: '🎤', label: 'áudio' }
+    case 'text': return { emoji: '✏️', label: 'texto' }
+    default: return { emoji: '📋', label: 'registro' }
+  }
+}
+
+function buildAggregatedPendingMsg(pendings: PendingScanRow[]): string {
+  if (pendings.length === 0) return ''
+  const totalItems = pendings.reduce((sum, p) => sum + (p.scan_data?.length || 0), 0)
+
+  // Numeração global (1..N) ao longo da concatenação dos pendings
+  let globalIdx = 0
+  const blocks: string[] = []
+  pendings.forEach((p, regIdx) => {
+    const { emoji, label } = sourceLabel(p.source)
+    const regNum = regIdx + 1
+    const lines = (p.scan_data || []).map((s) => {
+      globalIdx++
+      const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
+      return `   *${globalIdx}.* ${s.number}${s.player_name ? ' — ' + s.player_name : ''}${qtyLabel}`
+    })
+    blocks.push(`${emoji} *Registro ${regNum}* — ${label}:\n${lines.join('\n')}`)
+  })
+
+  let msg = pendings.length === 1
+    ? `📋 *${totalItems} figurinha(s) aguardando confirmação:*\n\n`
+    : `📋 *${pendings.length} registros aguardando confirmação* (${totalItems} itens):\n\n`
+  msg += blocks.join('\n\n')
+  msg += `\n\n✅ *SIM* → registra todos (${totalItems} itens)`
+  if (totalItems >= 2) {
+    msg += `\n✏️ *TIRAR 1* → remove só o item 1 (troque pelo número que quer remover)`
+  }
+  if (pendings.length > 1) {
+    msg += `\n🗑️ *CANCELAR REGISTRO 1* → remove só os itens do registro 1 (troque o número)`
+  }
+  msg += `\n❌ *NÃO* → cancela tudo`
+  return msg
+}
+
 function buildWaitPendingMsg(itemCount: number): string {
   const head = '⏳ *Você ainda tem um registro aguardando confirmação.*\n\n' +
     'Responde primeiro a anterior:\n'
@@ -1946,34 +2000,44 @@ export async function POST(req: NextRequest) {
       // The user-facing list is numbered 1..N over the LATEST pending_scan
       // (the one this WhatsApp scan reply just rendered). Comma, space and
       // the connector "e" are all accepted: "tirar 3", "tirar 2,5", "tirar 2 e 5".
+      // Pedro 2026-05-04: pendings paralelos. Numeração agora é GLOBAL (1..N
+      // ao longo de todos pendings ordenados por created_at). "tirar N"
+      // localiza o item global N e remove só do pending dele.
       const removeMatch = lower.trim().match(/^(?:tirar|tira|remover|remove)\s+([\d,\s]+(?:\s+e\s+\d+)*)/i)
       if (removeMatch) {
         const supabaseAdmin = getAdmin()
-        const { data: latestPending } = await supabaseAdmin
+        const { data: allPendingRows } = await supabaseAdmin
           .from('pending_scans')
-          .select('id, scan_data')
+          .select('id, scan_data, source, created_at')
           .eq('user_id', user.id)
           .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
+          .order('created_at', { ascending: true })
+        const allPendings = (allPendingRows || []) as PendingScanRow[]
 
-        if (!latestPending) {
+        if (allPendings.length === 0) {
           await sendText(phone, '🤔 Não tenho nenhum registro aguardando confirmação. Manda uma foto, áudio ou texto pra começar!')
           return NextResponse.json({ ok: true })
         }
 
-        const stickers = (latestPending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity: number }>) || []
-        // Parse indices 1..N from "3", "2,5", "2 e 5", "2, 5 e 7"
+        // Mapeia índice global → (pending, item_idx_local)
+        type FlatItem = { pendingId: number; localIdx: number; item: PendingItem }
+        const flat: FlatItem[] = []
+        for (const p of allPendings) {
+          const items = p.scan_data || []
+          for (let i = 0; i < items.length; i++) flat.push({ pendingId: p.id, localIdx: i, item: items[i] })
+        }
+        const totalItems = flat.length
+
+        // Parse índices da mensagem
         const parsed: number[] = (removeMatch[1].match(/\d+/g) || [])
           .map((d: string) => parseInt(d, 10))
-          .filter((n: number) => Number.isInteger(n) && n >= 1 && n <= stickers.length)
-        const indices: number[] = Array.from(new Set<number>(parsed)).sort((a, b) => a - b)
+          .filter((n: number) => Number.isInteger(n) && n >= 1 && n <= totalItems)
+        const indicesGlobal: number[] = Array.from(new Set<number>(parsed)).sort((a, b) => a - b)
 
-        if (indices.length === 0) {
+        if (indicesGlobal.length === 0) {
           await sendText(
             phone,
-            `❓ Não entendi o número. A lista tem ${stickers.length} item(s).\n\n` +
+            `❓ Não entendi o número. A lista tem ${totalItems} item(s).\n\n` +
               `Como usar:\n` +
               `• *tirar 1* — só o item 1\n` +
               `• *tirar 1,3* — items 1 e 3\n` +
@@ -1983,34 +2047,115 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true })
         }
 
-        const removed = indices.map((n) => stickers[n - 1])
-        const kept = stickers.filter((_, i) => !indices.includes(i + 1))
+        // Agrupa removals por pending_id e aplica
+        const removalsByPending = new Map<number, Set<number>>()  // pendingId → set de localIdx
+        const removedItems: PendingItem[] = []
+        for (const g of indicesGlobal) {
+          const f = flat[g - 1]
+          if (!removalsByPending.has(f.pendingId)) removalsByPending.set(f.pendingId, new Set())
+          removalsByPending.get(f.pendingId)!.add(f.localIdx)
+          removedItems.push(f.item)
+        }
 
-        if (kept.length === 0) {
-          // Pedro 2026-05-04: user removeu TODAS as figurinhas detectadas →
-          // não vai registrar nenhuma. Refunda o scan (1 pending = 1 scan).
-          await supabaseAdmin.from('pending_scans').delete().eq('id', latestPending.id)
-          await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id, p_count: 1 })
-          await sendText(phone, `❌ Removidas todas as ${removed.length} figurinha(s) do registro. *Não contou scan* — manda outra foto, áudio ou texto se quiser!`)
-        } else {
-          await supabaseAdmin.from('pending_scans').update({ scan_data: kept }).eq('id', latestPending.id)
-          const removedSummary = removed.map((s) => `${s.number} ${s.player_name}`.trim()).join(', ')
-          let reply = `🗑️ Removido: *${removedSummary}*\n\n`
-          reply += `📋 *Restou ${kept.length} figurinha(s) no registro:*\n`
-          reply += kept.map((s, i) => {
-            const label = `${s.number} ${s.player_name || ''}`.trim()
-            const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
-            return `*${i + 1}.* ${label}${qtyLabel}`
-          }).join('\n')
-          reply += '\n\n✅ *SIM* → registra'
-          if (kept.length >= 2) {
-            const exampleN = Math.min(kept.length, 2)
-            reply += `\n✏️ *TIRAR ${exampleN}* → remove o item ${exampleN} (troque pelo número que quer remover)`
+        let totalScanRefund = 0
+        for (const p of allPendings) {
+          const removeSet = removalsByPending.get(p.id)
+          if (!removeSet) continue
+          const newItems = (p.scan_data || []).filter((_, i) => !removeSet.has(i))
+          if (newItems.length === 0) {
+            // Pending inteiro foi esvaziado — deleta + refund
+            await supabaseAdmin.from('pending_scans').delete().eq('id', p.id)
+            totalScanRefund++
+          } else {
+            await supabaseAdmin.from('pending_scans').update({ scan_data: newItems }).eq('id', p.id)
           }
-          reply += '\n❌ *NÃO* → cancela tudo'
-          // Mensagem interativa — user vai responder SIM/NÃO/TIRAR.
+        }
+        if (totalScanRefund > 0) {
+          await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id, p_count: totalScanRefund })
+        }
+
+        // Re-fetch pendings restantes pra rebuild da mensagem agregada
+        const { data: remainingRows } = await supabaseAdmin
+          .from('pending_scans')
+          .select('id, scan_data, source, created_at')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true })
+        const remaining = (remainingRows || []) as PendingScanRow[]
+
+        const removedSummary = removedItems.map((s) => `${s.number} ${s.player_name}`.trim()).join(', ')
+
+        if (remaining.length === 0) {
+          await sendText(
+            phone,
+            `❌ Removidas todas as ${removedItems.length} figurinha(s) dos registros.${totalScanRefund > 0 ? ` *Não contou ${totalScanRefund} scan(s)* — ` : ' '}manda outra foto, áudio ou texto se quiser!`,
+          )
+        } else {
+          let reply = `🗑️ Removido: *${removedSummary}*\n\n`
+          reply += buildAggregatedPendingMsg(remaining)
           await sendBotTextFor(user.id, phone, reply)
         }
+        return NextResponse.json({ ok: true })
+      }
+
+      // ─── "Cancelar registro N" / "cancela foto" / "cancela texto" / "cancela áudio" ───
+      // Pedro 2026-05-04: deletar pending_scan inteiro especificado pelo
+      // número (ordem) ou pela origem (foto/texto/áudio).
+      const cancelRegMatch =
+        lower.trim().match(/^(?:cancela|cancelar|cancele|excluir|remov[ae]r?)\s+(?:o\s+)?(?:registro\s+)?(\d+|foto|[áa]udio|texto)\.?$/i)
+      if (cancelRegMatch) {
+        const target = cancelRegMatch[1].toLowerCase()
+        const supabaseAdmin = getAdmin()
+        const { data: allPendingRows } = await supabaseAdmin
+          .from('pending_scans')
+          .select('id, scan_data, source, created_at')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true })
+        const allPendings = (allPendingRows || []) as PendingScanRow[]
+
+        if (allPendings.length === 0) {
+          await sendText(phone, '🤔 Não tenho nenhum registro aguardando confirmação.')
+          return NextResponse.json({ ok: true })
+        }
+
+        let toDelete: PendingScanRow | undefined
+        if (/^\d+$/.test(target)) {
+          const n = parseInt(target, 10)
+          if (n >= 1 && n <= allPendings.length) toDelete = allPendings[n - 1]
+        } else if (target === 'foto') {
+          toDelete = allPendings.find((p) => p.source === 'photo')
+        } else if (target === 'audio' || target === 'áudio') {
+          toDelete = allPendings.find((p) => p.source === 'audio')
+        } else if (target === 'texto') {
+          toDelete = allPendings.find((p) => p.source === 'text')
+        }
+
+        if (!toDelete) {
+          await sendText(phone, `❓ Não achei esse registro. Você tem ${allPendings.length} pendente(s). Tenta *cancelar registro 1* ou *cancela foto*.`)
+          return NextResponse.json({ ok: true })
+        }
+
+        const removedCount = toDelete.scan_data?.length || 0
+        await supabaseAdmin.from('pending_scans').delete().eq('id', toDelete.id)
+        await supabaseAdmin.rpc('decrement_scan_usage', { p_user_id: user.id, p_count: 1 })
+
+        const { data: remainingRows } = await supabaseAdmin
+          .from('pending_scans')
+          .select('id, scan_data, source, created_at')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true })
+        const remaining = (remainingRows || []) as PendingScanRow[]
+
+        const { emoji, label } = sourceLabel(toDelete.source)
+        let reply = `🗑️ *Cancelado o ${emoji} registro de ${label}* (${removedCount} item${removedCount !== 1 ? 's' : ''}). *Não contou scan.*\n\n`
+        if (remaining.length === 0) {
+          reply += `Não tem mais nada pendente. Manda outra foto/áudio/texto quando quiser!`
+        } else {
+          reply += buildAggregatedPendingMsg(remaining)
+        }
+        await sendBotTextFor(user.id, phone, reply)
         return NextResponse.json({ ok: true })
       }
 
@@ -2739,73 +2884,14 @@ export async function POST(req: NextRequest) {
 
         case 'register': {
           // Parse sticker codes from text (e.g. "BRA-1 BRA-5 ARG-3" or "bra 1, arg 3").
+          // Pedro 2026-05-04: pendings agora são PARALELOS (não mergeados).
+          // Cada nova mensagem cria seu próprio pending_scan e a confirmação
+          // ocorre via mensagem agregada que mostra todos os pendings juntos.
           const codePattern = /([a-z]{2,5})[\s\-]?(\d{1,2})/gi
           const matches: string[] = []
           let match
           while ((match = codePattern.exec(text)) !== null) {
             matches.push(`${match[1].toUpperCase()}-${match[2]}`)
-          }
-
-          // Pedro 2026-05-04 (caso Vinicius): se já tem pending ativo, em vez
-          // de bloquear ("registro aguardando"), MERGEAR a nova lista no
-          // pending existente. Não perde dados. User confirma o consolidado
-          // no fim com SIM/TIRAR/NÃO.
-          const supabaseAdminPre = getAdmin()
-          const { data: activePending } = await supabaseAdminPre
-            .from('pending_scans')
-            .select('id, scan_data')
-            .eq('user_id', user.id)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-          if (activePending && matches.length > 0) {
-            // Resolver os matches em sticker_ids
-            const { data: foundNew } = await supabaseAdminPre
-              .from('stickers')
-              .select('id, number, player_name, country')
-              .in('number', matches)
-            const foundList = (foundNew || []) as Array<{ id: number; number: string; player_name: string; country: string }>
-            if (foundList.length > 0) {
-              // Lê scan_data atual + merge (dedup por sticker_id, soma quantity)
-              const oldData = (activePending.scan_data as Array<{ sticker_id: number; number: string; player_name: string; quantity: number }>) || []
-              const byId = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
-              for (const it of oldData) byId.set(it.sticker_id, { ...it })
-              for (const s of foundList) {
-                const existing = byId.get(s.id)
-                if (existing) existing.quantity += 1
-                else byId.set(s.id, { sticker_id: s.id, number: s.number, player_name: s.player_name || '', quantity: 1 })
-              }
-              const merged = Array.from(byId.values())
-              await supabaseAdminPre
-                .from('pending_scans')
-                .update({ scan_data: merged })
-                .eq('id', activePending.id)
-
-              // Mensagem: "Adicionei X. Total agora Y. SIM/NÃO"
-              const addedCount = foundList.length
-              const totalCount = merged.length
-              const lines = merged.slice(0, 15).map((s, i) => {
-                const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
-                return `*${i + 1}.* ${s.number}${s.player_name ? ' ' + s.player_name : ''}${qtyLabel}`
-              })
-              const moreHint = merged.length > 15 ? `\n_+${merged.length - 15} outras na lista_` : ''
-              let reply = `➕ Adicionei *${addedCount}* figurinha${addedCount > 1 ? 's' : ''} ao registro anterior. Total agora: *${totalCount}*\n\n`
-              reply += lines.join('\n') + moreHint + '\n\n'
-              reply += `✅ *SIM* → registra os ${totalCount} itens\n`
-              if (totalCount >= 2) reply += `✏️ *TIRAR ${Math.min(totalCount, 2)}* → remove o item ${Math.min(totalCount, 2)} (troque pelo número que quer remover)\n`
-              reply += `❌ *NÃO* → cancela tudo`
-              await sendBotTextFor(user.id, phone, reply)
-              break
-            }
-            // Pending existe mas nenhum sticker do DB — não cria pending novo
-            // paralelo. Se chegou aqui, mostra wait_pending normal.
-            if (shouldSendWaitPending(user.id)) {
-              const oldCount = ((activePending.scan_data as unknown[]) || []).length
-              await sendBotTextFor(user.id, phone, buildWaitPendingMsg(oldCount))
-            }
-            break
           }
 
           if (matches.length === 0) {
@@ -2911,13 +2997,13 @@ export async function POST(req: NextRequest) {
             .in('sticker_id', scanData.map((s) => s.sticker_id))
           const existingMap = new Map((existing || []).map((e: { sticker_id: number; status: string; quantity: number }) => [e.sticker_id, e]))
 
-          // Save pending scan (1h TTL). Como agora o flow é serializado
-          // (1 registro por vez), sempre que chegamos aqui o user não tinha
-          // pending ativo — então este será o único.
+          // Save pending scan (1h TTL). Pedro 2026-05-04: pendings paralelos
+          // — pode haver outros ativos. source identifica origem na msg agg.
           await supabaseAdmin.from('pending_scans').insert({
             user_id: user.id,
             phone,
             scan_data: scanData,
+            source: cameFromAudio ? 'audio' : 'text',
           })
 
           const notFound = matches.filter((m) => !stickerByNumber.has(m))
