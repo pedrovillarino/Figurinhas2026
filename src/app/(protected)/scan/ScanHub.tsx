@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getFlag } from '@/lib/countries'
 import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
+import FreeUserAd from '@/components/FreeUserAd'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -836,6 +837,12 @@ export default function ScanHub({
             Sabia que pode escanear pelo <span className="font-semibold">WhatsApp</span> tambem? Mande uma foto!
           </p>
         </a>
+
+        {/* Pedro 2026-05-05: ad contextual no momento POSITIVO de scan
+            bem-sucedido. Sugere mais um pacotinho pra acelerar. */}
+        <div className="w-full max-w-sm mt-6">
+          <FreeUserAd placement="scan_success" tier={tier} />
+        </div>
       </div>
     )
   }

@@ -175,6 +175,10 @@ export const PLACEMENT_LABELS: Record<string, { label: string; description: stri
     label: 'Trocas com pedidos',
     description: 'User tem pedidos de troca pendentes na /trades.',
   },
+  scan_success: {
+    label: 'Scan bem-sucedido',
+    description: 'User acabou de salvar figurinhas via scan — momento positivo.',
+  },
   // Desativados (Pedro 2026-05-05) — mantidos no DB pra histórico, sem wire-up:
   scan_no_results: {
     label: 'Scan sem resultado (DESATIVADO)',
