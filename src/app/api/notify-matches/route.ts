@@ -222,16 +222,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Pedro 2026-05-03: notificação "tempo real" pra Copa Completa ──
-    // Recipientes Copa Completa não esperam o cron diário — recebem msg
-    // mais rápido quando alguém perto registra figurinha que falta a eles.
-    // Diferencial premium do plano.
+    // ── Pedro 2026-05-04: alertas de match em "tempo real" pra Copa Completa ──
+    // Antes: notificava sempre que alguém perto registrava figurinha que
+    // o user precisava. PROBLEMA: muitos alertas inúteis (recipient sem
+    // repetidas pra dar em troca). Agora exige BILATERALIDADE: scanner
+    // registrou X que recipient precisa E recipient tem repetida Y que
+    // o scanner precisa. Sem isso → SKIP (sem mensagem).
     //
-    // Pedro 2026-05-04: a Karla recebeu 82 msgs em 26h (37 numa hora só) —
-    // FLOOD. Adicionado 3 camadas de proteção:
-    //   1. Cooldown de 6h (last_match_notified_at)
-    //   2. Quiet hours BRT 22h–8h (igual cron diário)
-    //   3. Limite diário de 2 mensagens
+    // Frequência configurável via profiles.match_alerts_freq:
+    //   off=desligado, low=1/dia 12h, normal=2/dia 6h (default), high=4/dia 3h
     if (candidates.length > 0) {
       // Quiet hours guard (BRT = UTC-3)
       const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
@@ -241,7 +240,7 @@ export async function POST(req: NextRequest) {
       const recipientIds = Array.from(new Set(candidates.map((c) => c.recipient_id)))
       const { data: copaProfiles } = await supabase
         .from('profiles')
-        .select('id, display_name, phone, tier, notify_channel, last_match_notified_at')
+        .select('id, display_name, phone, tier, notify_channel, last_match_notified_at, match_alerts_freq')
         .eq('tier', 'copa_completa')
         .in('id', recipientIds)
       if (copaProfiles && copaProfiles.length > 0 && !isQuietHours) {
@@ -250,15 +249,18 @@ export async function POST(req: NextRequest) {
           const { sendText, formatPhone } = await import('@/lib/zapi')
           const { logNotificationSent } = await import('@/lib/notification-queue')
 
-          const COOLDOWN_HOURS = 6
-          const DAILY_LIMIT = 2
-          const cooldownMs = COOLDOWN_HOURS * 60 * 60 * 1000
+          // Frequência → cooldown e daily limit
+          const FREQ_CONFIG: Record<string, { cooldownH: number; dailyLimit: number }> = {
+            off:    { cooldownH: Infinity, dailyLimit: 0 },
+            low:    { cooldownH: 12, dailyLimit: 1 },
+            normal: { cooldownH: 6,  dailyLimit: 2 },
+            high:   { cooldownH: 3,  dailyLimit: 4 },
+          }
+
           const todayStart = new Date(nowSP); todayStart.setHours(0, 0, 0, 0)
-          // todayStart é em SP local, mas comparamos com sent_at em UTC.
-          // Convertendo de volta pra UTC (subtrai offset SP que é -3h, então UTC = SP+3h)
           const todayStartUTC = new Date(todayStart.getTime() + nowSP.getTimezoneOffset() * 60_000)
 
-          // Buscar nomes das figurinhas pra mensagem
+          // Buscar nomes/números das figurinhas (pra mensagem ganha/dá)
           const stickerIds = Array.from(new Set(candidates.map((c) => c.sticker_id)))
           const { data: stickerInfo } = await supabase
             .from('stickers')
@@ -268,44 +270,107 @@ export async function POST(req: NextRequest) {
           const scannerProfile = await supabase.from('profiles').select('display_name').eq('id', user_id).maybeSingle()
           const scannerName = scannerProfile.data?.display_name?.split(' ')[0] || 'alguém'
 
-          for (const copa of copaProfiles as Array<{ id: string; display_name: string | null; phone: string | null; notify_channel: string | null; last_match_notified_at: string | null }>) {
+          // Pre-fetch: figurinhas que o SCANNER precisa (pra cross-check com
+          // repetidas dos recipients) — 1 query única.
+          const { data: scannerOwned } = await supabase
+            .from('user_stickers')
+            .select('sticker_id, status, quantity')
+            .eq('user_id', user_id)
+            .in('status', ['owned', 'duplicate'])
+          const scannerHasIds = new Set((scannerOwned || []).map((r: { sticker_id: number }) => r.sticker_id))
+          // Total de figurinhas que contam pra completar o álbum (faltando =
+          // todas aquelas que NÃO estão em scannerHasIds, dentre os contáveis).
+          // Pra simplicidade: o scanner PRECISA de qualquer sticker que conta
+          // pra completar e ele NÃO TEM. Verificamos abaixo.
+
+          for (const copa of copaProfiles as Array<{ id: string; display_name: string | null; phone: string | null; notify_channel: string | null; last_match_notified_at: string | null; match_alerts_freq: string | null }>) {
             if (copa.notify_channel === 'none' || !copa.phone) continue
 
-            // Camada 1: cooldown 6h
+            const freq = (copa.match_alerts_freq || 'normal') as keyof typeof FREQ_CONFIG
+            const cfg = FREQ_CONFIG[freq] || FREQ_CONFIG.normal
+            if (cfg.dailyLimit === 0) {
+              console.log(`[realtime match] skip ${copa.id} — match_alerts_freq=off`)
+              continue
+            }
+
+            // Cooldown
             if (copa.last_match_notified_at) {
               const since = Date.now() - new Date(copa.last_match_notified_at).getTime()
-              if (since < cooldownMs) {
-                console.log(`[copa realtime] skip ${copa.id} — cooldown (${Math.round(since / 60000)}min)`)
+              if (since < cfg.cooldownH * 60 * 60 * 1000) {
+                console.log(`[realtime match] skip ${copa.id} — cooldown (freq=${freq}, ${Math.round(since / 60000)}min)`)
                 continue
               }
             }
 
-            // Camada 2: limite diário (2 msgs/dia)
+            // Daily limit
             const { count: todayCount } = await supabase
               .from('notifications_sent')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', copa.id)
               .eq('type', 'copa_realtime_match')
               .gte('sent_at', todayStartUTC.toISOString())
-            if ((todayCount ?? 0) >= DAILY_LIMIT) {
-              console.log(`[copa realtime] skip ${copa.id} — daily limit (${todayCount}/${DAILY_LIMIT})`)
+            if ((todayCount ?? 0) >= cfg.dailyLimit) {
+              console.log(`[realtime match] skip ${copa.id} — daily limit (freq=${freq}, ${todayCount}/${cfg.dailyLimit})`)
+              continue
+            }
+
+            // Bilateral check: recipient precisa ter REPETIDAS que o scanner
+            // não tem. Sem isso, não há troca real → skip.
+            const { data: copaDupes } = await supabase
+              .from('user_stickers')
+              .select('sticker_id, quantity, stickers!inner(number, player_name, counts_for_completion)')
+              .eq('user_id', copa.id)
+              .eq('status', 'duplicate')
+              .eq('stickers.counts_for_completion', true)
+            const copaDupesCanGive = (copaDupes || []).filter((r: { sticker_id: number }) => !scannerHasIds.has(r.sticker_id))
+              .map((r: { sticker_id: number; stickers: { number: string; player_name: string | null } | { number: string; player_name: string | null }[] }) => {
+                const s = Array.isArray(r.stickers) ? r.stickers[0] : r.stickers
+                return { number: s?.number || '?', player_name: s?.player_name || '' }
+              })
+            if (copaDupesCanGive.length === 0) {
+              console.log(`[realtime match] skip ${copa.id} — bilateral fail (recipient sem repetidas que scanner precisa)`)
               continue
             }
 
             const userCandidates = candidates.filter((c) => c.recipient_id === copa.id)
-            const stickerLines = userCandidates.slice(0, 5).map((c) => {
+
+            // Lista do que o recipient GANHA (do scanner) — limite 5
+            const ganhaLines = userCandidates.slice(0, 5).map((c) => {
               const s = stickerById.get(c.sticker_id)
-              return s ? `• *${s.number}* — ${s.player_name || ''} (${c.distance_km} km)` : null
-            }).filter(Boolean).join('\n')
-            const moreCount = Math.max(0, userCandidates.length - 5)
+              return s ? `*${s.number}*${s.player_name ? ' — ' + s.player_name : ''}` : null
+            }).filter(Boolean)
+            const ganhaMore = Math.max(0, userCandidates.length - 5)
+            const ganhaStr = ganhaLines.join(', ') + (ganhaMore > 0 ? ` _(+${ganhaMore})_` : '')
+
+            // Lista do que o recipient DÁ (suas repetidas que scanner precisa)
+            const daLines = copaDupesCanGive.slice(0, 5).map((r) => `*${r.number}*${r.player_name ? ' — ' + r.player_name : ''}`)
+            const daMore = Math.max(0, copaDupesCanGive.length - 5)
+            const daStr = daLines.join(', ') + (daMore > 0 ? ` _(+${daMore})_` : '')
+
+            const distanceKm = userCandidates[0]?.distance_km ?? '?'
             const firstName = copa.display_name?.split(' ')[0] || ''
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
+
+            // Mensagem de cooldown amigável (reflete a freq do user)
+            const freqLabel: Record<string, string> = {
+              low: 'até 1 vez por dia (mín 12h entre)',
+              normal: 'até 2 vezes por dia (mín 6h entre)',
+              high: 'até 4 vezes por dia (mín 3h entre)',
+            }
+
             const msg =
-              `🏆 *${firstName ? firstName + ', ' : ''}match perto de você!*\n\n` +
-              `*${scannerName}* registrou figurinha${userCandidates.length > 1 ? 's' : ''} que você precisa:\n\n` +
-              `${stickerLines}` +
-              `${moreCount > 0 ? `\n_+${moreCount} outras_` : ''}\n\n` +
-              `_Notificação prioritária do seu plano *Copa Completa* (máx 2/dia, 6h entre uma e outra)._\n` +
-              `🔔 Veja as trocas: ${process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'}/trades`
+              `🔁 *${firstName ? firstName + ', m' : 'M'}atch real perto de você!*\n\n` +
+              `*${scannerName}* registrou figurinha${userCandidates.length > 1 ? 's' : ''} que você precisa, e você tem repetida${copaDupesCanGive.length > 1 ? 's' : ''} que ele precisa:\n\n` +
+              `📥 *Você ganha:* ${ganhaStr}\n` +
+              `📤 *Você dá:* ${daStr}\n\n` +
+              `📍 ${distanceKm} km · ${appUrl}/trades\n\n` +
+              `─────────\n` +
+              `ℹ️ Hoje te notificamos ${freqLabel[freq] || freqLabel.normal} quando aparecem trocas reais.\n\n` +
+              `*Ajustar rápido aqui:*\n` +
+              `🔕 *parar alertas* → desliga\n` +
+              `⬇️ *menos alertas* → 1/dia\n` +
+              `⬆️ *mais alertas* → 4/dia\n\n` +
+              `⚙️ Outras configs (raio, figurinhas específicas):\n${appUrl}/trades`
             try {
               const phone = formatPhone(copa.phone)
               const ok = await sendText(phone, msg)
@@ -320,11 +385,10 @@ export async function POST(req: NextRequest) {
                 })
               }
             } catch (err) {
-              console.error('[copa realtime] send failed:', err)
+              console.error('[realtime match] send failed:', err)
             }
           }
         }
-        // Use waitUntil se disponível, senão fire and forget
         try {
           const { waitUntil } = await import('@vercel/functions')
           waitUntil(realtimeNotify())
@@ -332,7 +396,7 @@ export async function POST(req: NextRequest) {
           realtimeNotify().catch(() => {})
         }
       } else if (isQuietHours) {
-        console.log(`[copa realtime] skip all — quiet hours (${hourBRT}h BRT)`)
+        console.log(`[realtime match] skip all — quiet hours (${hourBRT}h BRT)`)
       }
     }
 

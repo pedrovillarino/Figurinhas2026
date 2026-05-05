@@ -1788,6 +1788,57 @@ export async function POST(req: NextRequest) {
 
       const lower = text.trim().toLowerCase()
 
+      // ─── Comandos de alertas de match (Pedro 2026-05-04) ───
+      // "parar alertas", "menos alertas", "mais alertas", "alertas" (sozinho).
+      // Atualiza profiles.match_alerts_freq e responde com status.
+      const alertasMatch = lower.trim().match(
+        /^(?:(parar|desativar|desligar|stop)\s+alertas?|(menos|diminuir)\s+alertas?|(mais|aumentar)\s+alertas?|(alertas?|alertas\s+de\s+match|configurar?\s+alertas?))\s*\.?$/i,
+      )
+      if (alertasMatch) {
+        const supabaseAdmin = getAdmin()
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
+        // 1=parar, 2=menos, 3=mais, 4=ver status
+        let newFreq: 'off' | 'low' | 'normal' | 'high' | null = null
+        if (alertasMatch[1]) newFreq = 'off'
+        else if (alertasMatch[2]) newFreq = 'low'
+        else if (alertasMatch[3]) newFreq = 'high'
+        // alertasMatch[4] = só ver/configurar — não muda
+
+        if (newFreq) {
+          await supabaseAdmin.from('profiles').update({ match_alerts_freq: newFreq }).eq('id', user.id)
+        }
+
+        const { data: prof } = await supabaseAdmin
+          .from('profiles')
+          .select('match_alerts_freq')
+          .eq('id', user.id)
+          .maybeSingle()
+        const freq = ((prof as { match_alerts_freq?: string } | null)?.match_alerts_freq || 'normal') as 'off' | 'low' | 'normal' | 'high'
+
+        const freqLabel: Record<typeof freq, string> = {
+          off:    '🔕 *Desligado* — nenhum alerta',
+          low:    '⬇️ *Pouco* — 1/dia (mín 12h entre)',
+          normal: '⚖️ *Normal* — 2/dia (mín 6h entre)',
+          high:   '⬆️ *Mais* — 4/dia (mín 3h entre)',
+        }
+
+        let reply: string
+        if (newFreq) {
+          reply = `✅ Alertas atualizados: ${freqLabel[freq]}\n\n` +
+            `_Alertas só vão quando há troca real (você ganha + você dá)._`
+        } else {
+          reply = `📣 *Alertas de match perto de você*\n\n` +
+            `Status atual: ${freqLabel[freq]}\n\n` +
+            `*Comandos rápidos:*\n` +
+            `🔕 *parar alertas* → desliga\n` +
+            `⬇️ *menos alertas* → 1/dia\n` +
+            `⬆️ *mais alertas* → 4/dia\n\n` +
+            `⚙️ Outras configs (raio, figurinhas específicas):\n${appUrl}/trades`
+        }
+        await sendText(phone, reply)
+        return NextResponse.json({ ok: true })
+      }
+
       // ─── Promessa de envio (Pedro 2026-05-04, caso Pedro Arcari) ───
       // User mandou "Vou mandar as q faltam" — claramente promessa de envio
       // futuro, NÃO pedido de listagem. Bot antes interpretava como intent

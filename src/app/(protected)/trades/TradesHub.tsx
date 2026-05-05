@@ -143,6 +143,8 @@ export default function TradesHub({
   const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>('whatsapp')
   const [notifyMinThreshold, setNotifyMinThreshold] = useState(1)
   const [notifyPriorityIds, setNotifyPriorityIds] = useState<number[]>([])
+  // Pedro 2026-05-04: frequência dos alertas de match (off|low|normal|high)
+  const [matchAlertsFreq, setMatchAlertsFreq] = useState<'off' | 'low' | 'normal' | 'high'>('normal')
   const [showNotifyConfig, setShowNotifyConfig] = useState(false)
   const [showPriorityPicker, setShowPriorityPicker] = useState(false)
   const [prioritySearch, setPrioritySearch] = useState('')
@@ -179,7 +181,30 @@ export default function TradesHub({
     setNotifyChannel(prefs.channel)
     setNotifyMinThreshold(prefs.minThreshold)
     setNotifyPriorityIds(prefs.priorityIds)
+
+    // Pedro 2026-05-04: carrega match_alerts_freq do DB
+    ;(async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('match_alerts_freq')
+        .eq('id', userId)
+        .maybeSingle()
+      const freq = (data as { match_alerts_freq?: string } | null)?.match_alerts_freq
+      if (freq && ['off', 'low', 'normal', 'high'].includes(freq)) {
+        setMatchAlertsFreq(freq as 'off' | 'low' | 'normal' | 'high')
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function saveMatchFreq(freq: 'off' | 'low' | 'normal' | 'high') {
+    setMatchAlertsFreq(freq)
+    setSavingPrefs(true)
+    try {
+      await supabase.from('profiles').update({ match_alerts_freq: freq }).eq('id', userId)
+    } catch {}
+    setSavingPrefs(false)
+  }
 
   // Supabase Realtime: listen for new trade requests targeting this user
   useEffect(() => {
@@ -942,6 +967,39 @@ export default function TradesHub({
               </svg>
               Configurações de notificação
             </p>
+
+            {/* Frequência dos alertas de match (Pedro 2026-05-04) */}
+            <div>
+              <p className="text-[10px] text-gray-500 font-medium mb-1.5">📅 Frequência dos alertas de match</p>
+              <p className="text-[9px] text-gray-400 mb-2">Alertas só vão quando há *troca real* (você ganha + você dá repetida).</p>
+              <div className="flex gap-1.5">
+                {([
+                  { key: 'off' as const,    icon: '🔕', label: 'Off' },
+                  { key: 'low' as const,    icon: '⬇️', label: '1/dia' },
+                  { key: 'normal' as const, icon: '⚖️', label: '2/dia' },
+                  { key: 'high' as const,   icon: '⬆️', label: '4/dia' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => saveMatchFreq(opt.key)}
+                    disabled={savingPrefs}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                      matchAlertsFreq === opt.key
+                        ? 'bg-amber-400 text-white shadow-sm'
+                        : 'bg-white text-gray-400 border border-gray-100 hover:border-amber-200'
+                    }`}
+                  >
+                    <span className="text-xs">{opt.icon}</span> {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-gray-400 mt-1">
+                {matchAlertsFreq === 'off'    && 'Você não recebe alertas de match.'}
+                {matchAlertsFreq === 'low'    && 'Até 1 alerta/dia (mínimo 12h entre).'}
+                {matchAlertsFreq === 'normal' && 'Até 2 alertas/dia (mínimo 6h entre).'}
+                {matchAlertsFreq === 'high'   && 'Até 4 alertas/dia (mínimo 3h entre).'}
+              </p>
+            </div>
 
             {/* Canal de notificacao */}
             <div>
