@@ -2185,7 +2185,11 @@ export async function POST(req: NextRequest) {
       // Pedro 2026-05-04: pendings paralelos. Numeração agora é GLOBAL (1..N
       // ao longo de todos pendings ordenados por created_at). "tirar N"
       // localiza o item global N e remove só do pending dele.
-      const removeMatch = lower.trim().match(/^(?:tirar|tira|remover|remove)\s+([\d,\s]+(?:\s+e\s+\d+)*)/i)
+      // Pedro 2026-05-05: caso Rafaella ("Remove item 2 e item 3"). Bot
+      // não entendia "item N" como filler. Fix: pre-processa o texto
+      // removendo as palavras item/cromo/figurinha antes do match.
+      const cleanedForRemove = lower.trim().replace(/\b(item|cromo|figurinha)s?\b/gi, '').replace(/\s+/g, ' ').trim()
+      const removeMatch = cleanedForRemove.match(/^(?:tirar|tira|remover|remove)\s+([\d,\s]+(?:\s+e\s+\d+)*)/i)
       if (removeMatch) {
         const supabaseAdmin = getAdmin()
         const { data: allPendingRows } = await supabaseAdmin
