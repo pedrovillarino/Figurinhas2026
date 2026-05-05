@@ -15,8 +15,9 @@ const securityHeaders = [
       // script-src: Next.js requires unsafe-inline/eval; Stripe, Google, Vercel Analytics
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.stripe.com https://js.stripe.com https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline'",
-      // img-src: Supabase storage, Google avatars, data URIs, blobs (camera)
-      "img-src 'self' data: blob: https://*.supabase.co https://api.completeai.com.br https://lh3.googleusercontent.com https://accounts.google.com https://api.qrserver.com",
+      // img-src: Supabase storage, Google avatars, data URIs, blobs (camera),
+      // Mercado Livre CDN (afiliados — produtos da /loja vêm com imagem mlstatic.com)
+      "img-src 'self' data: blob: https://*.supabase.co https://api.completeai.com.br https://lh3.googleusercontent.com https://accounts.google.com https://api.qrserver.com https://*.mlstatic.com",
       "font-src 'self' data:",
       // connect-src: Supabase (custom domain + fallback), Google auth, Stripe, Gemini AI, Z-API (WhatsApp), Vercel Analytics, push subscriptions, ViaCEP (CEP → cidade fallback no onboarding/album)
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.completeai.com.br wss://api.completeai.com.br https://accounts.google.com https://api.stripe.com https://generativelanguage.googleapis.com https://api.z-api.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://viacep.com.br",
