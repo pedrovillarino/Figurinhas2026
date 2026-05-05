@@ -7,6 +7,7 @@ import AudioEngagementAdminSection from './AudioEngagementAdminSection'
 import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
 import SupportAdminSection from './SupportAdminSection'
 import NotificationsAdminSection from './NotificationsAdminSection'
+import StoreAdminSection from './StoreAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -647,6 +648,11 @@ export default async function AdminPage({
           volta 24h por tipo. Útil pra ver se as notificações estão
           gerando engajamento ou virando ruído. */}
       <NotificationsAdminSection />
+
+      {/* Pedro 2026-05-05: Loja afiliados ML + ads contextuais pra free.
+          Gerencia produtos da /loja standalone e mapeia produto → placement
+          (album_empty, scan_no_results, etc). Free users veem ads inline. */}
+      <StoreAdminSection adminSecret={ADMIN_SECRET} />
 
       {/* Tier breakdown */}
       <SectionTitle>Usuarios por plano</SectionTitle>

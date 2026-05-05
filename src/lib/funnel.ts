@@ -41,6 +41,12 @@ export const FUNNEL_EVENTS = {
   REFERRAL_LINK_SHARED: 'referral_link_shared',
   REFERRAL_LINK_CLICKED: 'referral_link_clicked',
   CAMPAIGN_OPTED_IN: 'campaign_opted_in',
+  // Pedro 2026-05-05: Loja afiliados ML + ads contextuais pra free users.
+  // STORE_CLICK = click direto na /loja standalone.
+  // AD_VIEW/AD_CLICK = view/click nos placements contextuais (com tier=free).
+  STORE_CLICK: 'store_click',
+  AD_VIEW: 'ad_view',
+  AD_CLICK: 'ad_click',
 } as const
 
 export type FunnelEventName = typeof FUNNEL_EVENTS[keyof typeof FUNNEL_EVENTS]

@@ -6,6 +6,7 @@ import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
 import PremiumBanner from '@/components/PremiumBanner'
+import FreeUserAd from '@/components/FreeUserAd'
 import ExportModal from '@/components/ExportModal'
 import UndoToast from '@/components/UndoToast'
 import OnboardingModal from '@/components/OnboardingModal'
@@ -654,6 +655,21 @@ export default function AlbumClient({
 
       {/* Premium banner - only shows if there's still a tier limit */}
       {showLimitBanner && <PremiumBanner />}
+
+      {/* Pedro 2026-05-05: ads contextuais pra free users.
+          - 0 cromos: sugere comprar álbum (album_empty)
+          - 50%+ progresso: sugere mais pacotes (album_progress_50)
+          - Footer: rotativo (album_footer) */}
+      {stats.owned === 0 && (
+        <div className="mb-3">
+          <FreeUserAd placement="album_empty" tier={tier} />
+        </div>
+      )}
+      {stats.owned > 0 && progressPct >= 50 && (
+        <div className="mb-3">
+          <FreeUserAd placement="album_progress_50" tier={tier} />
+        </div>
+      )}
 
       {/* Location banner — shows only if user has no city set yet */}
       <LocationBanner />

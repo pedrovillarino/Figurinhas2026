@@ -10,6 +10,7 @@ import { canTrade, TRADE_PACK_CONFIG, TRADE_PACK_AMOUNTS, TRADE_PACK_AMOUNT, TIE
 import UserTierBadge from '@/components/UserTierBadge'
 import PaywallModal from '@/components/PaywallModal'
 import TradeRequestsBanner from '@/components/TradeRequestsBanner'
+import FreeUserAd from '@/components/FreeUserAd'
 
 type Sticker = {
   id: number
@@ -912,6 +913,11 @@ export default function TradesHub({
             <p className="text-2xl mb-2">🔍</p>
             <p className="text-xs text-gray-500 font-medium">Ninguém encontrado em {radius} km</p>
             <p className="text-[10px] text-gray-400 mt-1">Tente aumentar o raio de busca</p>
+            {/* Pedro 2026-05-05: ad pra free users sem matches.
+                Sugere comprar pacotes pra ter mais cromos pra trocar. */}
+            <div className="mt-4 max-w-sm mx-auto text-left">
+              <FreeUserAd placement="trades_empty" tier={tier} />
+            </div>
           </div>
         )}
       </div>
