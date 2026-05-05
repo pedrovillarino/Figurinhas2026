@@ -652,7 +652,7 @@ export default function ScanHub({
     return (
       <div className="px-4 pt-6 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-5xl mb-4">{emoji}</div>
-        <p className="text-base font-semibold text-gray-700 text-center leading-relaxed max-w-xs">{errorMsg}</p>
+        <p className="text-base font-semibold text-gray-700 text-center leading-relaxed max-w-xs whitespace-pre-line">{errorMsg}</p>
         <p className="text-xs text-gray-400 mt-3 text-center max-w-xs">
           {hint}
         </p>

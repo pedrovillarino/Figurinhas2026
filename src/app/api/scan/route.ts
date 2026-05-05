@@ -445,6 +445,10 @@ export async function POST(request: NextRequest) {
       // Pedro 2026-05-02: estratégia em escada. Se ainda tem áudio (free=10
       // lifetime), sugere áudio. Senão, texto/site + upgrade. Mostra todas
       // as opções de upgrade válidas pro tier.
+      // Pedro 2026-05-05: copy alinhada com a do WhatsApp (whatsapp-quotas.ts).
+      // Tom de sensibilização — "apoiador" não "pagante", "pagamento único".
+      // A história completa fica no PaywallModal/UpgradePlans (botão
+      // "Desbloquear Scanner"). Aqui é só toast — concisão importa.
       const audioLimit = getAudioLimit(userTier)
       const { data: profile } = await supabaseAdmin
         .from('profiles')
@@ -455,21 +459,31 @@ export async function POST(request: NextRequest) {
       const audiosRemaining = audioLimit === Infinity ? Infinity : Math.max(0, audioLimit - audiosUsed)
       const audioOpen = audiosRemaining > 0 || audiosRemaining === Infinity
 
-      const upgradeList = isFree
-        ? 'Estreante R$9,90 · Colecionador R$19,90 · Copa Completa R$29,90'
-        : userTier === 'estreante'
-          ? 'Colecionador R$19,90 · Copa Completa R$29,90'
-          : userTier === 'colecionador'
-            ? 'Copa Completa R$29,90'
-            : ''
+      const audioLine = audioOpen
+        ? `🎤 Áudio no WhatsApp${audiosRemaining === Infinity ? '' : ` (${audiosRemaining} restantes)`}`
+        : ''
+      const textLine = `✏️ Texto: "BRA-1 ARG-3" (sem limite)`
 
-      const altMsg = audioOpen
-        ? `🎤 Manda *áudio* no WhatsApp falando os códigos (${audiosRemaining === Infinity ? 'ilimitado' : `${audiosRemaining} restantes`}) ou ✏️ texto tipo "BRA-1 ARG-3" (sem limite).`
-        : `✏️ Manda *texto* no WhatsApp ("BRA-1 ARG-3" — sem limite) ou registra manualmente clicando nas figurinhas do álbum.`
+      // Header: scan acabou (e talvez áudio também)
+      const header = isFree
+        ? `🚫 Você usou seus 5 scans gratuitos!`
+        : audioOpen
+          ? `🚫 Você usou todos os seus ${usageData.limit} scans!`
+          : `🚫 Você usou todos seus ${usageData.limit} scans e seus ${audioLimit} áudios!`
 
-      const errorMsg = isFree
-        ? `Você usou seus 5 scans gratuitos! ${altMsg} Ou faça upgrade: ${upgradeList}.`
-        : `Você usou todos os seus ${usageData.limit} scans. ${altMsg}${canBuyPack ? ' Ou compre pacote extra' : ''}${upgradeList ? ` ou faça upgrade (${upgradeList})` : ''}.`
+      // Caminho gratuito (continua sem custo)
+      const freeOptions = audioOpen
+        ? `Continua sem custo:\n${audioLine}\n${textLine}`
+        : `Continua sem custo:\n${textLine}\n🌐 Site: registra manual em /album`
+
+      // Call-to-action (apoio)
+      const cta = isFree
+        ? `💛 Ou apoia o Complete Aí — pagamento único, sem mensalidade.`
+        : canBuyPack
+          ? `💸 Ou compra um pacote extra de scans · ou faz upgrade pro plano superior.`
+          : `💛 Ou faz upgrade — pagamento único, sem mensalidade.`
+
+      const errorMsg = `${header}\n\n${freeOptions}\n\n${cta}`
 
       return NextResponse.json(
         {
