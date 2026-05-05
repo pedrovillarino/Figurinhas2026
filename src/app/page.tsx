@@ -215,7 +215,7 @@ export default async function Home() {
       {/* ── Footer ── */}
       <footer className="px-6 py-6 border-t border-gray-100 text-center space-y-2">
         <p className="text-xs text-gray-500">
-          Feito por um pai pra outros pais. Pagamento único, sem mensalidade.
+          Feito por um pai pra outras famílias. Pagamento único, sem mensalidade.
         </p>
         <p className="text-xs text-gray-500">
           contato@completeai.com.br
