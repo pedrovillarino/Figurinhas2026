@@ -2251,6 +2251,22 @@ export async function POST(req: NextRequest) {
           )
           const savedLines = savedNumbers.map((n) => `• ${n}`)
 
+          // Pedro 2026-05-04: enfileira match_candidates pro cron diário/horário
+          // notificar pessoas perto que precisam dessas figurinhas. Antes só
+          // o registro via web/app fazia isso — registro via WhatsApp ficava
+          // órfão, o que explica porque ninguém recebia alertas.
+          // Fire-and-forget: não bloqueia a resposta do bot.
+          ;(async () => {
+            try {
+              const { enqueueMatchCandidates } = await import('@/lib/match-enqueue')
+              const stickerIds = mergedStickers.map((s) => s.sticker_id)
+              const enqueued = await enqueueMatchCandidates(user.id, stickerIds)
+              console.log(`[wa-confirm] match_candidates enqueued=${enqueued} for ${stickerIds.length} stickers`)
+            } catch (err) {
+              console.error('[wa-confirm] enqueueMatchCandidates failed:', err)
+            }
+          })()
+
           // Delete all pending scans
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
 

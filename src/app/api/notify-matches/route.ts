@@ -1,41 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { checkRateLimit, getIp, notifyLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
 import { backgroundHealthPing } from '@/lib/health-ping'
+import { enqueueMatchCandidates } from '@/lib/match-enqueue'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
-function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
-
-type NotifyPrefs = {
-  notify_channel?: string
-  notify_min_threshold?: number
-  notify_priority_stickers?: number[]
-  notify_radius_km?: number
-}
-
 /**
  * POST /api/notify-matches
  *
- * Called when a user adds/updates stickers in their collection.
- * Instead of sending notifications immediately, ENQUEUES match candidates
- * into the `match_candidates` table. The /api/cron/process-notifications
- * cron drains the queue hourly, applies cooldowns + quiet hours, aggregates
- * per recipient, and sends a single consolidated digest message.
+ * Called when a user adds/updates stickers in their collection (web/app).
+ * Just enqueues match candidates — actual notification happens via the
+ * /api/cron/process-notifications cron (hourly), which aggregates per
+ * recipient + applies bilateral check + freq + cooldown + quiet hours.
  *
- * Why a queue instead of immediate send (changed 2026-05-01):
- *   1. Avoid spam — same recipient won't get N pings per day if N people
- *      nearby scan dupes
- *   2. Allow ranking by (distance, qty) across multiple scanners
- *   3. Respect quiet hours globally without blocking the scan path
+ * Pedro 2026-05-04: removed the realtime push that was here. Em vez disso,
+ * tudo passa pelo cron pra agregar (caso real: user registra 80 figurinhas
+ * em sequência → 1 mensagem consolidada em vez de 80).
  *
  * Body: { sticker_ids: number[] }
  * Requires authentication.
@@ -43,14 +26,12 @@ type NotifyPrefs = {
 export async function POST(req: NextRequest) {
   backgroundHealthPing()
 
-  // Rate limit (heavy endpoint)
   const rlResponse = await checkRateLimit(getIp(req), notifyLimiter)
   if (rlResponse) return rlResponse
 
   const perf = createPerfLogger('notify-matches')
 
   try {
-    // Auth check
     const supabaseUser = await createServerClient()
     const { data: { user } } = await supabaseUser.auth.getUser()
     if (!user) {
@@ -58,372 +39,19 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const sticker_ids: number[] = body.sticker_ids || body.sticker_ids || []
-
+    const sticker_ids: number[] = body.sticker_ids || []
     if (!sticker_ids || sticker_ids.length === 0) {
       return NextResponse.json({ ok: true, notified: 0 })
     }
 
-    const supabase = getAdmin()
-    const user_id = user.id
-
-    // 1. Get the user's profile (location + name)
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('display_name, location_lat, location_lng')
-      .eq('id', user_id)
-      .single()
-
-    if (!userProfile?.location_lat || !userProfile?.location_lng) {
-      return NextResponse.json({ ok: true, notified: 0 })
-    }
-
-    // 2. Get sticker details + check which are duplicates — in parallel
-    const [{ data: stickerDetails }, { data: userDuplicates }] = await Promise.all([
-      supabase
-        .from('stickers')
-        .select('id, number, player_name, country')
-        .in('id', sticker_ids),
-      supabase
-        .from('user_stickers')
-        .select('sticker_id')
-        .eq('user_id', user_id)
-        .eq('status', 'duplicate')
-        .in('sticker_id', sticker_ids),
-    ])
-
-    if (!stickerDetails || stickerDetails.length === 0) {
-      return NextResponse.json({ ok: true, notified: 0 })
-    }
-
-    const duplicateIds = new Set((userDuplicates || []).map((d) => d.sticker_id))
-    if (duplicateIds.size === 0) {
-      return NextResponse.json({ ok: true, notified: 0 })
-    }
-
-    perf.mark('setup')
-
-    // 3. Find nearby users using PostGIS ST_DWithin (GiST index)
-    //    Falls back to bounding box if RPC fails
-    const MAX_RADIUS_KM = 100
-
-    type NearbyProfile = { id: string; phone: string | null; email: string | null; display_name: string | null; location_lat: number; location_lng: number; distance_km?: number; notify_channel: string | null; notify_min_threshold: number | null; notify_priority_stickers: number[] | null; notify_radius_km: number | null; notify_configured: boolean | null; last_match_notified_at: string | null }
-    let nearbyProfiles: NearbyProfile[] | null = null
-
-    // Try PostGIS RPC first (uses GiST index, accurate distances)
-    const { data: postgisResult, error: postgisError } = await supabase
-      .rpc('find_nearby_profiles', { p_user_id: user_id, p_radius_km: MAX_RADIUS_KM })
-
-    if (!postgisError && postgisResult) {
-      nearbyProfiles = postgisResult as NearbyProfile[]
-    } else {
-      // Fallback: bounding box filter (works without PostGIS)
-      console.warn('PostGIS RPC failed, falling back to bounding box:', postgisError?.message)
-      const latDelta = MAX_RADIUS_KM / 111
-      const lngDelta = MAX_RADIUS_KM / (111 * Math.cos(userProfile.location_lat * Math.PI / 180))
-
-      const { data: nearbyProfilesFallback } = await supabase
-        .from('profiles')
-        .select('id, phone, email, display_name, location_lat, location_lng, notify_channel, notify_min_threshold, notify_priority_stickers, notify_radius_km, notify_configured, last_match_notified_at')
-        .neq('id', user_id)
-        .gte('location_lat', userProfile.location_lat - latDelta)
-        .lte('location_lat', userProfile.location_lat + latDelta)
-        .gte('location_lng', userProfile.location_lng - lngDelta)
-        .lte('location_lng', userProfile.location_lng + lngDelta)
-        .limit(200)
-
-      nearbyProfiles = nearbyProfilesFallback as NearbyProfile[] | null
-    }
-
-    if (!nearbyProfiles || nearbyProfiles.length === 0) {
-      return NextResponse.json({ ok: true, notified: 0 })
-    }
-
-    // 4. Batch: get ALL user_stickers for nearby users for the duplicate sticker IDs.
-    //    Trade-dedup is done LATER (in the cron) to avoid re-sending if a trade
-    //    is created between enqueue and processing. We only need ownership here.
-    const nearbyIds = nearbyProfiles.map((p) => p.id)
-    const dupIdsArr = Array.from(duplicateIds)
-
-    const { data: allNearbyStickers } = await supabase
-      .from('user_stickers')
-      .select('user_id, sticker_id')
-      .in('user_id', nearbyIds)
-      .in('sticker_id', dupIdsArr)
-      .in('status', ['owned', 'duplicate'])
-
-    const ownedByUser = new Map<string, Set<number>>()
-    for (const us of allNearbyStickers || []) {
-      if (!ownedByUser.has(us.user_id)) ownedByUser.set(us.user_id, new Set())
-      ownedByUser.get(us.user_id)!.add(us.sticker_id)
-    }
-
-    perf.mark('batch-queries')
-
-    // 5. Build candidate rows for the queue. The cron applies cooldown,
-    //    quiet hours, threshold and trade-dedup at send time — we just enqueue.
-    type CandidateRow = {
-      recipient_id: string
-      scanner_id: string
-      sticker_id: number
-      distance_km: number
-      is_priority: boolean
-    }
-    const candidates: CandidateRow[] = []
-
-    for (const nearby of nearbyProfiles) {
-      const prefs: NotifyPrefs = {
-        notify_channel: nearby.notify_channel || 'whatsapp',
-        notify_priority_stickers: nearby.notify_priority_stickers || [],
-        notify_radius_km: nearby.notify_radius_km || 50,
-      }
-
-      // Skip users who explicitly opted out
-      if (prefs.notify_channel === 'none') continue
-
-      const dist = nearby.distance_km ?? haversine(
-        userProfile.location_lat, userProfile.location_lng,
-        nearby.location_lat, nearby.location_lng
-      )
-      if (dist > (prefs.notify_radius_km || 50)) continue
-
-      const theirOwnedIds = ownedByUser.get(nearby.id) || new Set()
-      const theyNeed = dupIdsArr.filter((id) => !theirOwnedIds.has(id))
-      if (theyNeed.length === 0) continue
-
-      const prioritySet = new Set(prefs.notify_priority_stickers || [])
-
-      for (const stickerId of theyNeed) {
-        candidates.push({
-          recipient_id: nearby.id,
-          scanner_id: user_id,
-          sticker_id: stickerId,
-          distance_km: Math.round(dist * 100) / 100,
-          is_priority: prioritySet.has(stickerId),
-        })
-      }
-    }
-
-    // 6. Bulk-insert with ON CONFLICT DO NOTHING (UNIQUE constraint dedups
-    //    same scanner+recipient+sticker pairs across multiple scans).
-    let enqueued = 0
-    if (candidates.length > 0) {
-      const { error: insertError, count } = await supabase
-        .from('match_candidates')
-        .upsert(candidates, {
-          onConflict: 'recipient_id,scanner_id,sticker_id',
-          ignoreDuplicates: true,
-          count: 'exact',
-        })
-      if (insertError) {
-        console.error('match_candidates insert error:', insertError)
-      } else {
-        enqueued = count ?? candidates.length
-      }
-    }
-
-    // ── Pedro 2026-05-04: alertas de match em "tempo real" pra Copa Completa ──
-    // Antes: notificava sempre que alguém perto registrava figurinha que
-    // o user precisava. PROBLEMA: muitos alertas inúteis (recipient sem
-    // repetidas pra dar em troca). Agora exige BILATERALIDADE: scanner
-    // registrou X que recipient precisa E recipient tem repetida Y que
-    // o scanner precisa. Sem isso → SKIP (sem mensagem).
-    //
-    // Frequência configurável via profiles.match_alerts_freq:
-    //   off=desligado, low=1/dia 12h, normal=2/dia 6h (default), high=4/dia 3h
-    if (candidates.length > 0) {
-      // Quiet hours guard (BRT = UTC-3)
-      const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-      const hourBRT = nowSP.getHours()
-      const isQuietHours = hourBRT < 8 || hourBRT >= 22
-
-      const recipientIds = Array.from(new Set(candidates.map((c) => c.recipient_id)))
-      const { data: copaProfiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, phone, tier, notify_channel, last_match_notified_at, match_alerts_freq')
-        .eq('tier', 'copa_completa')
-        .in('id', recipientIds)
-      if (copaProfiles && copaProfiles.length > 0 && !isQuietHours) {
-        // Fire and forget — não bloqueia
-        const realtimeNotify = async () => {
-          const { sendText, formatPhone } = await import('@/lib/zapi')
-          const { logNotificationSent } = await import('@/lib/notification-queue')
-
-          // Frequência → cooldown e daily limit
-          const FREQ_CONFIG: Record<string, { cooldownH: number; dailyLimit: number }> = {
-            off:    { cooldownH: Infinity, dailyLimit: 0 },
-            low:    { cooldownH: 12, dailyLimit: 1 },
-            normal: { cooldownH: 6,  dailyLimit: 2 },
-            high:   { cooldownH: 3,  dailyLimit: 4 },
-          }
-
-          const todayStart = new Date(nowSP); todayStart.setHours(0, 0, 0, 0)
-          const todayStartUTC = new Date(todayStart.getTime() + nowSP.getTimezoneOffset() * 60_000)
-
-          // Buscar nomes/números das figurinhas (pra mensagem ganha/dá)
-          const stickerIds = Array.from(new Set(candidates.map((c) => c.sticker_id)))
-          const { data: stickerInfo } = await supabase
-            .from('stickers')
-            .select('id, number, player_name')
-            .in('id', stickerIds)
-          const stickerById = new Map((stickerInfo || []).map((s) => [s.id, s]))
-          const scannerProfile = await supabase.from('profiles').select('display_name').eq('id', user_id).maybeSingle()
-          const scannerName = scannerProfile.data?.display_name?.split(' ')[0] || 'alguém'
-
-          // Pre-fetch: figurinhas que o SCANNER precisa (pra cross-check com
-          // repetidas dos recipients) — 1 query única.
-          const { data: scannerOwned } = await supabase
-            .from('user_stickers')
-            .select('sticker_id, status, quantity')
-            .eq('user_id', user_id)
-            .in('status', ['owned', 'duplicate'])
-          const scannerHasIds = new Set((scannerOwned || []).map((r: { sticker_id: number }) => r.sticker_id))
-          // Total de figurinhas que contam pra completar o álbum (faltando =
-          // todas aquelas que NÃO estão em scannerHasIds, dentre os contáveis).
-          // Pra simplicidade: o scanner PRECISA de qualquer sticker que conta
-          // pra completar e ele NÃO TEM. Verificamos abaixo.
-
-          for (const copa of copaProfiles as Array<{ id: string; display_name: string | null; phone: string | null; notify_channel: string | null; last_match_notified_at: string | null; match_alerts_freq: string | null }>) {
-            if (copa.notify_channel === 'none' || !copa.phone) continue
-
-            const freq = (copa.match_alerts_freq || 'normal') as keyof typeof FREQ_CONFIG
-            const cfg = FREQ_CONFIG[freq] || FREQ_CONFIG.normal
-            if (cfg.dailyLimit === 0) {
-              console.log(`[realtime match] skip ${copa.id} — match_alerts_freq=off`)
-              continue
-            }
-
-            // Cooldown
-            if (copa.last_match_notified_at) {
-              const since = Date.now() - new Date(copa.last_match_notified_at).getTime()
-              if (since < cfg.cooldownH * 60 * 60 * 1000) {
-                console.log(`[realtime match] skip ${copa.id} — cooldown (freq=${freq}, ${Math.round(since / 60000)}min)`)
-                continue
-              }
-            }
-
-            // Daily limit
-            const { count: todayCount } = await supabase
-              .from('notifications_sent')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', copa.id)
-              .eq('type', 'copa_realtime_match')
-              .gte('sent_at', todayStartUTC.toISOString())
-            if ((todayCount ?? 0) >= cfg.dailyLimit) {
-              console.log(`[realtime match] skip ${copa.id} — daily limit (freq=${freq}, ${todayCount}/${cfg.dailyLimit})`)
-              continue
-            }
-
-            // Bilateral check: recipient precisa ter REPETIDAS que o scanner
-            // não tem. Sem isso, não há troca real → skip.
-            const { data: copaDupes } = await supabase
-              .from('user_stickers')
-              .select('sticker_id, quantity, stickers!inner(number, player_name, counts_for_completion)')
-              .eq('user_id', copa.id)
-              .eq('status', 'duplicate')
-              .eq('stickers.counts_for_completion', true)
-            const copaDupesCanGive = (copaDupes || []).filter((r: { sticker_id: number }) => !scannerHasIds.has(r.sticker_id))
-              .map((r: { sticker_id: number; stickers: { number: string; player_name: string | null } | { number: string; player_name: string | null }[] }) => {
-                const s = Array.isArray(r.stickers) ? r.stickers[0] : r.stickers
-                return { number: s?.number || '?', player_name: s?.player_name || '' }
-              })
-            if (copaDupesCanGive.length === 0) {
-              console.log(`[realtime match] skip ${copa.id} — bilateral fail (recipient sem repetidas que scanner precisa)`)
-              continue
-            }
-
-            const userCandidates = candidates.filter((c) => c.recipient_id === copa.id)
-
-            // Lista do que o recipient GANHA (do scanner) — limite 5
-            const ganhaLines = userCandidates.slice(0, 5).map((c) => {
-              const s = stickerById.get(c.sticker_id)
-              return s ? `*${s.number}*${s.player_name ? ' — ' + s.player_name : ''}` : null
-            }).filter(Boolean)
-            const ganhaMore = Math.max(0, userCandidates.length - 5)
-            const ganhaStr = ganhaLines.join(', ') + (ganhaMore > 0 ? ` _(+${ganhaMore})_` : '')
-
-            // Lista do que o recipient DÁ (suas repetidas que scanner precisa)
-            const daLines = copaDupesCanGive.slice(0, 5).map((r) => `*${r.number}*${r.player_name ? ' — ' + r.player_name : ''}`)
-            const daMore = Math.max(0, copaDupesCanGive.length - 5)
-            const daStr = daLines.join(', ') + (daMore > 0 ? ` _(+${daMore})_` : '')
-
-            const distanceKm = userCandidates[0]?.distance_km ?? '?'
-            const firstName = copa.display_name?.split(' ')[0] || ''
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
-
-            // Mensagem de cooldown amigável (reflete a freq do user)
-            const freqLabel: Record<string, string> = {
-              low: 'até 1 vez por dia (mín 12h entre)',
-              normal: 'até 2 vezes por dia (mín 6h entre)',
-              high: 'até 4 vezes por dia (mín 3h entre)',
-            }
-
-            const msg =
-              `🔁 *${firstName ? firstName + ', m' : 'M'}atch real perto de você!*\n\n` +
-              `*${scannerName}* registrou figurinha${userCandidates.length > 1 ? 's' : ''} que você precisa, e você tem repetida${copaDupesCanGive.length > 1 ? 's' : ''} que ele precisa:\n\n` +
-              `📥 *Você ganha:* ${ganhaStr}\n` +
-              `📤 *Você dá:* ${daStr}\n\n` +
-              `📍 ${distanceKm} km · ${appUrl}/trades\n\n` +
-              `─────────\n` +
-              `ℹ️ Hoje te notificamos ${freqLabel[freq] || freqLabel.normal} quando aparecem trocas reais.\n\n` +
-              `*Ajustar rápido aqui:*\n` +
-              `🔕 *parar alertas* → desliga\n` +
-              `⬇️ *menos alertas* → 1/dia\n` +
-              `⬆️ *mais alertas* → 4/dia\n\n` +
-              `⚙️ Outras configs (raio, figurinhas específicas):\n${appUrl}/trades`
-            try {
-              const phone = formatPhone(copa.phone)
-              const ok = await sendText(phone, msg)
-              if (ok) {
-                await supabase.from('profiles').update({ last_match_notified_at: new Date().toISOString() }).eq('id', copa.id)
-                await logNotificationSent({
-                  userId: copa.id,
-                  type: 'copa_realtime_match',
-                  channel: 'whatsapp',
-                  recipient: phone,
-                  messagePreview: msg,
-                })
-              }
-            } catch (err) {
-              console.error('[realtime match] send failed:', err)
-            }
-          }
-        }
-        try {
-          const { waitUntil } = await import('@vercel/functions')
-          waitUntil(realtimeNotify())
-        } catch {
-          realtimeNotify().catch(() => {})
-        }
-      } else if (isQuietHours) {
-        console.log(`[realtime match] skip all — quiet hours (${hourBRT}h BRT)`)
-      }
-    }
-
-    perf.mark('enqueue')
-    perf.end({ enqueued, candidates: candidates.length, nearby: nearbyProfiles.length })
+    perf.mark('auth')
+    const enqueued = await enqueueMatchCandidates(user.id, sticker_ids)
+    perf.end({ enqueued })
 
     return NextResponse.json({ ok: true, enqueued })
   } catch (err) {
     perf.end({ error: 'true' })
-    console.error('Notify matches error:', err)
-    return NextResponse.json({ ok: true, notified: 0 })
+    console.error('[notify-matches]', err)
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
-}
-
-// Haversine formula to calculate distance between two coordinates
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371 // Earth radius in km
-  const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lon2 - lon1)
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
-}
-
-function toRad(deg: number): number {
-  return deg * (Math.PI / 180)
 }

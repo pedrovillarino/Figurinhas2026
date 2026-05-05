@@ -7,32 +7,35 @@ import { logNotificationSent } from '@/lib/notification-queue'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-// ─── Match-digest cron — runs daily at 12h UTC (9h BRT) ──────────────────
-// Was hourly, but Vercel Hobby plan limits crons to 1x/day. Daily is enough
-// because cooldowns are 1d (configured) / 3d (not configured) anyway. If we
-// ever upgrade to Pro, can bump to hourly and the quiet-hours guard below
-// will start mattering.
+// ─── Match-digest cron — runs hourly ──────────────────────────────────────
+// Pedro 2026-05-04: bumped to hourly. Espera natural de 1h é o mecanismo
+// de "deferred dispatch" — quando user registra muitas figurinhas em sequência,
+// só dispara 1 mensagem consolidada na próxima rodada do cron.
 //
-// Drains the `match_candidates` queue (filled by /api/notify-matches on each
-// scan) and sends ONE consolidated digest per recipient with all the trade
-// opportunities currently available within their radius, ranked by
-// (distance ASC, sticker count DESC).
+// Drains the `match_candidates` queue (filled by /api/notify-matches on web/app
+// scans + by webhook após confirmação SIM no WhatsApp) e manda 1 mensagem
+// consolidada por recipient com:
+//   - Bilateral check: recipient TEM repetida que algum scanner precisa
+//   - Aplicação de match_alerts_freq (off|low|normal|high) controlando cooldown
+//     e daily limit POR USER
 //
-// Spam controls (Pedro's spec, 2026-05-01):
-//   - Quiet hours 22h–8h BRT → skip the entire run
-//   - Cooldown per recipient:
-//       · notify_configured = false  → 3 days between notifications
-//       · notify_configured = true   → 1 day  (cap minimum, even if user
-//                                              configured aggressive prefs)
-//   - Channel='none' → opted out, never notified
+// match_alerts_freq:
+//   - off:    desligado, nunca notifica
+//   - low:    1/dia, cooldown 12h
+//   - normal: 2/dia, cooldown 6h (default)
+//   - high:   4/dia, cooldown 3h
 //
-// Re-validation at send time (state may have changed since enqueue):
+// Spam controls:
+//   - Quiet hours 22h–8h BRT → skip entire run
+//   - Channel='none' → opted out
+//   - Bilateral: recipient sem repetidas que scanners precisam → skip
+//
+// Re-validation at send time:
 //   - Scanner still has the sticker as 'duplicate'
 //   - Recipient still doesn't own the sticker
 //   - No pending or recent (24h) trade between the pair
 //
-// TTL: rows older than 7 days are deleted at the end of the run, even if
-// the recipient was never reachable, to keep the queue from growing forever.
+// TTL: rows older than 7 days are deleted at the end of the run.
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
 
@@ -44,10 +47,16 @@ function getAdmin() {
   )
 }
 
-const COOLDOWN_NOT_CONFIGURED_MS = 3 * 24 * 60 * 60 * 1000
-const COOLDOWN_CONFIGURED_MS = 24 * 60 * 60 * 1000
 const CANDIDATE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const CANDIDATE_FRESHNESS_MS = 3 * 24 * 60 * 60 * 1000 // only consider last 3 days
+
+// Pedro 2026-05-04: match_alerts_freq → cooldown e daily limit
+const FREQ_CONFIG: Record<string, { cooldownMs: number; dailyLimit: number }> = {
+  off:    { cooldownMs: Number.POSITIVE_INFINITY, dailyLimit: 0 },
+  low:    { cooldownMs: 12 * 60 * 60 * 1000, dailyLimit: 1 },
+  normal: { cooldownMs:  6 * 60 * 60 * 1000, dailyLimit: 2 },
+  high:   { cooldownMs:  3 * 60 * 60 * 1000, dailyLimit: 4 },
+}
 
 type Candidate = {
   recipient_id: string
@@ -69,6 +78,7 @@ type RecipientProfile = {
   notify_priority_stickers: number[] | null
   notify_radius_km: number | null
   last_match_notified_at: string | null
+  match_alerts_freq: string | null
 }
 
 type ScannerInfo = {
@@ -143,7 +153,7 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, display_name, phone, email, notify_channel, notify_configured, notify_min_threshold, notify_priority_stickers, notify_radius_km, last_match_notified_at')
+        .select('id, display_name, phone, email, notify_channel, notify_configured, notify_min_threshold, notify_priority_stickers, notify_radius_km, last_match_notified_at, match_alerts_freq')
         .in('id', allUserIds),
       supabase
         .from('stickers')
@@ -218,16 +228,38 @@ export async function GET(req: NextRequest) {
         continue
       }
 
+      // Pedro 2026-05-04: aplicar match_alerts_freq (off|low|normal|high).
+      // Substituiu o boolean notify_configured antigo. Default = 'normal'.
+      const freq = (profile.match_alerts_freq || 'normal') as keyof typeof FREQ_CONFIG
+      const cfg = FREQ_CONFIG[freq] || FREQ_CONFIG.normal
+      if (cfg.dailyLimit === 0) {
+        // off → opt-out
+        consumedCandidateRecipientIds.push(recipientId)
+        result.skipped++
+        continue
+      }
+
       // Cooldown
-      const cooldownMs = profile.notify_configured
-        ? COOLDOWN_CONFIGURED_MS
-        : COOLDOWN_NOT_CONFIGURED_MS
       if (profile.last_match_notified_at) {
         const since = Date.now() - new Date(profile.last_match_notified_at).getTime()
-        if (since < cooldownMs) {
+        if (since < cfg.cooldownMs) {
           result.skipped++
           continue
         }
+      }
+
+      // Daily limit (sent today em SP timezone)
+      const todayStart = new Date(nowSP); todayStart.setHours(0, 0, 0, 0)
+      const todayStartUTC = new Date(todayStart.getTime() + nowSP.getTimezoneOffset() * 60_000)
+      const { count: sentToday } = await supabase
+        .from('notifications_sent')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', recipientId)
+        .eq('type', 'match_digest')
+        .gte('sent_at', todayStartUTC.toISOString())
+      if ((sentToday ?? 0) >= cfg.dailyLimit) {
+        result.skipped++
+        continue
       }
 
       const radiusKm = profile.notify_radius_km || 50
@@ -256,6 +288,46 @@ export async function GET(req: NextRequest) {
         result.skipped++
         continue
       }
+
+      // Pedro 2026-05-04: BILATERAL CHECK obrigatório. Recipient precisa ter
+      // REPETIDA que ALGUM scanner desses candidates não tem. Sem bilateralidade
+      // não há troca real → skip.
+      const scannerIdsInvolved = Array.from(new Set(valid.map((v) => v.scanner_id)))
+      const { data: recipientDupes } = await supabase
+        .from('user_stickers')
+        .select('sticker_id')
+        .eq('user_id', recipientId)
+        .eq('status', 'duplicate')
+      const recipientDupeIds = (recipientDupes || []).map((r: { sticker_id: number }) => r.sticker_id)
+
+      // Pra cada scanner, ver se alguma das duplicates do recipient é coisa
+      // que esse scanner NÃO tem.
+      const { data: scannerOwnedAll } = await supabase
+        .from('user_stickers')
+        .select('user_id, sticker_id')
+        .in('user_id', scannerIdsInvolved)
+        .in('status', ['owned', 'duplicate'])
+        .in('sticker_id', recipientDupeIds.length > 0 ? recipientDupeIds : [-1])
+      const scannerHasMap = new Map<string, Set<number>>()
+      for (const r of (scannerOwnedAll || []) as Array<{ user_id: string; sticker_id: number }>) {
+        if (!scannerHasMap.has(r.user_id)) scannerHasMap.set(r.user_id, new Set())
+        scannerHasMap.get(r.user_id)!.add(r.sticker_id)
+      }
+      const validBilateral = valid.filter((v) => {
+        const has = scannerHasMap.get(v.scanner_id) || new Set()
+        // Ao menos UMA das duplicates do recipient não está na coleção do scanner
+        return recipientDupeIds.some((dupeId) => !has.has(dupeId))
+      })
+
+      if (validBilateral.length === 0) {
+        // Sem bilateralidade — drop candidates e skip silencioso
+        consumedCandidateRecipientIds.push(recipientId)
+        result.skipped++
+        continue
+      }
+      // Substitui valid pela versão bilateral pra todos os blocos abaixo
+      valid.length = 0
+      valid.push(...validBilateral)
 
       // Group by scanner
       type ScannerGroup = {
