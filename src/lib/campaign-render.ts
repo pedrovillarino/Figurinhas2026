@@ -208,10 +208,12 @@ export function renderEmbaixadorWhatsApp(
   const couponBlock = coupon
     ? `\n\n━━━━━━━━━━━━━━━━━━━\n` +
       `🎁 *Bônus por se inscrever na campanha:*\n` +
-      `Seu cupom pessoal *${coupon.code}* — 20% off em qualquer plano.\n` +
+      `Cupom de desconto pessoal — *${coupon.code}*\n` +
+      `👉 Cole esse código na tela de assinatura e ganhe *20% off* em qualquer plano.\n` +
       `Válido até ${formatCouponExpiry(coupon.valid_until)}.\n` +
       `Se você assinar, ainda ganha +5 pontos no ranking 🚀\n` +
-      `${APP_URL}/upgrade`
+      `${APP_URL}/upgrade\n\n` +
+      `_(Esse código é só pra desconto na assinatura — não é figurinha.)_`
     : ''
   return (
     `Oi ${firstName}! 👋\n\n` +
@@ -245,9 +247,10 @@ export function renderEmbaixadorEmail(
   const couponHtml = coupon
     ? `<div style="background:linear-gradient(135deg,#FFF8E6,#FFE9B0);border-radius:12px;padding:18px;margin:24px 0 8px;border:1px solid #FFB800">
          <p style="margin:0 0 8px;color:#0A1628;font-size:14px;font-weight:600">🎁 Bônus por se inscrever na campanha:</p>
-         <p style="margin:0 0 6px;color:#374151;font-size:14px">Seu cupom pessoal:</p>
+         <p style="margin:0 0 6px;color:#374151;font-size:14px">Seu cupom de desconto pessoal:</p>
          <p style="margin:0 0 8px;color:#0A1628;font-size:22px;font-weight:bold;font-family:monospace;letter-spacing:1px">${coupon.code}</p>
-         <p style="margin:0 0 8px;color:#374151;font-size:13px"><strong>20% off</strong> em qualquer plano · válido até ${formatCouponExpiry(coupon.valid_until)}</p>
+         <p style="margin:0 0 8px;color:#374151;font-size:13px">👉 Cole esse código na tela de assinatura e ganhe <strong>20% off</strong> em qualquer plano.</p>
+         <p style="margin:0 0 8px;color:#374151;font-size:13px">Válido até ${formatCouponExpiry(coupon.valid_until)}.</p>
          <p style="margin:0;color:#374151;font-size:13px">Se você assinar, ainda ganha <strong>+5 pontos</strong> no ranking 🚀</p>
          <div style="text-align:center;margin-top:14px">
            <a href="${APP_URL}/upgrade" style="display:inline-block;background:#FFB800;color:#0A1628;padding:10px 24px;border-radius:8px;font-weight:bold;text-decoration:none;font-size:14px">Usar cupom</a>
