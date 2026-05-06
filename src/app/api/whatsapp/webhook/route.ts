@@ -3075,6 +3075,12 @@ export async function POST(req: NextRequest) {
           // Resposta agrupa por status: tem com repetida / tem sem repetida /
           // ainda não tem.
           const askingAboutDup = /\b(repetida|repetido)s?\b/i.test(trimmedText)
+          // Pedro 2026-05-05 (caso Antonia +55 14 99159-2272): user mandou
+          // lista de códigos + "quais dessas eu nao tenho?" → bot mostrou
+          // a lista das que TEM em vez das que FALTA. Detecta polaridade:
+          // "não tenho", "faltam", "que falta", "preciso" → modo missing-only.
+          const askingAboutMissing =
+            /\b(n[ãa]o\s+tenho|n[ãa]o\s+tem|faltam?|que\s+falta|preciso|me\s+falta|n[ãa]o\s+peguei|n[ãa]o\s+coloquei)\b/i.test(trimmedText)
           const supabaseAdmin = getAdmin()
 
           // Normaliza cada código pra formato canônico "PAÍS-NÚMERO"
@@ -3149,6 +3155,28 @@ export async function POST(req: NextRequest) {
             if (haveDup.length > 0) {
               lines.push('')
               lines.push(`💡 Manda *trocas* pra ver oportunidades perto de você.`)
+            }
+            await sendText(phone, lines.join('\n'))
+            break
+          }
+
+          // Pedro 2026-05-05: modo "quais NÃO tenho?" — só mostra missing
+          if (askingAboutMissing) {
+            const lines: string[] = []
+            if (missing.length > 0) {
+              lines.push(`❌ *Dessas, você NÃO tem ${missing.length}:*`)
+              for (const s of missing) lines.push(fmt(s))
+            } else {
+              lines.push(`✅ *Você já tem TODAS as ${wantedCodes.length} dessa lista!*`)
+            }
+            const haveCount = haveDup.length + haveSingle.length
+            if (haveCount > 0 && missing.length > 0) {
+              lines.push('')
+              lines.push(`_(${haveCount} já tem — manda *quais tenho dessa lista* se quiser ver._)`)
+            }
+            if (notFound.length > 0) {
+              if (lines.length > 0) lines.push('')
+              lines.push(`⚠️ Não encontrei no álbum: ${notFound.join(', ')}`)
             }
             await sendText(phone, lines.join('\n'))
             break
