@@ -206,10 +206,12 @@ export function renderEmbaixadorWhatsApp(
 ): string {
   const days = daysUntilCampaignEnd()
   const couponBlock = coupon
-    ? `\n🎁 *Seu cupom pessoal: ${coupon.code}*\n` +
-      `20% off em qualquer plano · válido até ${formatCouponExpiry(coupon.valid_until)}\n` +
-      `Se você assinar, ganha +5 pontos no ranking 🚀\n` +
-      `${APP_URL}/upgrade\n`
+    ? `\n\n━━━━━━━━━━━━━━━━━━━\n` +
+      `🎁 *Bônus por se inscrever na campanha:*\n` +
+      `Seu cupom pessoal *${coupon.code}* — 20% off em qualquer plano.\n` +
+      `Válido até ${formatCouponExpiry(coupon.valid_until)}.\n` +
+      `Se você assinar, ainda ganha +5 pontos no ranking 🚀\n` +
+      `${APP_URL}/upgrade`
     : ''
   return (
     `Oi ${firstName}! 👋\n\n` +
@@ -219,14 +221,14 @@ export function renderEmbaixadorWhatsApp(
     `🥈 2º — Porta-figurinha + 8 pacotes + 5 trocas extras\n` +
     `🥉 3º — 5 pacotes + 5 trocas extras\n\n` +
     `*Top 3 agora:*\n${renderTop3Lines(top3)}\n\n` +
-    `${renderPositionLine(pos)}\n` +
-    couponBlock +
-    `\n*Como subir no ranking:*\n` +
+    `${renderPositionLine(pos)}\n\n` +
+    `*Como subir no ranking:*\n` +
     `• 1 ponto por amigo que se cadastra pelo seu link (+ 1 scan grátis pra você)\n` +
     `• 5 pontos quando esse amigo assina qualquer plano pago\n` +
     `• 5 pontos se VOCÊ assinar ou fizer upgrade em qualquer plano\n\n` +
     `Seu link único e ranking ao vivo:\n${APP_URL}/campanha\n\n` +
-    `Bora? 🚀`
+    `Bora? 🚀` +
+    couponBlock
   )
 }
 
@@ -241,12 +243,13 @@ export function renderEmbaixadorEmail(
   const days = daysUntilCampaignEnd()
   const subject = `${firstName}, faltam ${days} dias na campanha de embaixadores`
   const couponHtml = coupon
-    ? `<div style="background:linear-gradient(135deg,#FFF8E6,#FFE9B0);border-radius:12px;padding:16px;margin:20px 0;border:1px solid #FFB800">
-         <p style="margin:0 0 6px;color:#0A1628;font-size:13px;font-weight:600">🎁 Seu cupom pessoal:</p>
+    ? `<div style="background:linear-gradient(135deg,#FFF8E6,#FFE9B0);border-radius:12px;padding:18px;margin:24px 0 8px;border:1px solid #FFB800">
+         <p style="margin:0 0 8px;color:#0A1628;font-size:14px;font-weight:600">🎁 Bônus por se inscrever na campanha:</p>
+         <p style="margin:0 0 6px;color:#374151;font-size:14px">Seu cupom pessoal:</p>
          <p style="margin:0 0 8px;color:#0A1628;font-size:22px;font-weight:bold;font-family:monospace;letter-spacing:1px">${coupon.code}</p>
          <p style="margin:0 0 8px;color:#374151;font-size:13px"><strong>20% off</strong> em qualquer plano · válido até ${formatCouponExpiry(coupon.valid_until)}</p>
-         <p style="margin:0;color:#374151;font-size:13px">Se você assinar, ganha <strong>+5 pontos</strong> no ranking 🚀</p>
-         <div style="text-align:center;margin-top:12px">
+         <p style="margin:0;color:#374151;font-size:13px">Se você assinar, ainda ganha <strong>+5 pontos</strong> no ranking 🚀</p>
+         <div style="text-align:center;margin-top:14px">
            <a href="${APP_URL}/upgrade" style="display:inline-block;background:#FFB800;color:#0A1628;padding:10px 24px;border-radius:8px;font-weight:bold;text-decoration:none;font-size:14px">Usar cupom</a>
          </div>
        </div>`
@@ -285,7 +288,6 @@ export function renderEmbaixadorEmail(
         ${top3Html}
       </div>
       ${positionHtml}
-      ${couponHtml}
       <h2 style="color:#0A1628;font-size:16px;margin:20px 0 8px">Como pontuar:</h2>
       <ul style="margin:0 0 16px;padding-left:20px;color:#374151;line-height:1.8">
         <li>1 ponto por amigo que se cadastra pelo seu link (+ 1 scan grátis pra você)</li>
@@ -295,6 +297,7 @@ export function renderEmbaixadorEmail(
       <div style="text-align:center;margin:24px 0">
         <a href="${APP_URL}/campanha" style="display:inline-block;background:#00C896;color:white;padding:12px 28px;border-radius:10px;font-weight:bold;text-decoration:none">Ver meu ranking</a>
       </div>
+      ${couponHtml}
       <p style="color:#6B7280;font-size:12px;margin:24px 0 0;text-align:center">
         Equipe Complete Aí · ${APP_URL}
       </p>
