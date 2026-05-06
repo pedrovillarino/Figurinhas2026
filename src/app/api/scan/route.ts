@@ -138,6 +138,68 @@ STEP BY STEP:
 4. Return ONLY the FILLED positions in the stickers array.
 
 ═══════════════════════════════════════════════════════════════════════
+🗺️ SPECIAL ALBUM PAGE LAYOUTS (Pedro 2026-05-05)
+
+For non-country pages, use the descriptions below. In all cases the
+criterion is the same: EMPTY slot shows a rectangular placeholder
+(white/light-color) with label "FWC-X" / "CC-X" and NO photographic
+human face inside. FILLED slot has the actual sticker covering it.
+
+📘 OPENING PAGE — "WE ARE PANINI" (album intro):
+   - Top: "Quadro de honra" (roll of honor) — text list of past WC
+     champions (Italy 1934, Brazil 1958, etc). Has 1 small SLOT marked
+     "00" at top of that panel — that is sticker FWC-0 ("We are Panini"
+     foil with player doing bicycle kick).
+   - Center panel: "Os símbolos" (legend showing position names,
+     birthdate icons, etc). NOT A STICKER.
+   - List of 48 countries in colored bars groups A-L (e.g. "16 CAN
+     Canada", "32 USA USA"). NOT STICKERS — just info.
+   - Bottom: 4 SLOTS labeled FWC-1 (Emblema Oficial), FWC-2 (Slogan),
+     FWC-3 (Mascotes Oficiais), FWC-4 (Slogan Oficial).
+
+🌎 HOST COUNTRIES AND CITIES PAGE:
+   - Header: "FIFA WORLD CUP 2026 - HOST COUNTRIES AND CITIES"
+   - 4 SLOTS: FWC-5 (Bola Oficial Trionda), FWC-6 (Emblema CAN),
+     FWC-7 (Emblema MEX), FWC-8 (Emblema USA).
+   - Cities + stadiums listed alongside (Toronto/Vancouver/Atlanta/
+     Boston/etc). NOT STICKERS — just tournament info.
+
+🏆 FIFA WORLD CUP HISTORY PAGE (presented by FIFA Museum):
+   - Dark PURPLE/BLUE background, header "FIFA WORLD CUP HISTORY".
+   - 11 REAL sticker SLOTS: FWC-9 through FWC-19. Each is the squad
+     team photo of a specific World Cup:
+     FWC-9 Italy 1934, FWC-10 Brazil 1950, FWC-11 Switzerland 1954,
+     FWC-12 Chile 1962, FWC-13 Germany 1974, FWC-14 Mexico 1986,
+     FWC-15 USA 1994, FWC-16 Korea/Japan 2002, FWC-17 Germany 2006,
+     FWC-18 Brazil 2014, FWC-19 Qatar 2022.
+   - 🚨🚨🚨 CRITICAL TRAP: this page INCLUDES MANY ILLUSTRATIONS
+     PRINTED ON THE TEMPLATE that SIMULATE glued stickers:
+     • Mini-portraits "ARTILHEIRO" (small individual player photos
+       like Eusébio, Just Fontaine, Gerd Müller) with their own
+       numbering 4-13. THESE ARE PRINTED ON PAPER — NOT collectable
+       stickers.
+     • Squad photos of OTHER World Cups (URUGUAY 1930, ITALY 1938,
+       BRAZIL 1958, ENGLAND 1966, etc) that DO NOT have a visible
+       FWC-X label nearby — also PRINTED on the page, NOT stickers.
+   - RULE: only report FILLED if the slot has a clear visible "FWC X"
+     label AND a squad photo COVERING that specific slot. Anything
+     looking like "ARTILHEIRO" with different numbering, or any squad
+     photo WITHOUT an FWC label nearby, is DECORATIVE — IGNORE.
+
+🥤 COCA-COLA PAGE (CC1 through CC14):
+   - Distinctive RED background + large WHITE WAVE crossing.
+   - Coca-Cola logo visible.
+   - 14 SLOTS spread across 2 pages (CC1-6 on one, CC7-14 on the
+     other).
+   - Each slot has DESCRIPTIVE TEXT about the player alongside or
+     below (e.g. "Lamine Yamal — Realizando o sonho de defender..."
+     / "Harry Kane — capitão e maior artilheiro..."). THIS TEXT IS
+     NOT A STICKER — it's part of the template.
+   - Empty slot: white rectangle with label "CC1", "CC2", etc.
+   - Filled slot: distinctive Coca-Cola sticker (dark in-game player
+     photo, vertical name on left edge).
+
+═══════════════════════════════════════════════════════════════════════
 
 For EACH physical sticker you can see (front or back), return:
 - player_name: EXACT name printed (e.g., "Neymar Jr", "Casemiro"). For stickers WITHOUT a player name (symbols/figures), use the canonical label — see SYMBOLS section below. If unreadable, use "?".

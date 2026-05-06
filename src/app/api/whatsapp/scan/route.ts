@@ -87,6 +87,65 @@ PASSO A PASSO:
 4. Retorne SOMENTE as posições FILLED no array de stickers.
 
 ═══════════════════════════════════════════════════════════════════════
+🗺️ MAPA DAS PÁGINAS ESPECIAIS DO ÁLBUM (Pedro 2026-05-05)
+
+Pra páginas que NÃO sejam de país, use as descrições abaixo. Em todas,
+o critério é igual: SLOT VAZIO mostra placeholder retangular branco/cor
+clara com label "FWC-X" / "CC-X" e SEM rosto humano fotográfico
+dentro. SLOT FILLED tem foto/imagem do cromo real colado.
+
+📘 PÁGINA DE ABERTURA — "WE ARE PANINI" (intro do álbum):
+   - Topo: "Quadro de honra" — lista de campeões anteriores (Italy 1934,
+     Brazil 1958, etc) em texto. Tem 1 SLOT pequeno marcado "00" no topo
+     desse painel — esse é o cromo FWC-0 ("We are Panini" foil).
+   - Painel central: "Os símbolos" — gráfico/legenda de posições (goleiro,
+     zagueiro, etc). NÃO É CROMO.
+   - Lista de 48 países em barras coloridas A-L (ex: "16 CAN Canada",
+     "32 USA USA"). NÃO É CROMO.
+   - Bottom: 4 SLOTS marcados FWC-1 (Emblema Oficial), FWC-2 (Slogan),
+     FWC-3 (Mascotes), FWC-4 (Slogan Oficial / Bola).
+
+🌎 PÁGINA HOST COUNTRIES AND CITIES (CAN/MEX/USA):
+   - Header: "FIFA WORLD CUP 2026 - HOST COUNTRIES AND CITIES"
+   - 4 SLOTS: FWC-5 (Bola Oficial Trionda), FWC-6 (Emblema CAN),
+     FWC-7 (Emblema MEX), FWC-8 (Emblema USA).
+   - Cidades + estádios listados ao lado (Toronto/Vancouver/Atlanta/
+     Boston/etc). NÃO SÃO CROMOS — só info do torneio.
+
+🏆 PÁGINA FIFA WORLD CUP HISTORY (presented by FIFA Museum):
+   - Fundo ROXO/AZUL escuro, header "FIFA WORLD CUP HISTORY".
+   - 11 SLOTS REAIS de cromo: FWC-9 a FWC-19. Cada um é o squad photo
+     (fileira de jogadores em campo) de um Mundial específico:
+     FWC-9 Italy 1934, FWC-10 Brazil 1950, FWC-11 Switzerland 1954,
+     FWC-12 Chile 1962, FWC-13 Germany 1974, FWC-14 Mexico 1986,
+     FWC-15 USA 1994, FWC-16 Korea/Japan 2002, FWC-17 Germany 2006,
+     FWC-18 Brazil 2014, FWC-19 Qatar 2022.
+   - 🚨🚨🚨 ARMADILHA CRÍTICA: a página INCLUI VÁRIAS ILUSTRAÇÕES
+     IMPRESSAS no template que SIMULAM cromos colados:
+     • Mini-portraits "ARTILHEIRO" (fotos pequenas de jogadores
+       individuais como Eusébio, Just Fontaine, Gerd Müller, etc)
+       com numeração própria 4-13. ESSES SÃO IMPRESSOS NO PAPEL —
+       NÃO SÃO CROMOS COLECIONÁVEIS.
+     • Squad photos de outros Mundiais (URUGUAY 1930, ITALY 1938,
+       BRAZIL 1958, ENGLAND 1966, etc) que NÃO TÊM label FWC-X
+       visível — também IMPRESSOS no papel, NÃO são cromos.
+   - REGRA: só reporte FILLED se o slot tem label "FWC X" claro e
+     visível e tem squad photo COBRINDO o slot. Tudo que tem aparência
+     de "ARTILHEIRO" + numeração diferente, ou squad photo SEM label
+     FWC, é DECORATIVO — IGNORE.
+
+🥤 PÁGINA COCA-COLA (CC1 a CC14):
+   - Fundo VERMELHO característico + grande ONDA BRANCA cruzando.
+   - Logo Coca-Cola visível.
+   - 14 SLOTS distribuídos em 2 páginas (CC1-6 numa, CC7-14 noutra).
+   - Cada slot tem TEXTO descritivo DO JOGADOR ao lado/abaixo (ex:
+     "Lamine Yamal — Realizando o sonho de defender a seleção...").
+     ESSE TEXTO NÃO É CROMO — é parte do template.
+   - Slot vazio: retângulo branco com label "CC1", "CC2", etc.
+   - Slot FILLED: cromo Coca-Cola distintivo (fundo escuro com foto
+     do jogador em ação, nome vertical à esquerda).
+
+═══════════════════════════════════════════════════════════════════════
 
 Para CADA figurinha física visível (frente ou verso):
 - player_name: nome EXATO impresso (ex: "Neymar Jr"). Pra figurinhas SEM nome de jogador (símbolos/figuras), use o rótulo canônico — veja seção SÍMBOLOS abaixo. Se ilegível, use "?".
