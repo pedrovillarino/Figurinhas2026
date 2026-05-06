@@ -115,11 +115,43 @@ STEP BY STEP:
    (left side + right side = double-page spread).
 3. For EACH visible slot, classify as FILLED or EMPTY:
 
-   ✅ FILLED (sticker glued/present): you see INSIDE the rectangle a
-      REAL PHOTOGRAPHIC IMAGE — human face of a player wearing team
-      jersey, characteristic white Panini sticker border, colored
-      graphic background (green/red/blue gradient design). Player name
-      appears in WHITE letters at the bottom of the rectangle.
+   ✅ FILLED (sticker glued/present): you see a REAL PHOTO of a player
+      (human face + national jersey + graphic background).
+
+      FIXED LAYOUT of a player sticker front:
+      - TOP: giant stylized "26" (decoration) + "26 FIFA" logo at upper
+        right corner. ⚠️ The "26" is NOT the sticker number.
+      - RIGHT SIDE: FLAG-BALL (circle with national flag colors) above a
+        STYLIZED 3-LETTER COUNTRY CODE (SEN, COL, BRA, ARG, FRA, CUW,
+        CPV...). Semi-transparent letters.
+      - CENTER: player photo with national jersey + federation crest.
+      - BOTTOM: colored pill with PLAYER NAME (surname in BOLD CAPS,
+        first name regular caps — e.g. "LAMINE CAMARA", "EXEQUIEL
+        PALACIOS"), followed by birth date · height · weight, and club
+        with club country in parens. Panini logo bottom corner.
+
+      🎯 LAYERED IDENTIFICATION (use the highest available):
+        1. PLAYER NAME at the bottom → DB lookup resolves country and number.
+        2. SANITY CHECK: country from name must MATCH at least 1 visual
+           cue: flag-ball colors, 3-letter acronym, or jersey+crest.
+        3. If 2+ cues match → confidence 0.90+. If just 1 → 0.70-0.85.
+        4. If CONFLICT (e.g. name says "BRA" but I see sky-blue jersey
+           and "ARG" acronym) → low confidence OR return empty. NEVER
+           return high confidence with conflicting cues.
+
+      ⚠️ WHEN IN DOUBT, DO NOT GUESS — return empty array:
+        - Name unreadable, flag/acronym/jersey all covered, or cues
+          conflicting → DO NOT return that sticker.
+        - Two players with similar names you cannot disambiguate →
+          DO NOT return.
+        - Better to report "0 stickers detected" than 1 WRONG. A silent
+          error destroys user trust.
+
+      ⚠️ COMMON CONFUSIONS:
+        - Giant "26" = Copa 2026 decoration, NOT sticker number.
+        - 3-letter acronym = country code, NOT a number.
+        - Front does NOT show "COUNTRY-N" visible. Use NAME to resolve.
+        - If on album slot: use the printed label beside it (e.g. BRA 7).
 
    ❌ EMPTY (slot awaiting sticker): you see the ALBUM TEMPLATE —
       light-green/colored background with GIANT WATERMARK LETTERS of
