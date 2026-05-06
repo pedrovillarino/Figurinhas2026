@@ -417,6 +417,25 @@ export default function RankingPageClient({
               )
             }
             return (
+            <>
+            {/* Pedro 2026-05-06: legenda discreta dos selinhos de plano.
+                Promove apoiadores sem poluir UI. Hierarquia E < C < CP. */}
+            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100">
+              <span className="inline-flex items-center gap-1">
+                <UserTierBadge tier={'estreante' as Tier} size="xs" />
+                Estreante
+              </span>
+              <span className="text-gray-300">·</span>
+              <span className="inline-flex items-center gap-1">
+                <UserTierBadge tier={'colecionador' as Tier} size="xs" />
+                Colecionador
+              </span>
+              <span className="text-gray-300">·</span>
+              <span className="inline-flex items-center gap-1">
+                <UserTierBadge tier={'copa_completa' as Tier} size="xs" />
+                Copa Completa
+              </span>
+            </div>
             <div className="space-y-1 mt-1">
               {visibleLeaderboard.map((entry) => {
                 const isMe = entry.user_id === userId
@@ -486,6 +505,7 @@ export default function RankingPageClient({
                 </button>
               )}
             </div>
+            </>
             )
           })()}
         </div>
