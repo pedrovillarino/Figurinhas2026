@@ -1744,10 +1744,33 @@ export async function POST(req: NextRequest) {
       // imediato resolve. Pra user desconhecido, o auto-link já roda
       // antes (linha 1504) e usa o token; depois o stripLinkToken roda
       // também (linha 1524). Aqui é a redundância pra user conhecido.
-      const rawText = stripLinkToken(body.text?.message || body.body || body.message || '')
+      let rawText = stripLinkToken(body.text?.message || body.body || body.message || '')
 
       if (!rawText.trim()) {
         return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 2026-05-05 (caso Antonia +55 14 99159-2272): bot oferece
+      // opções com emoji nas labels (🔍 O que falta, 🔁 Repetidas, 📊
+      // Progresso) mas não reconhecia quando user respondia só com o
+      // emoji. Map emoji-only → comando texto. ✅ é tratado em isYesConfirm
+      // ANTES (se houver pending). 🔁 ambíguo entre Repetidas/Trocas —
+      // padrão é Repetidas (mais comum em contexto de listas).
+      const trimmedForEmoji = rawText.trim()
+      const EMOJI_TO_COMMAND: Record<string, string> = {
+        '🔍': 'faltando',
+        '📊': 'status',
+        '🔁': 'repetidas',
+        '👀': 'faltando top50',
+        '📃': 'faltando todas',
+        '🇧🇷': 'faltando brasil',
+        '🏆': 'ranking',
+        '⚽': 'menu',
+        '🆘': 'ajuda',
+        '✅': 'coladas', // só chega aqui se YesConfirm não pegou (sem pending)
+      }
+      if (EMOJI_TO_COMMAND[trimmedForEmoji]) {
+        rawText = EMOJI_TO_COMMAND[trimmedForEmoji]
       }
 
       // Pré-processa nomes de países → códigos FIFA: "brasil 1, argentina 3" → "BRA 1, ARG 3".
