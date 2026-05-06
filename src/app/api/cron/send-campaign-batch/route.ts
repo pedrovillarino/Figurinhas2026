@@ -17,6 +17,7 @@ import {
   getTop3WithNames,
   getUserPosition,
   getEmbaixadorTargets,
+  getEmbaixadorCoupon,
   getZeroFigTargets,
   renderEmbaixadorWhatsApp,
   renderEmbaixadorEmail,
@@ -138,7 +139,8 @@ async function processCampaign(
       }
 
       const pos = await getUserPosition(admin, t.user_id)
-      const body = renderEmbaixadorWhatsApp(t.first_name, pos, top3)
+      const coupon = t.tier === 'free' ? await getEmbaixadorCoupon(admin, t.user_id) : null
+      const body = renderEmbaixadorWhatsApp(t.first_name, pos, top3, coupon)
 
       let ok = false
       let errMsg: string | null = null
@@ -185,7 +187,8 @@ async function processCampaign(
       }
 
       const pos = await getUserPosition(admin, t.user_id)
-      const { subject, html } = renderEmbaixadorEmail(t.first_name, pos, top3)
+      const coupon = t.tier === 'free' ? await getEmbaixadorCoupon(admin, t.user_id) : null
+      const { subject, html } = renderEmbaixadorEmail(t.first_name, pos, top3, coupon)
 
       let ok = false
       let errMsg: string | null = null

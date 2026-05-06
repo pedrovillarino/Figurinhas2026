@@ -202,8 +202,15 @@ export function renderEmbaixadorWhatsApp(
   firstName: string,
   pos: UserPosition | null,
   top3: Top3Entry[],
+  coupon: { code: string; valid_until: string } | null = null,
 ): string {
   const days = daysUntilCampaignEnd()
+  const couponBlock = coupon
+    ? `\n🎁 *Seu cupom pessoal: ${coupon.code}*\n` +
+      `20% off em qualquer plano · válido até ${formatCouponExpiry(coupon.valid_until)}\n` +
+      `Se você assinar, ganha +5 pontos no ranking 🚀\n` +
+      `${APP_URL}/upgrade\n`
+    : ''
   return (
     `Oi ${firstName}! 👋\n\n` +
     `Você se inscreveu como embaixador no Complete Aí — atualização rápida do ranking.\n\n` +
@@ -212,8 +219,9 @@ export function renderEmbaixadorWhatsApp(
     `🥈 2º — Porta-figurinha + 8 pacotes + 5 trocas extras\n` +
     `🥉 3º — 5 pacotes + 5 trocas extras\n\n` +
     `*Top 3 agora:*\n${renderTop3Lines(top3)}\n\n` +
-    `${renderPositionLine(pos)}\n\n` +
-    `*Como subir no ranking:*\n` +
+    `${renderPositionLine(pos)}\n` +
+    couponBlock +
+    `\n*Como subir no ranking:*\n` +
     `• 1 ponto por amigo que se cadastra pelo seu link (+ 1 scan grátis pra você)\n` +
     `• 5 pontos quando esse amigo assina qualquer plano pago\n` +
     `• 5 pontos se VOCÊ assinar ou fizer upgrade em qualquer plano\n\n` +
@@ -228,9 +236,21 @@ export function renderEmbaixadorEmail(
   firstName: string,
   pos: UserPosition | null,
   top3: Top3Entry[],
+  coupon: { code: string; valid_until: string } | null = null,
 ): { subject: string; html: string } {
   const days = daysUntilCampaignEnd()
   const subject = `${firstName}, faltam ${days} dias na campanha de embaixadores`
+  const couponHtml = coupon
+    ? `<div style="background:linear-gradient(135deg,#FFF8E6,#FFE9B0);border-radius:12px;padding:16px;margin:20px 0;border:1px solid #FFB800">
+         <p style="margin:0 0 6px;color:#0A1628;font-size:13px;font-weight:600">🎁 Seu cupom pessoal:</p>
+         <p style="margin:0 0 8px;color:#0A1628;font-size:22px;font-weight:bold;font-family:monospace;letter-spacing:1px">${coupon.code}</p>
+         <p style="margin:0 0 8px;color:#374151;font-size:13px"><strong>20% off</strong> em qualquer plano · válido até ${formatCouponExpiry(coupon.valid_until)}</p>
+         <p style="margin:0;color:#374151;font-size:13px">Se você assinar, ganha <strong>+5 pontos</strong> no ranking 🚀</p>
+         <div style="text-align:center;margin-top:12px">
+           <a href="${APP_URL}/upgrade" style="display:inline-block;background:#FFB800;color:#0A1628;padding:10px 24px;border-radius:8px;font-weight:bold;text-decoration:none;font-size:14px">Usar cupom</a>
+         </div>
+       </div>`
+    : ''
 
   // Versão HTML legível
   const top3Html = top3.length === 0
@@ -265,6 +285,7 @@ export function renderEmbaixadorEmail(
         ${top3Html}
       </div>
       ${positionHtml}
+      ${couponHtml}
       <h2 style="color:#0A1628;font-size:16px;margin:20px 0 8px">Como pontuar:</h2>
       <ul style="margin:0 0 16px;padding-left:20px;color:#374151;line-height:1.8">
         <li>1 ponto por amigo que se cadastra pelo seu link (+ 1 scan grátis pra você)</li>
@@ -331,6 +352,7 @@ export type TargetEmbaixador = {
   first_name: string
   phone: string | null
   email: string | null
+  tier: string // 'free' | 'estreante' | 'colecionador' | 'copa_completa'
 }
 
 export type TargetZeroFig = {
@@ -348,7 +370,7 @@ export async function getEmbaixadorTargets(
 ): Promise<TargetEmbaixador[]> {
   const { data } = await admin
     .from('profiles')
-    .select('id, display_name, phone, email')
+    .select('id, display_name, phone, email, tier')
     .not('opted_into_campaign_at', 'is', null)
     .eq('excluded_from_campaign', false)
 
@@ -359,6 +381,7 @@ export async function getEmbaixadorTargets(
     display_name: string | null
     phone: string | null
     email: string | null
+    tier: string | null
   }>
 
   return rows
@@ -371,7 +394,46 @@ export async function getEmbaixadorTargets(
       first_name: capitalize(r.display_name?.split(' ')[0]) || 'Embaixador',
       phone: r.phone,
       email: r.email,
+      tier: r.tier || 'free',
     }))
+}
+
+/**
+ * Cupom pessoal de embaixador (EMB.NOME20) ativo + não-expirado + não-usado.
+ * Retorna null se: já usou, expirou, não existe, OU se user é pagante.
+ */
+export async function getEmbaixadorCoupon(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<{ code: string; valid_until: string } | null> {
+  const { data } = await admin
+    .from('discount_codes')
+    .select('code, valid_until, times_used, max_uses, active')
+    .eq('restricted_to_user_id', userId)
+    .eq('created_by', 'campaign_embaixadores_20260506')
+    .eq('active', true)
+    .gte('valid_until', new Date().toISOString())
+    .limit(1)
+    .maybeSingle()
+
+  if (!data) return null
+  const d = data as { code: string; valid_until: string; times_used: number; max_uses: number | null; active: boolean }
+  if (d.max_uses !== null && d.times_used >= d.max_uses) return null
+  return { code: d.code, valid_until: d.valid_until }
+}
+
+/** Formata "08/05 18:30" a partir de ISO timestamp em America/Sao_Paulo. */
+function formatCouponExpiry(iso: string): string {
+  const date = new Date(iso)
+  const fmt = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  // pt-BR returns "08/05/2026, 18:30" — strip year + comma
+  return fmt.format(date).replace(/\/\d{4}/, '').replace(',', ' às')
 }
 
 /**

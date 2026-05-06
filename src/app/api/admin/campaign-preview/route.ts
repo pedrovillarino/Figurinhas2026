@@ -10,6 +10,7 @@ import {
   getTop3WithNames,
   getUserPosition,
   getEmbaixadorTargets,
+  getEmbaixadorCoupon,
   getZeroFigTargets,
   renderEmbaixadorWhatsApp,
   renderEmbaixadorEmail,
@@ -87,11 +88,12 @@ export async function GET(req: NextRequest) {
     totalTargets = targets.length
     for (const t of targets.slice(0, limit)) {
       const pos = await getUserPosition(admin, t.user_id)
+      const coupon = t.tier === 'free' ? await getEmbaixadorCoupon(admin, t.user_id) : null
       samples.push({
         user_id: t.user_id,
         first_name: t.first_name,
         recipient_masked: maskPhone(t.phone),
-        body: renderEmbaixadorWhatsApp(t.first_name, pos, top3),
+        body: renderEmbaixadorWhatsApp(t.first_name, pos, top3, coupon),
       })
     }
   } else if (c.campaign_type === 'embaixadores_email') {
@@ -100,7 +102,8 @@ export async function GET(req: NextRequest) {
     totalTargets = targets.length
     for (const t of targets.slice(0, limit)) {
       const pos = await getUserPosition(admin, t.user_id)
-      const { subject, html } = renderEmbaixadorEmail(t.first_name, pos, top3)
+      const coupon = t.tier === 'free' ? await getEmbaixadorCoupon(admin, t.user_id) : null
+      const { subject, html } = renderEmbaixadorEmail(t.first_name, pos, top3, coupon)
       samples.push({
         user_id: t.user_id,
         first_name: t.first_name,
