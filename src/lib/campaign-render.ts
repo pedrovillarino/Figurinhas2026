@@ -11,6 +11,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
 const CAMPAIGN_END_DATE = new Date('2026-05-13T02:59:59.000Z')
 
+// Capitalize primeira letra (display_name pode vir 'antonio' ou 'ANTONIO').
+function capitalize(s: string | null | undefined): string {
+  if (!s) return ''
+  const trim = s.trim()
+  if (!trim) return ''
+  return trim.charAt(0).toUpperCase() + trim.slice(1).toLowerCase()
+}
+
 // ─── Helpers de ranking ──────────────────────────────────────────────────
 
 export type RankingRow = {
@@ -119,7 +127,8 @@ export async function getTop3WithNames(admin: SupabaseClient): Promise<Top3Entry
     if (top3.length >= 3) break
     if (seenRanks.has(r.rank)) continue
     seenRanks.add(r.rank)
-    const firstName = (r.display_name || 'Anônimo').split(' ')[0]
+    const raw = (r.display_name || 'Anônimo').split(' ')[0]
+    const firstName = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
     top3.push({ firstName, points: r.total_points })
   }
   return top3
@@ -359,7 +368,7 @@ export async function getEmbaixadorTargets(
     })
     .map((r) => ({
       user_id: r.id,
-      first_name: r.display_name?.split(' ')[0] || 'Embaixador',
+      first_name: capitalize(r.display_name?.split(' ')[0]) || 'Embaixador',
       phone: r.phone,
       email: r.email,
     }))
@@ -403,7 +412,7 @@ export async function getZeroFigTargets(
     if ((count ?? 0) === 0) {
       result.push({
         user_id: r.id,
-        first_name: r.display_name?.split(' ')[0] || 'Olá',
+        first_name: capitalize(r.display_name?.split(' ')[0]) || 'Olá',
         email: r.email,
       })
     }
