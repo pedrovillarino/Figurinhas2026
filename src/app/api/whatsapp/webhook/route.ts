@@ -3291,15 +3291,94 @@ export async function POST(req: NextRequest) {
             matches.push(`${match[1].toUpperCase()}-${match[2]}`)
           }
 
+          // Pedro 2026-05-05 (caso Bruno +55 65 99947-4017): Coca-Cola não
+          // tem número visível na figurinha, só nome do jogador. User
+          // digitou "Coca Yamal, Coca Davies, Coca Martínez, ...". Resolve
+          // por nome (com fuzzy match) → adiciona CC-X aos matches.
+          // Ambiguidade (ex: "Martínez" pode ser CC-12 Emiliano OU CC-14
+          // Lautaro) → pede clarificação.
+          const cocaAmbiguous: Array<{ name: string; candidates: string[] }> = []
+          const segments = text.split(/[,;]|\s+e\s+|\n/)
+          const cocaNames: string[] = []
+          for (const seg of segments) {
+            const trimmed = seg.trim()
+            const cocaMatch = trimmed.match(/^(?:coca(?:[-\s]?cola)?|cc)[\s:.]+(.+)$/i)
+            if (cocaMatch) {
+              const name = cocaMatch[1].trim()
+              if (name.length >= 3 && !/\d/.test(name)) {
+                cocaNames.push(name)
+              }
+            }
+          }
+          if (cocaNames.length > 0) {
+            const supabaseCoca = getAdmin()
+            const { data: cocaStickers } = await supabaseCoca
+              .from('stickers')
+              .select('number, player_name')
+              .eq('section', 'Coca-Cola')
+
+            const norm = (s: string) => s.toLowerCase().trim()
+              .normalize('NFD').replace(/[̀-ͯ]/g, '')
+              .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
+
+            for (const targetRaw of cocaNames) {
+              const normTarget = norm(targetRaw)
+              const targetParts = normTarget.split(' ')
+              const targetLast = targetParts[targetParts.length - 1]
+              const targetFirst = targetParts[0]
+
+              const candidates: Array<{ number: string; player_name: string }> = []
+              for (const s of (cocaStickers || []) as Array<{ number: string; player_name: string }>) {
+                const normDb = norm(s.player_name)
+                const dbParts = normDb.split(' ')
+                const dbLast = dbParts[dbParts.length - 1]
+                const dbFirst = dbParts[0]
+
+                // Match: nome inteiro contém ou é contido pelo target,
+                // ou último-nome bate, ou primeiro-nome bate
+                if (
+                  normTarget.includes(normDb) || normDb.includes(normTarget) ||
+                  (targetLast.length >= 3 && targetLast === dbLast) ||
+                  (targetFirst.length >= 4 && targetFirst === dbFirst)
+                ) {
+                  candidates.push(s)
+                }
+              }
+
+              if (candidates.length === 1) {
+                matches.push(candidates[0].number)
+              } else if (candidates.length > 1) {
+                cocaAmbiguous.push({
+                  name: targetRaw,
+                  candidates: candidates.map((c) => `*${c.number}* ${c.player_name}`),
+                })
+              }
+              // candidates.length === 0 → nome não bateu, ignora silenciosamente
+            }
+          }
+
+          // Se teve ambiguidade na Coca, avisa antes de continuar
+          if (cocaAmbiguous.length > 0) {
+            let msg = `🤔 Algumas figurinhas Coca-Cola têm mais de um jogador com nome parecido. Especifica:\n\n`
+            for (const amb of cocaAmbiguous) {
+              msg += `• "${amb.name}" → ${amb.candidates.join(' OU ')}\n`
+            }
+            msg += `\n💡 Manda o código (ex: *CC-12*) ou o nome completo (ex: *Coca Emiliano Martinez*).`
+            await sendText(phone, msg)
+            break
+          }
+
           if (matches.length === 0) {
             const baseMsg = cameFromAudio
               ? '🎤 Não consegui pegar nenhum código no seu áudio. Tenta de novo falando bem claro o país e o número, exemplo:\n\n' +
                 '✅ "BRA 1, ARG 3, FRA 10"\n' +
-                '✅ "Brasil 1 e Argentina 3"'
+                '✅ "Brasil 1 e Argentina 3"\n' +
+                '✅ "Coca Yamal, Coca Davies" _(pra Coca-Cola — só nome)_'
               : '🤔 Não consegui ler códigos de figurinhas aí. O formato é assim:\n\n' +
                 '✅ `BRA-1 ARG-3 FRA-10`\n' +
                 '✅ `bra 1, arg 3`\n' +
-                '✅ `BRA1 BRA5`'
+                '✅ `BRA1 BRA5`\n' +
+                '✅ `Coca Yamal, Coca Davies` _(Coca-Cola — só o nome do jogador)_'
             await sendText(phone, baseMsg)
             break
           }
