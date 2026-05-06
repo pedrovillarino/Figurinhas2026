@@ -1380,16 +1380,22 @@ const MAIN_MENU_BUTTONS: ButtonOption[] = [
   { id: 'cmd_duplicates', label: '🔁 Repetidas' },
 ]
 
-// ─── Dedup: avoid processing same message twice (Map with TTL) ───
+// ─── Dedup: avoid processing same message twice ───
+// Pedro 2026-05-06: dedup era só Map em memória (per-Lambda). Quando Z-API
+// mandava o mesmo webhook pra Lambdas DIFERENTES (multi-instance), cada um
+// via como novo e processava — caso real: foto da Bruna gerou 3x "Analisando".
+// Solução: layered. Cache local primeiro (instant) + DB persistente (cross
+// instance). DB usa unique constraint em message_id pra rejeitar duplicatas.
 const recentMessages = new Map<string, number>()
 const DEDUP_TTL_MS = 5 * 60 * 1000 // 5 minutes
 const DEDUP_MAX_SIZE = 500
 
-function isDuplicate(messageId: string): boolean {
+/** Checa cache local (memória do Lambda atual). True se já processou aqui. */
+function isDuplicateLocal(messageId: string): boolean {
   if (!messageId) return false
   const now = Date.now()
 
-  // Periodically clean expired entries (every check, but it's cheap for <500 items)
+  // Cleanup periódico
   if (recentMessages.size > DEDUP_MAX_SIZE / 2) {
     const expired: string[] = []
     recentMessages.forEach((timestamp, id) => {
@@ -1401,6 +1407,37 @@ function isDuplicate(messageId: string): boolean {
   if (recentMessages.has(messageId)) return true
   recentMessages.set(messageId, now)
   return false
+}
+
+/** Checa DB (cross-instance). Insere row e retorna true se já existia.
+ *  Usa unique constraint em message_id pra atomicidade. */
+async function isDuplicateDB(messageId: string, phone: string): Promise<boolean> {
+  if (!messageId) return false
+  try {
+    const supabase = getAdmin()
+    const { error } = await supabase
+      .from('webhook_dedup')
+      .insert({ message_id: messageId, phone })
+    // 23505 = unique_violation — outra instância já registrou
+    if (error?.code === '23505') return true
+    if (error) {
+      // Erro inesperado — log mas NÃO bloqueia (fail-open pra evitar
+      // perder mensagens reais por problema de DB)
+      console.error('[dedup-db] insert error:', error.message)
+      return false
+    }
+    return false
+  } catch (err) {
+    console.error('[dedup-db] unexpected:', err)
+    return false
+  }
+}
+
+/** Combina cache local + DB. Local primeiro (rápido), DB pra cross-instance. */
+async function isDuplicate(messageId: string, phone: string): Promise<boolean> {
+  if (!messageId) return false
+  if (isDuplicateLocal(messageId)) return true
+  return await isDuplicateDB(messageId, phone)
 }
 
 // ─── Main webhook handler ───
@@ -1418,8 +1455,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
 
     // Dedup — Z-API can send multiple webhooks for same message
+    // Pedro 2026-05-06: agora layered (memória local + DB persistente)
+    // pra evitar duplicação cross-Lambda.
     const msgId = body.messageId || body.id?.id || body.ids?.[0] || ''
-    if (isDuplicate(msgId)) {
+    const dedupPhone = body.phone || body.from || ''
+    if (await isDuplicate(msgId, dedupPhone)) {
       return NextResponse.json({ ok: true })
     }
 
@@ -1690,6 +1730,22 @@ export async function POST(req: NextRequest) {
 
       const imageUrl = body.image?.imageUrl || body.image?.url || body.imageUrl
       const imageBase64 = body.image?.base64 || body.base64 || null
+      // Pedro 2026-05-06 (caso +55 67 98112-1341): user manda foto +
+      // caption "Eu tenho alguma dessas?". Detecta intent de CONSULTA
+      // (não registro) e marca o scan com mode='query'. Padrão é register.
+      const imageCaption = (
+        body.image?.caption ||
+        body.caption ||
+        body.image?.message ||
+        ''
+      ).toString().trim()
+      const isQueryCaption = imageCaption.length > 0 && (
+        /\b(tenho|tem|peguei|coloquei)\s*\??$/i.test(imageCaption) ||
+        /\b(alguma|algumas)\s+(dessas|delas|destas)\b/i.test(imageCaption) ||
+        /\bquais\s+(dessas|delas|destas|eu)\b/i.test(imageCaption) ||
+        /\bj[áa]\s+(tenho|peguei|coloquei)\b/i.test(imageCaption) ||
+        /\b(tem|tenho)\s+(alguma|alguma\s+coisa|essa|esse|essas|esses)\b/i.test(imageCaption)
+      )
 
       if (!imageUrl && !imageBase64) {
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
@@ -1727,6 +1783,7 @@ export async function POST(req: NextRequest) {
             mimeType: imageData.mimeType,
             phone,
             userId: user.id,
+            mode: isQueryCaption ? 'query' : 'register',
           }),
         }).catch((err) => console.error('[WhatsApp] Failed to trigger scan:', err))
       )
@@ -1756,8 +1813,19 @@ export async function POST(req: NextRequest) {
       // emoji. Map emoji-only → comando texto. ✅ é tratado em isYesConfirm
       // ANTES (se houver pending). 🔁 ambíguo entre Repetidas/Trocas —
       // padrão é Repetidas (mais comum em contexto de listas).
+      // Pedro 2026-05-06 (casos +55 77 99950-8759, +55 16 99210-1400,
+      // +55 19 99721-9803): mesmo bug pra LABELS exatas. Bot mostra
+      // "👀 Top 50", "🇧🇷 Só Brasil", "📃 Tudo (em partes)" e quando user
+      // digita o label exato (com ou sem emoji), bot caía no help. Map
+      // estendido pra cobrir labels textuais também.
       const trimmedForEmoji = rawText.trim()
+      const trimmedNorm = trimmedForEmoji
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .trim()
       const EMOJI_TO_COMMAND: Record<string, string> = {
+        // Emojis solo
         '🔍': 'faltando',
         '📊': 'status',
         '🔁': 'repetidas',
@@ -1769,8 +1837,49 @@ export async function POST(req: NextRequest) {
         '🆘': 'ajuda',
         '✅': 'coladas', // só chega aqui se YesConfirm não pegou (sem pending)
       }
+      // Labels textuais (normalizadas: lowercase, sem acento) — o bot
+      // oferece nos botões e às vezes user copia/digita literalmente.
+      const LABEL_TO_COMMAND: Record<string, string> = {
+        // Variações de "Tudo (em partes)" / "Tudo em partes" / "Tudo"
+        'tudo': 'faltando todas',
+        'tudo em partes': 'faltando todas',
+        'tudo (em partes)': 'faltando todas',
+        '📃 tudo': 'faltando todas',
+        '📃 tudo em partes': 'faltando todas',
+        '📃 tudo (em partes)': 'faltando todas',
+        // Top 50
+        'top 50': 'faltando top50',
+        'top50': 'faltando top50',
+        '👀 top 50': 'faltando top50',
+        '👀 top50': 'faltando top50',
+        // Só Brasil
+        'so brasil': 'faltando brasil',
+        'só brasil': 'faltando brasil', // normalize remove o acento mas deixar por seguranca
+        '🇧🇷 so brasil': 'faltando brasil',
+        '🇧🇷 só brasil': 'faltando brasil',
+        // O que falta
+        'o que falta': 'faltando',
+        '🔍 o que falta': 'faltando',
+        // Repetidas
+        '🔁 repetidas': 'repetidas',
+        '🔁 minhas repetidas': 'repetidas',
+        // Coladas
+        '✅ coladas': 'coladas',
+        // Trocas pendentes
+        'trocas pendentes': 'trocas',
+        '🔔 trocas pendentes': 'trocas',
+        // Progresso
+        'progresso': 'status',
+        '📊 progresso': 'status',
+        // Ajuda
+        'ajuda': 'ajuda',
+        '? ajuda': 'ajuda',
+        '❓ ajuda': 'ajuda',
+      }
       if (EMOJI_TO_COMMAND[trimmedForEmoji]) {
         rawText = EMOJI_TO_COMMAND[trimmedForEmoji]
+      } else if (LABEL_TO_COMMAND[trimmedNorm]) {
+        rawText = LABEL_TO_COMMAND[trimmedNorm]
       }
 
       // Pré-processa nomes de países → códigos FIFA: "brasil 1, argentina 3" → "BRA 1, ARG 3".

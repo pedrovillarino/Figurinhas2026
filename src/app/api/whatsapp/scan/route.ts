@@ -477,6 +477,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { base64, mimeType, userId } = body
     phone = body.phone || ''
+    // Pedro 2026-05-06 (caso +55 67 98112-1341): user mandou foto + caption
+    // "Eu tenho alguma dessas?". Bot tratou como register em vez de consultar.
+    // Webhook agora passa mode='query' quando detecta caption de pergunta.
+    // Default 'register' preserva 100% comportamento anterior.
+    const mode: 'register' | 'query' = body.mode === 'query' ? 'query' : 'register'
 
     if (!base64 || !phone || !userId) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -684,6 +689,51 @@ export async function POST(req: NextRequest) {
 
       scanData.push({ sticker_id: sticker.id, number: sticker.number, player_name: sticker.player_name || '', quantity: qty })
     })
+
+    // Pedro 2026-05-06: branch QUERY MODE — user só quer saber quais
+    // dessas tem/não tem. Não cria pending, não pede SIM/NÃO. Resposta
+    // direta no formato consulta (✅ tem / ❌ não tem).
+    if (mode === 'query') {
+      type Found = { number: string; player_name: string; status: string; quantity: number }
+      const have: Found[] = []
+      const missing: Array<{ number: string; player_name: string }> = []
+      for (const { sticker } of dbStickers) {
+        const ex = existingMap.get(sticker.id)
+        // status='missing' ou quantity=0 → trata como "não tem"
+        if (!ex || ex.status === 'missing' || ex.quantity === 0) {
+          missing.push({ number: sticker.number, player_name: sticker.player_name || '' })
+        } else {
+          have.push({
+            number: sticker.number,
+            player_name: sticker.player_name || '',
+            status: ex.status,
+            quantity: ex.quantity,
+          })
+        }
+      }
+
+      const lines: string[] = []
+      lines.push(`🔍 *Identifiquei ${dbStickers.length} figurinha(s) na foto:*\n`)
+      if (missing.length > 0) {
+        lines.push(`❌ *Você AINDA NÃO TEM ${missing.length}:*`)
+        for (const s of missing) lines.push(`• ${s.number}${s.player_name ? ' ' + s.player_name : ''}`)
+      }
+      if (have.length > 0) {
+        if (missing.length > 0) lines.push('')
+        lines.push(`✅ *Você JÁ TEM ${have.length}:*`)
+        for (const item of have) {
+          const tag = item.status === 'duplicate' && item.quantity > 1
+            ? ` _(rep x${item.quantity})_`
+            : item.status === 'owned' ? ` _(1 cópia)_` : ''
+          lines.push(`• ${item.number}${item.player_name ? ' ' + item.player_name : ''}${tag}`)
+        }
+      }
+      lines.push('')
+      lines.push(`💡 _Pra registrar (colar) essas no álbum, manda a foto sem caption — ou descreve com texto._`)
+
+      await sendText(phone, lines.join('\n'))
+      return NextResponse.json({ ok: true })
+    }
 
     // Save pending scan (expires in 1 hour — DB default)
     // Pedro 2026-05-04: source=photo pra mensagem agregada agrupar por origem
