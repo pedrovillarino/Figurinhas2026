@@ -174,9 +174,9 @@ export function renderTop3Lines(top3: Top3Entry[]): string {
 
 export function renderPositionLine(pos: UserPosition | null): string {
   if (!pos) return 'Você ainda não pontuou — bora começar?'
-  const tied = pos.isTied ? 'empatado em ' : ''
+  const prep = pos.isTied ? 'empatado em' : 'em'
   const medal = pos.rank === 1 ? ' 🥇' : pos.rank === 2 ? ' 🥈' : pos.rank === 3 ? ' 🥉' : ''
-  return `Você está ${tied}${ordinal(pos.rank)} lugar com ${pluralPoints(pos.points)}${medal}`
+  return `Você está ${prep} ${ordinal(pos.rank)} lugar com ${pluralPoints(pos.points)}${medal}`
 }
 
 function daysUntilCampaignEnd(now: Date = new Date()): number {
