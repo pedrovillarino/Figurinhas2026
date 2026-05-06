@@ -208,11 +208,51 @@ For EACH physical sticker you can see (front or back), return:
 - status: "filled" if a real sticker is present (front OR back). "empty" only for an album slot that has NO sticker — just a blank rectangle with the player name printed BELOW it as placeholder.
 - face: "front" (player photo + name) or "back" (large number, no player photo).
 
-⚠️ STICKER BACK (verso) — IMPORTANT:
-- The back of a Panini sticker has: text "FIFA OFFICIAL LICENSED PRODUCT", "26 FIFA" + trophy logo, "PANINI" wordmark, regulatory text in tiny print, AND the sticker number printed in small at one corner (e.g. "BRA 1", "RSA 14", "FWC 5").
-- If you can READ the small number on the back → return face="back", sticker_number="<COUNTRY>-<N>" (e.g. "BRA-1"), player_name="" or "(back)". This counts as a valid detection.
-- If you CANNOT read any number on the back (verso ilegível, off-center, blurry) → return EMPTY stickers array (NO detection). DO NOT guess FWC-0 or any other sticker just because the foil background looks similar. A blank/illegible back = 0 stickers detected.
-- ⚠️ NEVER infer FWC-0 "We are Panini" from a foil-backed image alone. FWC-0 must show a real-photo player doing a bicycle kick on the FRONT. If the photo only shows licensing text/logos/Panini logo without a player photo, it's a back — NOT FWC-0.
+⚠️ STICKER BACK (verso) — FIXED LAYOUT (every sticker in the album follows this pattern):
+
+  ┌──────────────────────────────────────┐
+  │ [FIFA WORLD CUP 2026]   [COUNTRY  N] │  ← 2 PILLS at top (light gray)
+  │                                      │
+  │            ╔══╗                      │
+  │            ║26║   FIFA               │  ← big "26 FIFA" logo
+  │            ║FIFA║  OFFICIAL          │     centered
+  │            ╚══╝   LICENSED PRODUCT   │
+  │                                      │
+  │  small regulatory text   [PANINI]    │  ← footer
+  └──────────────────────────────────────┘
+
+PRIMARY — TOP-RIGHT PILL:
+  - Exact format: <COUNTRY_CODE><SPACE><NUMBER> (e.g. "CIV 3", "EGY 11", "GER 12", "ECU 10", "JOR 5", "CUW 9", "HAI 19", "BEL 9", "COL 5", "BRA 7", "JOR 10", "SCO 14")
+  - BLACK text on LIGHT GRAY background, rounded pill shape
+  - Always 3 UPPERCASE letters + 1 or 2 digits
+  - Position: TOP-RIGHT, parallel to left pill
+
+SECONDARY — TOP-LEFT PILL:
+  - Fixed text "FIFA WORLD CUP 2026" on every sticker (does NOT vary)
+  - Use ONLY to confirm it's a Panini back (not for number extraction)
+
+CENTER ELEMENTS (every back):
+  - Big "26 FIFA" logo + stylized trophy (black/gray) centered
+  - Text "FIFA OFFICIAL LICENSED PRODUCT" in black to the right of the logo
+  - Tiny regulatory text (don't try to read — it's licensing fine print)
+  - Red/white PANINI logo at bottom corner
+
+RULES:
+1. If you can READ the top-right pill clearly → return:
+     face: "back"
+     sticker_number: "<COUNTRY>-<N>" (with HYPHEN, canonical DB format, e.g. "CIV-3" — NOT "CIV 3")
+     player_name: "" or "(back)"
+     confidence: 0.85+ (back is more legible than FOIL fronts)
+2. If the pill is blurry, cropped, or unreadable → return EMPTY stickers array. DO NOT GUESS.
+3. ⚠️ DO NOT infer FWC-0 "We are Panini" just from seeing light/foil background. FWC-0 has a real-photo player doing a bicycle kick on the FRONT. The back has only logos + the pill. No player photo = NOT FWC-0.
+4. Multiple sticker backs in the SAME photo: list each one with its pill. The photo may contain 5-12 backs side-by-side in a row.
+5. ⚠️ OVERLAPPING / STACKED STICKERS:
+   - Users frequently photograph stickers stacked or partially overlapping, where only the TOP STRIP (with the 2 pills) is visible for some — the rest is hidden by the next sticker.
+   - **THIS STILL COUNTS as a valid detection**: if you can read the top-right [COUNTRY] [N] pill (e.g. BRA 7), return the sticker even if the rest of the back is occluded.
+   - Single criterion: top-right pill LEGIBLE = sticker detected. You do NOT need to see the central logo, FIFA seal, regulatory text, or bottom PANINI mark.
+   - Accept confidence 0.80–0.95 if the pill is clearly visible even with up to 70% of the sticker covered.
+
+⚠️ KEY HINT: back-of-sticker pills are MORE LEGIBLE than front-of-sticker numbers on FOIL/holographic special stickers (badges, FWC-0/1/2/3/4/5). For those, the back is the most reliable source.
 - confidence: 0.0–1.0 honest. Below 0.4 → skip the sticker entirely.
 - tier: ONLY for PANINI Extras (see below). "ouro" | "prata" | "bronze" | "regular". Omit for non-extras.
 
