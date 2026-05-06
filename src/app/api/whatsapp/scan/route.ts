@@ -64,11 +64,44 @@ PASSO A PASSO:
    (lado esquerdo + lado direito = página dupla).
 3. Para CADA slot visível, classifique como FILLED ou EMPTY:
 
-   ✅ FILLED (figurinha colada/presente): você vê DENTRO do retângulo
-      uma FOTO FOTOGRÁFICA REAL — rosto humano de jogador com camisa do
-      time, bordas brancas características da figurinha Panini, fundo
-      gráfico colorido do design (verde/vermelho/azul com gradiente).
-      O nome do jogador aparece em letras BRANCAS no rodapé do retângulo.
+   ✅ FILLED (figurinha colada/presente): você vê uma FOTO REAL de
+      jogador (rosto humano + camisa nacional + fundo gráfico).
+
+      LAYOUT FIXO da frente da figurinha de jogador:
+      - TOPO: "26" estilizado gigante (decoração) + logo "26 FIFA" canto
+        superior direito. ⚠️ Esse "26" NÃO é número da figurinha.
+      - LATERAL DIREITA: BANDEIRA-BOLA (círculo com cores da bandeira
+        nacional) acima de SIGLA país 3 letras estilizadas (SEN, COL,
+        BRA, ARG, FRA, CUW, CPV...). Letras semi-transparentes.
+      - CENTRO: foto do jogador com camisa nacional + escudo da federação.
+      - RODAPÉ: pílula colorida com NOME do jogador (sobrenome em CAIXA
+        ALTA NEGRITO + primeiro nome normal, ex: "LAMINE CAMARA",
+        "EXEQUIEL PALACIOS"), seguido de data nasc · altura · peso, e
+        clube com país em parênteses. Logo Panini canto inferior.
+
+      🎯 IDENTIFICAÇÃO em camadas (use a + alta disponível):
+        1. NOME do jogador no rodapé → match no DB resolve país e número.
+        2. PROVA REAL: o país do nome (DB) precisa BATER com pelo menos
+           1 pista visual: bandeira-bola (cores), sigla 3-letras lateral,
+           ou camisa+escudo nacional.
+        3. Se 2+ pistas batem → confidence 0.90+. Se só 1 → 0.70-0.85.
+        4. Se CONFLITO (ex: nome diz "BRA" mas vejo camisa celeste e sigla
+           "ARG") → confidence baixa OU retorna vazio. NUNCA retorne
+           confiança alta com pistas conflitantes.
+
+      ⚠️ NA DÚVIDA, NÃO CHUTE — retorna array vazio:
+        - Nome ilegível, bandeira/sigla/camisa todos cobertos, ou pistas
+          conflitantes → NÃO retorne aquela figurinha.
+        - Dois jogadores com nome parecido e não dá pra desambiguar →
+          NÃO retorne.
+        - É melhor reportar "0 figurinhas detectadas" do que reportar
+          1 ERRADA. Erro silencioso destrói confiança.
+
+      ⚠️ CONFUSÕES COMUNS:
+        - "26" gigante = decoração Copa 2026, NÃO número da figurinha.
+        - Sigla 3 letras = código país, NÃO número.
+        - Frente NÃO mostra "PAIS-N" visível. Use NOME pra resolver.
+        - Se em slot do álbum: use o rótulo IMPRESSO ao lado (ex: BRA 7).
 
    ❌ EMPTY (slot vazio aguardando figurinha): você vê o TEMPLATE DO
       ÁLBUM — fundo verde-claro/colorido com LETRAS GIGANTES do país
