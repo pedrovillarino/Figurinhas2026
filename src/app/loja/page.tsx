@@ -10,7 +10,7 @@
  */
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getStoreProducts, CATEGORY_LABELS, CATEGORY_ORDER, type StoreCategory } from '@/lib/store'
+import { getStoreProductsRanked, getStoreProducts, CATEGORY_LABELS, CATEGORY_ORDER, type StoreCategory } from '@/lib/store'
 import { LogoFull } from '@/components/Logo'
 import StoreProductCard from './StoreProductCard'
 
@@ -37,17 +37,16 @@ export default async function LojaPage({
     ? (searchParams.category as StoreCategory)
     : null
 
-  const products = await getStoreProducts(
+  // Pedro 2026-05-06: ordenação algorítmica (apelo+ticket+clicks 30d).
+  // Removida separação por categoria como default — fica só como filtro.
+  const products = await getStoreProductsRanked(
     selectedCategory ? { category: selectedCategory } : undefined,
   )
 
-  // Agrupa por categoria pra renderizar seções (quando não tem filtro)
-  const byCategory = new Map<StoreCategory, typeof products>()
-  for (const p of products) {
-    const list = byCategory.get(p.category) || []
-    list.push(p)
-    byCategory.set(p.category, list)
-  }
+  // Pra mostrar quais categorias existem (mesmo quando filtrado), pega
+  // a lista global uma vez. Só usado pra render dos pills.
+  const allProducts = selectedCategory ? await getStoreProducts() : products
+  const availableCategories = new Set<StoreCategory>(allProducts.map((p) => p.category))
 
   return (
     <div className="min-h-screen bg-white text-navy">
@@ -80,13 +79,15 @@ export default async function LojaPage({
         </div>
       </section>
 
-      {/* Filtros */}
+      {/* Filtros (opcionais, escondidos por default) */}
       <section className="px-6 pt-6 pb-2">
-        <div className="max-w-5xl mx-auto flex flex-wrap gap-2">
-          <CategoryPill href="/loja" label="Todos" active={!selectedCategory} />
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-2">
+          <span className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mr-1">
+            Filtrar:
+          </span>
+          <CategoryPill href="/loja" label="Tudo" active={!selectedCategory} />
           {CATEGORY_ORDER.map((cat) => {
-            const has = products.some((p) => p.category === cat) || selectedCategory === cat
-            if (!has && !selectedCategory) return null
+            if (!availableCategories.has(cat) && selectedCategory !== cat) return null
             return (
               <CategoryPill
                 key={cat}
@@ -99,43 +100,18 @@ export default async function LojaPage({
         </div>
       </section>
 
-      {/* Grid de produtos */}
+      {/* Grid único ordenado por algoritmo (apelo+ticket+clicks) */}
       <section className="px-6 py-6">
         <div className="max-w-5xl mx-auto">
           {products.length === 0 ? (
             <div className="text-center py-16 text-gray-400 text-sm">
               Em breve! Estamos selecionando os melhores produtos pra você. ⚽
             </div>
-          ) : selectedCategory ? (
-            <ProductGrid products={products} placement={`loja_cat_${selectedCategory}`} />
           ) : (
-            <>
-              {/* Featured no topo se tiver */}
-              {products.some((p) => p.featured) && (
-                <div className="mb-8">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-                    ⭐ Destaques
-                  </h2>
-                  <ProductGrid
-                    products={products.filter((p) => p.featured)}
-                    placement="loja_featured"
-                  />
-                </div>
-              )}
-              {/* Por categoria */}
-              {CATEGORY_ORDER.map((cat) => {
-                const list = byCategory.get(cat)?.filter((p) => !p.featured) || []
-                if (list.length === 0) return null
-                return (
-                  <div key={cat} className="mb-8">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-                      {CATEGORY_LABELS[cat]}
-                    </h2>
-                    <ProductGrid products={list} placement={`loja_cat_${cat}`} />
-                  </div>
-                )
-              })}
-            </>
+            <ProductGrid
+              products={products}
+              placement={selectedCategory ? `loja_cat_${selectedCategory}` : 'loja_all'}
+            />
           )}
         </div>
       </section>

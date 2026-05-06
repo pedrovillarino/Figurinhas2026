@@ -8,6 +8,7 @@ import { getFlag } from '@/lib/countries'
 import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 import FreeUserAd from '@/components/FreeUserAd'
+import CepNudgeClient from '@/components/CepNudgeClient'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -842,6 +843,12 @@ export default function ScanHub({
             bem-sucedido. Sugere mais um pacotinho pra acelerar. */}
         <div className="w-full max-w-sm mt-6">
           <FreeUserAd placement="scan_success" tier={tier} />
+        </div>
+
+        {/* Pedro 2026-05-06: captura CEP no momento de dopamina (após scan).
+            Se user já tem city → não renderiza nada. */}
+        <div className="w-full max-w-sm mt-4">
+          <CepNudgeClient />
         </div>
       </div>
     )
