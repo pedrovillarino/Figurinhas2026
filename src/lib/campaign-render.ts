@@ -33,69 +33,113 @@ export type UserPosition = {
   isTied: boolean // true se há outro user no mesmo rank
 }
 
-/**
- * Top 3 atual com nomes (primeiro nome só, privacidade-aware).
- * Empate: pega 3 primeiros por rank, mas se rank 3 tem 2+ users, escolhe um arbitrário
- * (mostra "(empate)" depois).
- */
-export async function getTop3WithNames(
-  admin: SupabaseClient,
-): Promise<Top3Entry[]> {
-  const { data: ranking } = await admin.rpc('get_embaixadores_weekly_ranking', {
-    p_user_id: null,
-    p_limit: 1000,
-  })
+// ─── Ranking via SQL inline (não usa RPC pra evitar filtros de SECURITY DEFINER) ──
 
-  if (!ranking || ranking.length === 0) return []
+type FullRanking = Array<{ user_id: string; display_name: string | null; total_points: number; rank: number }>
 
-  const rows = ranking as RankingRow[]
-  const top3: Top3Entry[] = []
-  const seenRanks = new Set<number>()
+async function loadFullRanking(admin: SupabaseClient): Promise<FullRanking> {
+  // Embaixadores opted-in não excluídos
+  const { data: parts } = await admin
+    .from('profiles')
+    .select('id, display_name, self_upgrade_at, opted_into_campaign_at')
+    .not('opted_into_campaign_at', 'is', null)
+    .eq('excluded_from_campaign', false)
 
-  for (const r of rows) {
-    if (top3.length >= 3) break
-    if (seenRanks.has(r.rank)) continue // skip ties (já temos 1 por rank)
-    seenRanks.add(r.rank)
+  if (!parts || parts.length === 0) return []
 
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('display_name')
-      .eq('id', r.user_id)
-      .single()
+  const rows = parts as Array<{
+    id: string
+    display_name: string | null
+    self_upgrade_at: string | null
+    opted_into_campaign_at: string
+  }>
 
-    const fullName = (profile as { display_name: string | null } | null)?.display_name || 'Anônimo'
-    const firstName = fullName.split(' ')[0]
-    top3.push({ firstName, points: r.total_points })
+  // Pontos por referral (só status confirmed/paid_upgrade)
+  const ids = rows.map((r) => r.id)
+  const { data: rewards } = await admin
+    .from('referral_rewards')
+    .select('referrer_id, status, points')
+    .in('referrer_id', ids)
+    .in('status', ['confirmed', 'paid_upgrade'])
+
+  const refRows = (rewards || []) as Array<{ referrer_id: string; status: string; points: number | null }>
+  const refMap = new Map<string, number>()
+  for (const r of refRows) {
+    refMap.set(r.referrer_id, (refMap.get(r.referrer_id) || 0) + (r.points || 0))
   }
 
+  // Score = referral_points + 5 (se self_upgrade durante campanha)
+  const CAMP_START = new Date('2026-04-29T03:00:00.000Z').getTime()
+  const CAMP_END = new Date('2026-05-13T02:59:59.000Z').getTime()
+  const scored = rows.map((r) => {
+    const refPts = refMap.get(r.id) || 0
+    const suTime = r.self_upgrade_at ? new Date(r.self_upgrade_at).getTime() : 0
+    const selfBonus = suTime >= CAMP_START && suTime < CAMP_END ? 5 : 0
+    return {
+      user_id: r.id,
+      display_name: r.display_name,
+      total_points: refPts + selfBonus,
+    }
+  })
+
+  // Ordena (desc por pontos, tie-break por id) e atribui ranks (1-based, com empate)
+  scored.sort((a, b) => {
+    if (b.total_points !== a.total_points) return b.total_points - a.total_points
+    return a.user_id.localeCompare(b.user_id)
+  })
+
+  // Filtra só com pontos > 0 (alinhado com RPC)
+  const withPts = scored.filter((s) => s.total_points > 0)
+
+  // Atribui rank com empate verdadeiro (mesma pontuação = mesmo rank)
+  const ranked: FullRanking = []
+  let currentRank = 0
+  let prevPoints = -1
+  withPts.forEach((s, idx) => {
+    if (s.total_points !== prevPoints) {
+      currentRank = idx + 1
+      prevPoints = s.total_points
+    }
+    ranked.push({ ...s, rank: currentRank })
+  })
+
+  return ranked
+}
+
+/**
+ * Top 3 distinto por rank (em caso de empate no rank N, pega só 1 por rank).
+ */
+export async function getTop3WithNames(admin: SupabaseClient): Promise<Top3Entry[]> {
+  const ranking = await loadFullRanking(admin)
+  if (ranking.length === 0) return []
+
+  const top3: Top3Entry[] = []
+  const seenRanks = new Set<number>()
+  for (const r of ranking) {
+    if (top3.length >= 3) break
+    if (seenRanks.has(r.rank)) continue
+    seenRanks.add(r.rank)
+    const firstName = (r.display_name || 'Anônimo').split(' ')[0]
+    top3.push({ firstName, points: r.total_points })
+  }
   return top3
 }
 
 /**
- * Posição de um user específico no ranking. Retorna null se não estiver no ranking
- * (sem nenhum referral confirmado nem self-upgrade).
+ * Posição do user no ranking. null se sem pontos.
  */
 export async function getUserPosition(
   admin: SupabaseClient,
   userId: string,
 ): Promise<UserPosition | null> {
-  const { data: ranking } = await admin.rpc('get_embaixadores_weekly_ranking', {
-    p_user_id: null,
-    p_limit: 1000,
-  })
-
-  if (!ranking) return null
-
-  const rows = ranking as RankingRow[]
-  const me = rows.find((r) => r.user_id === userId)
+  const ranking = await loadFullRanking(admin)
+  const me = ranking.find((r) => r.user_id === userId)
   if (!me) return null
-
-  // Empate: alguém mais no mesmo rank?
-  const sameRankCount = rows.filter((r) => r.rank === me.rank).length
+  const sameRankCount = ranking.filter((r) => r.rank === me.rank).length
   return {
     rank: me.rank,
     points: me.total_points,
-    totalRanked: rows.length,
+    totalRanked: ranking.length,
     isTied: sameRankCount > 1,
   }
 }
@@ -127,8 +171,20 @@ export function renderPositionLine(pos: UserPosition | null): string {
 }
 
 function daysUntilCampaignEnd(now: Date = new Date()): number {
-  const diffMs = CAMPAIGN_END_DATE.getTime() - now.getTime()
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+  // Conta dias-de-calendário restantes em America/Sao_Paulo.
+  // Hoje 06/05 → fim 12/05 → 6 dias (não 7).
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const todayStr = fmt.format(now) // YYYY-MM-DD
+  const endStr = '2026-05-12'
+  const todayDate = new Date(todayStr + 'T00:00:00Z').getTime()
+  const endDate = new Date(endStr + 'T00:00:00Z').getTime()
+  const diffDays = Math.round((endDate - todayDate) / (1000 * 60 * 60 * 24))
+  return Math.max(0, diffDays)
 }
 
 // ─── Embaixador WhatsApp ─────────────────────────────────────────────────
