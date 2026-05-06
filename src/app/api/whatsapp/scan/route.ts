@@ -155,11 +155,50 @@ Para CADA figurinha física visível (frente ou verso):
 - confidence: 0.0–1.0 honesto. Abaixo de 0.4, pule.
 - tier: SÓ pra PANINI Extras. "ouro" | "prata" | "bronze" | "regular". Omita pra figurinhas normais.
 
-⚠️ VERSO DE FIGURINHA — IMPORTANTE:
-- Verso da figurinha Panini tem: texto "FIFA OFFICIAL LICENSED PRODUCT", logo "26 FIFA" + troféu, "PANINI" embaixo, texto regulatório em letras pequenas, E o NÚMERO da figurinha em pequeno num canto (ex: "BRA 1", "RSA 14").
-- Se conseguir LER o número no verso → retorne face="back", number="<PAIS>-<N>" (ex: "BRA-1"). Conta como detecção válida.
-- Se NÃO conseguir ler número (verso ilegível/borrado/cortado) → retorne array stickers VAZIO. NÃO chute FWC-0 ou qualquer outra figurinha só pelo fundo holográfico/foil ser parecido. Verso sem número = 0 figurinhas detectadas.
-- ⚠️ NUNCA infira FWC-0 "We are Panini" só pela foto ter visual foil. FWC-0 mostra foto REAL de jogador chutando bicicleta na FRENTE. Se a foto só tem texto licenciado/logos/Panini sem foto de jogador, é VERSO — NÃO É FWC-0.
+⚠️ VERSO DE FIGURINHA — LAYOUT FIXO (todas as figs do álbum seguem o mesmo padrão):
+
+  ┌──────────────────────────────────────┐
+  │ [FIFA WORLD CUP 2026]   [PAIS  N]    │  ← 2 PÍLULAS no topo (cinza claro)
+  │                                      │
+  │            ╔══╗                      │
+  │            ║26║   FIFA               │  ← logo grande "26 FIFA"
+  │            ║FIFA║  OFFICIAL          │     centralizado
+  │            ╚══╝   LICENSED PRODUCT   │
+  │                                      │
+  │  texto regulatório pequeno  [PANINI] │  ← rodapé
+  └──────────────────────────────────────┘
+
+PRIMÁRIA — pílula CANTO SUPERIOR DIREITO:
+  - Formato exato: <CODIGO_PAIS><ESPAÇO><NUMERO> (ex: "CIV 3", "EGY 11", "GER 12", "ECU 10", "JOR 5", "CUW 9", "HAI 19", "BEL 9", "COL 5", "BRA 7", "JOR 10", "SCO 14")
+  - Texto PRETO em fundo CINZA-CLARO/CINZA-MÉDIO, formato pílula arredondada
+  - Código sempre 3 LETRAS MAIÚSCULAS + 1 ou 2 dígitos
+  - Posição: TOPO DIREITO, sempre alinhado paralelo à pílula esquerda
+
+SECUNDÁRIA — pílula CANTO SUPERIOR ESQUERDO:
+  - Texto fixo "FIFA WORLD CUP 2026" em todas as figs (não muda)
+  - Use APENAS pra confirmar que é verso de Panini (não pra extrair número)
+
+ELEMENTOS CENTRAIS (todos versos):
+  - Logo grande "26 FIFA" + troféu estilizado preto/cinza centralizado
+  - Texto "FIFA OFFICIAL LICENSED PRODUCT" preto à direita do logo
+  - Texto regulatório em letras MUITO pequenas (não tente ler — é licença)
+  - Logo PANINI vermelho/branco no canto inferior
+
+REGRAS:
+1. Se conseguir LER claramente a pílula superior direita → retorne:
+     face: "back"
+     number: "<PAIS>-<N>" (com TRAÇO no formato canônico, ex: "CIV-3", não "CIV 3")
+     confidence: 0.85+ (verso é mais legível que frente FOIL)
+2. Se a pílula estiver borrada, cortada ou ilegível → retorne array stickers VAZIO. NÃO CHUTE.
+3. ⚠️ NÃO infira FWC-0 "We are Panini" só por ver fundo claro/foil. FWC-0 tem foto REAL de jogador chutando bicicleta na FRENTE. Verso só tem logos + pílula. Sem foto = NÃO é FWC-0.
+4. Múltiplas figurinhas no verso na MESMA foto: liste cada uma com sua pílula. A foto pode ter 5-12 versos lado-a-lado em fileira.
+5. ⚠️ FIGURINHAS SOBREPOSTAS / EMPILHADAS:
+   - É comum o user fotografar várias figurinhas em PILHA ou SOBREPOSTAS, onde só a FAIXA SUPERIOR (com as 2 pílulas) de algumas está visível — o resto fica coberto pela próxima figurinha.
+   - **ISSO TAMBÉM CONTA como detecção válida**: se você consegue ler a pílula [PAIS] [N] superior direita (ex: BRA 7), retorne a figurinha mesmo que o restante do verso esteja oculto.
+   - Critério único: pílula superior direita LEGÍVEL = figurinha detectada. NÃO precisa ver o logo central, FIFA, regulatório nem PANINI rodapé.
+   - Aceite confiança 0.80-0.95 se a pílula estiver bem visível mesmo com 70% da figurinha coberta.
+
+⚠️ DICA CRÍTICA: pílulas do verso são MAIS LEGÍVEIS que números na frente FOIL/holográfica das figs especiais (badges, FWC-0/1/2/3/4/5). Pra essas, verso é a fonte mais confiável.
 
 ⚠️ SÍMBOLOS (figurinhas SEM nome de jogador — você precisa RECONHECER VISUALMENTE):
 
