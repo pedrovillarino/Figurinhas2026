@@ -79,6 +79,81 @@ export async function getStoreProducts(opts?: {
   return (data || []) as StoreProduct[]
 }
 
+// ─── Apelo+ticket ranking ────────────────────────────────────────────────
+//
+// Pedro 2026-05-06: ordenação algorítmica da /loja (substitui agrupamento
+// por categoria como default). Score combina:
+//   - featured manual (boost forte)
+//   - ticket médio (proxy: parse de price_display)
+//   - popularidade (proxy: clicks dos últimos 30d em funnel_events)
+//
+// Score = featured * 10000
+//       + log(clicks_30d + 1) * 200
+//       + ticket_brl
+// Sort_order manual vira tie-breaker (admin pode forçar topo).
+
+function parsePriceCents(display: string | null): number {
+  if (!display) return 0
+  // Tenta extrair número do tipo "R$XX,XX" ou "XX.XX"
+  const match = display.match(/(\d+[.,]?\d*)/)
+  if (!match) return 0
+  const normalized = match[1].replace('.', '').replace(',', '.')
+  return Math.round(parseFloat(normalized) * 100) || 0
+}
+
+/** Lista produtos ativos com ranking apelo+ticket (default da /loja). */
+export async function getStoreProductsRanked(opts?: {
+  category?: StoreCategory
+}): Promise<StoreProduct[]> {
+  const admin = getStoreAdmin()
+  let prodQuery = admin.from('store_products').select('*').eq('active', true)
+  if (opts?.category) prodQuery = prodQuery.eq('category', opts.category)
+
+  const { data: prods, error } = await prodQuery
+  if (error || !prods) {
+    console.error('[store] getStoreProductsRanked error:', error?.message)
+    return []
+  }
+
+  const products = prods as StoreProduct[]
+
+  // Clicks dos últimos 30d agrupados por product_id (extraído do metadata.product_id em funnel_events)
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: events } = await admin
+    .from('funnel_events')
+    .select('metadata')
+    .eq('event_type', 'store_click')
+    .gte('created_at', since)
+    .limit(5000)
+
+  const clicksByProduct = new Map<number, number>()
+  for (const e of (events || []) as Array<{ metadata: { product_id?: number } | null }>) {
+    const pid = e.metadata?.product_id
+    if (typeof pid === 'number') {
+      clicksByProduct.set(pid, (clicksByProduct.get(pid) || 0) + 1)
+    }
+  }
+
+  // Score
+  const scored = products.map((p) => {
+    const clicks = clicksByProduct.get(p.id) || 0
+    const ticketBrl = parsePriceCents(p.price_display) / 100
+    const score =
+      (p.featured ? 10000 : 0) +
+      Math.log(clicks + 1) * 200 +
+      ticketBrl
+    return { p, score, sort_order: p.sort_order }
+  })
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
+    return a.p.id - b.p.id
+  })
+
+  return scored.map((s) => s.p)
+}
+
 /** Admin: lista TODOS os produtos (incluindo inativos). */
 export async function getAdminStoreProducts(): Promise<StoreProduct[]> {
   const admin = getStoreAdmin()
