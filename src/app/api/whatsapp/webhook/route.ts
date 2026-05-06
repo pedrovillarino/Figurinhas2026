@@ -2178,7 +2178,7 @@ export async function POST(req: NextRequest) {
         // Se não tem correction pendente, deixa o sim/não fluir pro flow normal (cancelar pending_scan, etc.)
       }
 
-      // ─── "tirar N" / "remover N,M" — drop specific items from the latest pending scan ───
+      // ─── "tirar N" / "remover N,M" / "tirar BRA-1" — drop items from pending list ───
       // The user-facing list is numbered 1..N over the LATEST pending_scan
       // (the one this WhatsApp scan reply just rendered). Comma, space and
       // the connector "e" are all accepted: "tirar 3", "tirar 2,5", "tirar 2 e 5".
@@ -2188,8 +2188,13 @@ export async function POST(req: NextRequest) {
       // Pedro 2026-05-05: caso Rafaella ("Remove item 2 e item 3"). Bot
       // não entendia "item N" como filler. Fix: pre-processa o texto
       // removendo as palavras item/cromo/figurinha antes do match.
+      // Pedro 2026-05-05 (PARTE 2): "tirar BRA-1" / "remover URU20" também
+      // deve remover do PENDING (não do álbum) quando há pending ativo.
+      // Antes ia pro 'remove' intent (album) — UX errada.
       const cleanedForRemove = lower.trim().replace(/\b(item|cromo|figurinha)s?\b/gi, '').replace(/\s+/g, ' ').trim()
-      const removeMatch = cleanedForRemove.match(/^(?:tirar|tira|remover|remove)\s+([\d,\s]+(?:\s+e\s+\d+)*)/i)
+      // Captura QUALQUER coisa após o verbo (não só dígitos). Deixa o
+      // parsing de índices/códigos pra dentro do bloco — mais flexível.
+      const removeMatch = cleanedForRemove.match(/^(?:tirar|tira|remover|remove)\s+(.+)$/i)
       if (removeMatch) {
         const supabaseAdmin = getAdmin()
         const { data: allPendingRows } = await supabaseAdmin
@@ -2200,10 +2205,13 @@ export async function POST(req: NextRequest) {
           .order('created_at', { ascending: true })
         const allPendings = (allPendingRows || []) as PendingScanRow[]
 
+        // Pedro 2026-05-05: se NÃO tem pending ativo, NÃO tratar aqui.
+        // Deixa cair pro 'remove' intent (linha ~2664) que remove do álbum
+        // com confirmação SIM/NÃO. Isso preserva o fluxo "tirar BRA-1"
+        // sem pending = remover do álbum.
         if (allPendings.length === 0) {
-          await sendText(phone, '🤔 Não tenho nenhum registro aguardando confirmação. Manda uma foto, áudio ou texto pra começar!')
-          return NextResponse.json({ ok: true })
-        }
+          // Fall through — não responde nada
+        } else {
 
         // Mapeia índice global → (pending, item_idx_local)
         type FlatItem = { pendingId: number; localIdx: number; item: PendingItem }
@@ -2214,22 +2222,49 @@ export async function POST(req: NextRequest) {
         }
         const totalItems = flat.length
 
-        // Parse índices da mensagem
-        const parsed: number[] = (removeMatch[1].match(/\d+/g) || [])
+        const restAfterVerb = removeMatch[1]
+
+        // 1) Extrai códigos de figurinha (BRA-1, BRA1, ARG 10, FWC-0 etc)
+        //    e marca quais estão no pending. Caso bata, remove do "rest"
+        //    pra não duplicar na extração de índices puros.
+        const codeRegex = /\b([a-z]{2,5})[-\s]?(\d{1,2})\b/gi
+        const codeMatches = Array.from(restAfterVerb.matchAll(codeRegex))
+        let restWithoutCodes = restAfterVerb
+        const codeIndices: number[] = []
+        for (const cm of codeMatches) {
+          const codeStr = `${cm[1].toUpperCase()}-${cm[2]}`
+          // Procura no flat pelo número (case-insensitive). Pega TODAS
+          // ocorrências caso o user tenha o mesmo código em pendings
+          // diferentes (raro mas possível).
+          flat.forEach((f, i) => {
+            if (f.item.number?.toUpperCase() === codeStr) {
+              codeIndices.push(i + 1) // 1-indexed
+            }
+          })
+          // Remove o trecho do código pra evitar contagem dupla
+          restWithoutCodes = restWithoutCodes.replace(cm[0], ' ')
+        }
+
+        // 2) Extrai índices puros (números que NÃO faziam parte de código)
+        const numericParsed: number[] = (restWithoutCodes.match(/\d+/g) || [])
           .map((d: string) => parseInt(d, 10))
           .filter((n: number) => Number.isInteger(n) && n >= 1 && n <= totalItems)
-        const indicesGlobal: number[] = Array.from(new Set<number>(parsed)).sort((a, b) => a - b)
+
+        const indicesGlobal: number[] = Array.from(new Set<number>([...numericParsed, ...codeIndices])).sort((a, b) => a - b)
 
         if (indicesGlobal.length === 0) {
-          await sendText(
-            phone,
-            `❓ Não entendi o número. A lista tem ${totalItems} item(s).\n\n` +
-              `Como usar:\n` +
-              `• *tirar 1* — só o item 1\n` +
-              `• *tirar 1,3* — items 1 e 3\n` +
-              `• *tirar 1 e 3* — items 1 e 3\n` +
-              `• *tirar 1, 3 e 5* — items 1, 3 e 5`,
-          )
+          // Não bateu com nada do pending — pode ser que user quis remover
+          // do álbum (mas tem pending). Mostra a lista atual e oferece duas vias.
+          const codesUnmatched = codeMatches.map((cm) => `${cm[1].toUpperCase()}-${cm[2]}`).join(', ')
+          let msg = `❓ `
+          if (codesUnmatched) {
+            msg += `Não achei *${codesUnmatched}* no registro atual aguardando confirmação.\n\n`
+          } else {
+            msg += `Não entendi o que tirar. A lista tem ${totalItems} item(s).\n\n`
+          }
+          msg += `Lista atual:\n` + buildAggregatedPendingMsg(allPendings) + `\n\n`
+          msg += `Use *tirar 1* (por número) ou *tirar BRA-1* (por código). Pra remover do álbum, manda *cancelar* primeiro pra fechar o registro pendente.`
+          await sendText(phone, msg)
           return NextResponse.json({ ok: true })
         }
 
@@ -2282,6 +2317,7 @@ export async function POST(req: NextRequest) {
           await sendBotTextFor(user.id, phone, reply)
         }
         return NextResponse.json({ ok: true })
+        } // close: if (allPendings.length > 0) — sem pending cai pra 'remove' intent
       }
 
       // ─── "Cancelar registro N" / "cancela foto" / "cancela texto" / "cancela áudio" ───
