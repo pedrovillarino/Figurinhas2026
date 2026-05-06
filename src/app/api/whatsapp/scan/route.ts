@@ -664,7 +664,14 @@ export async function POST(req: NextRequest) {
 
     // Build preview list — numbered so the user can remove specific items
     // (e.g. "tirar 3" or "tirar 2,5") without canceling the whole batch.
-    const previewLines: string[] = []
+    //
+    // Pedro 2026-05-06: SEPARADO em duas seções (Novas / Já tinha) pra UX.
+    // Antes vinha misturado (1. 🆕 ... 2. 🔁 ... 3. 🆕 ...) o que dificultava
+    // o user enxergar quais figurinhas REALMENTE somavam ao álbum vs já
+    // estavam coladas. Os índices (1, 2, 3...) seguem a ordem que veio do
+    // OCR pra preservar "tirar N", mas a apresentação agrupa as duas listas.
+    const newLines: string[] = []
+    const repeatLines: string[] = []
     const scanData: Array<{ sticker_id: number; number: string; player_name: string; quantity: number }> = []
 
     const LOW_CONFIDENCE_THRESHOLD = 0.8
@@ -679,16 +686,31 @@ export async function POST(req: NextRequest) {
       if (lowConf) lowConfidenceCount++
       const warn = lowConf ? ' ⚠️' : ''
 
-      if (!ex) {
-        previewLines.push(qty > 1 ? `*${n}.* 🆕 ${label}${qtyLabel}${warn}` : `*${n}.* 🆕 ${label}${warn}`)
+      // status='missing' OU quantity=0 → trata como nova (consistente
+      // com batchSaveStickers que faz o mesmo).
+      const isNew = !ex || ex.status === 'missing' || ex.quantity === 0
+      if (isNew) {
+        newLines.push(`*${n}.* ${label}${qtyLabel}${warn}`)
       } else if (ex.status === 'owned') {
-        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_${warn}`)
+        repeatLines.push(`*${n}.* ${label}${qtyLabel} _(repetida)_${warn}`)
       } else if (ex.status === 'duplicate') {
-        previewLines.push(`*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + qty})_${warn}`)
+        repeatLines.push(`*${n}.* ${label}${qtyLabel} _(rep x${ex.quantity + qty})_${warn}`)
       }
 
       scanData.push({ sticker_id: sticker.id, number: sticker.number, player_name: sticker.player_name || '', quantity: qty })
     })
+
+    // Compose preview com seções
+    const previewLines: string[] = []
+    if (newLines.length > 0) {
+      previewLines.push(`🆕 *Novas (${newLines.length}):*`)
+      previewLines.push(...newLines)
+    }
+    if (repeatLines.length > 0) {
+      if (previewLines.length > 0) previewLines.push('') // separador visual
+      previewLines.push(`🔁 *Já tinha (${repeatLines.length}):*`)
+      previewLines.push(...repeatLines)
+    }
 
     // Pedro 2026-05-06: branch QUERY MODE — user só quer saber quais
     // dessas tem/não tem. Não cria pending, não pede SIM/NÃO. Resposta

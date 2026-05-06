@@ -3598,18 +3598,35 @@ export async function POST(req: NextRequest) {
           // (2026-05-02) que respostas de áudio não falem "foto".
           const sourceLabel = cameFromAudio ? 'no áudio' : 'no que você digitou'
 
-          // Numbered preview matching the photo flow
-          // Pedro 2026-05-05: status='missing' tratado como 🆕 (user removeu
-          // antes OU é estado inicial — não é repetida)
-          const previewLines = scanData.map((s, idx) => {
+          // Numbered preview matching the photo flow.
+          // Pedro 2026-05-06: SEPARADO em 2 seções (Novas / Já tinha) pra UX.
+          // Índices preservam ordem do OCR/áudio/texto pra "tirar N" funcionar.
+          const newLines: string[] = []
+          const repeatLines: string[] = []
+          scanData.forEach((s, idx) => {
             const ex = existingMap.get(s.sticker_id) as { status: string; quantity: number } | undefined
             const label = `${s.number} ${s.player_name || ''}`.trim()
             const qtyLabel = s.quantity > 1 ? ` (x${s.quantity})` : ''
             const n = idx + 1
-            if (!ex || ex.status === 'missing' || ex.quantity === 0) return `*${n}.* 🆕 ${label}${qtyLabel}`
-            if (ex.status === 'owned') return `*${n}.* 🔁 ${label}${qtyLabel} _(repetida)_`
-            return `*${n}.* 🔁 ${label}${qtyLabel} _(rep x${ex.quantity + s.quantity})_`
+            const isNew = !ex || ex.status === 'missing' || ex.quantity === 0
+            if (isNew) {
+              newLines.push(`*${n}.* ${label}${qtyLabel}`)
+            } else if (ex.status === 'owned') {
+              repeatLines.push(`*${n}.* ${label}${qtyLabel} _(repetida)_`)
+            } else {
+              repeatLines.push(`*${n}.* ${label}${qtyLabel} _(rep x${ex.quantity + s.quantity})_`)
+            }
           })
+          const previewLines: string[] = []
+          if (newLines.length > 0) {
+            previewLines.push(`🆕 *Novas (${newLines.length}):*`)
+            previewLines.push(...newLines)
+          }
+          if (repeatLines.length > 0) {
+            if (previewLines.length > 0) previewLines.push('')
+            previewLines.push(`🔁 *Já tinha (${repeatLines.length}):*`)
+            previewLines.push(...repeatLines)
+          }
 
           let msg = `📋 *Encontrei ${totalFound} figurinha(s) ${sourceLabel}:*\n\n`
           msg += previewLines.join('\n')
