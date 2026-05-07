@@ -152,12 +152,12 @@ export async function GET(req: NextRequest) {
   // 6. Funnel events (visited site after send) — store_click, scan, etc.
   const { data: eventsData } = await admin
     .from('funnel_events')
-    .select('user_id, event_type, created_at')
+    .select('user_id, event_name, created_at')
     .in('user_id', userIds)
     .gte('created_at', minSendAt)
     .order('created_at', { ascending: true })
 
-  const events = (eventsData || []) as Array<{ user_id: string; event_type: string; created_at: string }>
+  const events = (eventsData || []) as Array<{ user_id: string; event_name: string; created_at: string }>
   const eventCountMap = new Map<string, number>()
   for (const e of events) {
     eventCountMap.set(e.user_id, (eventCountMap.get(e.user_id) || 0) + 1)
@@ -192,15 +192,19 @@ export async function GET(req: NextRequest) {
   const perUser = sends.map((s) => {
     const p = profMap.get(s.user_id)
     const sendAt = new Date(s.sent_at).getTime()
-    const lastActiveAt = p?.last_active ? new Date(p.last_active).getTime() : 0
-    const visitedAfter = lastActiveAt > sendAt
+    // Pedro 2026-05-07: visited_after baseado em events count (funnel_events)
+    // em vez de profile.last_active. last_active só é atualizado em rotas
+    // específicas (/upgrade/success, /trades, /profile) — não em pageview
+    // genérico. funnel_events captura ad_click, signup, scan_used, etc. =
+    // proxy melhor de "voltou ao app".
+    const eventsCount = eventCountMap.get(s.user_id) || 0
+    const visitedAfter = eventsCount > 0
     const upgradedAfter = p?.upgraded_at
       ? new Date(p.upgraded_at).getTime() > sendAt
       : false
     const refStats = refMap.get(s.user_id) || { confirmed: 0, paid: 0 }
     const stickerCount = stickerMap.get(s.user_id) || 0
     const couponUsed = couponUsedMap.get(s.user_id) || null
-    const eventsCount = eventCountMap.get(s.user_id) || 0
 
     return {
       user_id: s.user_id,
