@@ -260,7 +260,34 @@ Cada um dos 48 PAÍSES tem 2 símbolos fixos (sempre nas posições 1 e 13):
     - BRA-1 (CBF Brasil): ÓVALO/CÍRCULO BRANCO no centro com o ESCUDO CBF — escudo AZUL-MARINHO com CRUZ AMARELA (em X) + letras "CBF" brancas no centro dentro de quadradinho azul. CINCO ESTRELAS AMARELAS em arco no topo do escudo (5 títulos mundiais). Palavra "BRASIL" em letras VERDES bold embaixo do escudo. Faixas diagonais com cores do BRASIL (verde + amarelo + azul). Texto "FIFA WORLD CUP 2026" no topo em letras BRANCAS. Logo "PANINI" amarelo canto inferior direito. Fundo PRATA FOIL HOLOGRÁFICO com texto "Panini" repetido em padrão brilhante.
     - JOR-1 (JFA Jordânia): ESCUDO em formato de FLECHA/PONTA pra cima com fundo VERMELHO PROFUNDO. No topo, faixa retangular PRETA com texto "JORDAN" em LETRAS BRANCAS maiúsculas. No centro do escudo, ESTRELA BRANCA GRANDE de 7 PONTAS (mesma da bandeira jordaniana). FIFA WORLD CUP 2026 no topo em letras claras + Panini canto inferior. Fundo FOIL HOLOGRÁFICO PRATA prismático.
     - PAR-1 (APF Paraguai): ESCUDO CIRCULAR com texto "APF" em letras PRETAS GRANDES à esquerda + linhas RADIAIS azul-marinho e vermelho (cores da bandeira paraguaia) saindo do centro. ESTRELA AMARELA grande no MEIO do escudo. Texto "PARAGUAY" em letras MAIÚSCULAS pretas à DIREITA do escudo (orientação vertical). Fundo FOIL HOLOGRÁFICO multicolor (vermelho/dourado/verde iridescente). FIFA WORLD CUP 2026 no topo + Panini canto inferior.
-- {PAIS}-13: foto do TIME inteiro posando junto (fileira de 22+ jogadores em pé/agachados em campo). player_name = "Team Photo", country = país.
+- {PAIS}-13: TEAM PHOTO. Layout fixo:
+    📸 PARTE SUPERIOR (~70% da figurinha): FOTO DO TIME INTEIRO posando em
+       campo (fileira/duas fileiras de 18+ jogadores em pé/agachados com
+       camisa nacional, em estádio).
+    🏷️ FAIXA INFERIOR (~30% da figurinha): RÓTULO "WE ARE [PAÍS]" sobre
+       fundo COLORIDO (cor da bandeira nacional). 3 elementos da esquerda
+       pra direita:
+         a) "WE ARE" em letras BRANCAS pequenas (canto inferior esquerdo)
+         b) BANDEIRA do país (formato bandeira normal — NÃO é a bandeira-bola)
+         c) NOME DO PAÍS em letras BRANCAS GRANDES MAIÚSCULAS
+            (canto inferior direito) — ex: "SAUDI ARABIA", "JORDAN",
+            "BRAZIL", "MEXICO", "ARGENTINA", "FRANCE", "JAPAN",
+            "NETHERLANDS", "PORTUGAL"
+    🎯 IDENTIFICAÇÃO: o NOME DO PAÍS escrito grande no canto inferior
+       direito é a FONTE PRIMÁRIA de identificação. LEIA literalmente.
+       NÃO infira por uniforme do time.
+    Cores típicas da faixa inferior (pra confirmar visualmente):
+       SAUDI ARABIA = VERDE; JORDAN = VERMELHO escuro; NETHERLANDS = LARANJA;
+       BRAZIL = AMARELO/VERDE; ARGENTINA = AZUL-CELESTE; PORTUGAL = VERMELHO/VERDE;
+       FRANCE = AZUL com listras; ITALY = AZUL escuro; MEXICO = VERDE;
+       USA = AZUL com estrelas; JAPAN = AZUL com vermelho; CROATIA = XADREZ vermelho/branco;
+       BELGIUM = preto/amarelo/vermelho; GERMANY = preto/vermelho/amarelo
+    ⚠️ NÃO CONFUNDA paises com cores parecidas — sempre LEIA o texto:
+       JORDAN (vermelho escuro) ≠ NETHERLANDS (laranja) ≠ MOROCCO (verde+vermelho);
+       BRAZIL (amarelo) ≠ COLOMBIA (amarelo+azul+vermelho);
+       PORTUGAL (vermelho+verde) ≠ MOROCCO ≠ ITALY (azul);
+       SAUDI ARABIA (verde) ≠ MEXICO ≠ NIGERIA.
+    player_name = "Team Photo", country = código do país (KSA, JOR, NED, BRA...).
 
 Seção FIFA WORLD CUP (FWC-0 a FWC-19) — country sempre = "FIFA":
 - FWC-0: "We are Panini" — figurinha FOIL/HOLOGRÁFICA com fundo prismático colorido (efeito brilhoso multicor), foto de jogador real chutando de bicicleta, logo "PANINI" amarelo embaixo. ⚠️ O álbum físico imprime "00" no rótulo do slot dessa figurinha (não "FWC-0"). Se ver "00" no slot, é FWC-0. Quando user digita/fala "00" sozinho, também é FWC-0.

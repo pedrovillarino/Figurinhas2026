@@ -315,7 +315,30 @@ Each of the 48 COUNTRIES has 2 fixed symbols (always positions 1 and 13):
     - BRA-1 (CBF Brazil): WHITE OVAL/CIRCLE in center containing the CBF SHIELD — DARK NAVY-BLUE shield with YELLOW CROSS (saltire/X-shape) inside + "CBF" white letters in the center inside a small dark blue square. FIVE YELLOW STARS arranged in arc above the shield (representing 5 World Cup titles). Word "BRASIL" in GREEN bold letters below the shield. Diagonal background bands in BRAZIL COLORS (green + yellow + blue swirls). Text "FIFA WORLD CUP 2026" at top in WHITE letters. Yellow "PANINI" logo at bottom-right. Background SILVER FOIL HOLOGRAPHIC with "Panini" text repeated in shimmer pattern.
     - JOR-1 (JFA Jordan): SHIELD in arrow/point-up shape with deep RED background. Top of the shield: black rectangular bar with text "JORDAN" in white capital letters. Center of shield: large WHITE 7-POINTED STAR (same as the Jordan flag). FIFA WORLD CUP 2026 at top in light letters + Panini bottom corner. Background SILVER FOIL HOLOGRAPHIC prismatic.
     - PAR-1 (APF Paraguay): CIRCULAR shield with "APF" black bold letters on the LEFT + RADIAL stripes of navy-blue and red (Paraguayan flag colors) emanating from the center. Large YELLOW STAR in the MIDDLE of the shield. Text "PARAGUAY" in capital black letters on the RIGHT side (vertical orientation). Background HOLOGRAPHIC FOIL multicolor (red/gold/green iridescent). FIFA WORLD CUP 2026 top + Panini bottom.
-- {COUNTRY}-13: full TEAM PHOTO with players posing together (line of players standing/crouching). player_name = "Team Photo".
+- {COUNTRY}-13: TEAM PHOTO. Fixed layout:
+    📸 TOP ~70%: full team photo posing on the field (18+ players standing/
+       crouching in national jerseys at a stadium).
+    🏷️ BOTTOM ~30%: label "WE ARE [COUNTRY]" over a COLORED BAR (national
+       flag color). Three elements left-to-right:
+         a) "WE ARE" in small WHITE letters (bottom-left corner)
+         b) Country FLAG (regular flag shape — NOT the flag-ball)
+         c) COUNTRY NAME in BIG WHITE UPPERCASE letters (bottom-right) —
+            e.g. "SAUDI ARABIA", "JORDAN", "BRAZIL", "MEXICO", "ARGENTINA",
+            "FRANCE", "JAPAN", "NETHERLANDS", "PORTUGAL"
+    🎯 IDENTIFICATION: the COUNTRY NAME printed at bottom-right is the
+       PRIMARY source. READ it literally. DO NOT infer from team uniform.
+    Typical bar colors (visual confirmation only):
+       SAUDI ARABIA = GREEN; JORDAN = DARK RED; NETHERLANDS = ORANGE;
+       BRAZIL = YELLOW/GREEN; ARGENTINA = SKY BLUE; PORTUGAL = RED/GREEN;
+       FRANCE = BLUE with stripes; ITALY = DARK BLUE; MEXICO = GREEN;
+       USA = BLUE with stars; JAPAN = BLUE+RED; CROATIA = red/white CHECKERED;
+       BELGIUM = black/yellow/red; GERMANY = black/red/yellow
+    ⚠️ DO NOT CONFUSE countries with similar colors — always READ the text:
+       JORDAN (dark red) ≠ NETHERLANDS (orange) ≠ MOROCCO (green+red);
+       BRAZIL (yellow) ≠ COLOMBIA (yellow+blue+red);
+       PORTUGAL (red+green) ≠ MOROCCO ≠ ITALY (blue);
+       SAUDI ARABIA (green) ≠ MEXICO ≠ NIGERIA.
+    player_name = "Team Photo", country = country code (KSA, JOR, NED, BRA...).
 
 FIFA WORLD CUP section (FWC-0 to FWC-19) — country_code always = "FIFA":
 - FWC-0: "We are Panini" — FOIL/HOLOGRAPHIC sticker with prismatic multicolor shimmery background, real-photo player doing bicycle kick, yellow "PANINI" logo at bottom. ⚠️ The album physically PRINTS "00" in the slot label for this sticker (not "FWC-0"). If you see slot label "00", it's FWC-0. When user types/says "00" alone, it's also FWC-0.
