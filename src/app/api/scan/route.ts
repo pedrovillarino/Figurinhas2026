@@ -554,13 +554,25 @@ export async function POST(request: NextRequest) {
     )
 
     // Get user tier
-    const { data: profile } = await supabaseAdmin
+    // Pedro 2026-05-06 (caso Marina): ANTES caia em fallback 'free' silencioso
+    // se a query falhasse (race/timeout/RLS), gerando paywall errado pra user
+    // que JÁ é pagante. Agora: erro de query NÃO assume free — retorna 503
+    // pra cliente tentar de novo (vez de cobrar paywall errado).
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('tier')
       .eq('id', user.id)
       .single()
 
-    const userTier = (profile?.tier || 'free') as Tier
+    if (profileError || !profile) {
+      console.error('[scan] profile fetch failed for user', user.id, profileError?.message)
+      return NextResponse.json(
+        { error: 'Não consegui validar sua conta agora. Tenta de novo em alguns segundos.' },
+        { status: 503 },
+      )
+    }
+
+    const userTier = (profile.tier || 'free') as Tier
     const tierScanLimit = getScanLimit(userTier)
 
     const { data: usageData, error: usageError } = await supabaseAdmin

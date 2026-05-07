@@ -575,13 +575,22 @@ export async function POST(req: NextRequest) {
     const adminDb = getAdmin()
 
     // Check scan limit
-    const { data: profile } = await adminDb
+    // Pedro 2026-05-06 (caso Marina): ANTES caia em fallback 'free' silencioso
+    // se a query falhasse (race/timeout/RLS), gerando paywall errado pra user
+    // pagante. Agora: erro NÃO assume free — avisa user pra tentar de novo.
+    const { data: profile, error: profileError } = await adminDb
       .from('profiles')
       .select('tier')
       .eq('id', userId)
       .single()
 
-    const userTier = (profile?.tier || 'free') as Tier
+    if (profileError || !profile) {
+      console.error('[whatsapp/scan] profile fetch failed for user', userId, profileError?.message)
+      await sendText(phone, '⚠️ Não consegui validar sua conta agora. Manda a foto de novo em uns segundos, por favor!')
+      return NextResponse.json({ ok: true })
+    }
+
+    const userTier = (profile.tier || 'free') as Tier
     const tierScanLimit = getScanLimit(userTier)
 
     const { data: usageData } = await adminDb
