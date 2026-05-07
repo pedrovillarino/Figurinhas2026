@@ -20,6 +20,9 @@ type MatchedSticker = {
   status: string
   confidence: number
   quantity: number
+  // Pedro 2026-05-07: pra separar 🆕 Novas / 🔁 Já tinha na UI de results.
+  // Populado client-side após scan completar (query em user_stickers).
+  alreadyOwned?: boolean
 }
 
 type ScanResponse = {
@@ -197,6 +200,27 @@ export default function ScanHub({
     }
     const deduped = Array.from(dedupMap.values())
 
+    // Pedro 2026-05-07: enriquece cada item com `alreadyOwned` pra UI poder
+    // separar 🆕 Novas vs 🔁 Já tinha (igual ao formato do WhatsApp scan).
+    if (deduped.length > 0) {
+      const supabase = createClient()
+      const stickerIds = deduped.map((s) => s.sticker_id)
+      const { data: existingRows } = await supabase
+        .from('user_stickers')
+        .select('sticker_id, status, quantity')
+        .eq('user_id', userId)
+        .in('sticker_id', stickerIds)
+      const existingMap = new Map(
+        (existingRows || []).map((r) => [r.sticker_id, r as { status: string; quantity: number }]),
+      )
+      for (const item of deduped) {
+        const ex = existingMap.get(item.sticker_id)
+        // 'missing' OR quantity=0 → trata como NOVA (alinhado com batchSaveStickers
+        // que faz a mesma classificação ao salvar)
+        item.alreadyOwned = !!(ex && ex.status !== 'missing' && (ex.quantity || 0) > 0)
+      }
+    }
+
     const result: ScanResponse = { matched: deduped, unmatched: [], warnings: accWarnings, confidence: 'high' }
     setScanResult(result)
     const initial: Record<number, boolean> = {}
@@ -253,6 +277,27 @@ export default function ScanHub({
       if (data.scanUsage) {
         setScansRemaining(data.scanUsage.remaining)
         setScansLimit(data.scanUsage.limit || 200)
+      }
+
+      // Pedro 2026-05-07: enriquece c/ alreadyOwned pra separar 🆕/🔁 na UI
+      if (data.matched && data.matched.length > 0) {
+        const supabase = createClient()
+        const stickerIds = data.matched.map((s: MatchedSticker) => s.sticker_id)
+        const { data: existingRows } = await supabase
+          .from('user_stickers')
+          .select('sticker_id, status, quantity')
+          .eq('user_id', userId)
+          .in('sticker_id', stickerIds)
+        const existingMap = new Map(
+          (existingRows || []).map((r) => [r.sticker_id, r as { status: string; quantity: number }]),
+        )
+        data.matched = data.matched.map((s: MatchedSticker) => {
+          const ex = existingMap.get(s.sticker_id)
+          return {
+            ...s,
+            alreadyOwned: !!(ex && ex.status !== 'missing' && (ex.quantity || 0) > 0),
+          }
+        })
       }
 
       setScanResult(data)
@@ -739,8 +784,13 @@ export default function ScanHub({
           </div>
         ) : (
           <>
-            <div className="space-y-2 mb-4 max-h-[50vh] overflow-y-auto">
-              {scanResult.matched.map((sticker) => (
+            {/* Pedro 2026-05-07: agrupado em 🆕 Novas / 🔁 Já tinha pra
+                facilitar o user enxergar quais somam ao álbum vs já estavam
+                coladas. Mesmo formato adotado no scan via WhatsApp. */}
+            {(() => {
+              const novas = scanResult.matched.filter((s) => !s.alreadyOwned)
+              const repetidas = scanResult.matched.filter((s) => s.alreadyOwned)
+              const renderItem = (sticker: MatchedSticker) => (
                 <button
                   key={sticker.sticker_id}
                   onClick={() => toggleCheck(sticker.sticker_id)}
@@ -773,15 +823,36 @@ export default function ScanHub({
                     }`}>
                       {sticker.confidence >= 0.85 ? '✓' : sticker.confidence >= 0.6 ? '~' : '?'} {Math.round(sticker.confidence * 100)}%
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      sticker.status === 'filled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {sticker.status === 'filled' ? 'Colada' : 'Vazia'}
-                    </span>
                   </div>
                 </button>
-              ))}
-            </div>
+              )
+              return (
+                <div className="mb-4 max-h-[50vh] overflow-y-auto">
+                  {novas.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 mt-1 mb-2">
+                        <span className="text-base">🆕</span>
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                          Novas ({novas.length})
+                        </h2>
+                      </div>
+                      <div className="space-y-2 mb-3">{novas.map(renderItem)}</div>
+                    </>
+                  )}
+                  {repetidas.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 mt-1 mb-2">
+                        <span className="text-base">🔁</span>
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-amber-700">
+                          Já tinha ({repetidas.length})
+                        </h2>
+                      </div>
+                      <div className="space-y-2">{repetidas.map(renderItem)}</div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
 
             <div className="flex gap-3 sticky bottom-20 bg-gray-50 pt-2 pb-2">
               <button onClick={reset} className="flex-1 bg-gray-100 text-gray-700 rounded-xl px-4 py-3 text-sm font-medium">
