@@ -1883,7 +1883,26 @@ export async function POST(req: NextRequest) {
         '? ajuda': 'ajuda',
         '❓ ajuda': 'ajuda',
       }
-      if (EMOJI_TO_COMMAND[trimmedForEmoji]) {
+      // Pedro 2026-05-07 (caso +55 21 98122-0974): user mandou ✅ depois
+      // do bot mostrar lista pra registrar. EMOJI_TO_COMMAND traduzia
+      // ✅ pra "coladas" ANTES do isYesConfirm rodar — em vez de salvar
+      // os 7 itens, bot mostrava lista de coladas.
+      // Fix: se ✅ E há pending_scans ativo → NÃO traduzir; deixa cair
+      // no isYesConfirm (linha 2527) que vai registrar.
+      let skipEmojiCheck = false
+      if (trimmedForEmoji === '✅') {
+        const adminCheck = getAdmin()
+        const { data: hasPending } = await adminCheck
+          .from('pending_scans')
+          .select('id')
+          .eq('user_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .limit(1)
+          .maybeSingle()
+        if (hasPending) skipEmojiCheck = true
+      }
+
+      if (!skipEmojiCheck && EMOJI_TO_COMMAND[trimmedForEmoji]) {
         rawText = EMOJI_TO_COMMAND[trimmedForEmoji]
       } else if (LABEL_TO_COMMAND[trimmedNorm]) {
         rawText = LABEL_TO_COMMAND[trimmedNorm]
