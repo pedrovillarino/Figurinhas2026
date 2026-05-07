@@ -426,11 +426,20 @@ export default function CampanhaClient({
             <p className="text-[11px] text-gray-500 mt-2">Pontuação acumula durante todo o período da campanha — ranking final fecha em {campaignEndDateLabel} às {campaignEndTimeLabel}.</p>
           </RuleStep>
 
-          <RuleStep number={8} title={`Mínimo de ${constants.minParticipants} participantes`}>
+          <RuleStep number={8} title="Critérios de desempate">
+            Se duas ou mais pessoas terminarem com a <strong>mesma pontuação</strong>, a posição final é decidida nesta ordem:
+            <ol className="list-decimal pl-5 space-y-1 mt-2 text-sm text-gray-700">
+              <li><strong>Ser membro pagante</strong> — quem assinou qualquer plano (Estreante, Colecionador ou Copa Completa) durante a campanha vence o desempate.</li>
+              <li><strong>Indicações realizadas</strong> — quantas vezes a pessoa compartilhou seu link, mesmo que o amigo ainda não tenha cadastrado. Mede o esforço de divulgação.</li>
+              <li><strong>Quem entrou primeiro na campanha</strong> — opt-in mais antigo (data/hora) ganha.</li>
+            </ol>
+          </RuleStep>
+
+          <RuleStep number={9} title={`Mínimo de ${constants.minParticipants} participantes`}>
             Se a campanha não atingir <strong>{constants.minParticipants} participantes</strong> que fizeram opt-in, a Complete Aí pode <strong>prorrogar a data final</strong> a seu critério. Avisaremos por aqui caso isso aconteça.
           </RuleStep>
 
-          <RuleStep number={9} title={`Campanha vai até ${campaignEndDateLabel} às ${campaignEndTimeLabel}`}>
+          <RuleStep number={10} title={`Campanha vai até ${campaignEndDateLabel} às ${campaignEndTimeLabel}`}>
             Após esse prazo: <strong>cupons param de ser concedidos</strong>, prêmios físicos do top 3 são enviados pelos Correios, e a página de campanha sai do app. Cupons já emitidos seguem suas próprias datas de validade (48h cada).
           </RuleStep>
         </ol>
