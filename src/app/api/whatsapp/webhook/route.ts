@@ -540,9 +540,16 @@ async function sendPostSignupFollowUp(phone: string, pendingMessage: string | nu
   // Pedro 2026-05-04: frases padrão de deep-link genérico ("Oi! Vim do meu
   // perfil/álbum/app") são SAUDAÇÕES, não perguntas. Welcome do bot já
   // cobre. NÃO ecoar.
+  // Pedro 2026-05-07 (caso Mavi): a frase "oi sou X (email: y@z.com) [link:TOKEN]"
+  // é a mensagem GERADA AUTOMATICAMENTE pelo deep-link do site (não é o user
+  // perguntando algo). Bot estava ecoando como se fosse pergunta. Detectar
+  // explicitamente esses padrões pra NÃO ecoar.
   const isGenericDeepLink =
     /^oi[!,.\s]*\s*vim\s+do\s+(meu\s+)?(perfil|[áa]lbum|app|site|scan|ranking|trocas?)/i.test(lower) ||
-    /^oi[!,.\s]*\s*vim\s+do\s+(meu\s+)?app[,.]?\s+queria\s+conhecer/i.test(lower)
+    /^oi[!,.\s]*\s*vim\s+do\s+(meu\s+)?app[,.]?\s+queria\s+conhecer/i.test(lower) ||
+    /^oi[,!.\s]*\s*sou\s+\S+/i.test(lower) || // "oi sou João..."
+    /\(email:\s*\S+@\S+\)/i.test(lower) ||      // "(email: x@y.com)"
+    /\[link:[a-f0-9]+\]/i.test(lower)            // "[link:TOKEN]"
   if (isGenericDeepLink) return
 
   let followUp: string
