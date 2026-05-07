@@ -267,6 +267,21 @@ export default function CampanhaClient({
               <StatBox label="Pendentes" value={stats.pending} color="text-gray-500" />
             </div>
 
+            {/* Pedro 2026-05-07 (caso Petronio): aviso quando user compartilhou
+                link mas ninguém se cadastrou ainda. Evita confusão "compartilhei
+                = indicação efetivada". */}
+            {stats.confirmed === 0 && stats.paidUpgrade === 0 && stats.pending === 0 && (
+              <div className="mb-3 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="text-[12px] text-blue-900 leading-relaxed">
+                  ⏳ <strong>Aguardando alguém usar seu link...</strong>
+                </p>
+                <p className="text-[11px] text-blue-700 leading-relaxed mt-1">
+                  A indicação só conta quando seu amigo <strong>cria conta pelo seu link</strong>.
+                  Compartilhar o link não conta sozinho — o ponto entra automático quando ele finaliza o cadastro.
+                </p>
+              </div>
+            )}
+
             {/* Self-upgrade bonus indicator */}
             {userSelfUpgradedAt && (
               <div className="mb-5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
