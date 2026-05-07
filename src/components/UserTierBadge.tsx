@@ -31,8 +31,10 @@ const TIER_CONFIG: Partial<Record<Tier, {
   },
   colecionador: {
     letter: 'C',
-    bg: 'bg-gradient-to-br from-slate-300 to-slate-500', // prata
-    extra: 'shadow-sm',
+    // Pedro 2026-05-07: prata original (slate-300→500) ficava imperceptível
+    // sobre fundo claro. Prata mais saturada + ring sutil pra ganhar contraste.
+    bg: 'bg-gradient-to-br from-slate-400 to-slate-600',
+    extra: 'ring-1 ring-slate-300/80 shadow-md shadow-slate-500/20',
     title: 'Plano Colecionador',
   },
   copa_completa: {
