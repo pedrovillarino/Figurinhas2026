@@ -6,7 +6,7 @@ import { sendText, sendButtonList, formatPhone, maskPhone, type ButtonOption } f
 import { normalizePhoneBR } from '@/lib/phone'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { runAgent, recordBotMessage, getLastBotContext, sendBotTextFor } from '@/lib/whatsapp-agent'
-import { escalateToSupport } from '@/lib/support'
+import { escalateToSupport, submitUnknownSuggestion } from '@/lib/support'
 import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
@@ -569,7 +569,7 @@ async function sendPostSignupFollowUp(phone: string, pendingMessage: string | nu
   } else {
     // Default: ecoa a mensagem original (só pra perguntas reais)
     const truncated = pendingMessage.length > 100 ? pendingMessage.slice(0, 100) + '…' : pendingMessage
-    followUp = `💬 Antes você me perguntou: _"${truncated}"_\n\nManda de novo se ainda quiser que eu responda — agora que tô conectado com sua conta posso ajudar melhor. 💚`
+    followUp = `💬 Antes você me perguntou: _"${truncated}"_\n\nManda de novo se ainda quiser que eu responda — agora que tô conectado com sua conta posso ajudar melhor. ⚽`
   }
 
   await sendText(phone, followUp)
@@ -631,7 +631,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
             `📸 *Foto* das figurinhas — eu identifico com IA\n` +
             `🎤 *Áudio* falando os códigos\n` +
             `✏️ *Texto* tipo _"BRA-1 ARG-3"_ ou _"Brasil 1"_\n\n` +
-            `Manda *menu* a qualquer hora pra ver tudo. 💚`,
+            `Manda *menu* a qualquer hora pra ver tudo. ⚽`,
         )
         await sendPostSignupFollowUp(phone, pendingMsg)
         return true
@@ -692,7 +692,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
           `✏️ *Texto* — também aceita _"BRA-1 ARG-3"_\n\n` +
           `Manda *menu* a qualquer hora pra ver tudo que sei fazer.\n\n` +
           `Quando quiser entrar no site (${APP_URL}), faz login com esse email e te mando um link de acesso. 🔓\n\n` +
-          `Bom proveito! 💚\n\n` +
+          `Bom proveito! ⚽\n\n` +
           `_Ao usar o serviço você aceita os Termos (${APP_URL}/termos) e a Privacidade (${APP_URL}/privacidade)._`,
       )
       await sendPostSignupFollowUp(phone, pendingMsg)
@@ -711,7 +711,7 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
       `😔 Ops, deu um erro técnico criando sua conta agora.\n\n` +
         `Tenta o cadastro pelo site (rapidinho, com Google ou email):\n` +
         `👉 ${APP_URL}/register?phone=${phone}&email=${encodedEmail}&name=${encodedName}\n\n` +
-        `Lá já vai aparecer seu email e nome preenchidos. Depois de cadastrar, manda *oi* aqui de novo que eu reconheço seu WhatsApp. 💚`,
+        `Lá já vai aparecer seu email e nome preenchidos. Depois de cadastrar, manda *oi* aqui de novo que eu reconheço seu WhatsApp. ⚽`,
     )
     return true
   }
@@ -784,6 +784,44 @@ async function getUserStats(userId: string) {
 }
 
 const EXTRAS_TOTAL_AVAILABLE = 92  // 12 Coca-Cola + 80 PANINI Extras (20 × 4 cores)
+
+// Pedro 2026-05-07: ranking de seleções por % completude. User da imagem
+// (54-99619-7830) perguntou "quais são as seleções que eu mais tenho
+// figurinhas?" e bot caiu em status genérico. Agora respondemos direto:
+// sem chamar Gemini, sem onerar — uma query agrupada que reusa o cache de
+// stickers + user_stickers do user.
+type CountryRow = { section: string; owned: number; total: number; pct: number }
+async function getCountryBreakdown(userId: string): Promise<CountryRow[]> {
+  const supabase = getAdmin()
+  // Total por seção (público — pode usar service role admin)
+  const [{ data: allStickers }, { data: ownedRows }] = await Promise.all([
+    supabase
+      .from('stickers')
+      .select('id, section, counts_for_completion')
+      .eq('counts_for_completion', true),
+    supabase
+      .from('user_stickers')
+      .select('sticker_id, status')
+      .eq('user_id', userId)
+      .in('status', ['owned', 'duplicate']),
+  ])
+  const ownedSet = new Set((ownedRows || []).map((r) => r.sticker_id))
+  const buckets = new Map<string, { owned: number; total: number }>()
+  for (const s of (allStickers || []) as Array<{ id: number; section: string }>) {
+    const key = s.section || '—'
+    const b = buckets.get(key) || { owned: 0, total: 0 }
+    b.total += 1
+    if (ownedSet.has(s.id)) b.owned += 1
+    buckets.set(key, b)
+  }
+  const rows: CountryRow[] = Array.from(buckets.entries()).map(([section, b]) => ({
+    section,
+    owned: b.owned,
+    total: b.total,
+    pct: b.total > 0 ? Math.round((b.owned / b.total) * 100) : 0,
+  }))
+  return rows
+}
 
 // ─── Section name resolver (PT/EN, fuzzy, multi-input) ────────────────────
 //
@@ -1089,6 +1127,107 @@ async function getOwnedStickers(userId: string) {
       isDuplicate: d.status === 'duplicate',
     }
   })
+}
+
+// ─── Sticker command classifier ────────────────────────────────────────
+//
+// Pedro 2026-05-07: o problema era detectar a INTENÇÃO sobre uma lista de
+// figurinhas. Antes a gente só pegava prefixos rígidos ("tenho X?",
+// "preciso X"). Agora extrai os códigos da string e classifica o RESÍDUO
+// (= o que o user escreveu além dos códigos) como comando, em qualquer
+// posição: antes ou depois da lista.
+//
+// Exemplos:
+//   "registre BRA1 FRA2"          → register   (verbo antes)
+//   "BRA1 FRA2 registra aí"       → register   (verbo depois)
+//   "veja se tenho FRA10 BRA10"   → query_owned
+//   "FRA10 BRA10 tenho?"          → query_owned (sufixo + ?)
+//   "veja se falta SEN10"         → query_missing
+//   "SEN10 FRA3 que falta"        → query_missing
+//   "tira CC13"                   → remove
+//   "BRA1 FRA2"                   → register (default sem verbo)
+//   "BRA1?"                       → query_owned (só "?" já é pergunta)
+//
+// Retorna null se não tem códigos OU comando não foi entendido (cai no
+// fluxo legado / Gemini fallback).
+type StickerCmd = 'register' | 'query_owned' | 'query_missing' | 'remove'
+
+function classifyStickerCommand(
+  rawText: string,
+  codeMatches: string[],
+): StickerCmd | null {
+  if (codeMatches.length === 0) return null
+
+  // Remove cada código (em todas variações: BRA1, BRA-1, BRA 1, bra1, etc.)
+  // pra isolar o resíduo de comando.
+  let residue = rawText
+  for (const code of codeMatches) {
+    // Escapa o código pra usar como regex literal, mas tolera separadores
+    // diferentes: o regex original já captura "[a-z]{2,5}[\s\-]?\d{1,2}"
+    // com flag 'gi', então a string já vem normalizada do match. Pra
+    // remover de forma resiliente, gera variantes.
+    const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    residue = residue.replace(new RegExp(escaped, 'gi'), ' ')
+  }
+  // Limpa pontuação, conjunções e palavras de cola
+  residue = residue
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[,;.!]/g, ' ')
+    .replace(/\b(e|a|o|as|os|da|de|do|das|dos|um|uma|uns|umas|essa|esse|essas|esses|aqui|ai|tambem|tb)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const hasQuestionMark = /\?/.test(rawText)
+
+  // ─── REMOVE: tirar/remover/deletar/apagar/excluir ───
+  // (NÃO inclui "cancelar" — handler de cancel-pending tem fluxo próprio
+  // pra "cancela registro/foto/áudio".)
+  if (/\b(tirar?|tire|remover?|remove|deletar?|delete|apagar?|apaga|excluir?|exclui)\b/.test(residue)) {
+    return 'remove'
+  }
+
+  // ─── QUERY_MISSING: precedência sobre query_owned quando residue tem
+  // "falta/não tenho/preciso/não peguei/não colei" ───
+  // Cobre: "veja se falta", "será que falta", "que falta", "tenho que pegar",
+  // "ainda preciso", "não tenho", "nao peguei", etc.
+  const hasMissingVerb = /\b(falta|faltam|faltando|nao\s+tenho|nao\s+tem|nao\s+peguei|nao\s+colei|nao\s+coloquei|preciso|me\s+falta|tenho\s+que\s+pegar|ainda\s+preciso|que\s+falta)\b/.test(residue)
+  // ─── QUERY_OWNED: posse/tem/peguei + indicador interrogativo ───
+  // Cobre: "veja se tenho", "será que tenho", "tenho ?", "FRA10 tenho?"
+  const hasOwnedVerb = /\b(tenho|tem|tinha|peguei|colei|j[aá]\s+tenho|j[aá]\s+peguei|j[aá]\s+colei)\b/.test(residue)
+  // Indicador de pergunta: "?" no fim, OU verbo de checagem "veja/vê/olha/
+  // confere/confira/checa/cheque/me diz/me fala/será que"
+  const hasInterrogative =
+    hasQuestionMark ||
+    /\b(veja|ve|olha|olhe|confere|confira|checa|cheque|sera\s+que|me\s+diz|me\s+fala|me\s+conta)\b/.test(residue)
+
+  if (hasMissingVerb && hasInterrogative) return 'query_missing'
+  // "preciso/falta/não tenho" sozinho já implica query missing (verbo de
+  // negação não precisa de "?" — "não tenho FRA10" é informativo mas user
+  // quer saber/listar).
+  if (hasMissingVerb && !hasOwnedVerb) return 'query_missing'
+
+  if (hasOwnedVerb && hasInterrogative) return 'query_owned'
+
+  // ─── REGISTER: verbo explícito de cadastro ───
+  // "peguei/colei" (passado): declaração de posse → cadastrar.
+  // "tenho/já tenho" (presente): AMBÍGUO — pode ser declaração ou consulta.
+  // No fluxo legado, "tenho X" sem "?" cai em looksLikeQuestion=true e vira
+  // query. Mantemos esse comportamento: aqui só capturamos verbos
+  // inequívocos de cadastro.
+  if (/\b(registr[ae]r?|registre|salv[ae]r?|salve|adicion[ae]r?|adicione|coloque|cole|cola|colar|colei|marca|marque|anota|anote|peguei|j[aá]\s+peguei|j[aá]\s+colei)\b/.test(residue)) {
+    return 'register'
+  }
+
+  // ─── DEFAULT: códigos sem comando explícito → register ───
+  // Mas só se o resíduo é vazio ou trivial (sem verbos suspeitos).
+  if (residue.length === 0 || /^[\s\-]+$/.test(residue)) {
+    return 'register'
+  }
+
+  // Resíduo tem conteúdo mas não bateu em nenhum padrão → null pra cair
+  // no fluxo legado (que pode ainda detectar via outras regras ou Gemini).
+  return null
 }
 
 // ─── Detect intent via Gemini ───
@@ -1566,7 +1705,7 @@ export async function POST(req: NextRequest) {
             `📸 *Foto* das figurinhas — eu identifico com IA\n` +
             `🎤 *Áudio* falando os códigos\n` +
             `✏️ *Texto* tipo _"BRA-1 ARG-3"_ ou _"Brasil 1"_\n\n` +
-            `Manda *menu* a qualquer hora pra ver tudo. 💚`,
+            `Manda *menu* a qualquer hora pra ver tudo. ⚽`,
         )
         // Re-processa a mensagem original (sem o marker [link:TOKEN]) — bot
         // segue o fluxo normal pro intent dela. Ex: "Gostaria de registrar
@@ -1591,7 +1730,7 @@ export async function POST(req: NextRequest) {
             `📸 *Foto* das figurinhas — eu identifico com IA\n` +
             `🎤 *Áudio* falando os códigos\n` +
             `✏️ *Texto* tipo _"BRA-1 ARG-3"_\n\n` +
-            `Manda *menu* a qualquer hora pra ver tudo. 💚`,
+            `Manda *menu* a qualquer hora pra ver tudo. ⚽`,
         )
         return NextResponse.json({ ok: true })
       }
@@ -1614,7 +1753,7 @@ export async function POST(req: NextRequest) {
           phone,
           `📨 *Anotei sua mensagem!* Sou o assistente do *Complete Aí* ⚽\n\n` +
             `Pra te responder direito, preciso te conhecer. *Me passa seu email?* 📧\n\n` +
-            `Depois do cadastro eu volto pra sua dúvida. 💚\n\n` +
+            `Depois do cadastro eu volto pra sua dúvida. ⚽\n\n` +
             `_Se preferir cadastro completo no site: ${APP_URL}/register?phone=${phone}_`,
         )
       } else {
@@ -2182,7 +2321,7 @@ export async function POST(req: NextRequest) {
             `Exemplos:\n` +
             `• _"BRA-1 ARG-3 FRA-10"_\n` +
             `• _"Brasil 1, Argentina 3"_\n\n` +
-            `Eu registro de uma vez só. 💚`,
+            `Eu registro de uma vez só. ⚽`,
         )
         return NextResponse.json({ ok: true })
       }
@@ -2329,7 +2468,7 @@ export async function POST(req: NextRequest) {
             : ''
           await sendText(
             phone,
-            `${header}\n\n${lines.join('\n\n')}\n${bonusLine}\nObrigado pela paciência! 💚`,
+            `${header}\n\n${lines.join('\n\n')}\n${bonusLine}\nObrigado pela paciência! ⚽`,
           )
           return NextResponse.json({ ok: true })
         }
@@ -2701,6 +2840,11 @@ export async function POST(req: NextRequest) {
       // "tô com a", "será que tenho", "tem essa", "será que falta", etc.
       // Caso real: g5k perguntou "Eu já tenho ARG 17?" e bot tratou como
       // register. Agora pega query mesmo com adverbios entre "eu" e "tenho".
+      //
+      // Pedro 2026-05-06: padrão IMPERATIVO de áudio — "veja se tenho FRA10",
+      // "vê se falta BRA1", "olha se tem ARG3", "confere se eu tenho...".
+      // Sem isso, áudio "veja se tenho..." caía como register e flushava
+      // figurinha errada no álbum.
       const looksLikeQuestion = (
         /[?]\s*$/.test(trimmedText) ||
         // pronomes/expressões de POSSE com possíveis advérbios no meio:
@@ -2708,6 +2852,8 @@ export async function POST(req: NextRequest) {
         // "ser[á] que (eu )?tenho", "tem essa", "tenho essa", "tenho ela"
         /^((eu|tu|n[oó]is)\s+(j[áa]|ainda|ja)?\s*)?(tenho|t[ôo]\s+com|tem|tinha|peguei|colei)\b/i.test(trimmedText) ||
         /^(ser[áa]\s+que\s+(eu\s+)?(tenho|tem|falta|preciso))/i.test(trimmedText) ||
+        // imperativo "veja/vê/olha/confere/confira/checa/cheque + se" (típico de áudio)
+        /^(veja|v[êe]|olha|olhe|confere|confira|checa|cheque|me\s+(diz|fala|conta))\s+se\s+(eu\s+)?(j[áa]\s+|ainda\s+)?(tenho|tem|falta|faltam|peguei|colei|n[ãa]o\s+tenho|preciso)\b/i.test(trimmedText) ||
         // verbos de FALTA/NECESSIDADE
         /^(preciso|falta|falto|me falta|n[ãa]o tenho|nao tenho|n[ãa]o peguei|n[ãa]o coloquei)\b/i.test(trimmedText) ||
         // pergunta específica de repetida
@@ -2718,6 +2864,25 @@ export async function POST(req: NextRequest) {
       //   "tenho a BRA-2 e ARG-3?" → 2 códigos
       //   "preciso da FRA-5, GER-2 e ESP-1?" → 3 códigos
       const isQueryStickers = codeMatches.length >= 1 && looksLikeQuestion
+
+      // Pedro 2026-05-07: classifier robusto que separa COMANDO de LISTA de
+      // códigos. Funciona com verbo antes OU depois ("registre BRA1 FRA2"
+      // ou "BRA1 FRA2 registra aí"). Quando bate, força o intent direto e
+      // pula a cadeia de regex do fluxo legado. Override do isQueryStickers
+      // pra repassar a polaridade (owned vs missing) corretamente.
+      const stickerCmd = classifyStickerCommand(text, codeMatches)
+      let forcedIntent: string | null = null
+      let forcedQueryMissing = false
+      if (stickerCmd === 'register') {
+        forcedIntent = 'register'
+      } else if (stickerCmd === 'query_owned') {
+        forcedIntent = 'query_sticker'
+      } else if (stickerCmd === 'query_missing') {
+        forcedIntent = 'query_sticker'
+        forcedQueryMissing = true
+      } else if (stickerCmd === 'remove') {
+        forcedIntent = 'remove'
+      }
 
       // Fast keyword matching before calling Gemini
       let intent: string
@@ -2752,9 +2917,9 @@ export async function POST(req: NextRequest) {
       const isReadOnly = lower.length <= 8 && /(❤️|❤|💚|💙|💛|👍|👏|🙏|🎉|✨|🔥|💪|😊|🙂|😄|😀|😍|🤩|🤝)/.test(lower)
       if ((isThanks || isCasualChat || isReadOnly) && codeMatches.length === 0) {
         const response = isThanks
-          ? `🙌 *Disponha!* Quando precisar, é só me chamar. 💚`
+          ? `🙌 *Disponha!* Quando precisar, é só me chamar. ⚽`
           : isReadOnly
-            ? `💚`
+            ? `⚽`
             : `Tô por aqui! Se precisar registrar uma figurinha, ver suas faltantes ou achar trocas, é só falar. Manda *menu* pra ver tudo que sei fazer.`
         await sendText(phone, response)
         return NextResponse.json({ ok: true })
@@ -2764,8 +2929,13 @@ export async function POST(req: NextRequest) {
       // CTAs do site ("Gostaria de registrar minhas figurinhas por áudio.")
       // ou variações similares. Responde com instruções amigáveis +
       // mostra saldo restante baseado no tier.
-      const wantsAudioTutorial = /(?:gostaria|quero|posso|tenho|como)\s+(?:de\s+)?registrar.+(?:por\s+)?[áa]udio/i.test(lower)
-        || /^registro\s+por\s+[áa]udio/i.test(lower)
+      // Pedro 2026-05-07: tutorial expandido — áudio não é só pra registrar,
+      // também consulta ("veja se tenho X") e lista faltantes ("veja se
+      // falta X"). User da imagem 54-99619-7830 perguntou "quais seleções
+      // tenho mais figurinhas?" e bot caiu em status genérico — sintoma
+      // de que usuários não sabem que dá pra interagir LIVREMENTE por áudio.
+      const wantsAudioTutorial = /(?:gostaria|quero|posso|tenho|como)\s+(?:de\s+)?(?:registrar|consultar|usar|interagir).+(?:por\s+)?[áa]udio/i.test(lower)
+        || /^(?:registro|consulta)\s+por\s+[áa]udio/i.test(lower)
         || /como\s+(?:funciona|usar|fazer)\s+(?:o\s+)?[áa]udio/i.test(lower)
       if (wantsAudioTutorial && codeMatches.length === 0) {
         const userTier = ((user as { tier?: string }).tier || 'free') as Tier
@@ -2786,16 +2956,21 @@ export async function POST(req: NextRequest) {
           : `*${remaining} áudio${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}* no seu plano${userTier === 'free' ? '' : ` ${TIER_CONFIG[userTier].label}`}`
 
         const tutorial =
-          `🎤 *Registrar por áudio é simples!*\n\n` +
-          `1️⃣ Aperte o ícone de microfone aqui no WhatsApp e segura\n` +
-          `2️⃣ *Fale os códigos* das figurinhas:\n` +
-          `   • _"Brasil 1, Argentina 3, Espanha 5"_\n` +
-          `   • _"Brasil 1, 5, 12"_ (vários do mesmo país)\n` +
-          `   • _"Espanha três, Argentina sete"_ (números por extenso também)\n` +
-          `3️⃣ Solta o microfone — eu identifico tudo e te confirmo. ✅\n\n` +
+          `🎤 *Áudio entende TUDO aqui no WhatsApp!*\n\n` +
+          `_(No site é só foto e texto — áudio só rola por aqui.)_\n\n` +
+          `Não precisa digitar — fala que eu resolvo. Funciona pra:\n\n` +
+          `📥 *Registrar* figurinhas\n` +
+          `   _"Brasil 1, Argentina 3, Espanha 5"_\n` +
+          `   _"Brasil 1, 5 e 12"_ (vários do mesmo país)\n\n` +
+          `🔎 *Consultar* o que você tem\n` +
+          `   _"Veja se tenho França 10"_\n` +
+          `   _"Será que peguei Brasil 5?"_\n\n` +
+          `❌ *Ver o que falta*\n` +
+          `   _"Veja se falta Senegal 10"_\n` +
+          `   _"Não tenho Argentina 3"_\n\n` +
           `📊 ${remainingText}\n\n` +
           `💡 *Dica:* fale *devagar e claro*, com pausas entre cada figurinha.\n\n` +
-          `Quando estiver pronto, *manda o áudio*! 🎤`
+          `Manda o áudio agora! 🎤`
         await sendText(phone, tutorial)
         return NextResponse.json({ ok: true })
       }
@@ -2812,7 +2987,10 @@ export async function POST(req: NextRequest) {
         /\?\s*$/.test(text.trim()) &&
         /\b(voc[êe]s?|como|tem\s|vem\s|d[áa]\s+pra|d[áa]\s+pa|existe|posso|consegue|conseguem|funciona|aceita|tem\s+jeito|tem\s+como|qual\s+a|qual\s+o|onde|quando|porque|por\s+que|cad[êe]|cade|q\s+que|que\s+que)\b/i.test(lower) &&
         codeMatches.length === 0
-      if (isNaturalQuestion) {
+      if (forcedIntent) {
+        // classifier de comando+lista bateu → atalho direto
+        intent = forcedIntent
+      } else if (isNaturalQuestion) {
         intent = 'unknown' // → cai no fallback do agent
       } else if (isQueryStickers) {
         intent = 'query_sticker'
@@ -2853,6 +3031,20 @@ export async function POST(req: NextRequest) {
          /^\s*(lista\s+das\s+minhas|as\s+que\s+tenho)\s*\??$/.test(lower))
       ) {
         intent = 'inventory_ambiguous'
+      } else if (
+        // Pedro 2026-05-07: "quais seleções eu mais/menos tenho figurinhas?"
+        // (caso real 54-99619-7830). Detecta antes de cair em status genérico.
+        // Sinais: presença de TERMO_DE_AGRUPAMENTO (seleç/país/paises/times)
+        // + verbo/qualificador comparativo (mais|menos|tenho|peguei|completa|
+        // atrasad|ranking|top|pior|melhor).
+        //
+        // Não usa \b ao redor de "ç/ã/í" — regex JS não trata esses como
+        // word chars e o boundary falha. Usa lookarounds simples.
+        codeMatches.length === 0 &&
+        /(sele[çc][aã]o|sele[çc][oõ]es|pa[íi]s|pa[íi]ses|\btimes?\b)/i.test(lower) &&
+        /\b(mais|menos|tenho|peguei|complet[oa]s?|completas|incomplet[oa]s?|atrasad[oa]s?|adiantad[oa]s?|ranking|top|melhor(?:es)?|pior(?:es)?|por\s+sele|por\s+pa[íi]s|minhas?)\b/i.test(lower)
+      ) {
+        intent = 'country_ranking'
       } else if (/(troca|pendente|solicita|aceitar|minhas trocas|ver trocas)/.test(lower)) {
         intent = 'trades'
       } else if (/\b(ranking|posição|posicao|colocação|colocacao|placar)\b/.test(lower)) {
@@ -3156,6 +3348,78 @@ export async function POST(req: NextRequest) {
           break
         }
 
+        case 'country_ranking': {
+          // Pedro 2026-05-07: top/bottom seleções por completude. Detecta
+          // polaridade na pergunta (mais=top, menos=bottom). Mostra top 10
+          // (cabe num WhatsApp sem rolar muito).
+          const breakdown = await getCountryBreakdown(user.id)
+          const wantsBottom =
+            /\b(menos|atrasad[oa]s?|pior(?:es)?|incomplet[oa]s?|longe)\b/i.test(lower)
+          // Filtra "—" (sticker sem section) e secciones especiais quando a
+          // pergunta foca em SELEÇÕES (país). Coca-Cola/FIFA não são seleção.
+          const isAboutCountries = /\b(sele[çc][ãa]o|pa[íi]s(?:es)?|time(?:s)?)\b/i.test(lower)
+          let rows = breakdown
+          if (isAboutCountries) {
+            rows = rows.filter((r) => r.section && r.section !== 'Coca-Cola' && r.section !== 'FIFA' && r.section !== '—')
+          }
+          // Ordena: top = mais completo desempate por owned desc; bottom =
+          // menos completo desempate por owned asc (pra desempatar entre 0%
+          // mostrando o que tem mais cromos absolutos primeiro).
+          rows = [...rows].sort((a, b) => {
+            if (wantsBottom) {
+              if (a.pct !== b.pct) return a.pct - b.pct
+              return b.owned - a.owned
+            }
+            if (a.pct !== b.pct) return b.pct - a.pct
+            return b.owned - a.owned
+          })
+          const top = rows.slice(0, 10)
+
+          if (top.length === 0) {
+            await sendText(phone, '🤔 Você ainda não tem nenhuma figurinha registrada. Manda uma foto, áudio ou códigos pra eu começar!')
+            break
+          }
+
+          const flag = (section: string): string => {
+            // Mapeia seleções principais → emoji bandeira (best effort, sem onerar).
+            const map: Record<string, string> = {
+              'Brazil': '🇧🇷', 'Argentina': '🇦🇷', 'France': '🇫🇷', 'Spain': '🇪🇸',
+              'Germany': '🇩🇪', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Portugal': '🇵🇹', 'Italy': '🇮🇹',
+              'Netherlands': '🇳🇱', 'Belgium': '🇧🇪', 'Croatia': '🇭🇷', 'Uruguay': '🇺🇾',
+              'Mexico': '🇲🇽', 'USA': '🇺🇸', 'Canada': '🇨🇦', 'Japan': '🇯🇵',
+              'Korea Republic': '🇰🇷', 'South Korea': '🇰🇷', 'Australia': '🇦🇺',
+              'Senegal': '🇸🇳', 'Morocco': '🇲🇦', 'Coca-Cola': '🥤', 'FIFA': '🏆',
+            }
+            return map[section] || '🌍'
+          }
+
+          const heading = wantsBottom
+            ? '📉 *Suas seleções mais atrasadas:*'
+            : '📊 *Suas seleções mais completas:*'
+          const lines = [heading, '']
+          for (let i = 0; i < top.length; i++) {
+            const r = top[i]
+            const medal = !wantsBottom && i === 0 ? '🥇 ' : !wantsBottom && i === 1 ? '🥈 ' : !wantsBottom && i === 2 ? '🥉 ' : ''
+            lines.push(`${medal}${flag(r.section)} *${r.section}* — ${r.owned}/${r.total} (${r.pct}%)`)
+          }
+          if (rows.length > top.length) {
+            lines.push('')
+            lines.push(`_(+${rows.length - top.length} seleções)_`)
+          }
+          lines.push('')
+          lines.push(`💡 Manda *faltando ${top[0].section.toLowerCase()}* pra ver o que falta nessa.`)
+          await sendButtonList(
+            phone,
+            lines.join('\n'),
+            [
+              { id: 'cmd_missing', label: '🔍 O que falta' },
+              { id: 'cmd_duplicates', label: '🔁 Repetidas' },
+              { id: 'cmd_status', label: '📊 Status geral' },
+            ],
+          )
+          break
+        }
+
         case 'trades': {
           // Show pending trade requests
           const supabaseAdmin = getAdmin()
@@ -3219,6 +3483,7 @@ export async function POST(req: NextRequest) {
           // a lista das que TEM em vez das que FALTA. Detecta polaridade:
           // "não tenho", "faltam", "que falta", "preciso" → modo missing-only.
           const askingAboutMissing =
+            forcedQueryMissing ||
             /\b(n[ãa]o\s+tenho|n[ãa]o\s+tem|faltam?|que\s+falta|preciso|me\s+falta|n[ãa]o\s+peguei|n[ãa]o\s+coloquei)\b/i.test(trimmedText)
           const supabaseAdmin = getAdmin()
 
@@ -3848,8 +4113,21 @@ export async function POST(req: NextRequest) {
             // agentResp.kind === 'error' → cai no fluxo antigo (menu)
           }
 
+          // Pedro 2026-05-07: quando user manda algo que o bot não entende,
+          // copy mais empática + registra como SUGESTÃO no admin (silencioso,
+          // sem incomodar Pedro). Pedro revisa depois pra ver casos reais
+          // que ainda precisamos treinar.
+          if (isUnknown && text.trim().length >= 8) {
+            void submitUnknownSuggestion({
+              userId: user.id,
+              phone,
+              displayName: (user as { display_name?: string | null }).display_name ?? null,
+              message: text,
+            })
+          }
+
           const lead = isUnknown
-            ? `${greeting}🤔 Hmm, não peguei essa. Olha o que eu sei fazer:`
+            ? `${greeting}🤔 *Ainda não fui treinado pra responder isso.*\n\nMas vou subir como sugestão pro time da *Complete Aí* — esses pedidos são o que faz o bot melhorar a cada semana. 🙏\n\nEnquanto isso, olha tudo que eu *já sei fazer hoje*:`
             : `${greeting}👋 Aqui vai tudo que eu sei fazer:`
 
           const menu =
@@ -3861,17 +4139,22 @@ export async function POST(req: NextRequest) {
             `  • *Nitidez é tudo* — nomes e números têm que estar legíveis na foto\n` +
             `  • Boa luz, sem reflexo, foco no centro\n` +
             `  • Com 5+ cromos, prefira todos virados *de frente* (lado do nome)\n\n` +
-            `🎤 *Por áudio*\n` +
-            `Manda um áudio falando os códigos. Ex.: _"BRA 1, ARG 3, FRA 10"_ ou _"Brasil 1 e Argentina 3"_. Nós transcrevemos e te mostramos pra confirmar antes de salvar.\n\n` +
+            `🎤 *Por áudio (só aqui no WhatsApp)* — funciona pra TUDO\n` +
+            `Manda áudio que eu entendo. Não é só pra registrar:\n` +
+            `  • _"Brasil 1, Argentina 3, França 10"_ → registra\n` +
+            `  • _"Veja se tenho França 10 e Brasil 5"_ → consulta\n` +
+            `  • _"Veja se falta Senegal 10"_ → mostra faltantes\n\n` +
             `✏️ *Por texto*\n` +
             `Digita os códigos. Aceita vários formatos: _BRA-1 ARG-3 FRA-10_, _bra 1, arg 3_ ou _BRA1 BRA5_.\n\n` +
             `*📊 Outras coisas:*\n` +
             `• *repetidas* — suas duplicadas\n` +
             `• *faltantes* — o que ainda falta\n` +
             `• *progresso* — quanto do álbum você tem\n` +
+            `• *quais seleções tenho mais* — ranking por país\n` +
             `• *ranking* — sua posição entre colecionadores\n` +
             `• *historico* — últimas figurinhas registradas\n` +
             `• *trocas* — solicitações pendentes\n\n` +
+            `🌐 *No site* (${APP_URL}) você tem foto, texto, álbum visual, trocas e ranking. *Áudio só funciona aqui no WhatsApp.*\n\n` +
             `🔔 *Trocas perto de você*\n` +
             `Quer ser avisado quando alguém com a sua faltante estiver perto? Autoriza no app:\n` +
             `${APP_URL}/album\n\n` +

@@ -114,3 +114,46 @@ export async function escalateToSupport(input: EscalationInput): Promise<Escalat
 
   return { ok: true, rateLimited: false, notified, escalationId }
 }
+
+/**
+ * Pedro 2026-05-07: registra sugestão SILENCIOSA do user quando o bot não
+ * entende uma pergunta. Só persiste em support_escalations com
+ * classified_intent='unknown_suggestion' — NÃO notifica Pedro pessoal
+ * (evita flood). Fica disponível na admin section pra revisar e treinar
+ * o bot pra novos casos.
+ *
+ * Rate-limit: mesmo rate-limit de 6h da escalateToSupport, mas via row
+ * existente — se já tem escalação recente, ignora pra não duplicar.
+ */
+export async function submitUnknownSuggestion(input: {
+  userId: string
+  phone: string
+  displayName: string | null
+  message: string
+}): Promise<void> {
+  const supabase = getAdmin()
+  const cutoff = new Date(Date.now() - RATE_LIMIT_HOURS * 3600 * 1000).toISOString()
+  const { data: recent } = await supabase
+    .from('support_escalations')
+    .select('id')
+    .eq('user_id', input.userId)
+    .gte('created_at', cutoff)
+    .limit(1)
+  if (recent && recent.length > 0) {
+    // Já tem registro recente pro mesmo user — não duplica.
+    return
+  }
+  const { error } = await supabase
+    .from('support_escalations')
+    .insert({
+      user_id: input.userId,
+      phone: input.phone,
+      display_name: input.displayName,
+      last_message: input.message.slice(0, 2000),
+      reason: 'not_trained_yet',
+      classified_intent: 'unknown_suggestion',
+    })
+  if (error) {
+    console.error('[support] submit suggestion failed:', error.message)
+  }
+}
