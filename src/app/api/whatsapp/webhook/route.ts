@@ -2648,7 +2648,11 @@ export async function POST(req: NextRequest) {
       // "cancele os registros anteriores"). Antes só pegava "não" exato.
       // Agora detecta intent de cancelamento de forma muito mais permissiva.
       const trimmedLower = lower.trim()
+      // Pedro 2026-05-07: emoji ❌ ou 🚫 sozinho também é cancelar (mesmo
+      // padrão do ✅ pro confirmar). Antes caía em handlers errados.
+      const isEmojiNoOnly = trimmedForEmoji === '❌' || trimmedForEmoji === '🚫'
       const isCancelIntent =
+        isEmojiNoOnly ||
         /^(n[aã]o|n|nao|cancelar|cancel|cancela|cancele)\.?$/i.test(trimmedLower) ||
         /\b(cancel|cancela|cancele|esquece|esquec[íi])\b.*\b(tud[oa]|registro|anterior|anteriores|isso|essa|essas?)\b/i.test(trimmedLower) ||
         /^(deixa\s+(quieto|pra\s+l[áa]|pra\s+la|de\s+lado)|esquece(\s+isso)?|para\s+tudo|pare|stop)\b/i.test(trimmedLower) ||
