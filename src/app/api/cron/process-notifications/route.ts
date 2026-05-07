@@ -397,7 +397,10 @@ export async function GET(req: NextRequest) {
         lines.join('\n') +
         moreLine +
         priorityNote +
-        `\n\nSolicita as trocas no app:\n${APP_URL}/trades`
+        `\n\nSolicita as trocas no app:\n${APP_URL}/trades` +
+        // Pedro 2026-05-07: rodapé com link pra customização (raio, frequência,
+        // monitoramento de figurinhas específicas).
+        `\n\n⚙️ _Quer ajustar o raio de busca, frequência dos alertas ou monitorar figurinhas específicas? É só ir em ${APP_URL}/trades_`
 
       // Send via channel(s)
       const phone = profile.phone ? formatPhone(profile.phone) : null
@@ -529,7 +532,11 @@ function renderDigestEmail(
           🔄 Ver e solicitar trocas
         </a>
       </div>
-      <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 24px;">
+      <p style="text-align: center; color: #6b7280; font-size: 12px; margin-top: 18px; line-height: 1.5;">
+        ⚙️ Quer ajustar o <strong>raio de busca</strong>, <strong>frequência dos alertas</strong> ou
+        <strong>monitorar figurinhas específicas</strong>? É só ir em <a href="${APP_URL}/trades" style="color: #00C896; text-decoration: none;">${APP_URL}/trades</a>
+      </p>
+      <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 18px;">
         Complete Aí — Seu álbum de figurinhas
       </p>
     </div>
