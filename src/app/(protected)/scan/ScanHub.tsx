@@ -588,19 +588,37 @@ export default function ScanHub({
           </a>
 
           <a
-            href={buildWaDeepLink('5521966791113', 'Gostaria de registrar minhas figurinhas por áudio.', waToken)}
+            href={buildWaDeepLink('5521966791113', 'Quero usar áudio no WhatsApp.', waToken)}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl bg-gradient-to-br from-navy to-navy/80 p-3 active:scale-[0.98] transition-transform shadow-sm"
+            className="rounded-xl bg-gradient-to-br from-navy to-navy/80 p-3 active:scale-[0.98] transition-transform shadow-sm relative"
           >
+            <span className="absolute top-1.5 right-1.5 text-[8px] font-black text-amber-200 bg-amber-900/50 px-1.5 py-0.5 rounded-full tracking-wider">
+              FAZ MAIS
+            </span>
             <div className="flex items-center gap-1.5 mb-1">
               <svg className="w-5 h-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
               </svg>
               <span className="text-[12px] font-bold text-white">Áudio</span>
             </div>
-            <p className="text-[10px] text-white/75 leading-tight">Fale &quot;Brasil 1&quot;</p>
+            <p className="text-[10px] text-white/75 leading-tight">Registra, consulta, lista falta</p>
           </a>
+        </div>
+
+        {/* Pedro 2026-05-07: educar usuários que áudio é EXCLUSIVO WhatsApp e
+            faz MAIS que registrar — também responde perguntas sobre o álbum.
+            Caso real (Enzo +55 54 99619-7830): user perguntou "quais seleções
+            tenho mais?" no chat e nem sabia que dava pra usar áudio livre. */}
+        <div className="rounded-xl bg-gradient-to-br from-navy/5 to-amber-50 border border-amber-200/60 px-3 py-2.5 mb-3">
+          <p className="text-[11px] font-bold text-navy mb-1">
+            🎤 Áudio é exclusivo do WhatsApp — e faz <em className="text-amber-700">muito mais</em>
+          </p>
+          <ul className="text-[10.5px] text-gray-700 leading-relaxed space-y-0.5">
+            <li>📥 <em>“Brasil 1, Argentina 3”</em> — registra</li>
+            <li>🔎 <em>“Veja se tenho França 10”</em> — consulta</li>
+            <li>❌ <em>“Veja se falta Senegal 10”</em> — lista falta</li>
+          </ul>
         </div>
 
         {/* Disclaimer compacto */}
