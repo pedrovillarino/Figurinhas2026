@@ -65,7 +65,12 @@ export default function UpgradeSuccessPage() {
       console.error('[upgrade/success] profile update failed (non-blocking):', dbError.message)
     }
 
-    router.push('/album')
+    // Pedro 2026-05-06 (caso Marina): HARD RELOAD em vez de router.push
+    // pra forçar recriação de TODOS os states client-side (tier cached em
+    // contexts/stores). Sem isso, user paga mas continua vendo paywall e
+    // ads de free porque o client state estava com tier=free desde antes
+    // do checkout. Hard reload garante refetch de profile+session frescos.
+    window.location.href = '/album'
   }
 
   if (loading) {
