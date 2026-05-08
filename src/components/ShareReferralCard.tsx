@@ -41,10 +41,17 @@ export default function ShareReferralCard({
 
   const shareText = useMemo(() => {
     const firstName = displayName?.split(' ')[0] || 'Eu'
+    // Pedro 2026-05-08: amplifica o que o INDICADO ganha — explorar mais
+    // os diferenciais do produto (álbum no WhatsApp, áudio, status numa
+    // mensagem só), não só "tem app de figurinhas".
     return (
       `${firstName} te chamou pra completar o álbum da Copa 2026 com Complete Aí! 🎉\n\n` +
-      `📸 Escaneia suas figurinhas com IA, mostra repetidas/faltantes, e encontra trocas perto de você.\n\n` +
-      `Use meu link e ganhe *+1 troca extra* no cadastro:\n${referralUrl}`
+      `Aqui dá pra fazer um monte de coisa:\n` +
+      `📱 *Ter teu álbum direto no WhatsApp*\n` +
+      `🎤 *Registrar por áudio* — fala "Brasil 1, Argentina 3" e a IA registra na hora\n` +
+      `📊 *Ver faltantes e repetidas* numa mensagem só (manda "status")\n` +
+      `🔁 *Trocas perto de você* — a gente avisa quando alguém da sua região tem as que faltam\n\n` +
+      `Usa meu link e ganha *+1 troca extra* no cadastro:\n${referralUrl}`
     )
   }, [displayName, referralUrl])
 
