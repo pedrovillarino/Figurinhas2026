@@ -78,24 +78,24 @@ export async function GET(req: NextRequest) {
     )
 
     // Pedro 2026-05-08: threshold de silêncio é DINÂMICO conforme volume:
-    //   - Pico (18:30-22:00 BR): 30min de silêncio dispara → mais agressivo,
-    //     volume típico alto, ausência é mais suspeita
-    //   - Outros horários ativos (8:00-18:30 + 22:00-23:00 BR): 60min →
-    //     conservador, dia tem volume menor, evita falso positivo
-    //   - Fora de horário ativo (23:00-8:00 BR): watchdog não dispara
-    //
-    // Sempre busca o último cutoff do threshold mais agressivo (30min) pra
-    // sabermos quanto tempo está silencioso e classificar.
+    //   - Pico (18:30-22:00 BR): 30min → mais agressivo, volume típico alto
+    //   - Cooldown noturno (22:00-01:00 BR): 60min → ainda monitora mas
+    //     conservador (cruzando meia-noite até 1h da manhã)
+    //   - Dia (06:00-18:30 BR): 60min → conservador
+    //   - Sleep (01:00-06:00 BR): watchdog não dispara
     const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
     const hourBR = nowBR.getHours()
     const minutesBR = nowBR.getMinutes()
     const totalMinutesBR = hourBR * 60 + minutesBR
 
     const isPeakHour = totalMinutesBR >= 18 * 60 + 30 && totalMinutesBR < 22 * 60
-    const isActiveHour =
-      (hourBR >= 8 && totalMinutesBR < 18 * 60 + 30) ||
-      isPeakHour ||
-      (totalMinutesBR >= 22 * 60 && hourBR < 23)
+    // Cooldown noturno cruza meia-noite: 22:00-23:59 OR 00:00-00:59
+    const isLateNightCooldown =
+      (totalMinutesBR >= 22 * 60 && totalMinutesBR < 24 * 60) ||
+      (totalMinutesBR < 60)
+    // Dia: 06:00-18:30
+    const isDayHour = totalMinutesBR >= 6 * 60 && totalMinutesBR < 18 * 60 + 30
+    const isActiveHour = isDayHour || isPeakHour || isLateNightCooldown
     const silenceThresholdMin = isPeakHour ? 30 : 60
 
     const cutoff = new Date(Date.now() - silenceThresholdMin * 60 * 1000).toISOString()
