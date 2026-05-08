@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getInstanceStatus, restartInstance, sendText } from '@/lib/zapi'
+import { getInstanceStatus, restartInstance, sendText, setReceiveWebhook } from '@/lib/zapi'
 import { sendEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -59,6 +59,58 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     results.whatsapp = { error: String(err) }
     alerts.push(`Erro ao verificar WhatsApp: ${String(err).slice(0, 100)}`)
+  }
+
+  // ── 1.5. Inbound webhook health (Pedro 2026-05-08) ──
+  // Z-API pode estar tecnicamente "connected" mas o webhook URL pode ter
+  // sido apagado/inválido — incident de hoje ficou ~14h sem receber msgs
+  // antes de detectarmos manualmente. Agora checamos:
+  //   1. Quantas msgs recebemos via webhook_dedup nas últimas 30min
+  //   2. Se 0 msgs E é horário de uso ativo (8h-23h BR)
+  //   3. Auto-recovery: SOMENTE PUT update-webhook-received (hardcoded em
+  //      setReceiveWebhook — nunca aliasar outros tipos pra essa URL).
+  //   4. Notifica Pedro do auto-recovery via WhatsApp.
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    const { count: recentMsgs } = await sb
+      .from('webhook_dedup')
+      .select('message_id', { count: 'exact', head: true })
+      .gte('created_at', cutoff)
+
+    const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const hourBR = nowBR.getHours()
+    const isActiveHour = hourBR >= 8 && hourBR < 23
+
+    results.webhook_inbound = {
+      msgs_last_30min: recentMsgs ?? 0,
+      hour_br: hourBR,
+      is_active_hour: isActiveHour,
+    }
+
+    // Trigger auto-recovery: 0 msgs in 30min during active hours, AND Z-API
+    // says connected (so it's NOT a Z-API outage — it's the webhook routing).
+    const zapiOk = (results.whatsapp as { connected?: boolean })?.connected
+    if ((recentMsgs ?? 0) === 0 && isActiveHour && zapiOk) {
+      console.warn('[Health] Webhook inbound silent — triggering auto-recovery')
+      const recovered = await setReceiveWebhook()
+      results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
+      if (recovered) {
+        alerts.push(
+          `Webhook estava quieto há 30min — auto-corrigi (PUT update-webhook-received). ` +
+          `Verifique se voltaram mensagens nos próximos minutos.`
+        )
+      } else {
+        alerts.push('Webhook quieto há 30min E auto-recovery falhou. Verificar manualmente Z-API.')
+      }
+    }
+  } catch (err) {
+    results.webhook_inbound = { error: String(err).slice(0, 100) }
+    // Non-critical — don't alert (reading webhook_dedup might fail with table missing/perm)
   }
 
   // ── 2. Supabase Connectivity ──
