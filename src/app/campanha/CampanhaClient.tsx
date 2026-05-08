@@ -22,6 +22,7 @@ type Constants = {
   pointsConfirmed: number
   pointsPaidUpgrade: number
   pointsSelfUpgrade: number
+  scanCreditsPerConfirmed: number
   optinLookbackDays: number
   minParticipants: number
   minParticipantsForDisplay: number
@@ -400,7 +401,7 @@ export default function CampanhaClient({
           </RuleStep>
 
           <RuleStep number={3} title={`Amigo confirma cadastro = +${constants.pointsConfirmed} ponto pra você`}>
-            Você ganha <strong>{constants.pointsConfirmed} ponto no ranking</strong> e <strong>+1 scan grátis</strong> (~20 figurinhas reconhecidas) imediatamente. O amigo ganha <strong>+1 troca extra</strong>.
+            Você ganha <strong>{constants.pointsConfirmed} ponto no ranking</strong> e <strong>+{constants.scanCreditsPerConfirmed} scans grátis</strong> (~{constants.scanCreditsPerConfirmed * 20} figurinhas reconhecidas) imediatamente. O amigo ganha <strong>+1 troca extra</strong>.
           </RuleStep>
 
           <RuleStep number={4} title={`Amigo assina plano pago = +${constants.pointsPaidUpgrade} pontos pra você`}>
