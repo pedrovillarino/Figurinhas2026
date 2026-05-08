@@ -9,6 +9,7 @@ import { SCAN_PACK_CONFIG, SCAN_PACK_AMOUNTS, SCAN_PACK_AMOUNT, type Tier } from
 import PaywallModal from '@/components/PaywallModal'
 import FreeUserAd from '@/components/FreeUserAd'
 import CepNudgeClient from '@/components/CepNudgeClient'
+import ShareReferralCard from '@/components/ShareReferralCard'
 
 type ScanState = 'idle' | 'preview' | 'loading' | 'batch' | 'results' | 'success' | 'error'
 
@@ -42,10 +43,14 @@ export default function ScanHub({
   userId,
   totalStickers,
   tier,
+  referralCode,
+  displayName,
 }: {
   userId: string
   totalStickers: number
   tier: Tier
+  referralCode?: string | null
+  displayName?: string | null
 }) {
   const waToken = useWaLinkToken()
   const [showPaywall, setShowPaywall] = useState(false)
@@ -934,6 +939,22 @@ export default function ScanHub({
         <div className="w-full max-w-sm mt-6">
           <FreeUserAd placement="scan_success" tier={tier} />
         </div>
+
+        {/* Pedro 2026-05-08: nudge de indicação no momento POSITIVO de scan.
+            Critério: savedCount >= 3 (experiência boa) + tem referralCode.
+            Variant FULL aqui pq é momento alto de dopamina — vale apelo
+            forte. ShareReferralCard renderiza null se referralCode for null,
+            então é seguro renderizar sem checagem extra. */}
+        {savedCount >= 3 && (
+          <div className="w-full max-w-sm mt-4">
+            <ShareReferralCard
+              referralCode={referralCode ?? null}
+              displayName={displayName ?? null}
+              source="scan_success"
+              variant="full"
+            />
+          </div>
+        )}
 
         {/* Pedro 2026-05-06: captura CEP no momento de dopamina (após scan).
             Se user já tem city → não renderiza nada. */}

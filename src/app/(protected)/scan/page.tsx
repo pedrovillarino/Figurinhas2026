@@ -18,7 +18,7 @@ export default async function ScanPage() {
   if (!user) redirect('/login')
 
   const [{ data: profile }, { count }] = await Promise.all([
-    supabase.from('profiles').select('tier').eq('id', user.id).single(),
+    supabase.from('profiles').select('tier, referral_code, display_name').eq('id', user.id).single(),
     supabase
       .from('stickers')
       .select('id', { count: 'exact', head: true })
@@ -26,6 +26,16 @@ export default async function ScanPage() {
   ])
 
   const tier = (profile?.tier || 'free') as Tier
+  const referralCode = (profile as { referral_code?: string | null })?.referral_code ?? null
+  const displayName = (profile as { display_name?: string | null })?.display_name ?? null
 
-  return <ScanHub userId={user.id} totalStickers={count || 980} tier={tier} />
+  return (
+    <ScanHub
+      userId={user.id}
+      totalStickers={count || 980}
+      tier={tier}
+      referralCode={referralCode}
+      displayName={displayName}
+    />
+  )
 }

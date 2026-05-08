@@ -2776,6 +2776,42 @@ export async function POST(req: NextRequest) {
           }
           reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
 
+          // Pedro 2026-05-08: nudge contextual de indicação após scan bem-sucedido.
+          // Critérios:
+          //   - User é free (pagantes não veem — UX premium)
+          //   - Saved >= 3 (experiência boa, não trivia)
+          //   - Cooldown 72h via referral_nudge_shown_at
+          //   - Tem referral_code já gerado
+          // Texto curto, sem CTA pesado — proposta de "passa pra frente".
+          try {
+            const userTier = ((user as { tier?: string }).tier || 'free') as Tier
+            if (userTier === 'free' && saved >= 3) {
+              const { data: nudgeProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('referral_code, referral_nudge_shown_at')
+                .eq('id', user.id)
+                .single()
+              const cooldownH = 72
+              const nudgeOk = nudgeProfile?.referral_code && (
+                !nudgeProfile.referral_nudge_shown_at ||
+                new Date(nudgeProfile.referral_nudge_shown_at).getTime() <
+                Date.now() - cooldownH * 3600 * 1000
+              )
+              if (nudgeOk) {
+                const refUrl = `${APP_URL}/register?ref=${nudgeProfile.referral_code}`
+                reply += `\n\n💡 _Curtiu? Indica um amigo da sua cidade e ganha *+2 scans grátis* a cada cadastro:_\n${refUrl}`
+                // Marca timestamp pra cooldown
+                await supabaseAdmin
+                  .from('profiles')
+                  .update({ referral_nudge_shown_at: new Date().toISOString() })
+                  .eq('id', user.id)
+              }
+            }
+          } catch (err) {
+            console.error('[wa-confirm] referral nudge failed:', err)
+            // não bloqueia resposta — nudge é nice-to-have
+          }
+
           await sendText(phone, reply)
           return NextResponse.json({ ok: true })
         }
