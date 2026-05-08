@@ -119,22 +119,38 @@ export async function GET(req: NextRequest) {
       const recovered = await setReceiveWebhook()
       results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
 
-      // Pedro 2026-05-08: notifica Pedro IMEDIATAMENTE quando auto-recovery
-      // dispara — independente de auth. Esse alerta é raro (só roda quando
-      // 30min de silêncio + horário ativo + Z-API connected), então não
-      // tem risco de spam vindo do cron pg_net (que pinga sem auth a cada
-      // 15min). É um sinal genuíno e o admin DEVE saber na hora.
-      if (ADMIN_PHONE) {
+      // Pedro 2026-05-08: cooldown atômico de 2h pra notification.
+      // Sem isso, watchdog rodando a cada 15min em silêncio prolongado
+      // floodava o admin (4 msgs/h durante quieto natural manhã/dia).
+      // UPDATE atômico via "or" condition garante que só UMA chamada
+      // claim a janela — race-safe.
+      const COOLDOWN_HOURS = 2
+      const cooldownCutoff = new Date(
+        Date.now() - COOLDOWN_HOURS * 3600 * 1000
+      ).toISOString()
+      const { data: claimed } = await sb
+        .from('watchdog_state')
+        .update({ last_alert_at: new Date().toISOString() })
+        .eq('id', 'webhook_recovery')
+        .or(`last_alert_at.is.null,last_alert_at.lt.${cooldownCutoff}`)
+        .select('id')
+
+      const shouldNotify = claimed && claimed.length > 0
+      results.recovery_alert_cooldown = shouldNotify ? 'sent' : 'suppressed'
+
+      if (shouldNotify && ADMIN_PHONE) {
         const recoveryMsg = recovered
           ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
             `Webhook estava quieto há ${silenceThresholdMin}min ` +
             `(${isPeakHour ? 'pico noturno' : 'horário diurno'}). ` +
             `Acabamos de reconfigurar a URL (PUT update-webhook-received). ` +
             `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
+            `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
             `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
           : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
             `Webhook quieto há ${silenceThresholdMin}min E PUT update-webhook-received não funcionou. ` +
             `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
+            `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
             `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
         try {
           await sendText(ADMIN_PHONE, recoveryMsg)
@@ -143,19 +159,15 @@ export async function GET(req: NextRequest) {
           console.error('[Health] failed to notify admin of recovery:', e)
           results.recovery_alert_sent = 'failed'
         }
-      }
 
-      // Também adiciona ao alerts array (pra email + log se authed)
-      if (recovered) {
-        alerts.push(
-          `Webhook estava quieto há ${silenceThresholdMin}min — auto-corrigi ` +
-          `(PUT update-webhook-received). Verifique se voltaram mensagens nos próximos minutos.`
-        )
-      } else {
-        alerts.push(
-          `Webhook quieto há ${silenceThresholdMin}min E auto-recovery falhou. ` +
-          `Verificar manualmente Z-API.`
-        )
+        // Pedro 2026-05-08: pra evitar DUPLICAÇÃO entre o WhatsApp direto
+        // (acima) E o canal alerts geral (linha ~175 que envia mais 1
+        // WhatsApp + email se authed), só pushamos pro alerts SE este
+        // ciclo NÃO notificou via canal direto. Isso garante que o admin
+        // recebe UMA mensagem (preferencialmente o canal direto, mais rápido).
+      } else if (!shouldNotify) {
+        // Cooldown ativo — silenciamos completamente. Logamos só.
+        console.log('[Health] recovery alert suppressed by 2h cooldown')
       }
     }
   } catch (err) {
