@@ -217,3 +217,36 @@ export async function restartInstance(): Promise<boolean> {
     return false
   }
 }
+
+/**
+ * Pedro 2026-05-08: SOMENTE update-webhook-received. Hardcoded de propósito.
+ *
+ * NÃO aceita parâmetro de endpoint pra impedir que um operador (ou bug)
+ * acidentalmente aliase outro tipo de webhook (status/presence/etc) pra
+ * mesma URL — incident 2026-05-08 onde alias de message-status causou
+ * 219 mensagens de flood pra 2 users.
+ *
+ * Se precisar mexer em outro webhook Z-API, faça via curl manual com
+ * conhecimento do que está fazendo. Esta função NÃO é uma faca-suíça.
+ */
+const WEBHOOK_RECEIVE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br').replace(/\/$/, '') + '/api/whatsapp/webhook'
+export async function setReceiveWebhook(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/update-webhook-received`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ value: WEBHOOK_RECEIVE_URL }),
+    })
+    if (!res.ok) {
+      console.error('[zapi] setReceiveWebhook failed:', res.status, await res.text())
+      return false
+    }
+    const data = await res.json()
+    const ok = data.value === true
+    console.log(`[zapi] setReceiveWebhook → ${WEBHOOK_RECEIVE_URL} ${ok ? 'OK' : 'FAILED'}`)
+    return ok
+  } catch (err) {
+    console.error('[zapi] setReceiveWebhook exception:', err)
+    return false
+  }
+}
