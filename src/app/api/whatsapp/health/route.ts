@@ -76,24 +76,43 @@ export async function GET(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
-    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+
+    // Pedro 2026-05-08: threshold de silêncio é DINÂMICO conforme volume:
+    //   - Pico (18:30-22:00 BR): 30min de silêncio dispara → mais agressivo,
+    //     volume típico alto, ausência é mais suspeita
+    //   - Outros horários ativos (8:00-18:30 + 22:00-23:00 BR): 60min →
+    //     conservador, dia tem volume menor, evita falso positivo
+    //   - Fora de horário ativo (23:00-8:00 BR): watchdog não dispara
+    //
+    // Sempre busca o último cutoff do threshold mais agressivo (30min) pra
+    // sabermos quanto tempo está silencioso e classificar.
+    const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const hourBR = nowBR.getHours()
+    const minutesBR = nowBR.getMinutes()
+    const totalMinutesBR = hourBR * 60 + minutesBR
+
+    const isPeakHour = totalMinutesBR >= 18 * 60 + 30 && totalMinutesBR < 22 * 60
+    const isActiveHour =
+      (hourBR >= 8 && totalMinutesBR < 18 * 60 + 30) ||
+      isPeakHour ||
+      (totalMinutesBR >= 22 * 60 && hourBR < 23)
+    const silenceThresholdMin = isPeakHour ? 30 : 60
+
+    const cutoff = new Date(Date.now() - silenceThresholdMin * 60 * 1000).toISOString()
     const { count: recentMsgs } = await sb
       .from('webhook_dedup')
       .select('message_id', { count: 'exact', head: true })
       .gte('created_at', cutoff)
 
-    const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-    const hourBR = nowBR.getHours()
-    const isActiveHour = hourBR >= 8 && hourBR < 23
-
     results.webhook_inbound = {
-      msgs_last_30min: recentMsgs ?? 0,
+      msgs_in_window: recentMsgs ?? 0,
+      window_minutes: silenceThresholdMin,
       hour_br: hourBR,
+      is_peak_hour: isPeakHour,
       is_active_hour: isActiveHour,
     }
 
-    // Trigger auto-recovery: 0 msgs in 30min during active hours, AND Z-API
-    // says connected (so it's NOT a Z-API outage — it's the webhook routing).
+    // Trigger auto-recovery: 0 msgs no janela atual + horário ativo + Z-API ok.
     const zapiOk = (results.whatsapp as { connected?: boolean })?.connected
     if ((recentMsgs ?? 0) === 0 && isActiveHour && zapiOk) {
       console.warn('[Health] Webhook inbound silent — triggering auto-recovery')
@@ -108,12 +127,13 @@ export async function GET(req: NextRequest) {
       if (ADMIN_PHONE) {
         const recoveryMsg = recovered
           ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
-            `Webhook estava quieto há 30min. Acabamos de reconfigurar a URL ` +
-            `(PUT update-webhook-received). ` +
+            `Webhook estava quieto há ${silenceThresholdMin}min ` +
+            `(${isPeakHour ? 'pico noturno' : 'horário diurno'}). ` +
+            `Acabamos de reconfigurar a URL (PUT update-webhook-received). ` +
             `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
             `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
           : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
-            `Webhook quieto há 30min E PUT update-webhook-received não funcionou. ` +
+            `Webhook quieto há ${silenceThresholdMin}min E PUT update-webhook-received não funcionou. ` +
             `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
             `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
         try {
@@ -128,11 +148,14 @@ export async function GET(req: NextRequest) {
       // Também adiciona ao alerts array (pra email + log se authed)
       if (recovered) {
         alerts.push(
-          `Webhook estava quieto há 30min — auto-corrigi (PUT update-webhook-received). ` +
-          `Verifique se voltaram mensagens nos próximos minutos.`
+          `Webhook estava quieto há ${silenceThresholdMin}min — auto-corrigi ` +
+          `(PUT update-webhook-received). Verifique se voltaram mensagens nos próximos minutos.`
         )
       } else {
-        alerts.push('Webhook quieto há 30min E auto-recovery falhou. Verificar manualmente Z-API.')
+        alerts.push(
+          `Webhook quieto há ${silenceThresholdMin}min E auto-recovery falhou. ` +
+          `Verificar manualmente Z-API.`
+        )
       }
     }
   } catch (err) {
