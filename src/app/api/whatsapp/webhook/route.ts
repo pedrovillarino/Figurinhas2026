@@ -2776,13 +2776,20 @@ export async function POST(req: NextRequest) {
           }
           reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
 
-          // Pedro 2026-05-08: nudge contextual de indicação após scan bem-sucedido.
-          // Critérios:
-          //   - User é free (pagantes não veem — UX premium)
-          //   - Saved >= 3 (experiência boa, não trivia)
-          //   - Cooldown 72h via referral_nudge_shown_at
-          //   - Tem referral_code já gerado
-          // Texto curto, sem CTA pesado — proposta de "passa pra frente".
+          // Pedro 2026-05-08: debounce do nudge de indicação.
+          // Em vez de anexar ao reply (= repetitivo se user faz vários blocos
+          // seguidos), marca pending_referral_nudge_at = now(). Cron
+          // process-referral-nudges checa a cada 2min e envia mensagem
+          // SEPARADA quando há > 3min sem novo registro (= bloco terminou).
+          // Cada nova confirmação re-seta a coluna pra now(), reiniciando
+          // o timer de espera.
+          //
+          // Critérios de elegibilidade (verificados aqui pra evitar set
+          // desnecessário; cron re-verifica antes de enviar):
+          //   - tier = free (pagantes não veem)
+          //   - saved >= 3 (experiência boa)
+          //   - cooldown 72h via referral_nudge_shown_at
+          //   - tem referral_code
           try {
             const userTier = ((user as { tier?: string }).tier || 'free') as Tier
             if (userTier === 'free' && saved >= 3) {
@@ -2798,17 +2805,14 @@ export async function POST(req: NextRequest) {
                 Date.now() - cooldownH * 3600 * 1000
               )
               if (nudgeOk) {
-                const refUrl = `${APP_URL}/register?ref=${nudgeProfile.referral_code}`
-                reply += `\n\n💡 _Curtiu? Indica um amigo da sua cidade e ganha *+2 scans grátis* a cada cadastro:_\n${refUrl}`
-                // Marca timestamp pra cooldown
                 await supabaseAdmin
                   .from('profiles')
-                  .update({ referral_nudge_shown_at: new Date().toISOString() })
+                  .update({ pending_referral_nudge_at: new Date().toISOString() })
                   .eq('id', user.id)
               }
             }
           } catch (err) {
-            console.error('[wa-confirm] referral nudge failed:', err)
+            console.error('[wa-confirm] referral nudge schedule failed:', err)
             // não bloqueia resposta — nudge é nice-to-have
           }
 
