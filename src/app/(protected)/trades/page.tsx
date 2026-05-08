@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getCachedStickers } from '@/lib/stickers-cache'
 import TradesHub from './TradesHub'
 import CepNudgeWrapper from '@/components/CepNudgeWrapper'
+import ShareReferralCard from '@/components/ShareReferralCard'
 import { type Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
 
@@ -20,7 +21,7 @@ export default async function TradesPage() {
   if (!user) redirect('/login')
 
   const [{ data: profile }, stickers, { data: userStickers }] = await Promise.all([
-    supabase.from('profiles').select('tier, location_lat, location_lng, display_name, is_minor').eq('id', user.id).single(),
+    supabase.from('profiles').select('tier, location_lat, location_lng, display_name, is_minor, referral_code').eq('id', user.id).single(),
     getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
   ])
@@ -154,6 +155,18 @@ export default async function TradesPage() {
           <CepNudgeWrapper userId={user.id} />
         </div>
       )}
+      {/* Pedro 2026-05-08: indicação 1-clique. /trades é alta-fit pro card —
+          quem está em /trades quer comunidade local maior pra ter mais matches.
+          Variant FULL aqui (full-bleed apelo) já que o resto da página tem
+          peso visual. */}
+      <div className="px-4 pt-4 max-w-md mx-auto">
+        <ShareReferralCard
+          referralCode={(profile as { referral_code?: string | null })?.referral_code ?? null}
+          displayName={profile?.display_name ?? null}
+          source="trades"
+          variant="full"
+        />
+      </div>
       <TradesHub
         userId={user.id}
         tier={tier}
