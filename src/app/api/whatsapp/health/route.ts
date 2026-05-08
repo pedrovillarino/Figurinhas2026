@@ -99,6 +99,33 @@ export async function GET(req: NextRequest) {
       console.warn('[Health] Webhook inbound silent — triggering auto-recovery')
       const recovered = await setReceiveWebhook()
       results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
+
+      // Pedro 2026-05-08: notifica Pedro IMEDIATAMENTE quando auto-recovery
+      // dispara — independente de auth. Esse alerta é raro (só roda quando
+      // 30min de silêncio + horário ativo + Z-API connected), então não
+      // tem risco de spam vindo do cron pg_net (que pinga sem auth a cada
+      // 15min). É um sinal genuíno e o admin DEVE saber na hora.
+      if (ADMIN_PHONE) {
+        const recoveryMsg = recovered
+          ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
+            `Webhook estava quieto há 30min. Acabamos de reconfigurar a URL ` +
+            `(PUT update-webhook-received). ` +
+            `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
+            `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
+          : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
+            `Webhook quieto há 30min E PUT update-webhook-received não funcionou. ` +
+            `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
+            `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
+        try {
+          await sendText(ADMIN_PHONE, recoveryMsg)
+          results.recovery_alert_sent = 'whatsapp'
+        } catch (e) {
+          console.error('[Health] failed to notify admin of recovery:', e)
+          results.recovery_alert_sent = 'failed'
+        }
+      }
+
+      // Também adiciona ao alerts array (pra email + log se authed)
       if (recovered) {
         alerts.push(
           `Webhook estava quieto há 30min — auto-corrigi (PUT update-webhook-received). ` +
