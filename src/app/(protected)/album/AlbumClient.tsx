@@ -876,6 +876,12 @@ export default function AlbumClient({
         </div>
       </a>
 
+      {/* Pedro 2026-05-08: ad no rodapé do álbum (só user que rolou tudo
+          chegou aqui — engajado, mais aceitável). Free-only via FreeUserAd. */}
+      <div className="mt-4">
+        <FreeUserAd placement="album_footer" tier={tier} />
+      </div>
+
       {/* Export Modal */}
       <ExportModal
         isOpen={showExport}
