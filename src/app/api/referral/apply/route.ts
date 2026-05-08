@@ -20,7 +20,8 @@ import {
 //
 // Reward model:
 //   INDICATED user (the caller) gets:        +1 trade credit, immediately
-//   REFERRER (whose code was used) gets:     +1 scan credit per confirmed friend
+//   REFERRER (whose code was used) gets:     +2 scan credits per confirmed friend
+//                                            (Pedro 2026-05-08: era 1, subiu pra 2)
 //                                            +50% off coupon (48h, single-use,
 //                                            non-transferable) every 5 friends
 //                                            +5 ranking points if friend later
@@ -150,13 +151,15 @@ export async function POST(request: NextRequest) {
       p_credits: 1,
     })
 
-    // 7. Grant +1 scan credit to the REFERRER — UNLESS they are excluded
+    // 7. Grant scan credits to the REFERRER — UNLESS they are excluded
     //    (owner/team). Excluded referrers get neither credits nor ranking
     //    points nor coupons. The INDICATED user still gets their +1 trade.
+    //    Pedro 2026-05-08: aumentado pra +2 (era 1) pra incentivar mais
+    //    indicações + apelo "comunidade da cidade/bairro".
     if (!referrerExcluded) {
       await supabaseAdmin.rpc('add_scan_credits', {
         p_user_id: referrer.id,
-        p_credits: 1,
+        p_credits: REFERRAL_CONSTANTS.SCAN_CREDITS_PER_CONFIRMED,
       })
     }
 
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
       status: 'confirmed',
       points: referrerExcluded ? 0 : REFERRAL_CONSTANTS.POINTS_CONFIRMED,
       trade_credits: 1,        // granted to the INDICATED user (audit trail)
-      scan_credits: referrerExcluded ? 0 : 1,
+      scan_credits: referrerExcluded ? 0 : REFERRAL_CONSTANTS.SCAN_CREDITS_PER_CONFIRMED,
       confirmed_at: new Date().toISOString(),
       signup_ip: getIp(request),
       signup_fingerprint: fingerprint,

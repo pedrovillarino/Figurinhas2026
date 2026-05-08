@@ -1,8 +1,9 @@
 // Helpers for the "Embaixadores Complete Aí" launch campaign.
 //
-// Reward model (decided 2026-04-29):
+// Reward model (decided 2026-04-29, revisado 2026-05-08):
 //   - Indicated friend (just signed up): +1 trade credit, immediately
-//   - Referrer per confirmed friend: +1 scan credit, immediately
+//   - Referrer per confirmed friend: +2 scan credits (era 1; aumentado pra
+//     incentivar mais indicações + crescer comunidade local)
 //   - Referrer at 5 confirmed friends: 50% off coupon, valid 48h, single-use,
 //     bound to the referrer's user_id (non-transferable)
 //   - Referrer when friend purchases a paid tier: +5 points (replaces the +1
@@ -19,6 +20,9 @@ const FRIENDS_FOR_COUPON = 5
 const POINTS_CONFIRMED = 1
 const POINTS_PAID_UPGRADE = 5
 const POINTS_SELF_UPGRADE = 5
+// Pedro 2026-05-08: aumentado de 1 → 2 pra incentivar mais indicações
+// (apelo "comunidade da sua cidade/bairro").
+const SCAN_CREDITS_PER_CONFIRMED = 2
 // Retroactive lookback at opt-in: referrals/self-upgrade up to N days before
 // the user clicked "Começar a participar" still count toward their ranking.
 const OPTIN_LOOKBACK_DAYS = 3
@@ -49,6 +53,7 @@ export const REFERRAL_CONSTANTS = {
   POINTS_CONFIRMED,
   POINTS_PAID_UPGRADE,
   POINTS_SELF_UPGRADE,
+  SCAN_CREDITS_PER_CONFIRMED,
   OPTIN_LOOKBACK_DAYS,
   MIN_PARTICIPANTS,
   MIN_PARTICIPANTS_FOR_DISPLAY,

@@ -173,6 +173,7 @@ export default async function CampanhaPage() {
         pointsConfirmed: REFERRAL_CONSTANTS.POINTS_CONFIRMED,
         pointsPaidUpgrade: REFERRAL_CONSTANTS.POINTS_PAID_UPGRADE,
         pointsSelfUpgrade: REFERRAL_CONSTANTS.POINTS_SELF_UPGRADE,
+        scanCreditsPerConfirmed: REFERRAL_CONSTANTS.SCAN_CREDITS_PER_CONFIRMED,
         optinLookbackDays: REFERRAL_CONSTANTS.OPTIN_LOOKBACK_DAYS,
         minParticipants: REFERRAL_CONSTANTS.MIN_PARTICIPANTS,
         minParticipantsForDisplay: REFERRAL_CONSTANTS.MIN_PARTICIPANTS_FOR_DISPLAY,
