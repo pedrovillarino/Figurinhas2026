@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getCachedStickers } from '@/lib/stickers-cache'
 import AlbumClient from './AlbumClient'
 import CepNudgeWrapper from '@/components/CepNudgeWrapper'
+import ShareReferralCard from '@/components/ShareReferralCard'
 import type { Tier } from '@/lib/tiers'
 import type { Metadata } from 'next'
 
@@ -22,7 +23,7 @@ export default async function AlbumPage() {
   const [stickers, { data: userStickers }, { data: profile }] = await Promise.all([
     getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
-    supabase.from('profiles').select('tier').eq('id', user.id).single(),
+    supabase.from('profiles').select('tier, referral_code, display_name').eq('id', user.id).single(),
   ])
 
   const userStickersMap: Record<number, { status: string; quantity: number }> = {}
@@ -32,10 +33,18 @@ export default async function AlbumPage() {
 
   return (
     <>
-      {/* Pedro 2026-05-03: nudge contextual de CEP — só aparece se user
-          tem engajamento mínimo e ainda não preencheu cidade */}
       <div className="px-4 pt-4 space-y-2">
+        {/* Pedro 2026-05-03: nudge contextual de CEP — só aparece se user
+            tem engajamento mínimo e ainda não preencheu cidade */}
         <CepNudgeWrapper userId={user.id} />
+        {/* Pedro 2026-05-08: card de indicação 1-clique. Variant compact pra
+            não competir com CepNudge no topo. +2 scans por amigo confirmado. */}
+        <ShareReferralCard
+          referralCode={(profile as { referral_code?: string | null })?.referral_code ?? null}
+          displayName={(profile as { display_name?: string | null })?.display_name ?? null}
+          source="album"
+          variant="compact"
+        />
       </div>
       <AlbumClient
         stickers={stickers}
