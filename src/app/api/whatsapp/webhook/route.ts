@@ -4169,8 +4169,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Other message types (video, document, etc.)
-    await sendText(phone, 'Eu entendo texto e fotos! 📸 Manda uma foto do álbum ou digite *status*.')
+    // Pedro 2026-05-08 (incident loop massivo): este fallback estava
+    // disparando pra TODO event de Z-API que não fosse text/image/audio —
+    // incluindo status updates de delivery/read receipts quando o webhook
+    // de message-status apontava pra mesma URL. Resultado: flood pro user.
+    //
+    // Agora: silencio. Se chegou aqui, é evento que não sabemos tratar
+    // (vídeo, documento, status update, presence, etc.) — registra log
+    // mas NÃO envia mensagem pro user. Sem flood possível.
+    console.warn(
+      `[WhatsApp] Unknown event type from ${maskPhone(phone)} — ignoring silently. ` +
+      `messageType=${messageType} bodyKeys=[${Object.keys(body).join(',')}]`
+    )
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('WhatsApp webhook error:', err)
