@@ -77,44 +77,65 @@ export async function GET(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
 
-    // Pedro 2026-05-08: threshold de silêncio é DINÂMICO conforme volume:
-    //   - Pico (18:30-22:00 BR): 30min → mais agressivo, volume típico alto
-    //   - Cooldown noturno (22:00-01:00 BR): 60min → ainda monitora mas
-    //     conservador (cruzando meia-noite até 1h da manhã)
-    //   - Dia (06:00-18:30 BR): 60min → conservador
+    // Pedro 2026-05-08: detecção de silêncio HÍBRIDA:
+    //
+    // Janelas (mantidas):
+    //   - Pico (18:30-22:00 BR): janela 30min
+    //   - Dia (06:00-18:30 BR): janela 60min
+    //   - Cooldown noturno (22:00-01:00 BR): janela 60min
     //   - Sleep (01:00-06:00 BR): watchdog não dispara
+    //
+    // Decisão de disparo (NOVO):
+    //   - Com 3+ dias de histórico: usa BASELINE da mesma hora-do-dia
+    //     dos últimos 7 dias (mediana). Só dispara se atual=0 E baseline≥5
+    //     E ratio<0.2 — anomalia genuína comparada ao padrão.
+    //   - Com <3 dias de histórico: fallback pra threshold fixo (atual=0
+    //     dispara). App novo, sem dado pra comparar.
+    //
+    // Vantagens: zero falso positivo em horas naturalmente quietas.
     const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
     const hourBR = nowBR.getHours()
     const minutesBR = nowBR.getMinutes()
     const totalMinutesBR = hourBR * 60 + minutesBR
 
     const isPeakHour = totalMinutesBR >= 18 * 60 + 30 && totalMinutesBR < 22 * 60
-    // Cooldown noturno cruza meia-noite: 22:00-23:59 OR 00:00-00:59
     const isLateNightCooldown =
       (totalMinutesBR >= 22 * 60 && totalMinutesBR < 24 * 60) ||
       (totalMinutesBR < 60)
-    // Dia: 06:00-18:30
     const isDayHour = totalMinutesBR >= 6 * 60 && totalMinutesBR < 18 * 60 + 30
     const isActiveHour = isDayHour || isPeakHour || isLateNightCooldown
     const silenceThresholdMin = isPeakHour ? 30 : 60
 
-    const cutoff = new Date(Date.now() - silenceThresholdMin * 60 * 1000).toISOString()
-    const { count: recentMsgs } = await sb
-      .from('webhook_dedup')
-      .select('message_id', { count: 'exact', head: true })
-      .gte('created_at', cutoff)
+    // Pega current_count + baseline_median + days_with_data + ratio
+    const { data: baselineRows } = await sb.rpc('get_webhook_baseline', {
+      window_minutes: silenceThresholdMin,
+    })
+    const baseline = baselineRows?.[0] ?? { current_count: 0, baseline_median: 0, days_with_data: 0, ratio_to_baseline: 1 }
+
+    const recentMsgs = Number(baseline.current_count ?? 0)
+    const baselineMed = Number(baseline.baseline_median ?? 0)
+    const daysWithData = Number(baseline.days_with_data ?? 0)
+    const ratio = Number(baseline.ratio_to_baseline ?? 1)
 
     results.webhook_inbound = {
-      msgs_in_window: recentMsgs ?? 0,
+      msgs_in_window: recentMsgs,
       window_minutes: silenceThresholdMin,
+      baseline_median: baselineMed,
+      days_with_baseline_data: daysWithData,
+      ratio_to_baseline: ratio,
       hour_br: hourBR,
       is_peak_hour: isPeakHour,
       is_active_hour: isActiveHour,
     }
 
-    // Trigger auto-recovery: 0 msgs no janela atual + horário ativo + Z-API ok.
+    // Trigger logic:
     const zapiOk = (results.whatsapp as { connected?: boolean })?.connected
-    if ((recentMsgs ?? 0) === 0 && isActiveHour && zapiOk) {
+    const useBaseline = daysWithData >= 3
+    const isAnomaly = useBaseline
+      ? (recentMsgs === 0 && baselineMed >= 5 && ratio < 0.2)
+      : (recentMsgs === 0)  // fallback: app novo, sem dado pra comparar
+
+    if (isAnomaly && isActiveHour && zapiOk) {
       console.warn('[Health] Webhook inbound silent — triggering auto-recovery')
       const recovered = await setReceiveWebhook()
       results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
@@ -139,16 +160,18 @@ export async function GET(req: NextRequest) {
       results.recovery_alert_cooldown = shouldNotify ? 'sent' : 'suppressed'
 
       if (shouldNotify && ADMIN_PHONE) {
+        const baselineLine = useBaseline
+          ? `Mediana dos últimos 7 dias nessa janela: *${baselineMed} msgs*. Atual: *0*. Anomalia.`
+          : `Janela de ${silenceThresholdMin}min sem mensagens (sem histórico ainda pra comparar).`
         const recoveryMsg = recovered
           ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
-            `Webhook estava quieto há ${silenceThresholdMin}min ` +
-            `(${isPeakHour ? 'pico noturno' : 'horário diurno'}). ` +
+            `${baselineLine} ` +
             `Acabamos de reconfigurar a URL (PUT update-webhook-received). ` +
             `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
             `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
             `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
           : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
-            `Webhook quieto há ${silenceThresholdMin}min E PUT update-webhook-received não funcionou. ` +
+            `${baselineLine} PUT update-webhook-received não funcionou. ` +
             `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
             `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
             `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
