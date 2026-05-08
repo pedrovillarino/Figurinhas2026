@@ -184,14 +184,19 @@ export default function FreeUserAd({
         </div>
       </a>
 
-      {/* CTA upgrade — driver de conversão */}
+      {/* Pedro 2026-05-08: CTA mais claro pro upgrade — deixa explícito que
+          a "saída" dos anúncios é via plano pago (incentivo gentil sem ser
+          agressivo). Visual destaca leve com ícone + texto. */}
       <div className="px-3 pb-2 pt-1 border-t border-brand/10 bg-white/40">
         <Link
           href="/upgrade"
-          className="text-[10px] text-gray-600 hover:text-brand-dark transition flex items-center justify-between"
+          className="text-[10.5px] text-gray-700 hover:text-brand-dark transition flex items-center justify-between gap-2"
         >
-          <span>Sem anúncios e mais scans?</span>
-          <span className="font-semibold">Upgrade →</span>
+          <span className="flex items-center gap-1">
+            <span>🚫</span>
+            <span><strong>Sem anúncios</strong> e mais scans</span>
+          </span>
+          <span className="font-bold text-brand-dark">Upgrade →</span>
         </Link>
       </div>
     </div>

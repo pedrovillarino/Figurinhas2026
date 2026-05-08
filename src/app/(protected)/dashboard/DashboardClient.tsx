@@ -4,6 +4,8 @@ import { useMemo, useState, useEffect } from 'react'
 import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
+import FreeUserAd from '@/components/FreeUserAd'
+import type { Tier } from '@/lib/tiers'
 
 type Sticker = {
   id: number
@@ -143,9 +145,11 @@ function MiniDonut({ segments, size = 80 }: { segments: { pct: number; color: st
 export default function DashboardClient({
   stickers,
   userStickersMap,
+  tier,
 }: {
   stickers: Sticker[]
   userStickersMap: Record<number, UserStickerInfo>
+  tier: Tier
 }) {
   const waToken = useWaLinkToken()
   const [showAll, setShowAll] = useState(false)
@@ -819,6 +823,12 @@ export default function DashboardClient({
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>
       </a>
+
+      {/* Pedro 2026-05-08: ad no rodapé do dashboard. Free-only via FreeUserAd.
+          Surface adicional pra incentivar upgrade ("sem anúncios"), sutil. */}
+      <div className="mt-4">
+        <FreeUserAd placement="dashboard_home" tier={tier} />
+      </div>
     </main>
   )
 }
