@@ -1839,6 +1839,28 @@ export async function POST(req: NextRequest) {
         earlyText.includes('?')
         || earlyText.length > 25
       )
+
+      // Pedro 2026-05-09 (caso Bárbara): "Bem-vinda de volta" quando user
+      // tinha pending_registration nos últimos 30d (mesmo expirado). Caso
+      // real: Bárbara começou cadastro 2026-05-07, voltou 38h depois (após
+      // pending expirar 24h), viu welcome cru de novo. Friction ruim.
+      // Agora bot reconhece o retorno e dá CTA direto pra retomar.
+      const supabaseAdminWelcome = getAdmin()
+      const cutoff30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: priorPending } = await supabaseAdminWelcome
+        .from('pending_registrations')
+        .select('created_at, state, email')
+        .eq('phone', phone)
+        .gte('created_at', cutoff30d)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const isReturningUser = !!priorPending
+      const daysSincePrior = isReturningUser
+        ? Math.max(1, Math.round((Date.now() - new Date(priorPending.created_at).getTime()) / 86400000))
+        : 0
+
       if (looksLikeQuestion) {
         await sendText(
           phone,
@@ -1846,6 +1868,25 @@ export async function POST(req: NextRequest) {
             `Pra te responder direito, preciso te conhecer. *Me passa seu email?* 📧\n\n` +
             `Depois do cadastro eu volto pra sua dúvida. ⚽\n\n` +
             `_Se preferir cadastro completo no site: ${APP_URL}/register?phone=${phone}_`,
+        )
+      } else if (isReturningUser) {
+        // Pedro 2026-05-09 (caso Bárbara): mensagem específica pra quem volta
+        const stateHint = priorPending.state === 'awaiting_name' && priorPending.email
+          ? `Você já tinha mandado seu email (*${priorPending.email}*) — só falta me dizer *como devo te chamar*. 😊`
+          : `Manda seu *email* aí (formato _seunome@gmail.com_) que eu retomo de onde parou. 📧`
+        const timeHint = daysSincePrior === 1
+          ? 'há 1 dia'
+          : daysSincePrior < 7
+            ? `há ${daysSincePrior} dias`
+            : daysSincePrior < 14
+              ? 'há mais de uma semana'
+              : 'há um tempinho'
+        await sendText(
+          phone,
+          `Oi de novo! 👋 Vi que você começou seu cadastro ${timeHint} e não terminou. ` +
+            `Tudo bem, dá pra continuar daqui mesmo!\n\n` +
+            stateHint +
+            `\n\n_Se preferir cadastro pelo site: ${APP_URL}/register?phone=${phone}_`,
         )
       } else {
         await sendText(phone, getWelcomeMessage(phone))
@@ -1855,6 +1896,9 @@ export async function POST(req: NextRequest) {
       // Pedro 2026-05-04: ALÉM do upsert, salva pending_message quando a 1ª
       // mensagem foi uma dúvida legítima (looksLikeQuestion) — após signup
       // completar, re-processamos essa mensagem como follow-up.
+      // Pedro 2026-05-09 (caso Bárbara): TTL agora é 7 DIAS em vez de 24h.
+      // Users frequentemente voltam dias depois — perder estado em 24h era
+      // fricção desnecessária. 7d é janela razoável pra retomada.
       const supabaseAdmin = getAdmin()
       await supabaseAdmin
         .from('pending_registrations')
@@ -1862,7 +1906,7 @@ export async function POST(req: NextRequest) {
           {
             phone,
             state: 'awaiting_email',
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             pending_message: looksLikeQuestion ? earlyText : null,
           },
           { onConflict: 'phone' },
