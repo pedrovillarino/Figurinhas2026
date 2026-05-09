@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
   const PAGE_WIDTH = 842
   const PAGE_HEIGHT = 595
   const MARGIN = 24
-  const HEADER_H = 60            // header único compacto
+  const HEADER_H = 78            // header único compacto (com texto embaixo do QR)
   const HEADER_BOTTOM = MARGIN + HEADER_H
   const CONTENT_TOP = HEADER_BOTTOM + 6
 
@@ -184,14 +184,23 @@ export async function GET(req: NextRequest) {
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(8)
       .text(subtitleStr, centerX - 140, yTop + 28, { width: 440, align: 'center', lineBreak: false })
 
-    // QR à direita + texto curto
-    const qrSize = 50
-    const qrX = PAGE_WIDTH - MARGIN - qrSize
+    // QR à direita + texto EMBAIXO do QR (Pedro 2026-05-09)
+    // Área dedicada à direita: 160pt (largura suficiente pra wrap do texto longo).
+    // QR fica centralizado nessa área; embaixo, 2 linhas de texto.
+    const qrAreaW = 160
+    const qrAreaX = PAGE_WIDTH - MARGIN - qrAreaW
+    const qrSize = 44
+    const qrX = qrAreaX + (qrAreaW - qrSize) / 2  // centralizado na área
     doc.image(qrBuffer, qrX, yTop, { width: qrSize, height: qrSize })
-    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica-Bold').fontSize(6.5)
-      .text('Indique e ganhe', qrX - 4, yTop + 12, { width: qrSize + 8, align: 'right', lineBreak: false })
-    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6)
-      .text('completeai.com.br', qrX - 4, yTop + 38, { width: qrSize + 8, align: 'right', lineBreak: false })
+    // Linha 1: domínio
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7.5)
+      .text('completeai.com.br', qrAreaX, yTop + qrSize + 3, {
+        width: qrAreaW, align: 'center', lineBreak: false,
+      })
+    // Linha 2: chamada (pode wrap em 2 linhas)
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6.5)
+      .text('Indique através desse QR code seus amigos e ganhe benefícios!',
+        qrAreaX, yTop + qrSize + 14, { width: qrAreaW, align: 'center' })
 
     // Linha separadora
     doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
