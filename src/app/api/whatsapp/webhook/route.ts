@@ -3075,7 +3075,40 @@ export async function POST(req: NextRequest) {
             // Janela de 10min, snapshot já salvo em last_reversible_action.
             reply += `↩️ _Removeu errado? Manda *desfaz* nos próximos 10min pra voltar tudo._\n\n`
           }
-          reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+
+          // Pedro 2026-05-09 (caso Victor 5565996616354): após registrar SÓ
+          // figurinhas Coca-Cola, mensagem mostrava "Progresso: 0/980" e o
+          // user achava que o registro falhou. Coca-Cola e PANINI Extras
+          // são seções separadas (counts_for_completion=false). Agora a
+          // mensagem de progresso adapta:
+          //   - registrou só extras → mostra "Extras: X/92" + nota
+          //   - registrou só álbum → mostra "Progresso: X/980" (atual)
+          //   - misto → mostra os dois
+          let registeredAlbum = 0
+          let registeredExtras = 0
+          if (saved > 0 && mergedStickers.length > 0) {
+            const savedIds = mergedStickers.map((s) => s.sticker_id)
+            const { data: savedDetails } = await supabaseAdmin
+              .from('stickers')
+              .select('id, counts_for_completion')
+              .in('id', savedIds)
+            for (const sd of (savedDetails || []) as Array<{ id: number; counts_for_completion: boolean }>) {
+              if (sd.counts_for_completion) registeredAlbum++
+              else registeredExtras++
+            }
+          }
+          if (registeredAlbum > 0 && registeredExtras > 0) {
+            // Misto: mostra ambos
+            reply += `📊 Álbum: *${stats.owned}/${stats.total}* (${stats.pct}%)\n`
+            reply += `🎁 Extras: *${stats.extrasTotal}/${EXTRAS_TOTAL_AVAILABLE}*`
+          } else if (registeredExtras > 0 && registeredAlbum === 0) {
+            // Só extras (caso Victor): destaca extras + nota explicativa
+            reply += `🎁 Extras: *${stats.extrasTotal}/${EXTRAS_TOTAL_AVAILABLE}* — _Coca-Cola e Extras Panini são páginas separadas, não contam nos 980 do álbum._\n\n`
+            reply += `📊 Álbum (separado): *${stats.owned}/${stats.total}* (${stats.pct}%)`
+          } else {
+            // Só álbum (ou só remoção): mensagem padrão
+            reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+          }
 
           // Pedro 2026-05-08: debounce do nudge de indicação.
           // Em vez de anexar ao reply (= repetitivo se user faz vários blocos
