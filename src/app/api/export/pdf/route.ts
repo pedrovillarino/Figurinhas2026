@@ -194,13 +194,14 @@ export async function GET(req: NextRequest) {
 
   // ── TABELÃO ──
   // Pedro 2026-05-09: estilo planilha clássica — cabeçalho numerado,
-  // bordas sólidas em todas as células, zebra striping nas seções com
-  // múltiplas fileiras.
-  const NUM_COLS = 13
-  const SECTION_NAME_W = 105
+  // bordas sólidas em todas as células, zebra striping nas seções.
+  // 20 colunas casa exato com países (20 cromos) e FIFA WC (20).
+  // Coca-Cola (14 cromos) ocupa as primeiras 14 + 6 paddings cinza.
+  const NUM_COLS = 20
+  const SECTION_NAME_W = 100
   const TABLE_W = PAGE_WIDTH - 2 * MARGIN
   const GRID_W = TABLE_W - SECTION_NAME_W
-  const CELL_W = GRID_W / NUM_COLS  // sem gap = ~52pt
+  const CELL_W = GRID_W / NUM_COLS  // ~34pt em landscape
   const CELL_H = 18
   const HEADER_H = 16
 
@@ -246,8 +247,15 @@ export async function GET(req: NextRequest) {
     if (state === 'padding') {
       // sem texto
     } else if (state === 'marked') {
+      // Número
       doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
         .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
+      // X riscando (Pedro 2026-05-09): além da cor, X em cima reforça
+      // visualmente "já tem". Cor mais escura que o fill pra contraste.
+      const xColor = type === 'missing' ? '#047857' : '#B45309'  // verde escuro / âmbar escuro
+      doc.lineWidth(1).strokeColor(xColor)
+        .moveTo(x + 3, y + 3).lineTo(x + CELL_W - 3, y + CELL_H - 3).stroke()
+        .moveTo(x + CELL_W - 3, y + 3).lineTo(x + 3, y + CELL_H - 3).stroke()
     } else {
       doc.fillColor('#6B7280').font('Helvetica').fontSize(8)
         .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
