@@ -3516,13 +3516,17 @@ export async function POST(req: NextRequest) {
       } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && codeMatches.length >= 1) {
         // Looks like sticker codes: "BRA-1 ARG-3" or "bra 1, arg 3" or "BRA1"
         intent = 'register'
-      } else if (/^\s*(?:coca(?:[-\s]?cola)?|cc)[\s:.,]+[a-záéíóúâêôãõàçñ]{2,}/i.test(text)) {
+      } else if (
         // Pedro 2026-05-09 (caso Bruno +55 65 99947-4017): user mandou
         // "Coca Yamal, Coca Davies, Coca Martínez" exatamente como o bot
         // ensinou. Mas como Coca-Cola não tem CÓDIGO NUMÉRICO visível,
         // codeMatches=0 e caía em help/unknown. Agora detectamos o padrão
         // "Coca <nome>" no início da mensagem e roteamos pra register —
         // que já tem fuzzy match por nome (linha ~3744 do case 'register').
+        // Pedro 2026-05-09: também aceita inverso "Yamal coca", "Yamal cc".
+        /^\s*(?:coca(?:[-\s]?cola)?|cc)[\s:.,]+[a-záéíóúâêôãõàçñ]{2,}/i.test(text) ||
+        /^\s*[a-záéíóúâêôãõàçñ]{2,}.*\s+(?:coca(?:[-\s]?cola)?|cc)\s*\.?\s*$/i.test(text)
+      ) {
         intent = 'register'
       } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como|faq|perguntas?|dúvidas?|planos?|preços?|quanto custa|sugest|ideia|feedback|bug|problema|reclam|melhoria)\b/.test(lower)) {
         intent = 'help'
@@ -4169,12 +4173,20 @@ export async function POST(req: NextRequest) {
           // por nome (com fuzzy match) → adiciona CC-X aos matches.
           // Ambiguidade (ex: "Martínez" pode ser CC-12 Emiliano OU CC-14
           // Lautaro) → pede clarificação.
+          // Pedro 2026-05-09 (caso Gvardiol-user): aceitar formato INVERSO
+          // também — "Yamal coca", "Lautaro Martínez cc". User pode
+          // mandar de qualquer ordem; bot extrai o nome de forma agnóstica.
           const cocaAmbiguous: Array<{ name: string; candidates: string[] }> = []
           const segments = text.split(/[,;]|\s+e\s+|\n/)
           const cocaNames: string[] = []
           for (const seg of segments) {
             const trimmed = seg.trim()
-            const cocaMatch = trimmed.match(/^(?:coca(?:[-\s]?cola)?|cc)[\s:.]+(.+)$/i)
+            // Prefix: "Coca Yamal" / "cc Yamal" / "coca-cola Yamal"
+            let cocaMatch = trimmed.match(/^(?:coca(?:[-\s]?cola)?|cc)[\s:.,]+(.+)$/i)
+            if (!cocaMatch) {
+              // Suffix: "Yamal coca" / "Yamal cc" / "Lautaro Martínez coca-cola"
+              cocaMatch = trimmed.match(/^(.+?)\s+(?:coca(?:[-\s]?cola)?|cc)\.?$/i)
+            }
             if (cocaMatch) {
               const name = cocaMatch[1].trim()
               if (name.length >= 3 && !/\d/.test(name)) {
