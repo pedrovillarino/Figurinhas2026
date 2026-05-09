@@ -4073,8 +4073,19 @@ export async function POST(req: NextRequest) {
           const helpName = user.display_name?.split(' ')[0] || ''
           const greeting = helpName ? `Oi, *${helpName}*! ` : ''
 
-          // Check if message looks like feedback/suggestion and forward to admin
-          const isFeedback = /sugest|ideia|bug|problema|reclama|feedback|melhoria/i.test(text)
+          // Check if message looks like feedback/suggestion and forward to admin.
+          // Pedro 2026-05-09: expandido pra pegar reclamações diretas que users
+          // escrevem ("ta errado", "não entrou", "deu erro") — antes caíam em
+          // help/unknown e o bot mandava menu padrão, ignorando a reclamação.
+          // Casos reais: Cintia "As figurinhas não entraram no app", Lorenzo
+          // "Ta errado isso aí".
+          const isFeedback =
+            /sugest|ideia|bug|problema|reclama|feedback|melhoria/i.test(text) ||
+            /\bn[ãa]o\s+(entr(ou|aram)|funcion(ou|a)|consegu(i|e)|foi|deu|pegou|salvou|registr(ou|a))/i.test(text) ||
+            /\bdeu\s+(erro|ruim|pau|problema|bug)/i.test(text) ||
+            /\b(t[áa]\s+errad[oa]|est[áa]\s+errad[oa]|errad[oa]\s+isso|t[áa]\s+quebrad[oa]|t[áa]\s+bugad[oa]|n[ãa]o\s+t[áa]\s+(funcionando|certo|ok))\b/i.test(text) ||
+            /\b(perdi|sumiu|sumiram|desapareceu|desapareceram)\b/i.test(text) ||
+            /(^|\s)(cad[êe]|cade)\s+/i.test(text)
 
           // ── Anti-spam: suprimir help duplicado em rápida sucessão ──
           // Caso clássico: usuário envia "Oi" e logo depois "tudo bem" — ambas
@@ -4105,9 +4116,16 @@ export async function POST(req: NextRequest) {
             if (adminPhone) {
               sendText(adminPhone, `💡 *Feedback de ${helpName || 'Usuário'}*\n📱 ${phone}\n\n"${text}"`).catch(() => {})
             }
+            // Pedro 2026-05-09: copy mais empática quando é reclamação real
+            // (Cintia "não entraram", Lorenzo "ta errado"). Antes era genérica
+            // "obrigado pelo feedback" — virava sensação de ignorada. Agora
+            // pede mais contexto pra acelerar investigação.
+            const greetingForFeedback = helpName ? `Oi *${helpName}*! ` : ''
             await sendText(
               phone,
-              `💡 Obrigado pelo feedback!\n\nSua mensagem foi encaminhada para nossa equipe. 🙏\n\nDúvidas: contato@completeai.com.br`
+              `🙏 ${greetingForFeedback}Obrigado por avisar — anotei aqui e vou subir isso pro nosso time agora.\n\n` +
+              `Se puder, me conta com mais detalhes o que você tava tentando fazer (foto, áudio, texto? qual figurinha? em que página do app?) — ajuda muito a investigar mais rápido.\n\n` +
+              `Voltamos pra você assim que tivermos novidade. ⚽`
             )
             break
           }
