@@ -53,8 +53,15 @@ const nextConfig = {
   // fica dentro de `experimental` (em Next 15+ foi promovida pra top-level).
   experimental: {
     outputFileTracingIncludes: {
-      '/api/export/pdf': ['./node_modules/pdfkit/js/data/**/*'],
+      // Pattern com glob no key tbm — Next 14 tracing é peculiar, e o glob
+      // do source value precisa cobrir TODOS os arquivos (afm + icc + json)
+      '/api/export/pdf': [
+        './node_modules/pdfkit/js/data/*.afm',
+        './node_modules/pdfkit/js/data/*.icc',
+        './node_modules/pdfkit/js/data/*',
+      ],
     },
+    serverComponentsExternalPackages: ['pdfkit'],
   },
   async headers() {
     return [
