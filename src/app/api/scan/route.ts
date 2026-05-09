@@ -263,15 +263,23 @@ human face inside. FILLED slot has the actual sticker covering it.
      white/team colors of normal country stickers)
    - Player's name printed VERTICALLY along the LEFT EDGE in large
      WHITE UPPERCASE letters
-   - Country code in parentheses next to the name (e.g. "LAMINE YAMAL
-     (ESP)", "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
-   - Small FIFA logo top-left
+   - Country code in parentheses RIGHT NEXT TO the name (e.g.
+     "EMILIANO MARTÍNEZ (ARG)", "LAMINE YAMAL (ESP)",
+     "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
+   - Stylized FIFA World Cup 2026 emblem TOP-RIGHT corner (looks like
+     abstract letters "CW" in white)
    - NO Coca-Cola logo on the sticker itself
    - NO "PANINI" badge
    - NO red "EXTRA STICKER" badge
-   These 4 cues TOGETHER identify a Coca-Cola sticker. The most
-   distinctive single cue is the VERTICAL PLAYER NAME on the left
-   edge — no other sticker type has this layout.
+   These cues TOGETHER identify a Coca-Cola sticker. The MOST
+   DISTINCTIVE single cue is the VERTICAL PLAYER NAME on the left
+   edge with country code in parentheses — NO OTHER sticker type
+   in the album has this layout.
+
+   ⚠️ Player JERSEY number (e.g. "23" on Emiliano Martínez's shirt,
+   "22" on Lautaro's) is part of the photo, NOT the sticker_number.
+   For Coca-Cola stickers, sticker_number is "" — set country_code
+   to "COCA" and read the player_name normally.
 
    - 14 SLOTS spread across 2 pages (CC1-6 on one, CC7-14 on the
      other).
