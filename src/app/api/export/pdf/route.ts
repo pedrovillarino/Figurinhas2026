@@ -112,37 +112,57 @@ export async function GET(req: NextRequest) {
   const iconPath = path.join(process.cwd(), 'public', 'icon-192.png')
   const hasIcon = fs.existsSync(iconPath)
 
-  // 5) Gera PDF
-  const doc = new PDFDocument({ margin: 40, size: 'A4', info: { Title: 'Complete Aí', Author: 'Complete Aí' } })
+  // 5) Gera PDF — paisagem (A4 landscape) com checkboxes pra marcar
+  // Pedro 2026-05-09: paisagem cabe 4 colunas (mais itens por página) e
+  // checkboxes permitem usar o PDF impresso como controle físico de troca.
+  const doc = new PDFDocument({
+    margin: 36,
+    size: 'A4',
+    layout: 'landscape',
+    info: { Title: 'Complete Aí', Author: 'Complete Aí' },
+  })
   const chunks: Buffer[] = []
   doc.on('data', (c) => chunks.push(c))
   const endPromise = new Promise<void>((resolve) => doc.on('end', resolve))
 
+  // A4 landscape: 842 × 595 pontos. Margem 36 → área útil 770 × 523.
+  const PAGE_WIDTH = 842
+  const PAGE_HEIGHT = 595
+  const MARGIN = 36
+  const HEADER_BOTTOM = 90       // y onde acaba o header (linha separadora)
+  const TITLE_BOTTOM = 130       // y onde acaba o bloco do título
+  const FOOTER_TOP = 480         // y onde começa a faixa de footer (QR)
+  const CONTENT_TOP = TITLE_BOTTOM + 8
+
   // ── Header ──
   if (hasIcon) {
-    doc.image(iconPath, 40, 38, { width: 36 })
+    doc.image(iconPath, MARGIN, 38, { width: 36 })
   }
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(22).text('Complete', 90, 42, { continued: true })
+  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(22).text('Complete', MARGIN + 50, 42, { continued: true })
   doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
-  doc.moveDown(0.2)
-  doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(9).text('Álbum FIFA World Cup 2026 com IA', 90)
+  doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(9).text('Álbum FIFA World Cup 2026 com IA', MARGIN + 50, 70)
 
   // Linha separadora
-  doc.moveTo(40, 92).lineTo(555, 92).strokeColor('#E5E7EB').lineWidth(1).stroke()
+  doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
+    .strokeColor('#E5E7EB').lineWidth(1).stroke()
 
   // ── Título ──
-  doc.moveDown(2)
   doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(18)
-    .text(type === 'missing' ? `Suas faltantes (${list.length})` : `Suas repetidas (${list.length})`, 40)
+    .text(type === 'missing' ? `Suas faltantes (${list.length})` : `Suas repetidas (${list.length})`, MARGIN, HEADER_BOTTOM + 10)
   doc.font('Helvetica').fontSize(10).fillColor(COLOR_GRAY_LIGHT)
-    .text(`${firstName} · gerado em ${new Date().toLocaleDateString('pt-BR')}`, 40)
-  doc.moveDown(1)
+    .text(
+      `${firstName} · gerado em ${new Date().toLocaleDateString('pt-BR')} · ` +
+      `marque ☑ conforme ${type === 'missing' ? 'colar' : 'trocar'}`,
+      MARGIN,
+      HEADER_BOTTOM + 32,
+    )
 
   if (list.length === 0) {
     doc.fontSize(12).fillColor(COLOR_GRAY)
       .text(type === 'missing'
         ? '🎉 Você não tem nenhuma figurinha faltando! Parabéns!'
         : 'Você ainda não tem nenhuma figurinha repetida pra trocar.',
+        MARGIN, CONTENT_TOP,
       )
   } else {
     // Agrupa por país (ordem alfabética)
@@ -154,73 +174,113 @@ export async function GET(req: NextRequest) {
     }
     const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
-    // Layout em 2 colunas pra economizar páginas
-    const colWidth = 250
-    const colXLeft = 40
-    const colXRight = 305
-    let currentCol: 'L' | 'R' = 'L'
-    let x = colXLeft
+    // ── Layout em 4 colunas (paisagem cabe bem) ──
+    const NUM_COLS = 4
+    const COL_GAP = 12
+    const COL_WIDTH = (PAGE_WIDTH - 2 * MARGIN - (NUM_COLS - 1) * COL_GAP) / NUM_COLS  // ~187pt
+    const ROW_HEIGHT = 11      // altura por item
+    const COUNTRY_HEADER_HEIGHT = 16
+    const COUNTRY_BOTTOM_PAD = 4
+    const CHECKBOX_SIZE = 8
+    const CHECKBOX_PAD_Y = 1.5
+
+    const colX = (i: number) => MARGIN + i * (COL_WIDTH + COL_GAP)
+
+    let curCol = 0
+    let curY = CONTENT_TOP
+    // Footer só aparece na ÚLTIMA página — primeiras páginas usam até PAGE_HEIGHT - MARGIN
+    // Reservamos FOOTER_TOP só na última (decidimos em runtime).
+    const COL_BOTTOM_NORMAL = PAGE_HEIGHT - MARGIN - 10
+
+    const nextColumnOrPage = () => {
+      curCol++
+      if (curCol >= NUM_COLS) {
+        doc.addPage()
+        curCol = 0
+        curY = MARGIN
+      } else {
+        curY = CONTENT_TOP
+      }
+    }
+
+    const ensureSpace = (neededHeight: number) => {
+      if (curY + neededHeight > COL_BOTTOM_NORMAL) {
+        nextColumnOrPage()
+      }
+    }
 
     for (const country of sortedKeys) {
       const items = groups[country].sort((a, b) => {
-        // Ordena por número (BRA-1, BRA-2, ..., BRA-10)
         const numA = parseInt(a.number.split('-')[1] || '0', 10)
         const numB = parseInt(b.number.split('-')[1] || '0', 10)
         return numA - numB
       })
 
-      // Quebra de página/coluna se faltar espaço (~ 14 pontos por linha + 16 do header)
-      const blockHeight = 16 + items.length * 12 + 6
-      if (doc.y + blockHeight > 760) {
-        if (currentCol === 'L') {
-          currentCol = 'R'
-          x = colXRight
-          doc.y = 130 // reset Y pra topo da coluna direita (após header+título)
-        } else {
-          doc.addPage()
-          currentCol = 'L'
-          x = colXLeft
-          doc.y = 50
-        }
-      }
+      // Tenta manter o header do país junto com pelo menos 3 itens (evita
+      // header órfão no fim da coluna)
+      ensureSpace(COUNTRY_HEADER_HEIGHT + Math.min(3, items.length) * ROW_HEIGHT)
 
-      doc.fillColor(COLOR_GREEN).font('Helvetica-Bold').fontSize(11)
-        .text(`${country.toUpperCase()} (${items.length})`, x, doc.y, { width: colWidth })
-      doc.font('Helvetica').fontSize(9).fillColor(COLOR_GRAY)
+      // Header do país
+      doc.fillColor(COLOR_GREEN).font('Helvetica-Bold').fontSize(10)
+        .text(`${country.toUpperCase()}  (${items.length})`, colX(curCol), curY, { width: COL_WIDTH, lineBreak: false })
+      curY += COUNTRY_HEADER_HEIGHT
+
+      // Itens
+      doc.font('Helvetica').fontSize(8).fillColor(COLOR_GRAY)
       for (const s of items) {
-        const numStr = s.number.padEnd(8, ' ')
+        ensureSpace(ROW_HEIGHT)
+        // Checkbox quadradinho
+        const x = colX(curCol)
+        doc.lineWidth(0.7).strokeColor('#9CA3AF')
+          .rect(x, curY + CHECKBOX_PAD_Y, CHECKBOX_SIZE, CHECKBOX_SIZE).stroke()
+        // Número + nome (truncar se ultrapassar largura)
         const name = s.player_name || ''
         const qty = type === 'duplicates' ? userMap.get(s.id)?.quantity : null
-        const qtyTail = qty && qty > 1 ? `  (×${qty})` : ''
-        doc.text(`${numStr}${name}${qtyTail}`, x, doc.y, { width: colWidth, lineBreak: false })
+        const qtyTail = qty && qty > 1 ? `  ×${qty}` : ''
+        doc.fillColor(COLOR_GRAY).font('Helvetica').fontSize(8)
+          .text(`${s.number}  ${name}${qtyTail}`, x + CHECKBOX_SIZE + 4, curY, {
+            width: COL_WIDTH - CHECKBOX_SIZE - 4,
+            lineBreak: false,
+            ellipsis: true,
+          })
+        curY += ROW_HEIGHT
       }
-      doc.moveDown(0.5)
+
+      curY += COUNTRY_BOTTOM_PAD
     }
   }
 
-  // ── Footer com QR (sempre na última página) ──
-  // Garante espaço; se não tiver, addPage
-  if (doc.y > 600) doc.addPage()
-  // Vai pro fim da página
-  doc.y = 660
+  // ── Footer com QR (sempre na última página, paisagem) ──
+  // A4 landscape = 595 altura. Footer ocupa últimos ~95pt.
+  // Se conteúdo já chegou perto, addPage pra manter footer limpo.
+  doc.addPage()
+  const FOOTER_Y = PAGE_HEIGHT - MARGIN - 95
+  const FOOTER_HEIGHT = 95
+  const FOOTER_LEFT = MARGIN
+  const FOOTER_RIGHT = PAGE_WIDTH - MARGIN
 
   // Faixa de fundo claro
-  doc.rect(40, 660, 515, 130).fillColor('#F3F4F6').fill()
+  doc.rect(FOOTER_LEFT, FOOTER_Y, FOOTER_RIGHT - FOOTER_LEFT, FOOTER_HEIGHT)
+    .fillColor('#F3F4F6').fill()
+
+  // QR à direita (90pt) + texto à esquerda
+  const QR_SIZE = 78
+  const QR_X = FOOTER_RIGHT - QR_SIZE - 20
+  const QR_Y = FOOTER_Y + (FOOTER_HEIGHT - QR_SIZE) / 2
+  doc.image(qrBuffer, QR_X, QR_Y, { width: QR_SIZE, height: QR_SIZE })
 
   // Texto à esquerda do QR
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(12)
-    .text('Use IA pra escanear seu álbum', 60, 680, { width: 280 })
+  const TEXT_X = FOOTER_LEFT + 24
+  const TEXT_W = QR_X - TEXT_X - 16
+  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(13)
+    .text('Use IA pra escanear seu álbum', TEXT_X, FOOTER_Y + 14, { width: TEXT_W })
   doc.fillColor(COLOR_GRAY).font('Helvetica').fontSize(10)
-    .text('e descobrir trocas perto de você. Grátis pra começar.', 60, 698, { width: 280 })
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(11)
-    .text('Indique este QR code com amigos', 60, 730, { width: 280 })
-  doc.fillColor(COLOR_GREEN).font('Helvetica-Bold').fontSize(11)
-    .text('e ganhe benefícios.', 60, 745, { width: 280 })
+    .text('e descobrir trocas perto de você. Grátis pra começar.', TEXT_X, FOOTER_Y + 32, { width: TEXT_W })
+  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(12)
+    .text('Indique este QR code com amigos', TEXT_X, FOOTER_Y + 56, { width: TEXT_W, continued: true })
+  doc.fillColor(COLOR_GREEN).text(' e ganhe benefícios.', { continued: false })
   doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(9)
-    .text('completeai.com.br', 60, 770, { width: 280 })
-
-  // QR code à direita
-  doc.image(qrBuffer, 410, 670, { width: 110, height: 110 })
+    .text('completeai.com.br', TEXT_X, FOOTER_Y + 78, { width: TEXT_W })
 
   doc.end()
   await endPromise
