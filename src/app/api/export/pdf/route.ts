@@ -192,41 +192,73 @@ export async function GET(req: NextRequest) {
   const specialKeys = ['FIFA World Cup', 'Coca-Cola'].filter((k) => groups[k])
   const sortedKeys = [...countryKeys, ...specialKeys]
 
-  // Layout matriz
+  // ── TABELÃO ──
+  // Pedro 2026-05-09: estilo planilha clássica — cabeçalho numerado,
+  // bordas sólidas em todas as células, zebra striping nas seções com
+  // múltiplas fileiras.
   const NUM_COLS = 13
-  const SECTION_NAME_W = 110     // largura à esquerda pro nome da seção
-  const NAME_GAP = 6             // gap entre nome e início do grid
-  const GRID_W = PAGE_WIDTH - 2 * MARGIN - SECTION_NAME_W - NAME_GAP  // largura disponível pro grid
-  const CELL_GAP = 2
-  const CELL_W = (GRID_W - (NUM_COLS - 1) * CELL_GAP) / NUM_COLS  // ~ (842-48-110-6 - 24)/13 = ~50pt
-  const CELL_H = 16
-  const ROW_GAP = 2              // gap vertical entre fileiras de 13
-  const SECTION_GAP = 6          // padding entre seções
+  const SECTION_NAME_W = 105
+  const TABLE_W = PAGE_WIDTH - 2 * MARGIN
+  const GRID_W = TABLE_W - SECTION_NAME_W
+  const CELL_W = GRID_W / NUM_COLS  // sem gap = ~52pt
+  const CELL_H = 18
+  const HEADER_H = 16
 
   let curY = CONTENT_TOP
-  const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 10
+  const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 12
 
-  const cellX = (col: number) => MARGIN + SECTION_NAME_W + NAME_GAP + col * (CELL_W + CELL_GAP)
+  const cellX = (col: number) => MARGIN + SECTION_NAME_W + col * CELL_W
 
-  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding') => {
-    if (state === 'padding') {
-      // Cinza preenchido = "não existe figurinha aqui" (preenchimento da grade)
-      doc.rect(x, y, CELL_W, CELL_H).fillColor('#E5E7EB').fill()
-    } else if (state === 'marked') {
-      // Marcada = user tem essa figurinha
-      const fillColor = type === 'missing' ? '#D1FAE5' : '#FEF3C7'  // verde claro | âmbar claro
-      const borderColor = type === 'missing' ? COLOR_GREEN : '#F59E0B'
-      doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColor).fill()
-      doc.lineWidth(0.7).strokeColor(borderColor).rect(x, y, CELL_W, CELL_H).stroke()
-      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7)
-        .text(label, x, y + 5, { width: CELL_W, align: 'center', lineBreak: false })
-    } else {
-      // Vazia = falta (modo missing) ou só tem 1 (modo duplicates)
-      doc.lineWidth(0.5).strokeColor('#9CA3AF').rect(x, y, CELL_W, CELL_H).stroke()
-      doc.fillColor('#6B7280').font('Helvetica').fontSize(7)
-        .text(label, x, y + 5, { width: CELL_W, align: 'center', lineBreak: false })
+  // Cabeçalho da tabela (1, 2, 3... 13)
+  const drawTableHeader = (y: number) => {
+    // Fundo escuro
+    doc.rect(MARGIN, y, TABLE_W, HEADER_H).fillColor(COLOR_NAVY).fill()
+    // "Seção" à esquerda
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8)
+      .text('SEÇÃO', MARGIN + 6, y + 5, { width: SECTION_NAME_W - 10, lineBreak: false })
+    // Números 1-13
+    for (let c = 0; c < NUM_COLS; c++) {
+      const x = cellX(c)
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8)
+        .text(String(c + 1), x, y + 5, { width: CELL_W, align: 'center', lineBreak: false })
+    }
+    // Bordas verticais brancas no header (separa colunas)
+    doc.strokeColor('#FFFFFF').lineWidth(0.4)
+    for (let c = 1; c <= NUM_COLS; c++) {
+      const x = cellX(c - 1) + (c === NUM_COLS ? 0 : 0)
+      // skip — bordas serão desenhadas no corpo
     }
   }
+
+  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding') => {
+    // Background
+    if (state === 'padding') {
+      doc.rect(x, y, CELL_W, CELL_H).fillColor('#D1D5DB').fill()  // cinza médio = "não existe"
+    } else if (state === 'marked') {
+      const fillColor = type === 'missing' ? '#A7F3D0' : '#FCD34D'  // verde claro | âmbar claro
+      doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColor).fill()
+    } else {
+      doc.rect(x, y, CELL_W, CELL_H).fillColor('#FFFFFF').fill()
+    }
+    // Borda
+    doc.lineWidth(0.5).strokeColor('#374151').rect(x, y, CELL_W, CELL_H).stroke()
+    // Label
+    if (state === 'padding') {
+      // sem texto
+    } else if (state === 'marked') {
+      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
+        .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
+    } else {
+      doc.fillColor('#6B7280').font('Helvetica').fontSize(8)
+        .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
+    }
+  }
+
+  // Render header da primeira página
+  drawTableHeader(curY)
+  curY += HEADER_H
+
+  let zebra = false  // alterna fundo da célula de nome de seção
 
   for (const sectionKey of sortedKeys) {
     const items = groups[sectionKey].sort((a, b) => {
@@ -235,25 +267,40 @@ export async function GET(req: NextRequest) {
       return numA - numB
     })
 
-    // Quantas fileiras de 13 essa seção precisa?
     const numRows = Math.ceil(items.length / NUM_COLS)
-    const sectionHeight = numRows * (CELL_H + ROW_GAP) - ROW_GAP + SECTION_GAP
+    const sectionHeight = numRows * CELL_H
 
-    // Quebra de página se não cabe
+    // Quebra de página: se não cabe seção inteira + header novo, vai pra próxima
     if (curY + sectionHeight > PAGE_BOTTOM) {
       doc.addPage()
       curY = MARGIN
+      drawTableHeader(curY)
+      curY += HEADER_H
     }
 
-    // Nome da seção (à esquerda, vertical-centro com a 1ª fileira)
+    // Coluna do nome da seção (rowspan visual: ocupa todas as numRows fileiras)
+    const sectionX = MARGIN
+    const sectionY = curY
+    const sectionH = sectionHeight
+    // Background zebra
+    doc.rect(sectionX, sectionY, SECTION_NAME_W, sectionH).fillColor(zebra ? '#F3F4F6' : '#E5E7EB').fill()
+    doc.lineWidth(0.5).strokeColor('#374151').rect(sectionX, sectionY, SECTION_NAME_W, sectionH).stroke()
+    // Texto centrado
     doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(9)
-      .text(sectionKey.toUpperCase(), MARGIN, curY + 4, { width: SECTION_NAME_W - 4, lineBreak: false })
+      .text(sectionKey.toUpperCase(), sectionX + 6, sectionY + sectionH / 2 - 9, {
+        width: SECTION_NAME_W - 12,
+        lineBreak: false,
+      })
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
-      .text(`${items.length} cromos`, MARGIN, curY + 16, { width: SECTION_NAME_W - 4, lineBreak: false })
+      .text(`(${items.length})`, sectionX + 6, sectionY + sectionH / 2 + 2, {
+        width: SECTION_NAME_W - 12,
+        lineBreak: false,
+      })
+    zebra = !zebra
 
-    // Grid de células
+    // Células do grid (números 1..13 na 1ª fileira, 14..26 na 2ª, etc)
     for (let row = 0; row < numRows; row++) {
-      const y = curY + row * (CELL_H + ROW_GAP)
+      const y = curY + row * CELL_H
       for (let col = 0; col < NUM_COLS; col++) {
         const idx = row * NUM_COLS + col
         const x = cellX(col)
@@ -262,14 +309,10 @@ export async function GET(req: NextRequest) {
           const us = userMap.get(s.id)
           const isOwned = !!us && (us.status === 'owned' || us.status === 'duplicate')
           const isDuplicate = !!us && us.status === 'duplicate'
-          // Modo missing: marca quem tem (owned ou duplicate)
-          // Modo duplicates: marca apenas quem tem repetida
           const shouldMark = type === 'missing' ? isOwned : isDuplicate
-          // Label da célula = só o número (sem o prefixo do país, pra economizar espaço)
           const numPart = s.number.split('-')[1] || s.number
           drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty')
         } else {
-          // Padding cinza pras posições "fantasma" (Brasil tem 20, fica 7 padding na 2ª linha)
           drawCell(x, y, '', 'padding')
         }
       }
