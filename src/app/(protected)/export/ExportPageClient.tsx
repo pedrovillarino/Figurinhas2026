@@ -155,12 +155,17 @@ export default function ExportPageClient({
   // logo + lista + QR de indicação (link /u/{ref_code}). Se ambos checkboxes
   // estão marcados, prioriza faltantes (PDF é uma lista por arquivo — pra
   // baixar repetidas também o user clica de novo desmarcando faltantes).
-  async function handleDownloadPdf() {
+  // Pedro 2026-05-09: 2 variantes de PDF agora
+  // - 'full' (tabelão completo do álbum, com X nas que tem) — pra missing/duplicates
+  // - 'compact' (só lista das faltantes, otimizado pra 1 página) — só missing
+  async function handleDownloadPdf(variant: 'full' | 'compact' = 'full') {
     if (!hasStickersToExport) return
     const type: 'missing' | 'duplicates' = exportMissing ? 'missing' : 'duplicates'
+    // Compact só faz sentido pra missing — se tiver duplicates marcado, força full
+    const view: 'full' | 'compact' = (variant === 'compact' && type === 'missing') ? 'compact' : 'full'
     setPdfLoading(true)
     try {
-      const res = await fetch(`/api/export/pdf?type=${type}`, { credentials: 'include' })
+      const res = await fetch(`/api/export/pdf?type=${type}&view=${view}`, { credentials: 'include' })
       if (!res.ok) {
         const errText = await res.text().catch(() => '')
         alert(`Não consegui gerar o PDF agora. Tenta de novo em alguns segundos. (${res.status} ${errText.slice(0, 60)})`)
@@ -170,7 +175,10 @@ export default function ExportPageClient({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `complete-ai-${type === 'missing' ? 'faltantes' : 'repetidas'}-${new Date().toISOString().slice(0, 10)}.pdf`
+      const filenameSuffix = type === 'duplicates'
+        ? 'repetidas'
+        : view === 'compact' ? 'faltantes' : 'album'
+      a.download = `complete-ai-${filenameSuffix}-${new Date().toISOString().slice(0, 10)}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -367,22 +375,38 @@ export default function ExportPageClient({
           </div>
         </button>
 
-        {/* Pedro 2026-05-09: PDF com logo + QR de indicação. Pode baixar
-            uma das listas por vez (faltantes OU repetidas) — se tiver as
-            duas marcadas, pergunta. */}
+        {/* Pedro 2026-05-09: PDF com logo + QR de indicação. 2 variantes:
+            - Tabelão completo: visão de todo o álbum, X nas que tem
+            - Só faltantes: lista enxuta (1 página) com o que falta colar
+            Repetidas usa só o tabelão (compact não faz sentido). */}
         <button
-          onClick={() => handleDownloadPdf()}
+          onClick={() => handleDownloadPdf('full')}
           disabled={!hasStickersToExport || pdfLoading}
           className="flex items-center gap-3 w-full py-4 px-5 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98] shadow-sm"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
           <div className="text-left">
-            <span className="block">{pdfLoading ? 'Gerando PDF...' : 'Baixar PDF'}</span>
-            <span className="block text-[10px] font-normal opacity-80">Imprime ou compartilha — vem com seu QR de indicação</span>
+            <span className="block">{pdfLoading ? 'Gerando PDF...' : 'PDF — Tabelão completo'}</span>
+            <span className="block text-[10px] font-normal opacity-80">Visão do álbum inteiro com as que você tem marcadas em verde</span>
           </div>
         </button>
+        {exportMissing && (
+          <button
+            onClick={() => handleDownloadPdf('compact')}
+            disabled={!hasStickersToExport || pdfLoading}
+            className="flex items-center gap-3 w-full py-4 px-5 bg-amber-400 hover:bg-amber-500 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98] shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+            <div className="text-left">
+              <span className="block">{pdfLoading ? 'Gerando PDF...' : 'PDF — Só faltantes (enxuto)'}</span>
+              <span className="block text-[10px] font-normal opacity-80">Lista compacta só com o que falta — geralmente cabe em 1 página</span>
+            </div>
+          </button>
+        )}
       </div>
     </main>
   )
