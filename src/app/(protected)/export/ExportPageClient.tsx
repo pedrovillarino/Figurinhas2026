@@ -27,6 +27,7 @@ export default function ExportPageClient({
   const [exportDuplicates, setExportDuplicates] = useState(false)
   const [groupByCountry, setGroupByCountry] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const TOTAL = stickers.length || 1028
 
@@ -147,6 +148,38 @@ export default function ExportPageClient({
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       })
+    }
+  }
+
+  // Pedro 2026-05-09: PDF download. Endpoint server-side gera o arquivo com
+  // logo + lista + QR de indicação (link /u/{ref_code}). Se ambos checkboxes
+  // estão marcados, prioriza faltantes (PDF é uma lista por arquivo — pra
+  // baixar repetidas também o user clica de novo desmarcando faltantes).
+  async function handleDownloadPdf() {
+    if (!hasStickersToExport) return
+    const type: 'missing' | 'duplicates' = exportMissing ? 'missing' : 'duplicates'
+    setPdfLoading(true)
+    try {
+      const res = await fetch(`/api/export/pdf?type=${type}`, { credentials: 'include' })
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '')
+        alert(`Não consegui gerar o PDF agora. Tenta de novo em alguns segundos. (${res.status} ${errText.slice(0, 60)})`)
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `complete-ai-${type === 'missing' ? 'faltantes' : 'repetidas'}-${new Date().toISOString().slice(0, 10)}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('Erro ao baixar o PDF. Tenta de novo.')
+      console.error('[pdf-download]', err)
+    } finally {
+      setPdfLoading(false)
     }
   }
 
@@ -331,6 +364,23 @@ export default function ExportPageClient({
           <div className="text-left">
             <span className="block">{copied ? 'Copiado!' : 'Copiar texto'}</span>
             <span className="block text-[10px] font-normal opacity-80">Colar no bloco de notas ou qualquer app</span>
+          </div>
+        </button>
+
+        {/* Pedro 2026-05-09: PDF com logo + QR de indicação. Pode baixar
+            uma das listas por vez (faltantes OU repetidas) — se tiver as
+            duas marcadas, pergunta. */}
+        <button
+          onClick={() => handleDownloadPdf()}
+          disabled={!hasStickersToExport || pdfLoading}
+          className="flex items-center gap-3 w-full py-4 px-5 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition active:scale-[0.98] shadow-sm"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <div className="text-left">
+            <span className="block">{pdfLoading ? 'Gerando PDF...' : 'Baixar PDF'}</span>
+            <span className="block text-[10px] font-normal opacity-80">Imprime ou compartilha — vem com seu QR de indicação</span>
           </div>
         </button>
       </div>

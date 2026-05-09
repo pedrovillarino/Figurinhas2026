@@ -46,6 +46,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Pedro 2026-05-09: pdfkit precisa dos arquivos AFM (Adobe Font Metrics) +
+  // data files runtime — Vercel serverless precisa serem incluídos no
+  // bundle pra função /api/export/pdf funcionar. Sem isso o PDFDocument()
+  // joga "TypeError: Cannot read properties of undefined" ao tentar
+  // resolver Helvetica.
+  outputFileTracingIncludes: {
+    '/api/export/pdf': ['./node_modules/pdfkit/js/data/**/*'],
+  },
   async headers() {
     return [
       {

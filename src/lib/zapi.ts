@@ -23,6 +23,38 @@ export async function sendText(phone: string, message: string) {
   return res.ok
 }
 
+/**
+ * Pedro 2026-05-09: envia documento (PDF) via Z-API send-document.
+ * Aceita Buffer (será convertido pra data URL base64) ou URL pública direta.
+ * Z-API doc: POST /send-document/{extension} com body {phone, document, fileName, caption?}.
+ *   - `document` aceita "data:application/pdf;base64,<...>" OU URL HTTPS direta
+ */
+export async function sendDocument(
+  phone: string,
+  doc: { buffer: Buffer; fileName: string } | { url: string; fileName: string },
+  options: { extension?: string; caption?: string } = {},
+): Promise<boolean> {
+  const ext = (options.extension || 'pdf').toLowerCase().replace(/^\./, '')
+  const docPayload = 'buffer' in doc
+    ? `data:application/${ext};base64,${doc.buffer.toString('base64')}`
+    : doc.url
+  const res = await fetch(`${BASE_URL}/send-document/${ext}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      phone,
+      document: docPayload,
+      fileName: doc.fileName,
+      caption: options.caption,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('Z-API sendDocument error:', err)
+  }
+  return res.ok
+}
+
 export function formatPhone(raw: string): string {
   // Remove everything except digits
   return raw.replace(/\D/g, '')

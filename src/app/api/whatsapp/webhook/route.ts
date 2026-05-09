@@ -3459,6 +3459,13 @@ export async function POST(req: NextRequest) {
         intent = 'quotas'
       } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
         intent = 'status'
+      } else if (
+        // Pedro 2026-05-09: PDF de faltantes ou repetidas. Roda ANTES dos
+        // intents 'missing'/'duplicates' (que enviam lista em texto) pra que
+        // "pdf das faltantes" / "exporta repetidas em pdf" peguem o PDF.
+        /\b(pdf|exporta(r|\s+em\s+pdf)?|baixar?\s+(pdf|arquivo|lista)|gerar?\s+(pdf|arquivo))\b/i.test(lower)
+      ) {
+        intent = 'export_pdf'
       } else if (/(falt|missing|necessito|que me falta|o que falta|quais faltam)/.test(lower) && codeMatches.length === 0) {
         // "preciso/falta" sem código de sticker → lista geral. Se tem código,
         // já caiu em query_sticker acima.
@@ -3537,6 +3544,54 @@ export async function POST(req: NextRequest) {
       }
 
       switch (intent) {
+        case 'export_pdf': {
+          // Pedro 2026-05-09: gera PDF (faltantes ou repetidas) via endpoint
+          // interno e envia via Z-API send-document. Decide qual lista pelo
+          // texto do user — default é faltantes.
+          const wantsDuplicates = /\b(repet|duplic|sobr|tenho\s+repet|minhas?\s+repet)/i.test(lower)
+          const pdfType = wantsDuplicates ? 'duplicates' : 'missing'
+          const adminSecret = process.env.ADMIN_SECRET
+          if (!adminSecret) {
+            console.error('[wa-export-pdf] ADMIN_SECRET not set')
+            await sendText(phone, '⚠️ Não consegui gerar o PDF agora. Tenta de novo em alguns minutos.')
+            break
+          }
+          await sendText(phone, '📄 Gerando seu PDF...')
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
+            const res = await fetch(`${baseUrl}/api/export/pdf?type=${pdfType}&user_id=${user.id}`, {
+              headers: { 'x-admin-secret': adminSecret },
+            })
+            if (!res.ok) {
+              console.error(`[wa-export-pdf] PDF generation failed: ${res.status}`)
+              await sendText(phone, '⚠️ Tive um problema gerando seu PDF. Tenta de novo em alguns minutos. 🙏')
+              break
+            }
+            const arrayBuffer = await res.arrayBuffer()
+            const buffer = Buffer.from(arrayBuffer)
+            const fileName = `complete-ai-${pdfType === 'missing' ? 'faltantes' : 'repetidas'}.pdf`
+            const { sendDocument } = await import('@/lib/zapi')
+            const ok = await sendDocument(
+              phone,
+              { buffer, fileName },
+              {
+                extension: 'pdf',
+                caption: pdfType === 'missing'
+                  ? '📄 Sua lista de faltantes! Imprime ou compartilha com amigos. ⚽'
+                  : '📄 Sua lista de repetidas! Imprime ou compartilha com amigos pra fechar trocas. ⚽',
+              },
+            )
+            if (!ok) {
+              console.error('[wa-export-pdf] sendDocument failed')
+              await sendText(phone, '⚠️ Gerei o PDF mas não consegui enviar pelo WhatsApp agora. Tenta pelo site: ' + (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br') + '/export')
+            }
+          } catch (err) {
+            console.error('[wa-export-pdf] error:', err)
+            await sendText(phone, '⚠️ Erro ao gerar o PDF. Tenta pelo site: ' + (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br') + '/export')
+          }
+          break
+        }
+
         case 'status': {
           const stats = await safeGetUserStats(user.id, phone)
           if (!stats) return NextResponse.json({ ok: true })
