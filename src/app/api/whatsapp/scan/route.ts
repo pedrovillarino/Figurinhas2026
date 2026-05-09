@@ -211,8 +211,12 @@ dentro. SLOT FILLED tem foto/imagem do cromo real colado.
    - Country code entre parênteses ao lado do nome (ex:
      "EMILIANO MARTÍNEZ (ARG)", "LAMINE YAMAL (ESP)",
      "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
-   - Emblema FIFA World Cup 2026 estilizado no canto SUPERIOR DIREITO
-     (parece letras abstratas "CW" em branco)
+   - Emblema FIFA World Cup 2026 estilizado no canto SUPERIOR
+     ESQUERDO (parece letras/glifo abstrato em branco). O emblema
+     pode APARECER em outro canto se o user fotografou o cromo
+     rotacionado — oriente mentalmente pro nome do jogador ler de
+     cima pra baixo na BORDA ESQUERDA; isso coloca o emblema FIFA
+     no top-left.
    - SEM logo da Coca-Cola no cromo
    - SEM "PANINI" badge
    - SEM badge vermelho "EXTRA STICKER"
