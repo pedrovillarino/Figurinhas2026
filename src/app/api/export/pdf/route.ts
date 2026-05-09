@@ -45,13 +45,21 @@ export async function GET(req: NextRequest) {
   }
   const type = typeParam as 'missing' | 'duplicates'
 
-  // Auth: tenta x-admin-secret + user_id primeiro (bot path), senão cookie session
+  // Auth: aceita 3 caminhos
+  //   1) x-admin-secret: header (chamadas admin manuais)
+  //   2) Authorization: Bearer ${CRON_SECRET} (chamadas server-side
+  //      internas — bot WhatsApp usa isso)
+  //   3) Cookie session (usuário logado no site)
+  // Se for via secret (1 ou 2), é OBRIGATÓRIO passar ?user_id=
   let userId: string | null = null
   const adminSecret = req.headers.get('x-admin-secret')
-  if (adminSecret && process.env.ADMIN_SECRET && adminSecret === process.env.ADMIN_SECRET) {
+  const authHeader = req.headers.get('authorization')
+  const validAdmin = !!(adminSecret && process.env.ADMIN_SECRET && adminSecret === process.env.ADMIN_SECRET)
+  const validCron = !!(authHeader && process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`)
+  if (validAdmin || validCron) {
     userId = url.searchParams.get('user_id')
     if (!userId) {
-      return NextResponse.json({ error: 'user_id required when using admin secret' }, { status: 400 })
+      return NextResponse.json({ error: 'user_id required when using secret auth' }, { status: 400 })
     }
   } else {
     const supabase = await createServerClient()

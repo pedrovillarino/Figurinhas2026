@@ -3550,9 +3550,11 @@ export async function POST(req: NextRequest) {
           // texto do user — default é faltantes.
           const wantsDuplicates = /\b(repet|duplic|sobr|tenho\s+repet|minhas?\s+repet)/i.test(lower)
           const pdfType = wantsDuplicates ? 'duplicates' : 'missing'
-          const adminSecret = process.env.ADMIN_SECRET
-          if (!adminSecret) {
-            console.error('[wa-export-pdf] ADMIN_SECRET not set')
+          // Usa CRON_SECRET (chamada server-side interna). Endpoint aceita
+          // Bearer ${CRON_SECRET} ou x-admin-secret. Fallback: ADMIN_SECRET.
+          const internalSecret = process.env.CRON_SECRET || process.env.ADMIN_SECRET
+          if (!internalSecret) {
+            console.error('[wa-export-pdf] no internal secret available')
             await sendText(phone, '⚠️ Não consegui gerar o PDF agora. Tenta de novo em alguns minutos.')
             break
           }
@@ -3560,7 +3562,9 @@ export async function POST(req: NextRequest) {
           try {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
             const res = await fetch(`${baseUrl}/api/export/pdf?type=${pdfType}&user_id=${user.id}`, {
-              headers: { 'x-admin-secret': adminSecret },
+              headers: process.env.CRON_SECRET
+                ? { 'Authorization': `Bearer ${internalSecret}` }
+                : { 'x-admin-secret': internalSecret },
             })
             if (!res.ok) {
               console.error(`[wa-export-pdf] PDF generation failed: ${res.status}`)
