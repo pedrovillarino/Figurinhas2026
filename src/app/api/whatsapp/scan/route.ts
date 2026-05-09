@@ -208,15 +208,23 @@ dentro. SLOT FILLED tem foto/imagem do cromo real colado.
      branco/cores do time como nos cromos normais de seleção)
    - Nome do jogador impresso VERTICALMENTE na BORDA ESQUERDA, em
      letras BRANCAS MAIÚSCULAS GRANDES
-   - Country code entre parênteses ao lado do nome (ex: "LAMINE YAMAL
-     (ESP)", "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
-   - Logo FIFA pequeno top-left
+   - Country code entre parênteses ao lado do nome (ex:
+     "EMILIANO MARTÍNEZ (ARG)", "LAMINE YAMAL (ESP)",
+     "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
+   - Emblema FIFA World Cup 2026 estilizado no canto SUPERIOR DIREITO
+     (parece letras abstratas "CW" em branco)
    - SEM logo da Coca-Cola no cromo
    - SEM "PANINI" badge
    - SEM badge vermelho "EXTRA STICKER"
-   Essas 4 pistas JUNTAS identificam um cromo Coca-Cola. A pista
-   única mais distintiva é o NOME VERTICAL na borda esquerda — nenhum
-   outro tipo de cromo tem esse layout.
+   Essas pistas JUNTAS identificam um cromo Coca-Cola. A pista
+   ÚNICA MAIS DISTINTIVA é o NOME VERTICAL na borda esquerda com o
+   country code em parênteses — NENHUM outro tipo de cromo tem esse
+   layout.
+
+   ⚠️ O número da CAMISA do jogador (ex: "23" na camisa do Emiliano
+   Martínez, "22" do Lautaro) faz parte da foto, NÃO é o número da
+   figurinha. Pra cromos Coca-Cola, number fica "" — defina country
+   = "Coca" e leia o player_name normalmente.
 
    - 14 SLOTS distribuídos em 2 páginas (CC1-6 numa, CC7-14 noutra).
    - Slot vazio: retângulo branco com label "CC1", "CC2", etc.
