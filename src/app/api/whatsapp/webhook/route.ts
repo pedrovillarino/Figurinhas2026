@@ -3102,6 +3102,14 @@ export async function POST(req: NextRequest) {
       } else if (/[a-z]{2,5}[\s\-]?\d{1,2}/i.test(text) && codeMatches.length >= 1) {
         // Looks like sticker codes: "BRA-1 ARG-3" or "bra 1, arg 3" or "BRA1"
         intent = 'register'
+      } else if (/^\s*(?:coca(?:[-\s]?cola)?|cc)[\s:.,]+[a-záéíóúâêôãõàçñ]{2,}/i.test(text)) {
+        // Pedro 2026-05-09 (caso Bruno +55 65 99947-4017): user mandou
+        // "Coca Yamal, Coca Davies, Coca Martínez" exatamente como o bot
+        // ensinou. Mas como Coca-Cola não tem CÓDIGO NUMÉRICO visível,
+        // codeMatches=0 e caía em help/unknown. Agora detectamos o padrão
+        // "Coca <nome>" no início da mensagem e roteamos pra register —
+        // que já tem fuzzy match por nome (linha ~3744 do case 'register').
+        intent = 'register'
       } else if (/\b(oi|olá|ola|hey|hi|help|ajuda|menu|início|inicio|como|faq|perguntas?|dúvidas?|planos?|preços?|quanto custa|sugest|ideia|feedback|bug|problema|reclam|melhoria)\b/.test(lower)) {
         intent = 'help'
       } else {
