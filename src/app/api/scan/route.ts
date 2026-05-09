@@ -68,8 +68,36 @@ function fewShotPreludeText(label: FewShotLabel): string {
   }
 }
 
-function buildSystemInstruction(validCodes: string[]): string {
-  return `You identify Panini FIFA World Cup 2026 stickers in photos. Output JSON only.
+function buildSystemInstruction(
+  validCodes: string[],
+  badgeHints: Array<{ number: string; country: string; visual_hint: string }> = [],
+): string {
+  // Pedro 2026-05-08: tabela compacta de hints visuais pra badges.
+  // Adicionada quando há hints disponíveis (visual_hint preenchido no DB).
+  // Cobertura atual: ~42 dos 48 países (extraído via Gemini Vision do PDF
+  // Panini). Pra países sem hint, scanner usa heurística geral baseada em
+  // bandeira / cores nacionais.
+  const badgeTable = badgeHints.length > 0
+    ? `
+
+═══════════════════════════════════════════════════════════════════════
+🏅 QUICK BADGE IDENTIFICATION TABLE
+
+Use this table ONLY when the sticker is a BADGE (single shield/crest, no
+player photo, code ends in -1 like BRA-1 / ARG-1). Match the visual cues
+below to confirm the country code:
+
+${badgeHints.map(h => `• ${h.number} (${h.country}): ${h.visual_hint}`).join('\n')}
+
+If a badge clearly matches one of the descriptions above, register that
+exact code with high confidence. If it doesn't match any (e.g. country
+not listed), fall back to general flag/colors heuristic but lower
+confidence to ≤ 0.6 so the user can confirm.
+═══════════════════════════════════════════════════════════════════════
+`
+    : ''
+
+  return `You identify Panini FIFA World Cup 2026 stickers in photos. Output JSON only.${badgeTable}
 
 ═══════════════════════════════════════════════════════════════════════
 🧭 FIRST DECISION: WHAT TYPE OF PAGE IS THIS PHOTO?
@@ -394,7 +422,7 @@ If the image is not stickers: {"error": "not_album_page", "message": "..."}`
 }
 
 // ── Module-level sticker cache (avoids loading 670+ stickers from DB on every scan) ──
-type CachedSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string }
+type CachedSticker = { id: number; number: string; player_name: string; country: string; section: string; type: string; visual_hint?: string | null }
 type ExtraTier = 'ouro' | 'prata' | 'bronze' | 'regular'
 let stickerCache: {
   data: CachedSticker[]
@@ -411,6 +439,9 @@ let stickerCache: {
   // country) would collide with normal matching, so they live in their own map.
   cocaColaByPlayer: Map<string, CachedSticker>
   validCodes: string[]
+  // Pedro 2026-05-08: badge hints (visual_hint preenchido) usados pra
+  // desambiguação de escudos/símbolos no prompt do Gemini.
+  badgeHints: Array<{ number: string; country: string; visual_hint: string }>
   loadedAt: number
 } | null = null
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
@@ -421,10 +452,11 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
     return stickerCache
   }
 
-  // Fetch in pages to avoid Supabase 1000-row default limit
+  // Fetch in pages to avoid Supabase 1000-row default limit.
+  // Pedro 2026-05-08: visual_hint pra desambiguação de badges no prompt.
   const [page1, page2] = await Promise.all([
-    supabaseAdmin.from('stickers').select('id, number, player_name, country, section, type').range(0, 999),
-    supabaseAdmin.from('stickers').select('id, number, player_name, country, section, type').range(1000, 1999),
+    supabaseAdmin.from('stickers').select('id, number, player_name, country, section, type, visual_hint').range(0, 999),
+    supabaseAdmin.from('stickers').select('id, number, player_name, country, section, type, visual_hint').range(1000, 1999),
   ])
 
   const dbError = page1.error || page2.error
@@ -509,7 +541,12 @@ async function getStickersWithCache(supabaseAdmin: any): Promise<typeof stickerC
       .map((s) => s.number.split('-')[0].toUpperCase())
   ))
 
-  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, extrasByPlayer, extrasNames, cocaColaByPlayer, validCodes, loadedAt: Date.now() }
+  // Badge hints: só badges com visual_hint preenchido (Pedro 2026-05-08).
+  const badgeHints = stickers
+    .filter((s) => s.type === 'badge' && s.visual_hint)
+    .map((s) => ({ number: s.number, country: s.country, visual_hint: s.visual_hint as string }))
+
+  stickerCache = { data: stickers, numberMap, nameByCountry, nameFlat, extrasByPlayer, extrasNames, cocaColaByPlayer, validCodes, badgeHints, loadedAt: Date.now() }
   console.log(`[scan] Cached ${allDbStickers.length} stickers (TTL: 1h)`)
   return stickerCache
 }
@@ -742,7 +779,7 @@ export async function POST(request: NextRequest) {
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
-          systemInstruction: buildSystemInstruction(cached!.validCodes),
+          systemInstruction: buildSystemInstruction(cached!.validCodes, cached!.badgeHints),
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',

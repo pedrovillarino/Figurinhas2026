@@ -568,6 +568,7 @@ export default function ScanHub({
           <ul className="text-[11px] text-gray-700 leading-relaxed space-y-1">
             <li>• <strong className="text-red-700">NITIDEZ é tudo</strong> — nome ou número precisam estar legíveis</li>
             <li>• Até <strong>10 cromos por foto</strong>; acima disso a IA erra mais</li>
+            <li>• Pra <strong>quantidade maior</strong>: <strong className="text-emerald-700">vire as figurinhas mostrando o verso</strong> (com o código). Confira que tá nítido e dá pra ler todos os códigos antes de mandar.</li>
             <li>• <strong className="text-emerald-700">Verso também funciona</strong> — basta a pílula <code>PAÍS N</code> aparecer (vale figs sobrepostas)</li>
             <li>• Pra <strong>figs brilhantes/foil</strong> (badges, taça): verso costuma ler melhor</li>
           </ul>

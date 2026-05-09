@@ -18,7 +18,31 @@ function getAdmin() {
   )
 }
 
-const SCAN_INSTRUCTION = `Você identifica figurinhas Panini Copa do Mundo 2026. Retorne JSON apenas.
+// Pedro 2026-05-08: badge hints (visual_hint do DB) injetados no prompt
+// pra ajudar Gemini a desambiguar escudos/símbolos. Função em vez de
+// const pra permitir interpolação.
+function buildScanInstruction(
+  badgeHints: Array<{ number: string; country: string; visual_hint: string }> = [],
+): string {
+  const badgeTable = badgeHints.length > 0
+    ? `
+
+═══════════════════════════════════════════════════════════════════════
+🏅 TABELA RÁPIDA DE IDENTIFICAÇÃO DE ESCUDOS
+
+Use SOMENTE quando a figurinha for um BADGE (escudo/emblema isolado, sem
+foto de jogador, código termina em -1 tipo BRA-1 / ARG-1). Compare as
+pistas visuais abaixo pra confirmar o country code:
+
+${badgeHints.map(h => `• ${h.number} (${h.country}): ${h.visual_hint}`).join('\n')}
+
+Se um badge bate com uma das descrições acima, registre o código exato
+com confiança alta. Se não bate (país não listado), use heurística geral
+de bandeira/cores e baixe a confiança pra ≤ 0.6 pra user confirmar.
+═══════════════════════════════════════════════════════════════════════
+`
+    : ''
+  return `Você identifica figurinhas Panini Copa do Mundo 2026. Retorne JSON apenas.${badgeTable}
 
 ═══════════════════════════════════════════════════════════════════════
 🧭 PRIMEIRA DECISÃO: QUE TIPO DE PÁGINA É A FOTO?
@@ -337,6 +361,7 @@ Retorne JSON:
     {"player_name": "Lamine Yamal", "country": "Coca", "status": "filled", "confidence": 0.92}
   ]
 }`
+}
 
 // ── Matching helpers (same logic as /api/scan) ──
 
@@ -347,7 +372,7 @@ function normalizeName(name: string): string {
     .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
 }
 
-type DbSticker = { id: number; number: string; player_name: string; country: string; type: string; section?: string }
+type DbSticker = { id: number; number: string; player_name: string; country: string; type: string; section?: string; visual_hint?: string | null }
 type ExtraTier = 'ouro' | 'prata' | 'bronze' | 'regular'
 
 function fuzzyNameMatch(normTarget: string, stickers: DbSticker[]): DbSticker | null {
@@ -411,6 +436,8 @@ let waCache: {
   extrasByPlayer: Map<string, Map<ExtraTier, DbSticker>>
   // Coca-Cola: 14 stickers, share player names with country sections.
   cocaColaByPlayer: Map<string, DbSticker>
+  // Pedro 2026-05-08: badge hints pra desambiguação de escudos no prompt.
+  badgeHints: Array<{ number: string; country: string; visual_hint: string }>
   at: number
 } | null = null
 const WA_CACHE_TTL = 60 * 60 * 1000
@@ -420,8 +447,8 @@ async function getWaCache(db: any) {
   if (waCache && Date.now() - waCache.at < WA_CACHE_TTL) return waCache
   // Fetch in pages to avoid Supabase 1000-row default limit
   const [p1, p2] = await Promise.all([
-    db.from('stickers').select('id, number, player_name, country, type, section').range(0, 999),
-    db.from('stickers').select('id, number, player_name, country, type, section').range(1000, 1999),
+    db.from('stickers').select('id, number, player_name, country, type, section, visual_hint').range(0, 999),
+    db.from('stickers').select('id, number, player_name, country, type, section, visual_hint').range(1000, 1999),
   ])
   const data = [...(p1.data || []), ...(p2.data || [])]
   if (!data || data.length === 0) return null
@@ -456,7 +483,11 @@ async function getWaCache(db: any) {
     if (!byCountry.has(code)) byCountry.set(code, [])
     byCountry.get(code)!.push(s)
   }
-  waCache = { stickers, byNumber, byCountry, extrasByPlayer, cocaColaByPlayer, at: Date.now() }
+  // Badge hints: só badges com visual_hint preenchido (Pedro 2026-05-08).
+  const badgeHints = stickers
+    .filter((s) => s.type === 'badge' && s.visual_hint)
+    .map((s) => ({ number: s.number, country: s.country, visual_hint: s.visual_hint as string }))
+  waCache = { stickers, byNumber, byCountry, extrasByPlayer, cocaColaByPlayer, badgeHints, at: Date.now() }
   console.log(`[WhatsApp scan] Cached ${stickers.length} stickers (${extrasByPlayer.size} extras players, ${cocaColaByPlayer.size} coca-cola)`)
   return waCache
 }
@@ -666,7 +697,7 @@ export async function POST(req: NextRequest) {
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
-          systemInstruction: SCAN_INSTRUCTION,
+          systemInstruction: buildScanInstruction(cache?.badgeHints ?? []),
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json',
