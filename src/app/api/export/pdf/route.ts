@@ -139,25 +139,13 @@ export async function GET(req: NextRequest) {
   const PAGE_WIDTH = 842
   const PAGE_HEIGHT = 595
   const MARGIN = 24
-  const HEADER_BOTTOM = 78       // y onde acaba o header
-  const TITLE_BOTTOM = 112       // y onde acaba o bloco do título
-  const CONTENT_TOP = TITLE_BOTTOM + 6
+  const HEADER_H = 60            // header único compacto
+  const HEADER_BOTTOM = MARGIN + HEADER_H
+  const CONTENT_TOP = HEADER_BOTTOM + 6
 
-  // ── Header ──
-  if (hasIcon) {
-    doc.image(iconPath, MARGIN, 28, { width: 30 })
-  }
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(18).text('Complete', MARGIN + 40, 32, { continued: true })
-  doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
-  doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(8).text('Álbum FIFA World Cup 2026 com IA', MARGIN + 40, 56)
-
-  // Linha separadora
-  doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
-    .strokeColor('#E5E7EB').lineWidth(1).stroke()
-
-  // ── Título ──
-  // Pedro 2026-05-09: layout matriz — TODAS figurinhas em grid de 13 colunas,
-  // 1+ linhas por seção. Marcadas as que o user já tem.
+  // ── Título / subtítulo ──
+  // Pedro 2026-05-09: layout matriz — TODAS figurinhas em grid de 20 colunas,
+  // 1 linha por seção. Marcadas as que o user já tem.
   // Modo 'missing': marca verde = tem (vazias = falta colar)
   // Modo 'duplicates': marca âmbar = tem repetida (vazias = não pode trocar)
   const titleStr = type === 'missing'
@@ -166,10 +154,45 @@ export async function GET(req: NextRequest) {
   const subtitleStr = type === 'missing'
     ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em verde = já tem · vazio = falta colar`
     : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em âmbar = você tem repetida pra trocar`
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(15)
-    .text(titleStr, MARGIN, HEADER_BOTTOM + 6)
-  doc.font('Helvetica').fontSize(9).fillColor(COLOR_GRAY_LIGHT)
-    .text(subtitleStr, MARGIN, HEADER_BOTTOM + 26)
+
+  // ── Page header (logo + título + QR) — repetido em TODAS as páginas ──
+  // Pedro 2026-05-09: economiza espaço (footer separado some). QR em
+  // toda página → user pode imprimir qualquer página solta e ainda ter
+  // o link de indicação visível.
+  const drawPageHeader = () => {
+    const yTop = MARGIN
+    // Logo + nome
+    if (hasIcon) {
+      doc.image(iconPath, MARGIN, yTop, { width: 30 })
+    }
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(16)
+      .text('Complete', MARGIN + 38, yTop + 4, { continued: true })
+    doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
+      .text('Álbum FIFA WC 2026 com IA', MARGIN + 38, yTop + 26)
+
+    // Título no centro
+    const centerX = (PAGE_WIDTH - 100) / 2  // -100 pra balancear visualmente com QR à direita
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(14)
+      .text(titleStr, centerX - 100, yTop + 6, { width: 360, align: 'center', lineBreak: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(8)
+      .text(subtitleStr, centerX - 140, yTop + 28, { width: 440, align: 'center', lineBreak: false })
+
+    // QR à direita + texto curto
+    const qrSize = 50
+    const qrX = PAGE_WIDTH - MARGIN - qrSize
+    doc.image(qrBuffer, qrX, yTop, { width: qrSize, height: qrSize })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica-Bold').fontSize(6.5)
+      .text('Indique e ganhe', qrX - 4, yTop + 12, { width: qrSize + 8, align: 'right', lineBreak: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6)
+      .text('completeai.com.br', qrX - 4, yTop + 38, { width: qrSize + 8, align: 'right', lineBreak: false })
+
+    // Linha separadora
+    doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
+      .strokeColor('#E5E7EB').lineWidth(0.8).stroke()
+  }
+
+  drawPageHeader()
 
   // ── Layout matriz: 13 colunas fixas, linha = seção ──
   // Sem PANINI Extras (Pedro 2026-05-09).
@@ -203,7 +226,7 @@ export async function GET(req: NextRequest) {
   const GRID_W = TABLE_W - SECTION_NAME_W
   const CELL_W = GRID_W / NUM_COLS  // ~34pt em landscape
   const CELL_H = 18
-  const HEADER_H = 16
+  const TABLE_HEADER_H = 16
 
   let curY = CONTENT_TOP
   const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 12
@@ -213,7 +236,7 @@ export async function GET(req: NextRequest) {
   // Cabeçalho da tabela (1, 2, 3... 13)
   const drawTableHeader = (y: number) => {
     // Fundo escuro
-    doc.rect(MARGIN, y, TABLE_W, HEADER_H).fillColor(COLOR_NAVY).fill()
+    doc.rect(MARGIN, y, TABLE_W, TABLE_HEADER_H).fillColor(COLOR_NAVY).fill()
     // "Seção" à esquerda
     doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8)
       .text('SEÇÃO', MARGIN + 6, y + 5, { width: SECTION_NAME_W - 10, lineBreak: false })
@@ -264,7 +287,7 @@ export async function GET(req: NextRequest) {
 
   // Render header da primeira página
   drawTableHeader(curY)
-  curY += HEADER_H
+  curY += TABLE_HEADER_H
 
   let zebra = false  // alterna fundo da célula de nome de seção
 
@@ -278,12 +301,13 @@ export async function GET(req: NextRequest) {
     const numRows = Math.ceil(items.length / NUM_COLS)
     const sectionHeight = numRows * CELL_H
 
-    // Quebra de página: se não cabe seção inteira + header novo, vai pra próxima
+    // Quebra de página: se não cabe seção inteira + page header + table header, vai pra próxima
     if (curY + sectionHeight > PAGE_BOTTOM) {
       doc.addPage()
-      curY = MARGIN
+      drawPageHeader()
+      curY = CONTENT_TOP
       drawTableHeader(curY)
-      curY += HEADER_H
+      curY += TABLE_HEADER_H
     }
 
     // Coluna do nome da seção (rowspan visual: ocupa todas as numRows fileiras)
@@ -329,37 +353,9 @@ export async function GET(req: NextRequest) {
     curY += sectionHeight
   }
 
-  // ── Footer com QR (sempre na última página, paisagem) ──
-  // A4 landscape = 595 altura. Footer ocupa últimos ~95pt.
-  // Se conteúdo já chegou perto, addPage pra manter footer limpo.
-  doc.addPage()
-  const FOOTER_Y = PAGE_HEIGHT - MARGIN - 95
-  const FOOTER_HEIGHT = 95
-  const FOOTER_LEFT = MARGIN
-  const FOOTER_RIGHT = PAGE_WIDTH - MARGIN
-
-  // Faixa de fundo claro
-  doc.rect(FOOTER_LEFT, FOOTER_Y, FOOTER_RIGHT - FOOTER_LEFT, FOOTER_HEIGHT)
-    .fillColor('#F3F4F6').fill()
-
-  // QR à direita (90pt) + texto à esquerda
-  const QR_SIZE = 78
-  const QR_X = FOOTER_RIGHT - QR_SIZE - 20
-  const QR_Y = FOOTER_Y + (FOOTER_HEIGHT - QR_SIZE) / 2
-  doc.image(qrBuffer, QR_X, QR_Y, { width: QR_SIZE, height: QR_SIZE })
-
-  // Texto à esquerda do QR
-  const TEXT_X = FOOTER_LEFT + 24
-  const TEXT_W = QR_X - TEXT_X - 16
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(13)
-    .text('Use IA pra escanear seu álbum', TEXT_X, FOOTER_Y + 14, { width: TEXT_W })
-  doc.fillColor(COLOR_GRAY).font('Helvetica').fontSize(10)
-    .text('e descobrir trocas perto de você. Grátis pra começar.', TEXT_X, FOOTER_Y + 32, { width: TEXT_W })
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(12)
-    .text('Indique este QR code com amigos', TEXT_X, FOOTER_Y + 56, { width: TEXT_W, continued: true })
-  doc.fillColor(COLOR_GREEN).text(' e ganhe benefícios.', { continued: false })
-  doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(9)
-    .text('completeai.com.br', TEXT_X, FOOTER_Y + 78, { width: TEXT_W })
+  // Pedro 2026-05-09: footer dedicado removido — QR de indicação agora
+  // aparece no header de TODAS as páginas (drawPageHeader). Economiza
+  // 1 página inteira e cada folha impressa fica auto-suficiente.
 
   doc.end()
   await endPromise
