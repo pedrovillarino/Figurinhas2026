@@ -1403,9 +1403,25 @@ async function batchSaveStickers(supabase: any, userId: string, stickers: { stic
     }
   }
 
+  // Pedro 2026-05-09 (caso Cintia): captura errors do insert/upsert
+  // (antes silenciosos — `saved` retornava N mesmo se zero salvou).
+  // Caso Cintia: 9 CZE confirmadas mas não registradas. Sem logs era
+  // impossível diagnosticar.
+  let actualSaved = 0
+  let savedFailedReason: string | null = null
+
   // 3. Batch insert new stickers (single query)
   if (toInsert.length > 0) {
-    await supabase.from('user_stickers').insert(toInsert)
+    const { error: insertErr, data: insertData } = await supabase
+      .from('user_stickers')
+      .insert(toInsert)
+      .select('sticker_id')
+    if (insertErr) {
+      savedFailedReason = `insert error: ${insertErr.message}`
+      console.error(`[batchSaveStickers] insert FAILED for user ${userId}:`, insertErr.message, `attempted=${toInsert.length}`)
+    } else {
+      actualSaved += (insertData?.length ?? toInsert.length)
+    }
   }
 
   // 4. Batch update existing stickers (upsert with onConflict)
@@ -1417,10 +1433,27 @@ async function batchSaveStickers(supabase: any, userId: string, stickers: { stic
       quantity: u.quantity,
       updated_at: now,
     }))
-    await supabase.from('user_stickers').upsert(upsertData, { onConflict: 'user_id,sticker_id' })
+    const { error: upsertErr, data: upsertResult } = await supabase
+      .from('user_stickers')
+      .upsert(upsertData, { onConflict: 'user_id,sticker_id' })
+      .select('sticker_id')
+    if (upsertErr) {
+      savedFailedReason = (savedFailedReason ? savedFailedReason + ' | ' : '') + `upsert error: ${upsertErr.message}`
+      console.error(`[batchSaveStickers] upsert FAILED for user ${userId}:`, upsertErr.message, `attempted=${toUpdate.length}`)
+    } else {
+      actualSaved += (upsertResult?.length ?? toUpdate.length)
+    }
   }
 
-  return { saved: toInsert.length + toUpdate.length, numbers: savedNumbers }
+  if (savedFailedReason) {
+    console.error(
+      `[batchSaveStickers] SAVE PARTIAL/FAILED user=${userId} ` +
+      `attempted=${toInsert.length + toUpdate.length} actual_saved=${actualSaved} ` +
+      `reason="${savedFailedReason}"`
+    )
+  }
+
+  return { saved: actualSaved, numbers: savedNumbers }
 }
 
 // ─── Download image from Z-API URL ───
@@ -2688,17 +2721,36 @@ export async function POST(req: NextRequest) {
         /^(pode|p[oô]e|colocar|registrar|salvar)\s+(tudo|todas|todos)\b/i.test(lower.trim())
       if (isYesConfirm) {
         const supabaseAdmin = getAdmin()
-        const { data: allPending } = await supabaseAdmin
+        const { data: allPending, error: pendingErr } = await supabaseAdmin
           .from('pending_scans')
           .select('id, user_id, scan_data, source, expires_at, created_at')
           .eq('user_id', user.id)
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true })
 
+        // Pedro 2026-05-09 (caso Cintia): instrumentação detalhada pra
+        // diagnosticar próximo caso de "Sim" sem registro. Antes era cego.
+        if (pendingErr) {
+          console.error(`[wa-confirm] pending_scans query error user=${user.id}:`, pendingErr.message)
+        }
+        const totalItems = (allPending || []).reduce((acc, p) => {
+          const sd = p.scan_data as Array<unknown> | null
+          return acc + (Array.isArray(sd) ? sd.length : 0)
+        }, 0)
+        console.log(
+          `[wa-confirm] user=${user.id} found ${allPending?.length ?? 0} pending(s), ` +
+          `total items=${totalItems}, ` +
+          `pending_ids=[${(allPending || []).map(p => p.id).join(',')}]`
+        )
+
         if (allPending && allPending.length > 0) {
           // Pedro 2026-05-05: separa pendings de REGISTRO vs REMOÇÃO
           const removePendings = allPending.filter((p: { source: string | null }) => p.source === 'remove_text')
           const registerPendings = allPending.filter((p: { source: string | null }) => p.source !== 'remove_text')
+          console.log(
+            `[wa-confirm] user=${user.id} register_pendings=${registerPendings.length} ` +
+            `remove_pendings=${removePendings.length}`
+          )
 
           // ── Processa REMOÇÕES ──
           let removedCount = 0
@@ -2738,6 +2790,10 @@ export async function POST(req: NextRequest) {
               }
             }
             mergedStickers = Array.from(allStickers.values())
+            console.log(
+              `[wa-confirm] user=${user.id} merging ${registerPendings.length} pendings → ` +
+              `${mergedStickers.length} unique stickers (numbers: ${mergedStickers.slice(0, 20).map(s => s.number).join(',')})`
+            )
             const result = await batchSaveStickers(
               supabaseAdmin,
               user.id,
@@ -2745,6 +2801,10 @@ export async function POST(req: NextRequest) {
             )
             saved = result.saved
             savedNumbers.push(...result.numbers)
+            console.log(
+              `[wa-confirm] user=${user.id} batchSaveStickers attempted=${mergedStickers.length} actual_saved=${saved}` +
+              (saved < mergedStickers.length ? ` ⚠️ MISMATCH (${mergedStickers.length - saved} faltaram)` : ' ✅')
+            )
 
             // Enfileira match_candidates (pro cron horário notificar pessoas perto)
             ;(async () => {
@@ -2764,11 +2824,20 @@ export async function POST(req: NextRequest) {
 
           const stats = await getUserStats(user.id)
 
-          // Monta resposta — pode ter registro, remoção, ou ambos
+          // Monta resposta — pode ter registro, remoção, ou ambos.
+          // Pedro 2026-05-09 (caso Cintia): se houve MISMATCH (atemptado >
+          // actual_saved), avisa o user em vez de mentir. Nunca mais
+          // "9 registradas" quando 0 salvou de fato.
+          const attempted = mergedStickers.length
+          const hadMismatch = attempted > 0 && saved < attempted
           let reply = ''
           if (saved > 0) {
             reply += `✅ *${saved} figurinha(s) registrada(s)!*\n`
             reply += savedNumbers.map((n) => `• ${n}`).join('\n') + '\n\n'
+          }
+          if (hadMismatch) {
+            const missed = attempted - saved
+            reply += `⚠️ *${missed} figurinha(s) não foram salvas* por um erro técnico. Já anotamos pro time olhar — pode tentar mandar de novo em alguns minutos. 🙏\n\n`
           }
           if (removedCount > 0) {
             reply += `🗑️ *${removedCount} figurinha(s) removida(s) do álbum:*\n`
