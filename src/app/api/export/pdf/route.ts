@@ -94,27 +94,49 @@ export async function GET(req: NextRequest) {
   // 2) Stickers + user_stickers — TUDO (counts_for_completion=true) + Coca-Cola.
   // Pedro 2026-05-09: PANINI Extras (variant=gold/silver/bronze/regular) NÃO
   // entra no PDF. Mas Coca-Cola entra (linha própria).
-  const [{ data: allStickers }, { data: userStickers }] = await Promise.all([
+  // Pedro 2026-05-09 (bug 237 vs 315): supabase REST com .or() em produção
+  // estava retornando lista incompleta (Vercel issue?). Adicionado .range
+  // explícito + log do count pra detectar.
+  const [{ data: allStickers, error: allErr }, { data: userStickers, error: userErr }] = await Promise.all([
     admin.from('stickers')
       .select('id, number, player_name, country, section, type, variant')
-      .or('counts_for_completion.eq.true,section.eq.Coca-Cola'),
-    admin.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', userId),
+      .or('counts_for_completion.eq.true,section.eq.Coca-Cola')
+      .range(0, 1999),
+    admin.from('user_stickers')
+      .select('sticker_id, status, quantity')
+      .eq('user_id', userId)
+      .range(0, 1999),
   ])
+  if (allErr) console.error(`[pdf-export] stickers query error:`, allErr.message)
+  if (userErr) console.error(`[pdf-export] user_stickers query error:`, userErr.message)
+
   const userMap = new Map<number, { status: string; quantity: number }>()
   ;(userStickers || []).forEach((us) => userMap.set((us as { sticker_id: number }).sticker_id, us as { status: string; quantity: number }))
 
   type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null }
   const allList: Sticker[] = (allStickers || []) as Sticker[]
 
-  // Conta stats pra exibir no título (info pro user)
-  const countOwned = allList.filter((s) => {
-    const us = userMap.get(s.id)
-    return us && (us.status === 'owned' || us.status === 'duplicate')
-  }).length
-  const countDuplicates = allList.filter((s) => {
-    const us = userMap.get(s.id)
-    return us && us.status === 'duplicate'
-  }).length
+  // Conta stats pra exibir no título — usa count exato direto do DB pra
+  // evitar dependência de paginação implícita do REST.
+  const { count: countOwnedExact } = await admin
+    .from('user_stickers')
+    .select('sticker_id, stickers!inner(counts_for_completion,section)', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .in('status', ['owned', 'duplicate'])
+    .or('counts_for_completion.eq.true,section.eq.Coca-Cola', { foreignTable: 'stickers' })
+  const { count: countDuplicatesExact } = await admin
+    .from('user_stickers')
+    .select('sticker_id, stickers!inner(counts_for_completion,section)', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'duplicate')
+    .or('counts_for_completion.eq.true,section.eq.Coca-Cola', { foreignTable: 'stickers' })
+  const countOwned = countOwnedExact ?? 0
+  const countDuplicates = countDuplicatesExact ?? 0
+  console.log(
+    `[pdf-export] user=${userId} type=${type} view=${view} ` +
+    `allStickers=${allList.length} userStickers=${userStickers?.length ?? 0} ` +
+    `countOwned=${countOwned} countDuplicates=${countDuplicates}`,
+  )
 
   // 3) QR code (data URL → PNG buffer pra embedar no PDF)
   const qrUrl = refCode ? `${APP_URL}/u/${refCode}` : `${APP_URL}/register`
@@ -145,7 +167,7 @@ export async function GET(req: NextRequest) {
   const PAGE_WIDTH = 842
   const PAGE_HEIGHT = 595
   const MARGIN = 24
-  const HEADER_H = 78            // header único compacto (com texto embaixo do QR)
+  const HEADER_H = 60            // header único compacto (texto AO LADO do QR)
   const HEADER_BOTTOM = MARGIN + HEADER_H
   const CONTENT_TOP = HEADER_BOTTOM + 6
 
@@ -177,30 +199,29 @@ export async function GET(req: NextRequest) {
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
       .text('Álbum FIFA WC 2026 com IA', MARGIN + 38, yTop + 26)
 
-    // Título no centro
-    const centerX = (PAGE_WIDTH - 100) / 2  // -100 pra balancear visualmente com QR à direita
+    // Título imediatamente após o logo (sem centralizar — evita colisão
+    // com o bloco texto+QR à direita)
+    const titleX = MARGIN + 220
+    const titleW = 360
     doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(14)
-      .text(titleStr, centerX - 100, yTop + 6, { width: 360, align: 'center', lineBreak: false })
+      .text(titleStr, titleX, yTop + 8, { width: titleW, lineBreak: false })
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(8)
-      .text(subtitleStr, centerX - 140, yTop + 28, { width: 440, align: 'center', lineBreak: false })
+      .text(subtitleStr, titleX, yTop + 30, { width: titleW, lineBreak: false })
 
-    // QR à direita + texto EMBAIXO do QR (Pedro 2026-05-09)
-    // Área dedicada à direita: 160pt (largura suficiente pra wrap do texto longo).
-    // QR fica centralizado nessa área; embaixo, 2 linhas de texto.
-    const qrAreaW = 160
-    const qrAreaX = PAGE_WIDTH - MARGIN - qrAreaW
-    const qrSize = 44
-    const qrX = qrAreaX + (qrAreaW - qrSize) / 2  // centralizado na área
+    // QR à direita + texto AO LADO (à esquerda do QR) — Pedro 2026-05-09
+    // QR no canto direito; texto wrappa numa coluna à esquerda dele.
+    const qrSize = 56
+    const qrX = PAGE_WIDTH - MARGIN - qrSize
     doc.image(qrBuffer, qrX, yTop, { width: qrSize, height: qrSize })
-    // Linha 1: domínio
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7.5)
-      .text('completeai.com.br', qrAreaX, yTop + qrSize + 3, {
-        width: qrAreaW, align: 'center', lineBreak: false,
-      })
-    // Linha 2: chamada (pode wrap em 2 linhas)
-    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6.5)
+    // Texto à esquerda do QR (largura ~150pt, alinhado à direita pra ficar
+    // colado no QR). Domínio em cima + chamada embaixo.
+    const textW = 150
+    const textX = qrX - textW - 6
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
+      .text('completeai.com.br', textX, yTop + 6, { width: textW, align: 'right', lineBreak: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
       .text('Indique através desse QR code seus amigos e ganhe benefícios!',
-        qrAreaX, yTop + qrSize + 14, { width: qrAreaW, align: 'center' })
+        textX, yTop + 22, { width: textW, align: 'right' })
 
     // Linha separadora
     doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
