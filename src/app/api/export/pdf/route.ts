@@ -85,20 +85,30 @@ export async function GET(req: NextRequest) {
   const firstName = displayName.split(' ')[0] || displayName
   const refCode = (profile.referral_code as string | null) || null
 
-  // 2) Stickers + user_stickers (pra calcular missing/duplicates)
+  // 2) Stickers + user_stickers — TUDO (counts_for_completion=true) + Coca-Cola.
+  // Pedro 2026-05-09: PANINI Extras (variant=gold/silver/bronze/regular) NÃO
+  // entra no PDF. Mas Coca-Cola entra (linha própria).
   const [{ data: allStickers }, { data: userStickers }] = await Promise.all([
-    admin.from('stickers').select('id, number, player_name, country, section, type').eq('counts_for_completion', true),
+    admin.from('stickers')
+      .select('id, number, player_name, country, section, type, variant')
+      .or('counts_for_completion.eq.true,section.eq.Coca-Cola'),
     admin.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', userId),
   ])
   const userMap = new Map<number, { status: string; quantity: number }>()
   ;(userStickers || []).forEach((us) => userMap.set((us as { sticker_id: number }).sticker_id, us as { status: string; quantity: number }))
 
-  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string }
-  const list: Sticker[] = ((allStickers || []) as Sticker[]).filter((s) => {
+  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null }
+  const allList: Sticker[] = (allStickers || []) as Sticker[]
+
+  // Conta stats pra exibir no título (info pro user)
+  const countOwned = allList.filter((s) => {
     const us = userMap.get(s.id)
-    if (type === 'missing') return !us || us.status === 'missing' || us.quantity === 0
-    return us?.status === 'duplicate'
-  })
+    return us && (us.status === 'owned' || us.status === 'duplicate')
+  }).length
+  const countDuplicates = allList.filter((s) => {
+    const us = userMap.get(s.id)
+    return us && us.status === 'duplicate'
+  }).length
 
   // 3) QR code (data URL → PNG buffer pra embedar no PDF)
   const qrUrl = refCode ? `${APP_URL}/u/${refCode}` : `${APP_URL}/register`
@@ -113,10 +123,10 @@ export async function GET(req: NextRequest) {
   const hasIcon = fs.existsSync(iconPath)
 
   // 5) Gera PDF — paisagem (A4 landscape) com checkboxes pra marcar
-  // Pedro 2026-05-09: paisagem cabe 4 colunas (mais itens por página) e
-  // checkboxes permitem usar o PDF impresso como controle físico de troca.
+  // Pedro 2026-05-09: paisagem cabe 6 colunas (densidade alta pra menos
+  // páginas impressas) e checkboxes permitem usar como checklist físico.
   const doc = new PDFDocument({
-    margin: 36,
+    margin: 24,
     size: 'A4',
     layout: 'landscape',
     info: { Title: 'Complete Aí', Author: 'Complete Aí' },
@@ -125,129 +135,147 @@ export async function GET(req: NextRequest) {
   doc.on('data', (c) => chunks.push(c))
   const endPromise = new Promise<void>((resolve) => doc.on('end', resolve))
 
-  // A4 landscape: 842 × 595 pontos. Margem 36 → área útil 770 × 523.
+  // A4 landscape: 842 × 595 pontos. Margem 24 → área útil 794 × 547.
   const PAGE_WIDTH = 842
   const PAGE_HEIGHT = 595
-  const MARGIN = 36
-  const HEADER_BOTTOM = 90       // y onde acaba o header (linha separadora)
-  const TITLE_BOTTOM = 130       // y onde acaba o bloco do título
-  const FOOTER_TOP = 480         // y onde começa a faixa de footer (QR)
-  const CONTENT_TOP = TITLE_BOTTOM + 8
+  const MARGIN = 24
+  const HEADER_BOTTOM = 78       // y onde acaba o header
+  const TITLE_BOTTOM = 112       // y onde acaba o bloco do título
+  const CONTENT_TOP = TITLE_BOTTOM + 6
 
   // ── Header ──
   if (hasIcon) {
-    doc.image(iconPath, MARGIN, 38, { width: 36 })
+    doc.image(iconPath, MARGIN, 28, { width: 30 })
   }
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(22).text('Complete', MARGIN + 50, 42, { continued: true })
+  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(18).text('Complete', MARGIN + 40, 32, { continued: true })
   doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
-  doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(9).text('Álbum FIFA World Cup 2026 com IA', MARGIN + 50, 70)
+  doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(8).text('Álbum FIFA World Cup 2026 com IA', MARGIN + 40, 56)
 
   // Linha separadora
   doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
     .strokeColor('#E5E7EB').lineWidth(1).stroke()
 
   // ── Título ──
-  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(18)
-    .text(type === 'missing' ? `Suas faltantes (${list.length})` : `Suas repetidas (${list.length})`, MARGIN, HEADER_BOTTOM + 10)
-  doc.font('Helvetica').fontSize(10).fillColor(COLOR_GRAY_LIGHT)
-    .text(
-      `${firstName} · gerado em ${new Date().toLocaleDateString('pt-BR')} · ` +
-      `marque ☑ conforme ${type === 'missing' ? 'colar' : 'trocar'}`,
-      MARGIN,
-      HEADER_BOTTOM + 32,
-    )
+  // Pedro 2026-05-09: layout matriz — TODAS figurinhas em grid de 13 colunas,
+  // 1+ linhas por seção. Marcadas as que o user já tem.
+  // Modo 'missing': marca verde = tem (vazias = falta colar)
+  // Modo 'duplicates': marca âmbar = tem repetida (vazias = não pode trocar)
+  const titleStr = type === 'missing'
+    ? `Seu álbum: ${countOwned}/${allList.length}`
+    : `Suas repetidas: ${countDuplicates}`
+  const subtitleStr = type === 'missing'
+    ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em verde = já tem · vazio = falta colar`
+    : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em âmbar = você tem repetida pra trocar`
+  doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(15)
+    .text(titleStr, MARGIN, HEADER_BOTTOM + 6)
+  doc.font('Helvetica').fontSize(9).fillColor(COLOR_GRAY_LIGHT)
+    .text(subtitleStr, MARGIN, HEADER_BOTTOM + 26)
 
-  if (list.length === 0) {
-    doc.fontSize(12).fillColor(COLOR_GRAY)
-      .text(type === 'missing'
-        ? '🎉 Você não tem nenhuma figurinha faltando! Parabéns!'
-        : 'Você ainda não tem nenhuma figurinha repetida pra trocar.',
-        MARGIN, CONTENT_TOP,
-      )
-  } else {
-    // Agrupa por país (ordem alfabética)
-    const groups: Record<string, Sticker[]> = {}
-    for (const s of list) {
-      const key = s.country || s.section || 'Outros'
-      if (!groups[key]) groups[key] = []
-      groups[key].push(s)
+  // ── Layout matriz: 13 colunas fixas, linha = seção ──
+  // Sem PANINI Extras (Pedro 2026-05-09).
+  // Filtra: só counts_for_completion + Coca-Cola (variant=null), exclui Extras.
+  // PANINI Extras tem variant != null (gold/silver/bronze/regular).
+  const filteredForGrid = allList.filter((s) => s.section !== 'PANINI Extras' && s.variant === null)
+
+  // Agrupa por seção (country pra times, section pra Coca-Cola/FIFA WC)
+  const groups: Record<string, Sticker[]> = {}
+  for (const s of filteredForGrid) {
+    // Usa section pra Coca-Cola e FIFA WC, country pros times
+    const key = (s.section === 'Coca-Cola' || s.section === 'FIFA World Cup')
+      ? s.section
+      : (s.country || s.section || 'Outros')
+    if (!groups[key]) groups[key] = []
+    groups[key].push(s)
+  }
+  // Ordem: países alfabéticos primeiro, depois FIFA WC, depois Coca-Cola
+  const countryKeys = Object.keys(groups).filter((k) => k !== 'Coca-Cola' && k !== 'FIFA World Cup').sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const specialKeys = ['FIFA World Cup', 'Coca-Cola'].filter((k) => groups[k])
+  const sortedKeys = [...countryKeys, ...specialKeys]
+
+  // Layout matriz
+  const NUM_COLS = 13
+  const SECTION_NAME_W = 110     // largura à esquerda pro nome da seção
+  const NAME_GAP = 6             // gap entre nome e início do grid
+  const GRID_W = PAGE_WIDTH - 2 * MARGIN - SECTION_NAME_W - NAME_GAP  // largura disponível pro grid
+  const CELL_GAP = 2
+  const CELL_W = (GRID_W - (NUM_COLS - 1) * CELL_GAP) / NUM_COLS  // ~ (842-48-110-6 - 24)/13 = ~50pt
+  const CELL_H = 16
+  const ROW_GAP = 2              // gap vertical entre fileiras de 13
+  const SECTION_GAP = 6          // padding entre seções
+
+  let curY = CONTENT_TOP
+  const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 10
+
+  const cellX = (col: number) => MARGIN + SECTION_NAME_W + NAME_GAP + col * (CELL_W + CELL_GAP)
+
+  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding') => {
+    if (state === 'padding') {
+      // Cinza preenchido = "não existe figurinha aqui" (preenchimento da grade)
+      doc.rect(x, y, CELL_W, CELL_H).fillColor('#E5E7EB').fill()
+    } else if (state === 'marked') {
+      // Marcada = user tem essa figurinha
+      const fillColor = type === 'missing' ? '#D1FAE5' : '#FEF3C7'  // verde claro | âmbar claro
+      const borderColor = type === 'missing' ? COLOR_GREEN : '#F59E0B'
+      doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColor).fill()
+      doc.lineWidth(0.7).strokeColor(borderColor).rect(x, y, CELL_W, CELL_H).stroke()
+      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7)
+        .text(label, x, y + 5, { width: CELL_W, align: 'center', lineBreak: false })
+    } else {
+      // Vazia = falta (modo missing) ou só tem 1 (modo duplicates)
+      doc.lineWidth(0.5).strokeColor('#9CA3AF').rect(x, y, CELL_W, CELL_H).stroke()
+      doc.fillColor('#6B7280').font('Helvetica').fontSize(7)
+        .text(label, x, y + 5, { width: CELL_W, align: 'center', lineBreak: false })
     }
-    const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }
 
-    // ── Layout em 4 colunas (paisagem cabe bem) ──
-    const NUM_COLS = 4
-    const COL_GAP = 12
-    const COL_WIDTH = (PAGE_WIDTH - 2 * MARGIN - (NUM_COLS - 1) * COL_GAP) / NUM_COLS  // ~187pt
-    const ROW_HEIGHT = 11      // altura por item
-    const COUNTRY_HEADER_HEIGHT = 16
-    const COUNTRY_BOTTOM_PAD = 4
-    const CHECKBOX_SIZE = 8
-    const CHECKBOX_PAD_Y = 1.5
+  for (const sectionKey of sortedKeys) {
+    const items = groups[sectionKey].sort((a, b) => {
+      const numA = parseInt(a.number.split('-')[1] || '0', 10)
+      const numB = parseInt(b.number.split('-')[1] || '0', 10)
+      return numA - numB
+    })
 
-    const colX = (i: number) => MARGIN + i * (COL_WIDTH + COL_GAP)
+    // Quantas fileiras de 13 essa seção precisa?
+    const numRows = Math.ceil(items.length / NUM_COLS)
+    const sectionHeight = numRows * (CELL_H + ROW_GAP) - ROW_GAP + SECTION_GAP
 
-    let curCol = 0
-    let curY = CONTENT_TOP
-    // Footer só aparece na ÚLTIMA página — primeiras páginas usam até PAGE_HEIGHT - MARGIN
-    // Reservamos FOOTER_TOP só na última (decidimos em runtime).
-    const COL_BOTTOM_NORMAL = PAGE_HEIGHT - MARGIN - 10
+    // Quebra de página se não cabe
+    if (curY + sectionHeight > PAGE_BOTTOM) {
+      doc.addPage()
+      curY = MARGIN
+    }
 
-    const nextColumnOrPage = () => {
-      curCol++
-      if (curCol >= NUM_COLS) {
-        doc.addPage()
-        curCol = 0
-        curY = MARGIN
-      } else {
-        curY = CONTENT_TOP
+    // Nome da seção (à esquerda, vertical-centro com a 1ª fileira)
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(9)
+      .text(sectionKey.toUpperCase(), MARGIN, curY + 4, { width: SECTION_NAME_W - 4, lineBreak: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
+      .text(`${items.length} cromos`, MARGIN, curY + 16, { width: SECTION_NAME_W - 4, lineBreak: false })
+
+    // Grid de células
+    for (let row = 0; row < numRows; row++) {
+      const y = curY + row * (CELL_H + ROW_GAP)
+      for (let col = 0; col < NUM_COLS; col++) {
+        const idx = row * NUM_COLS + col
+        const x = cellX(col)
+        if (idx < items.length) {
+          const s = items[idx]
+          const us = userMap.get(s.id)
+          const isOwned = !!us && (us.status === 'owned' || us.status === 'duplicate')
+          const isDuplicate = !!us && us.status === 'duplicate'
+          // Modo missing: marca quem tem (owned ou duplicate)
+          // Modo duplicates: marca apenas quem tem repetida
+          const shouldMark = type === 'missing' ? isOwned : isDuplicate
+          // Label da célula = só o número (sem o prefixo do país, pra economizar espaço)
+          const numPart = s.number.split('-')[1] || s.number
+          drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty')
+        } else {
+          // Padding cinza pras posições "fantasma" (Brasil tem 20, fica 7 padding na 2ª linha)
+          drawCell(x, y, '', 'padding')
+        }
       }
     }
 
-    const ensureSpace = (neededHeight: number) => {
-      if (curY + neededHeight > COL_BOTTOM_NORMAL) {
-        nextColumnOrPage()
-      }
-    }
-
-    for (const country of sortedKeys) {
-      const items = groups[country].sort((a, b) => {
-        const numA = parseInt(a.number.split('-')[1] || '0', 10)
-        const numB = parseInt(b.number.split('-')[1] || '0', 10)
-        return numA - numB
-      })
-
-      // Tenta manter o header do país junto com pelo menos 3 itens (evita
-      // header órfão no fim da coluna)
-      ensureSpace(COUNTRY_HEADER_HEIGHT + Math.min(3, items.length) * ROW_HEIGHT)
-
-      // Header do país
-      doc.fillColor(COLOR_GREEN).font('Helvetica-Bold').fontSize(10)
-        .text(`${country.toUpperCase()}  (${items.length})`, colX(curCol), curY, { width: COL_WIDTH, lineBreak: false })
-      curY += COUNTRY_HEADER_HEIGHT
-
-      // Itens
-      doc.font('Helvetica').fontSize(8).fillColor(COLOR_GRAY)
-      for (const s of items) {
-        ensureSpace(ROW_HEIGHT)
-        // Checkbox quadradinho
-        const x = colX(curCol)
-        doc.lineWidth(0.7).strokeColor('#9CA3AF')
-          .rect(x, curY + CHECKBOX_PAD_Y, CHECKBOX_SIZE, CHECKBOX_SIZE).stroke()
-        // Número + nome (truncar se ultrapassar largura)
-        const name = s.player_name || ''
-        const qty = type === 'duplicates' ? userMap.get(s.id)?.quantity : null
-        const qtyTail = qty && qty > 1 ? `  ×${qty}` : ''
-        doc.fillColor(COLOR_GRAY).font('Helvetica').fontSize(8)
-          .text(`${s.number}  ${name}${qtyTail}`, x + CHECKBOX_SIZE + 4, curY, {
-            width: COL_WIDTH - CHECKBOX_SIZE - 4,
-            lineBreak: false,
-            ellipsis: true,
-          })
-        curY += ROW_HEIGHT
-      }
-
-      curY += COUNTRY_BOTTOM_PAD
-    }
+    curY += sectionHeight
   }
 
   // ── Footer com QR (sempre na última página, paisagem) ──
