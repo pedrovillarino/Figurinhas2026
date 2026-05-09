@@ -306,6 +306,165 @@ export function renderEmbaixadorEmail(
   return { subject, html }
 }
 
+// ─── Embaixador Renovação WhatsApp (Pedro 2026-05-09) ─────────────────────
+// Segunda comunicação da campanha embaixadores. Free recebe cupom pessoal
+// renovado (24h); Pagante recebe cupom-amigo (48h, repassável).
+
+export function renderEmbaixadorRenovacaoWhatsApp(
+  firstName: string,
+  pos: UserPosition | null,
+  top3: Top3Entry[],
+  coupon: { code: string; valid_until: string },
+  tierGroup: 'free' | 'pagante',
+): string {
+  const days = daysUntilCampaignEnd()
+
+  // Pagante já assinou, então não cabe "5 pts se você assinar" nem "scan grátis"
+  const pointsRules = tierGroup === 'free'
+    ? `*Como ganhar pontos:*\n` +
+      `• 1 ponto por amigo que se cadastra pelo seu link (+ 1 scan grátis pra você)\n` +
+      `• 5 pontos quando esse amigo assina qualquer plano pago\n` +
+      `• 5 pontos se você assinar ou fizer upgrade em qualquer plano`
+    : `*Como ganhar pontos:*\n` +
+      `• 1 ponto por amigo que se cadastra pelo seu link\n` +
+      `• 5 pontos quando esse amigo assina qualquer plano pago`
+
+  const couponBlock = tierGroup === 'free'
+    ? `\n\n━━━━━━━━━━━━━━━━━━━\n` +
+      `🎁 *Renovamos seu cupom pessoal!*\n\n` +
+      `Cole *${coupon.code}* no campo "inserir cupom" e ganhe *20% em qualquer plano*.\n\n` +
+      `Válido até ${formatCouponExpiry(coupon.valid_until)}.\n` +
+      `Se você assinar, ainda ganha +5 pontos no ranking 🚀\n` +
+      `${APP_URL}/upgrade`
+    : `\n\n━━━━━━━━━━━━━━━━━━━\n` +
+      `🎁 *Cupom pra você dar a um amigo*\n\n` +
+      `Compartilha o código *${coupon.code}* com quem ainda não usa o app — quem usar ganha *20% off em qualquer plano*.\n\n` +
+      `Válido por 48h (até ${formatCouponExpiry(coupon.valid_until)}). Se a pessoa assinar pelo seu link, você ganha +5 pontos no ranking 🚀`
+
+  return (
+    `Oi ${firstName}! 👋⚽\n\n` +
+    `Passando mais uma atualização sobre a campanha de embaixadores do Complete Aí. ⚽\n\n` +
+    `Faltam ${days} dias até o fim da campanha (12/05). O top 3 leva kit figurinhas em casa pelos Correios:\n\n` +
+    `🥇 Porta-figurinha + 10 pacotes + 5 trocas extras\n` +
+    `🥈 Porta-figurinha + 8 pacotes + 5 trocas extras\n` +
+    `🥉 5 pacotes + 5 trocas extras\n\n` +
+    `*Top 3 agora:*\n${renderTop3Lines(top3)}\n\n` +
+    `${renderPositionLine(pos)}\n\n` +
+    pointsRules + `\n\n` +
+    `Seu link único e ranking ao vivo:\n${APP_URL}/campanha\n\n` +
+    `Bora? 🚀` +
+    couponBlock
+  )
+}
+
+// ─── Embaixador Renovação Email (só free; pagante não tem fluxo email aqui) ───
+export function renderEmbaixadorRenovacaoEmail(
+  firstName: string,
+  pos: UserPosition | null,
+  top3: Top3Entry[],
+  coupon: { code: string; valid_until: string },
+): { subject: string; html: string } {
+  const days = daysUntilCampaignEnd()
+  const subject = `${firstName}, atualização sobre a campanha (cupom renovado)`
+
+  const couponHtml = `<div style="background:linear-gradient(135deg,#FFF8E6,#FFE9B0);border-radius:12px;padding:18px;margin:24px 0 8px;border:1px solid #FFB800">
+       <p style="margin:0 0 12px;color:#0A1628;font-size:15px;font-weight:600">🎁 Renovamos seu cupom pessoal!</p>
+       <p style="margin:0 0 8px;color:#374151;font-size:14px">Cole o código abaixo no campo "inserir cupom" e ganhe <strong>20% em qualquer plano</strong>:</p>
+       <p style="margin:0 0 12px;color:#0A1628;font-size:22px;font-weight:bold;font-family:monospace;letter-spacing:1px;text-align:center;background:#fff;padding:10px;border-radius:8px;border:1px dashed #FFB800">${coupon.code}</p>
+       <p style="margin:0 0 6px;color:#374151;font-size:13px">Válido até ${formatCouponExpiry(coupon.valid_until)} (24h).</p>
+       <p style="margin:0;color:#374151;font-size:13px">Se você assinar, ainda ganha <strong>+5 pontos</strong> no ranking 🚀</p>
+       <div style="text-align:center;margin-top:14px">
+         <a href="${APP_URL}/upgrade" style="display:inline-block;background:#FFB800;color:#0A1628;padding:10px 24px;border-radius:8px;font-weight:bold;text-decoration:none;font-size:14px">Usar cupom</a>
+       </div>
+     </div>`
+
+  const top3Html = top3.length === 0
+    ? '<p style="color:#6B7280;font-style:italic;margin:0">(ainda sem ranking — bora ser o primeiro?)</p>'
+    : top3
+        .map((e, i) => {
+          const medal = ['🥇', '🥈', '🥉'][i]
+          return `<p style="margin:0 0 4px;color:#374151">${medal} <strong>${e.firstName}</strong> — ${pluralPoints(e.points)}</p>`
+        })
+        .join('')
+
+  const positionHtml = pos
+    ? `<p style="margin:16px 0;font-size:16px;color:#0A1628"><strong>${renderPositionLine(pos)}</strong></p>`
+    : `<p style="margin:16px 0;font-size:16px;color:#0A1628"><strong>Você ainda não pontuou — bora começar?</strong></p>`
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0A1628">
+      <h1 style="color:#0A1628;font-size:22px;margin:0 0 16px">Oi ${firstName} 👋</h1>
+      <p style="margin:0 0 16px;color:#374151;line-height:1.6">
+        Passando mais uma atualização sobre a campanha de embaixadores do Complete Aí.
+      </p>
+      <p style="margin:0 0 16px;color:#374151;line-height:1.6">
+        Faltam <strong>${days} dias</strong> até o fim da campanha (12/05). O top 3 leva kit figurinhas em casa pelos Correios:
+      </p>
+      <ul style="margin:0 0 16px 0;padding-left:18px;color:#374151;line-height:1.7">
+        <li>🥇 Porta-figurinha + 10 pacotes + 5 trocas extras</li>
+        <li>🥈 Porta-figurinha + 8 pacotes + 5 trocas extras</li>
+        <li>🥉 5 pacotes + 5 trocas extras</li>
+      </ul>
+      <h3 style="color:#0A1628;font-size:16px;margin:20px 0 8px">Top 3 agora:</h3>
+      ${top3Html}
+      ${positionHtml}
+      <h3 style="color:#0A1628;font-size:16px;margin:20px 0 8px">Como ganhar pontos:</h3>
+      <ul style="margin:0 0 16px 0;padding-left:18px;color:#374151;line-height:1.7">
+        <li>1 ponto por amigo que se cadastra pelo seu link (+ 1 scan grátis pra você)</li>
+        <li>5 pontos quando esse amigo assina qualquer plano pago</li>
+        <li>5 pontos se você assinar ou fizer upgrade em qualquer plano</li>
+      </ul>
+      <p style="margin:8px 0;color:#374151">Seu link único e ranking ao vivo: <a href="${APP_URL}/campanha" style="color:#00C896">${APP_URL}/campanha</a></p>
+      ${couponHtml}
+      <p style="color:#6B7280;font-size:12px;margin:24px 0 0;text-align:center">
+        Equipe Complete Aí · ${APP_URL}
+      </p>
+    </div>`
+
+  return { subject, html }
+}
+
+// ─── Cupom-amigo do pagante (AMIGO.NOME20, 48h, sem restricted_to_user_id) ───
+// Diferente do EMB.X20 (pessoal): esse cupom NÃO é restrito a um user_id —
+// o pagante recebe o code e compartilha com um amigo, que usa no upgrade.
+export async function getEmbaixadorAmigoCoupon(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<{ code: string; valid_until: string } | null> {
+  // Buscamos pelo created_by + por uma referência ao userId (via metadata
+  // não dá sem coluna, então usamos o pattern de code AMIGO.<NOME>20).
+  // Mais simples: query por created_by + active + valid_until > now,
+  // depois filtra por code que contém o slug do nome.
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('display_name')
+    .eq('id', userId)
+    .maybeSingle()
+  if (!profile) return null
+  const firstName = capitalize((profile as { display_name: string | null }).display_name?.split(' ')[0]) || ''
+  if (!firstName) return null
+  // Slug normalizado (sem acentos, uppercase, sem espaços) — bate com o que
+  // foi gerado no INSERT do cupom (mesma normalização).
+  const slug = firstName
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+  const expectedCode = `AMIGO.${slug}20`
+  const { data } = await admin
+    .from('discount_codes')
+    .select('code, valid_until, times_used, max_uses, active')
+    .eq('code', expectedCode)
+    .eq('created_by', 'campaign_embaixadores_renovacao_20260510')
+    .eq('active', true)
+    .gte('valid_until', new Date().toISOString())
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+  const d = data as { code: string; valid_until: string; times_used: number; max_uses: number | null; active: boolean }
+  if (d.max_uses !== null && d.times_used >= d.max_uses) return null
+  return { code: d.code, valid_until: d.valid_until }
+}
+
 // ─── Zero figurinhas Email ───────────────────────────────────────────────
 
 export function renderZeroFigEmail(firstName: string): { subject: string; html: string } {

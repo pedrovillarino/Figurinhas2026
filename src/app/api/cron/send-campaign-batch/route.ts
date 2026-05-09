@@ -18,9 +18,12 @@ import {
   getUserPosition,
   getEmbaixadorTargets,
   getEmbaixadorCoupon,
+  getEmbaixadorAmigoCoupon,
   getZeroFigTargets,
   renderEmbaixadorWhatsApp,
   renderEmbaixadorEmail,
+  renderEmbaixadorRenovacaoWhatsApp,
+  renderEmbaixadorRenovacaoEmail,
   renderZeroFigEmail,
 } from '@/lib/campaign-render'
 
@@ -230,6 +233,140 @@ async function processCampaign(
       }
 
       const { subject, html } = renderZeroFigEmail(t.first_name)
+
+      let ok = false
+      let errMsg: string | null = null
+      try {
+        ok = await sendEmail(t.email, subject, html)
+      } catch (e) {
+        errMsg = e instanceof Error ? e.message : String(e)
+      }
+
+      await admin.from('campaign_sends').insert({
+        campaign_id: camp.id,
+        user_id: t.user_id,
+        channel: 'email',
+        recipient: t.email,
+        body_preview: `${subject}\n\n${html.slice(0, 400)}`,
+        status: ok ? 'sent' : 'failed',
+        error_message: errMsg,
+      })
+
+      if (ok) out.sent++
+      else out.failed++
+
+      await sleep(100)
+    }
+  } else if (camp.campaign_type === 'embaixadores_wa_renovacao') {
+    // Pedro 2026-05-09: 2ª comunicação da campanha embaixadores. Pega
+    // TODOS os embaixadores com phone (free + pagante), ramifica msg/cupom
+    // por tier. Free → cupom pessoal EMB.X20 (24h). Pagante → cupom-amigo
+    // AMIGO.X20 (48h, repassável).
+    const top3 = await getTop3WithNames(admin)
+    const targets = await getEmbaixadorTargets(admin, 'wa')
+    out.total = targets.length
+
+    for (const t of targets) {
+      if (!t.phone) {
+        out.skipped++
+        continue
+      }
+      const { data: already } = await admin
+        .from('campaign_sends')
+        .select('id')
+        .eq('campaign_id', camp.id)
+        .eq('user_id', t.user_id)
+        .maybeSingle()
+      if (already) {
+        out.skipped++
+        continue
+      }
+
+      const tierGroup: 'free' | 'pagante' = t.tier === 'free' ? 'free' : 'pagante'
+      const coupon = tierGroup === 'free'
+        ? await getEmbaixadorCoupon(admin, t.user_id)
+        : await getEmbaixadorAmigoCoupon(admin, t.user_id)
+
+      // Sem cupom apropriado → pula (pra evitar mandar mensagem incompleta)
+      if (!coupon) {
+        out.skipped++
+        await admin.from('campaign_sends').insert({
+          campaign_id: camp.id,
+          user_id: t.user_id,
+          channel: 'whatsapp',
+          recipient: t.phone,
+          body_preview: '(skipped: coupon missing)',
+          status: 'failed',
+          error_message: `coupon-not-found tier=${t.tier}`,
+        })
+        continue
+      }
+
+      const pos = await getUserPosition(admin, t.user_id)
+      const body = renderEmbaixadorRenovacaoWhatsApp(t.first_name, pos, top3, coupon, tierGroup)
+
+      let ok = false
+      let errMsg: string | null = null
+      try {
+        ok = await sendText(t.phone, body)
+      } catch (e) {
+        errMsg = e instanceof Error ? e.message : String(e)
+      }
+
+      await admin.from('campaign_sends').insert({
+        campaign_id: camp.id,
+        user_id: t.user_id,
+        channel: 'whatsapp',
+        recipient: t.phone,
+        body_preview: body.slice(0, 500),
+        status: ok ? 'sent' : 'failed',
+        error_message: errMsg,
+      })
+
+      if (ok) out.sent++
+      else out.failed++
+
+      await sleep(200)
+    }
+  } else if (camp.campaign_type === 'embaixadores_email_renovacao') {
+    // Pedro 2026-05-09: idem WA, mas pra free só email (pagante via WA).
+    const top3 = await getTop3WithNames(admin)
+    const targets = await getEmbaixadorTargets(admin, 'email')
+    out.total = targets.length
+
+    for (const t of targets) {
+      if (!t.email || t.tier !== 'free') {
+        out.skipped++
+        continue
+      }
+      const { data: already } = await admin
+        .from('campaign_sends')
+        .select('id')
+        .eq('campaign_id', camp.id)
+        .eq('user_id', t.user_id)
+        .maybeSingle()
+      if (already) {
+        out.skipped++
+        continue
+      }
+
+      const coupon = await getEmbaixadorCoupon(admin, t.user_id)
+      if (!coupon) {
+        out.skipped++
+        await admin.from('campaign_sends').insert({
+          campaign_id: camp.id,
+          user_id: t.user_id,
+          channel: 'email',
+          recipient: t.email,
+          body_preview: '(skipped: coupon missing)',
+          status: 'failed',
+          error_message: 'coupon-not-found',
+        })
+        continue
+      }
+
+      const pos = await getUserPosition(admin, t.user_id)
+      const { subject, html } = renderEmbaixadorRenovacaoEmail(t.first_name, pos, top3, coupon)
 
       let ok = false
       let errMsg: string | null = null
