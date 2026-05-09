@@ -46,13 +46,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Pedro 2026-05-09: pdfkit precisa dos arquivos AFM (Adobe Font Metrics) +
-  // data files runtime — Vercel serverless precisa serem incluídos no
-  // bundle pra função /api/export/pdf funcionar. Sem isso o PDFDocument()
-  // joga "TypeError: Cannot read properties of undefined" ao tentar
-  // resolver Helvetica.
-  outputFileTracingIncludes: {
-    '/api/export/pdf': ['./node_modules/pdfkit/js/data/**/*'],
+  // Pedro 2026-05-09: pdfkit precisa dos arquivos AFM (Adobe Font Metrics)
+  // + .icc do node_modules/pdfkit/js/data/ em runtime — Vercel serverless
+  // tira tudo que não tá no bundle. Sem isso o PDFDocument() joga "ENOENT:
+  // no such file" ao tentar resolver Helvetica. Em Next 14 essa config
+  // fica dentro de `experimental` (em Next 15+ foi promovida pra top-level).
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/export/pdf': ['./node_modules/pdfkit/js/data/**/*'],
+    },
   },
   async headers() {
     return [
