@@ -7,7 +7,7 @@ import { normalizePhoneBR } from '@/lib/phone'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { runAgent, recordBotMessage, getLastBotContext, sendBotTextFor } from '@/lib/whatsapp-agent'
 import { escalateToSupport, submitUnknownSuggestion } from '@/lib/support'
-import { expandCountryNamesToCodes, convertSpelledNumbersToDigits } from '@/lib/country-codes'
+import { expandCountryNamesToCodes, convertSpelledNumbersToDigits, collapseSpelledLetters } from '@/lib/country-codes'
 import { createUserViaWhatsApp, isValidEmail, normalizeEmail } from '@/lib/whatsapp-register'
 import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
@@ -2116,6 +2116,7 @@ export async function POST(req: NextRequest) {
         txt.replace(/(^|[\s,;.])(00?)([\s,;.]|$)/g, (_m, before, _zeros, after) => `${before}FWC-0${after}`)
 
       // Pipeline:
+      // 0) "C Z E 3"     → "CZE 3"       (collapseSpelledLetters) ← Pedro 2026-05-09 caso Cintia
       // 1) "Espanha três" → "Espanha 3"  (convertSpelledNumbersToDigits)
       // 2) "Espanha 3"   → "ESP 3"        (expandCountryNamesToCodes)
       // 3) "ESP: 1, 2"   → "ESP-1 ESP-2"  (expandWithColon)
@@ -2123,10 +2124,14 @@ export async function POST(req: NextRequest) {
       // 5) " 00 " / " 0 " → " FWC-0 "    (expandStandaloneZero)
       // O passo 1 é crítico pra áudio: Gemini frequentemente transcreve
       // números por extenso quando o user fala o país por nome.
+      // O passo 0 é crítico pra texto: user pode soletrar a sigla quando
+      // não lembra como escreve (ex: Cintia mandou "C Z E 3 5 7").
       const text = expandStandaloneZero(
         expandMultiNoColon(
           expandWithColon(
-            expandCountryNamesToCodes(convertSpelledNumbersToDigits(rawText)),
+            expandCountryNamesToCodes(
+              convertSpelledNumbersToDigits(collapseSpelledLetters(rawText)),
+            ),
           ),
         ),
       )
@@ -2720,6 +2725,13 @@ export async function POST(req: NextRequest) {
         /^(registra|registre|registrar|salva|salve|salvar|confirma|confirme|confirmar|cola|cole|colar)\s+(tud[oa]|tods?|toda?s|os\s+(tr[êe]s|dois|\d+))\.?$/i.test(lower.trim()) ||
         /^(pode|p[oô]e|colocar|registrar|salvar)\s+(tudo|todas|todos)\b/i.test(lower.trim())
       if (isYesConfirm) {
+        // Pedro 2026-05-09 (caso Cintia): wrap inteiro em try/catch.
+        // Caso real: user confirmou "Sim", silêncio total (sem reply).
+        // Causa provável: throw em getUserStats / sendText / save sem
+        // captura. Antes: user via WhatsApp ler ✓✓ e bot calado.
+        // Agora: throw nunca causa silêncio — sempre responde com aviso
+        // e marca o erro nos logs pra investigação.
+        try {
         const supabaseAdmin = getAdmin()
         const { data: allPending, error: pendingErr } = await supabaseAdmin
           .from('pending_scans')
@@ -2889,6 +2901,21 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true })
         }
         // No pending scan — fall through to normal intent handling
+        } catch (err) {
+          // Pedro 2026-05-09 (caso Cintia): nunca mais silêncio total.
+          // Loga + tenta avisar user. Se sendText também falhar, ainda
+          // retorna ok pra não retentar (idempotente).
+          console.error(`[wa-confirm] FATAL throw user=${user.id}:`, err)
+          try {
+            await sendText(
+              phone,
+              '⚠️ Tive um problema técnico ao registrar agora. Já anotamos pro time olhar — pode tentar mandar de novo em alguns minutos? 🙏',
+            )
+          } catch (sendErr) {
+            console.error('[wa-confirm] sendText fallback also failed:', sendErr)
+          }
+          return NextResponse.json({ ok: true })
+        }
       }
 
       // Pedro 2026-05-04 (caso Vinicius): user tentou cancelar 5x com frases

@@ -99,6 +99,59 @@ export function expandCountryNamesToCodes(text: string): string {
   return result
 }
 
+// ─── Soletramento de código (3 letras isoladas) → sigla colada ──────────────
+// Pedro 2026-05-09 (caso Cintia): user soletrou "C Z E 3 5 7" no chat e o
+// parser de códigos não reconheceu (regex exige `[a-z]{2,5}` colado, não
+// letras isoladas). Solução: detectar 3 letras isoladas separadas por
+// espaço/hífen/ponto, validar contra a lista de códigos FIFA conhecidos,
+// e juntar antes de qualquer outra normalização.
+//
+// Validação contra `VALID_CODES` evita falsos positivos como "a B C D" →
+// "aBCD" (ABCD não é código → fica intacto). Também tenta variantes de
+// 3, 4 e 5 letras pra cobrir códigos como CC e FWC se forem soletrados.
+
+const VALID_CODES: Set<string> = new Set(
+  Object.values(COUNTRY_NAME_TO_CODE).concat(['CC', 'FWC']),
+)
+
+/**
+ * Detects 3-5 isolated single letters separated by space/hyphen/period and
+ * collapses them into a FIFA-style code IF the joined result is a known
+ * code. Otherwise leaves the text unchanged.
+ *
+ * Examples:
+ *   "C Z E 3 5"     → "CZE 3 5"      (CZE valid)
+ *   "U-S-A 1"       → "USA 1"        (USA valid)
+ *   "c.z.e. 3"      → "CZE 3"        (CZE valid, period separators)
+ *   "B R A 1, A R G 3" → "BRA 1, ARG 3"  (both valid)
+ *   "a B C D"       → "a B C D"      (ABCD/BCD not valid → unchanged)
+ *   "I E O 1"       → "I E O 1"      (IEO not valid → unchanged)
+ */
+// Built dynamically to use the `u` flag (Unicode property escapes) without
+// hitting TS's static lint on regex literals. Same effect as a literal /.../giu.
+// Trailing `[\\s\\-.]*` consumes a stray separator after the last letter
+// (e.g. "C.Z.E." has a trailing "." that should be eaten).
+const SPELLED_LETTERS_RE = new RegExp(
+  '(?<![\\p{L}\\d])([a-z])[\\s\\-.]+([a-z])[\\s\\-.]+([a-z])(?:[\\s\\-.]+([a-z]))?(?:[\\s\\-.]+([a-z]))?([\\-.]+(?=\\s|$))?',
+  'giu',
+)
+
+export function collapseSpelledLetters(text: string): string {
+  if (!text) return text
+  return text.replace(SPELLED_LETTERS_RE, (match, a, b, c, d, e) => {
+    const letters = [a, b, c, d, e].filter(Boolean) as string[]
+    // Try the longest first (5, 4, 3 letters) — first valid wins
+    for (let len = letters.length; len >= 3; len--) {
+      const candidate = letters.slice(0, len).join('').toUpperCase()
+      if (VALID_CODES.has(candidate)) {
+        const remaining = letters.slice(len).join(' ')
+        return remaining ? `${candidate} ${remaining}` : candidate
+      }
+    }
+    return match
+  })
+}
+
 // ─── Spelled-out PT-BR numbers → digits ────────────────────────────────────
 // Problema observado em produção (2026-05-02): quando o user fala um áudio
 // como "Espanha 3" ou "Cabo Verde 7", o Gemini transcreve com o número POR
