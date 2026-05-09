@@ -2905,12 +2905,34 @@ export async function POST(req: NextRequest) {
       //   "preciso da FRA-5, GER-2 e ESP-1?" → 3 códigos
       const isQueryStickers = codeMatches.length >= 1 && looksLikeQuestion
 
+      // Pedro 2026-05-09 (caso Cintia 5511999741449): user copiou e colou
+      // a mensagem inteira do bot ("Encontrei 9 figurinhas... SIM → registra
+      // tudo... TIRAR 3 → remove o item 3...") pra mostrar que algo não
+      // funcionou. Bot interpretou os múltiplos códigos + palavra "TIRAR"
+      // como intent de remoção e abriu pending de remover 9 figurinhas.
+      // Heurística defensiva: se mensagem contém >= 3 frases caractéristicas
+      // de mensagem do bot, é uma cópia → ignora classifyStickerCommand
+      // pra não disparar comando inadvertido.
+      const botMessageMarkers = [
+        /encontrei\s+\d+\s+figurinha/i,
+        /SIM\s*[→\-]+\s*regist/i,
+        /T?IRAR\s+\d+\s*[→\-]+\s*remov/i,
+        /N[ÃA]O\s*[→\-]+\s*cancel/i,
+        /expira\s+em\s+1h/i,
+        /vale\s+tamb[ée]m:\s*tirar/i,
+        /Novas?\s*\(\d+\)/i,
+        /figurinha\(s\)\s+registrada\(s\)/i,
+        /Voc[êe]\s+quer\s+REMOVER\s+\d+/i,
+      ]
+      const botMarkerCount = botMessageMarkers.filter((r) => r.test(text)).length
+      const looksLikeBotPaste = botMarkerCount >= 3
+
       // Pedro 2026-05-07: classifier robusto que separa COMANDO de LISTA de
       // códigos. Funciona com verbo antes OU depois ("registre BRA1 FRA2"
       // ou "BRA1 FRA2 registra aí"). Quando bate, força o intent direto e
       // pula a cadeia de regex do fluxo legado. Override do isQueryStickers
       // pra repassar a polaridade (owned vs missing) corretamente.
-      const stickerCmd = classifyStickerCommand(text, codeMatches)
+      const stickerCmd = looksLikeBotPaste ? null : classifyStickerCommand(text, codeMatches)
       let forcedIntent: string | null = null
       let forcedQueryMissing = false
       if (stickerCmd === 'register') {
@@ -2923,9 +2945,26 @@ export async function POST(req: NextRequest) {
       } else if (stickerCmd === 'remove') {
         forcedIntent = 'remove'
       }
+      // Se for paste do bot, força resposta amigável depois (handler do
+      // intent help-friendly), em vez de tentar comandar.
+      if (looksLikeBotPaste) {
+        console.log(`[WhatsApp] User pasted bot message back (markers=${botMarkerCount}). Skipping command classifier.`)
+      }
 
       // Fast keyword matching before calling Gemini
       let intent: string
+
+      // Pedro 2026-05-09 (caso Cintia): se user colou mensagem do bot,
+      // responde amigável + perguntando o que ele quis dizer. NÃO comanda.
+      if (looksLikeBotPaste) {
+        await sendText(
+          phone,
+          `🤔 Acho que você colou de volta uma mensagem que eu te enviei!\n\n` +
+          `Se quiser *registrar* essas figurinhas, manda só os códigos: _BRA-1 ARG-3 FRA-10_ ou em áudio "Brasil 1, Argentina 3".\n\n` +
+          `Se algo *não funcionou* como esperava, me conta o que aconteceu (em texto curto) que eu anoto pra equipe olhar. ⚽`
+        )
+        return NextResponse.json({ ok: true })
+      }
 
       // Pedro 2026-05-03 (Fix F): "Outro" / "outra" como follow-up depois
       // de "faltando X". Sem precisar de contexto, basta dar o caminho:
