@@ -45,6 +45,12 @@ export async function GET(req: NextRequest) {
   }
   const type = typeParam as 'missing' | 'duplicates'
 
+  // Pedro 2026-05-09: view=compact gera lista enxuta só com faltantes
+  // (sem tabelão, otimizado pra caber em 1 página quando possível). Só
+  // faz sentido pra type='missing'. Se vier compact + duplicates, ignora.
+  const viewParam = url.searchParams.get('view')
+  const view: 'full' | 'compact' = (viewParam === 'compact' && type === 'missing') ? 'compact' : 'full'
+
   // Auth: aceita 3 caminhos
   //   1) x-admin-secret: header (chamadas admin manuais)
   //   2) Authorization: Bearer ${CRON_SECRET} (chamadas server-side
@@ -214,6 +220,86 @@ export async function GET(req: NextRequest) {
   const countryKeys = Object.keys(groups).filter((k) => k !== 'Coca-Cola' && k !== 'FIFA World Cup').sort((a, b) => a.localeCompare(b, 'pt-BR'))
   const specialKeys = ['FIFA World Cup', 'Coca-Cola'].filter((k) => groups[k])
   const sortedKeys = [...countryKeys, ...specialKeys]
+
+  // ── MODO COMPACT — só faltantes em lista densa (Pedro 2026-05-09) ──
+  // Otimizado pra caber em poucas páginas. Cada seção: header + lista
+  // corrida dos números faltantes. Em 4 colunas de texto.
+  if (view === 'compact') {
+    const NUM_COLS_TEXT = 4
+    const COL_GAP_TEXT = 16
+    const COL_W_TEXT = (PAGE_WIDTH - 2 * MARGIN - (NUM_COLS_TEXT - 1) * COL_GAP_TEXT) / NUM_COLS_TEXT
+    const colXText = (i: number) => MARGIN + i * (COL_W_TEXT + COL_GAP_TEXT)
+    const PAGE_BOTTOM_TXT = PAGE_HEIGHT - MARGIN - 8
+
+    let curCol = 0
+    let curY = HEADER_BOTTOM + 8
+
+    const ensureCompactSpace = (h: number) => {
+      if (curY + h > PAGE_BOTTOM_TXT) {
+        curCol++
+        if (curCol >= NUM_COLS_TEXT) {
+          doc.addPage()
+          drawPageHeader()
+          curCol = 0
+          curY = HEADER_BOTTOM + 8
+        } else {
+          curY = HEADER_BOTTOM + 8
+        }
+      }
+    }
+
+    let totalMissing = 0
+    for (const sectionKey of sortedKeys) {
+      const items = groups[sectionKey]
+        .filter((s) => {
+          const us = userMap.get(s.id)
+          return !us || us.status === 'missing' || us.quantity === 0
+        })
+        .sort((a, b) => {
+          const numA = parseInt(a.number.split('-')[1] || '0', 10)
+          const numB = parseInt(b.number.split('-')[1] || '0', 10)
+          return numA - numB
+        })
+
+      if (items.length === 0) continue
+      totalMissing += items.length
+
+      const x = colXText(curCol)
+      // Header da seção
+      ensureCompactSpace(14)
+      doc.fillColor(COLOR_GREEN).font('Helvetica-Bold').fontSize(9)
+        .text(`${sectionKey.toUpperCase()} (${items.length})`, x, curY, { width: COL_W_TEXT, lineBreak: false })
+      curY += 12
+
+      // Lista corrida de números, quebrando em múltiplas linhas se preciso
+      doc.fillColor(COLOR_GRAY).font('Helvetica').fontSize(9)
+      const numbersStr = items.map((s) => s.number.split('-')[1] || s.number).join('  ')
+      // Calcula altura textual
+      const heightOfNumbers = doc.heightOfString(numbersStr, { width: COL_W_TEXT })
+      ensureCompactSpace(heightOfNumbers)
+      doc.text(numbersStr, x, curY, { width: COL_W_TEXT })
+      curY = doc.y + 8
+    }
+
+    // Se não há nada faltando
+    if (totalMissing === 0) {
+      doc.fillColor(COLOR_GRAY).font('Helvetica').fontSize(14)
+        .text('🎉 Você não tem nenhuma figurinha faltando! Parabéns!', MARGIN, HEADER_BOTTOM + 30, { align: 'center', width: PAGE_WIDTH - 2 * MARGIN })
+    }
+
+    doc.end()
+    await endPromise
+    const buffer = Buffer.concat(chunks)
+    const filename = `complete-ai-faltantes-compact-${new Date().toISOString().slice(0, 10)}.pdf`
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, no-store',
+      },
+    })
+  }
 
   // ── TABELÃO ──
   // Pedro 2026-05-09: estilo planilha clássica — cabeçalho numerado,

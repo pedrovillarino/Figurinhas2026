@@ -3545,13 +3545,33 @@ export async function POST(req: NextRequest) {
 
       switch (intent) {
         case 'export_pdf': {
-          // Pedro 2026-05-09: gera PDF (faltantes ou repetidas) via endpoint
-          // interno e envia via Z-API send-document. Decide qual lista pelo
-          // texto do user — default é faltantes.
+          // Pedro 2026-05-09: 3 variantes de PDF
+          //   1) tabelão completo (visão álbum, com X nas que tem)
+          //   2) só faltantes em lista compacta (otimizado pra 1 página)
+          //   3) repetidas (tabelão, marca em âmbar)
+          // Detecta qual pelo texto do user. Se não der pista, manda menu.
           const wantsDuplicates = /\b(repet|duplic|sobr|tenho\s+repet|minhas?\s+repet)/i.test(lower)
-          const pdfType = wantsDuplicates ? 'duplicates' : 'missing'
-          // Usa CRON_SECRET (chamada server-side interna). Endpoint aceita
-          // Bearer ${CRON_SECRET} ou x-admin-secret. Fallback: ADMIN_SECRET.
+          const wantsCompact = /\b(s[óo]\s+(falt|que\s+falt)|compact|enxuta|menor|simplific|1\s+p[áa]gina|uma\s+p[áa]gina|s[óo]\s+lista|mais\s+enxut)/i.test(lower)
+          const wantsFull = /\b(complet|tabel[ãa]o|visao\s+complet|vis[ãa]o\s+complet|álbum\s+inteir|tudo|com\s+as\s+que\s+tenho)/i.test(lower)
+
+          // Sem pista clara entre completo e compact (e não é duplicates) →
+          // mostra menu e sai
+          if (!wantsDuplicates && !wantsCompact && !wantsFull) {
+            await sendText(
+              phone,
+              `📄 *Qual PDF você quer?*\n\n` +
+              `1️⃣ *Tabelão completo* — visão do álbum inteiro, com as que você já tem marcadas em verde (~2-3 páginas)\n\n` +
+              `2️⃣ *Só faltantes* — lista enxuta só com o que falta (cabe em menos páginas)\n\n` +
+              `3️⃣ *Repetidas* — pra trocas\n\n` +
+              `Manda *1*, *2* ou *3* — ou *pdf completo* / *pdf faltantes* / *pdf repetidas*.`,
+            )
+            // Salva pendência pra próxima resposta? Por enquanto fica simples:
+            // user manda comando claro na próxima mensagem.
+            break
+          }
+
+          const pdfType: 'missing' | 'duplicates' = wantsDuplicates ? 'duplicates' : 'missing'
+          const pdfView: 'full' | 'compact' = wantsCompact ? 'compact' : 'full'
           const internalSecret = process.env.CRON_SECRET || process.env.ADMIN_SECRET
           if (!internalSecret) {
             console.error('[wa-export-pdf] no internal secret available')
@@ -3561,7 +3581,7 @@ export async function POST(req: NextRequest) {
           await sendText(phone, '📄 Gerando seu PDF...')
           try {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
-            const res = await fetch(`${baseUrl}/api/export/pdf?type=${pdfType}&user_id=${user.id}`, {
+            const res = await fetch(`${baseUrl}/api/export/pdf?type=${pdfType}&view=${pdfView}&user_id=${user.id}`, {
               headers: process.env.CRON_SECRET
                 ? { 'Authorization': `Bearer ${internalSecret}` }
                 : { 'x-admin-secret': internalSecret },
@@ -3573,17 +3593,21 @@ export async function POST(req: NextRequest) {
             }
             const arrayBuffer = await res.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
-            const fileName = `complete-ai-${pdfType === 'missing' ? 'faltantes' : 'repetidas'}.pdf`
+            const fileName = pdfType === 'duplicates'
+              ? 'complete-ai-repetidas.pdf'
+              : pdfView === 'compact'
+                ? 'complete-ai-faltantes.pdf'
+                : 'complete-ai-album.pdf'
+            const caption = pdfType === 'duplicates'
+              ? '📄 Suas repetidas — pra trocas. Em âmbar = você tem repetida pra dar. ⚽'
+              : pdfView === 'compact'
+                ? '📄 Sua lista enxuta de faltantes. Mostra só o que precisa pegar. ⚽'
+                : '📄 Visão completa do álbum. Em verde = você já tem · vazio = falta · cinza = não existe (padding). ⚽'
             const { sendDocument } = await import('@/lib/zapi')
             const ok = await sendDocument(
               phone,
               { buffer, fileName },
-              {
-                extension: 'pdf',
-                caption: pdfType === 'missing'
-                  ? '📄 Sua lista de faltantes! Imprime ou compartilha com amigos. ⚽'
-                  : '📄 Sua lista de repetidas! Imprime ou compartilha com amigos pra fechar trocas. ⚽',
-              },
+              { extension: 'pdf', caption },
             )
             if (!ok) {
               console.error('[wa-export-pdf] sendDocument failed')
