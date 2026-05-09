@@ -247,17 +247,35 @@ human face inside. FILLED slot has the actual sticker covering it.
      photo WITHOUT an FWC label nearby, is DECORATIVE — IGNORE.
 
 🥤 COCA-COLA PAGE (CC1 through CC14):
-   - Distinctive RED background + large WHITE WAVE crossing.
-   - Coca-Cola logo visible.
+
+   ⚠️ IMPORTANT — distinguish PAGE FEATURES vs STICKER FEATURES:
+
+   PAGE FEATURES (only visible when user photographs the album page):
+   - RED background + large WHITE WAVE crossing
+   - Coca-Cola logo decorating the page
+   - Descriptive text alongside each slot
+   These are DECORATIVE PAGE elements — NOT printed on the actual sticker.
+
+   STICKER FEATURES (visible when user photographs a single sticker
+   loose in the table or in the album slot — this is what you must
+   identify as a Coca-Cola sticker):
+   - DARK photographic background (in-game/match action, NOT studio
+     white/team colors of normal country stickers)
+   - Player's name printed VERTICALLY along the LEFT EDGE in large
+     WHITE UPPERCASE letters
+   - Country code in parentheses next to the name (e.g. "LAMINE YAMAL
+     (ESP)", "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
+   - Small FIFA logo top-left
+   - NO Coca-Cola logo on the sticker itself
+   - NO "PANINI" badge
+   - NO red "EXTRA STICKER" badge
+   These 4 cues TOGETHER identify a Coca-Cola sticker. The most
+   distinctive single cue is the VERTICAL PLAYER NAME on the left
+   edge — no other sticker type has this layout.
+
    - 14 SLOTS spread across 2 pages (CC1-6 on one, CC7-14 on the
      other).
-   - Each slot has DESCRIPTIVE TEXT about the player alongside or
-     below (e.g. "Lamine Yamal — Realizando o sonho de defender..."
-     / "Harry Kane — capitão e maior artilheiro..."). THIS TEXT IS
-     NOT A STICKER — it's part of the template.
    - Empty slot: white rectangle with label "CC1", "CC2", etc.
-   - Filled slot: distinctive Coca-Cola sticker (dark in-game player
-     photo, vertical name on left edge).
 
 ═══════════════════════════════════════════════════════════════════════
 
@@ -965,9 +983,21 @@ export async function POST(request: NextRequest) {
       // ── Priority 0a: Coca-Cola (country_code='COCA') ──
       // Same isolation reasoning as Extras: CC stickers share player names
       // with normal country stickers (Lamine Yamal exists as ESP-X AND CC-1),
-      // so we only route into this path when Gemini confirms Coca-Cola visual
-      // (red bg + Coca-Cola logo + "FIFA OFFICIAL PARTNER"). No fallback to
-      // country lookup — false positives there would be worse than no match.
+      // so we only route into this path when Gemini confirms Coca-Cola visual.
+      //
+      // Pedro 2026-05-08: a figurinha Coca-Cola NÃO tem logo da Coca-Cola.
+      // O que distingue:
+      //   - Nome do jogador VERTICAL na borda esquerda (única no álbum)
+      //   - Fundo dark photographic (in-game), NÃO studio
+      //   - Country code em parênteses ao lado do nome
+      //   - FIFA logo top-left, sem PANINI badge, sem EXTRA STICKER
+      // Anteriormente o prompt mencionava "Coca-Cola logo" como cue, o que
+      // confundia Gemini quando user fotografava a figurinha solta — viu o
+      // jogador, não viu logo Coca, classificou como cromo regular da
+      // seleção. Causa do incident 2026-05-08.
+      //
+      // No fallback to country lookup — false positives there would be
+      // worse than no match.
       if (countryCode === 'COCA' && normPlayer && normPlayer.length >= 2) {
         const exact = cocaColaByPlayer.get(normPlayer)
         if (exact) {

@@ -192,15 +192,34 @@ dentro. SLOT FILLED tem foto/imagem do cromo real colado.
      FWC, é DECORATIVO — IGNORE.
 
 🥤 PÁGINA COCA-COLA (CC1 a CC14):
-   - Fundo VERMELHO característico + grande ONDA BRANCA cruzando.
-   - Logo Coca-Cola visível.
+
+   ⚠️ IMPORTANTE — distingua CARACTERÍSTICAS DA PÁGINA vs DO CROMO:
+
+   PÁGINA (só visível quando user fotografa o álbum aberto):
+   - Fundo VERMELHO + grande ONDA BRANCA cruzando
+   - Logo Coca-Cola decorando a página
+   - Texto descritivo do jogador ao lado de cada slot
+   Esses são elementos DECORATIVOS DA PÁGINA — NÃO estão impressos no
+   cromo em si.
+
+   CROMO (visível quando user fotografa um cromo solto na mesa ou
+   colado no slot — é isso que você precisa identificar como Coca):
+   - Fundo DARK photographic (foto IN-GAME/ação, NÃO o estúdio
+     branco/cores do time como nos cromos normais de seleção)
+   - Nome do jogador impresso VERTICALMENTE na BORDA ESQUERDA, em
+     letras BRANCAS MAIÚSCULAS GRANDES
+   - Country code entre parênteses ao lado do nome (ex: "LAMINE YAMAL
+     (ESP)", "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
+   - Logo FIFA pequeno top-left
+   - SEM logo da Coca-Cola no cromo
+   - SEM "PANINI" badge
+   - SEM badge vermelho "EXTRA STICKER"
+   Essas 4 pistas JUNTAS identificam um cromo Coca-Cola. A pista
+   única mais distintiva é o NOME VERTICAL na borda esquerda — nenhum
+   outro tipo de cromo tem esse layout.
+
    - 14 SLOTS distribuídos em 2 páginas (CC1-6 numa, CC7-14 noutra).
-   - Cada slot tem TEXTO descritivo DO JOGADOR ao lado/abaixo (ex:
-     "Lamine Yamal — Realizando o sonho de defender a seleção...").
-     ESSE TEXTO NÃO É CROMO — é parte do template.
    - Slot vazio: retângulo branco com label "CC1", "CC2", etc.
-   - Slot FILLED: cromo Coca-Cola distintivo (fundo escuro com foto
-     do jogador em ação, nome vertical à esquerda).
 
 ═══════════════════════════════════════════════════════════════════════
 
