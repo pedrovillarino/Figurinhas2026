@@ -759,7 +759,7 @@ export async function POST(req: NextRequest) {
     if (!jsonMatch) {
       // Pedro 2026-05-04: 0 figurinhas → não cobra scan
       await adminDb.rpc('decrement_scan_usage', { p_user_id: userId })
-      await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸 (não contou scan)')
+      await sendText(phone, '📸 Não encontrei figurinhas nessa foto. Pra dar certo, a foto precisa estar nítida e mostrar o *código* da figurinha (verso) OU o *nome do jogador* (frente). Pra muitas figurinhas, vire todas com o número pra cima. _(não contou scan)_')
       return NextResponse.json({ ok: true })
     }
 
@@ -767,7 +767,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.stickers || !Array.isArray(parsed.stickers) || parsed.stickers.length === 0) {
       // Pedro 2026-05-04: 0 figurinhas → não cobra scan
       await adminDb.rpc('decrement_scan_usage', { p_user_id: userId })
-      await sendText(phone, 'Não encontrei figurinhas nessa foto. Tenta uma com mais nitidez! 📸 (não contou scan)')
+      await sendText(phone, '📸 Não encontrei figurinhas nessa foto. Pra dar certo, a foto precisa estar nítida e mostrar o *código* da figurinha (verso) OU o *nome do jogador* (frente). Pra muitas figurinhas, vire todas com o número pra cima. _(não contou scan)_')
       return NextResponse.json({ ok: true })
     }
 
@@ -1011,7 +1011,7 @@ export async function POST(req: NextRequest) {
       const isQuota = errMsg.includes('429') || errMsg.includes('quota')
       const userMsg = isQuota
         ? 'O serviço de scan está sobrecarregado. Tenta de novo mais tarde ou use o scan pelo site! 🌐\n\n' + APP_URL + '/scan'
-        : 'Não consegui analisar essa foto. Tenta com mais nitidez! 📸'
+        : '📸 Não consegui analisar essa foto. Pra dar certo, a foto precisa estar *nítida* e mostrar o código (verso) OU o nome do jogador (frente). Pra muitas figurinhas, vire todas com o número pra cima.'
       await sendText(phone, userMsg).catch(() => {})
     }
     return NextResponse.json({ error: 'scan failed' }, { status: 500 })

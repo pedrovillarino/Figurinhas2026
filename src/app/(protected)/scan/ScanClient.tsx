@@ -459,14 +459,20 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
           <img src={imageData!} alt="Preview" className="w-full" />
         </div>
 
-        {/* Aviso de qualidade — pra reduzir scans falhos por foto borrada/longe */}
-        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
-          <span className="text-base leading-tight">⚠️</span>
-          <p className="text-xs text-amber-900 leading-relaxed">
-            Confira se a imagem está <span className="font-semibold">nítida</span> e se os{' '}
-            <span className="font-semibold">nomes ou números das figurinhas/jogadores</span>{' '}
-            estão visíveis.
-          </p>
+        {/* Pedro 2026-05-09: aviso de qualidade reforçado. Nitidez é o
+            fator nº 1. Verso (com número) tem assertividade muito maior. */}
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+          <div className="flex items-start gap-2 mb-1.5">
+            <span className="text-base leading-tight">📸</span>
+            <p className="text-xs font-semibold text-amber-900">
+              Pra IA reconhecer, a foto precisa estar <span className="underline">nítida</span> e mostrar:
+            </p>
+          </div>
+          <ul className="text-[11px] text-amber-900 leading-relaxed space-y-0.5 ml-6 list-disc">
+            <li>O <span className="font-semibold">código</span> da figurinha (verso) <span className="text-amber-700">OU</span> o <span className="font-semibold">nome do jogador</span> (frente)</li>
+            <li>Pra <span className="font-semibold">muitas figurinhas de uma vez</span>: vire todas com o <span className="font-semibold">número pra cima</span> (verso) — funciona melhor</li>
+            <li>Coca-Cola não tem código — fotografe <span className="font-semibold">com o nome do jogador visível</span> (frente)</li>
+          </ul>
         </div>
 
         <div className="flex gap-3">

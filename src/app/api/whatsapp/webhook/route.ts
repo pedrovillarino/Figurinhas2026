@@ -4688,10 +4688,11 @@ export async function POST(req: NextRequest) {
             `*📥 Registrar figurinhas — 3 jeitos:*\n\n` +
             `📸 *Por foto* — o mais rápido\n` +
             `Tira foto do álbum aberto OU das figurinhas soltas e me manda. Algumas dicas pra dar certo:\n` +
-            `  • Até *10 cromos por foto* (mais que isso, a precisão cai)\n` +
-            `  • *Nitidez é tudo* — nomes e números têm que estar legíveis na foto\n` +
+            `  • *Nitidez é tudo* — código OU nome do jogador legível na foto\n` +
             `  • Boa luz, sem reflexo, foco no centro\n` +
-            `  • Com 5+ cromos, prefira todos virados *de frente* (lado do nome)\n\n` +
+            `  • Pra *muitas figurinhas de uma vez*: vire todas com o *número pra cima* (verso) — assertividade muito maior\n` +
+            `  • *Coca-Cola* (sem código): fotografe com o *nome do jogador* visível (frente)\n` +
+            `  • Até *10 cromos por foto* (mais que isso, a precisão cai)\n\n` +
             `🎤 *Por áudio (só aqui no WhatsApp)* — funciona pra TUDO\n` +
             `Manda áudio que eu entendo. Não é só pra registrar:\n` +
             `  • _"Brasil 1, Argentina 3, França 10"_ → registra\n` +
