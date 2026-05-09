@@ -727,18 +727,31 @@ async function handleRegistrationFlow(phone: string, text: string): Promise<bool
 async function getUserStats(userId: string) {
   const supabase = getAdmin()
 
-  const { count: totalStickers } = await supabase
+  const { count: totalStickers, error: totalErr } = await supabase
     .from('stickers')
     .select('*', { count: 'exact', head: true })
     .eq('counts_for_completion', true)
+  if (totalErr) {
+    // Pedro 2026-05-09 (caso Lorenzo): antes silenciava o erro e retornava
+    // 980 default, fazendo o user ver "0/980" em vez do progresso real.
+    // Agora propaga pro caller decidir como avisar.
+    console.error(`[getUserStats] total stickers count FAILED user=${userId}:`, totalErr.message)
+    throw new Error(`getUserStats: total count failed: ${totalErr.message}`)
+  }
 
   // Pull every user_sticker once, joined with the sticker so we can count
   // both album progress and per-variant extras in the same pass.
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsErr } = await supabase
     .from('user_stickers')
     .select('status, stickers!inner(counts_for_completion, variant, section)')
     .eq('user_id', userId)
     .in('status', ['owned', 'duplicate'])
+  if (rowsErr) {
+    // Mesmo motivo: antes a query falhava e a função retornava 0 owned —
+    // user via "0 figurinhas" mesmo tendo um álbum cheio.
+    console.error(`[getUserStats] user_stickers query FAILED user=${userId}:`, rowsErr.message)
+    throw new Error(`getUserStats: user_stickers query failed: ${rowsErr.message}`)
+  }
 
   const total = totalStickers || 980
   let owned = 0
@@ -780,6 +793,32 @@ async function getUserStats(userId: string) {
   return {
     owned, missing, duplicates, total, pct,
     extrasTotal, extrasGold, extrasSilver, extrasBronze, extrasRegular, extrasCocacola,
+  }
+}
+
+/**
+ * Pedro 2026-05-09 (caso Lorenzo): wrapper que captura erro de getUserStats
+ * (que agora propaga via throw em vez de retornar 0/980 silencioso).
+ * Em caso de erro, manda uma mensagem amigável e retorna null pra o caller
+ * pular o resto do handler. Use só fora dos blocos que já têm try/catch.
+ */
+async function safeGetUserStats(
+  userId: string,
+  phone: string,
+): Promise<Awaited<ReturnType<typeof getUserStats>> | null> {
+  try {
+    return await getUserStats(userId)
+  } catch (err) {
+    console.error(`[safeGetUserStats] failed user=${userId}:`, err)
+    try {
+      await sendText(
+        phone,
+        '⚠️ Tive um problema técnico ao ler seu álbum agora. Tenta de novo em alguns minutos? 🙏',
+      )
+    } catch (sendErr) {
+      console.error('[safeGetUserStats] sendText fallback also failed:', sendErr)
+    }
+    return null
   }
 }
 
@@ -2783,7 +2822,8 @@ export async function POST(req: NextRequest) {
           .update({ last_reversible_action: null })
           .eq('id', user.id)
         const restoredCount = undoData?.length ?? action.stickers.length
-        const stats = await getUserStats(user.id)
+        const stats = await safeGetUserStats(user.id, phone)
+        if (!stats) return NextResponse.json({ ok: true })
         let reply = `↩️ *Desfeito!* Re-adicionei ${restoredCount} figurinha(s):\n`
         reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
         reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
@@ -3417,7 +3457,8 @@ export async function POST(req: NextRequest) {
 
       switch (intent) {
         case 'status': {
-          const stats = await getUserStats(user.id)
+          const stats = await safeGetUserStats(user.id, phone)
+          if (!stats) return NextResponse.json({ ok: true })
           // Suggest the most useful next action based on collection state.
           const nextButtons: ButtonOption[] =
             stats.duplicates > 0 && stats.missing > 0
@@ -3485,7 +3526,8 @@ export async function POST(req: NextRequest) {
           // intenção pelo texto: "todas", "tudo", "completa", "inteira".
           const wantsAll = /\b(todas?|tudo|completa?|inteir[ao]|toda\s+lista)\b/i.test(lower)
 
-          const stats = await getUserStats(user.id)
+          const stats = await safeGetUserStats(user.id, phone)
+          if (!stats) return NextResponse.json({ ok: true })
 
           if (stats.missing === 0) {
             await sendButtonList(phone, '🎉 *Você completou o álbum!* Parabéns! 🏆', [
