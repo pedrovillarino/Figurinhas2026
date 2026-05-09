@@ -266,8 +266,11 @@ human face inside. FILLED slot has the actual sticker covering it.
    - Country code in parentheses RIGHT NEXT TO the name (e.g.
      "EMILIANO MARTÍNEZ (ARG)", "LAMINE YAMAL (ESP)",
      "HARRY KANE (ENG)", "FEDERICO VALVERDE (URU)")
-   - Stylized FIFA World Cup 2026 emblem TOP-RIGHT corner (looks like
-     abstract letters "CW" in white)
+   - Stylized FIFA World Cup 2026 emblem TOP-LEFT corner (looks like
+     abstract letters/glyph in white). The emblem may APPEAR in
+     another corner if the user photographed the sticker rotated —
+     orient mentally so the player's name reads top-to-bottom along
+     the LEFT EDGE; that puts the FIFA emblem at top-left.
    - NO Coca-Cola logo on the sticker itself
    - NO "PANINI" badge
    - NO red "EXTRA STICKER" badge
