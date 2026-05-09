@@ -3690,6 +3690,47 @@ export async function POST(req: NextRequest) {
           // intenção pelo texto: "todas", "tudo", "completa", "inteira".
           const wantsAll = /\b(todas?|tudo|completa?|inteir[ao]|toda\s+lista)\b/i.test(lower)
 
+          // Pedro 2026-05-09: PDF agora é o DEFAULT pra "o que falta" (sem
+          // filtro de país). Se user pediu explicitamente texto/lista/mensagem,
+          // mantém comportamento antigo (lista em mensagem). Se tem filtro de
+          // país, também mantém texto (PDF não filtra por seção).
+          const wantsTextual = /\b(texto|lista|mensagem|por\s+texto|em\s+texto|escrito|por\s+escrito)\b/i.test(lower)
+          const shouldSendPdf = filters.length === 0 && !wantsAll && !wantsTextual
+
+          if (shouldSendPdf) {
+            const internalSecret = process.env.CRON_SECRET || process.env.ADMIN_SECRET
+            if (internalSecret) {
+              await sendText(phone, '📄 Gerando seu PDF de faltantes...')
+              try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
+                const pdfRes = await fetch(`${baseUrl}/api/export/pdf?type=missing&view=compact&user_id=${user.id}`, {
+                  headers: process.env.CRON_SECRET
+                    ? { 'Authorization': `Bearer ${internalSecret}` }
+                    : { 'x-admin-secret': internalSecret },
+                })
+                if (pdfRes.ok) {
+                  const buf = Buffer.from(await pdfRes.arrayBuffer())
+                  const { sendDocument } = await import('@/lib/zapi')
+                  const sentOk = await sendDocument(
+                    phone,
+                    { buffer: buf, fileName: 'complete-ai-faltantes.pdf' },
+                    {
+                      extension: 'pdf',
+                      caption:
+                        '📄 Aqui está sua lista de faltantes. Imprime, marca conforme cola, ou compartilha.\n\n' +
+                        '_Se preferir a lista em mensagem aqui no chat, manda *faltantes texto* — ou pra ver de algum país específico, manda *faltantes brasil*, *faltantes argentina*..._ ⚽',
+                    },
+                  )
+                  if (sentOk) break
+                }
+                console.error('[wa-missing-pdf] falhou, fallback pra texto')
+              } catch (err) {
+                console.error('[wa-missing-pdf] error:', err)
+              }
+            }
+            // Fallback: cai no fluxo de texto se PDF falhar
+          }
+
           const stats = await safeGetUserStats(user.id, phone)
           if (!stats) return NextResponse.json({ ok: true })
 
@@ -3825,6 +3866,42 @@ export async function POST(req: NextRequest) {
               MAIN_MENU_BUTTONS,
             )
           } else {
+            // Pedro 2026-05-09: PDF é DEFAULT também pra repetidas (com tabelão
+            // âmbar). Texto só se user pedir explicitamente.
+            const wantsTextualDup = /\b(texto|lista|mensagem|por\s+texto|em\s+texto|escrito|por\s+escrito)\b/i.test(lower)
+            if (!wantsTextualDup) {
+              const internalSecret = process.env.CRON_SECRET || process.env.ADMIN_SECRET
+              if (internalSecret) {
+                await sendText(phone, '📄 Gerando seu PDF de repetidas...')
+                try {
+                  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
+                  const pdfRes = await fetch(`${baseUrl}/api/export/pdf?type=duplicates&view=full&user_id=${user.id}`, {
+                    headers: process.env.CRON_SECRET
+                      ? { 'Authorization': `Bearer ${internalSecret}` }
+                      : { 'x-admin-secret': internalSecret },
+                  })
+                  if (pdfRes.ok) {
+                    const buf = Buffer.from(await pdfRes.arrayBuffer())
+                    const { sendDocument } = await import('@/lib/zapi')
+                    const sentOk = await sendDocument(
+                      phone,
+                      { buffer: buf, fileName: 'complete-ai-repetidas.pdf' },
+                      {
+                        extension: 'pdf',
+                        caption:
+                          `📄 Suas ${dupes.length} repetidas — em âmbar no tabelão. Mostra pra um amigo ou abre as trocas pra ver quem precisa.\n\n` +
+                          '_Se preferir a lista em mensagem aqui no chat, manda *repetidas texto*._ ⚽',
+                      },
+                    )
+                    if (sentOk) break
+                  }
+                  console.error('[wa-dup-pdf] falhou, fallback pra texto')
+                } catch (err) {
+                  console.error('[wa-dup-pdf] error:', err)
+                }
+              }
+              // Fallback: continua pro texto se PDF falhar
+            }
             const list = dupes
               .map(
                 (d) =>
