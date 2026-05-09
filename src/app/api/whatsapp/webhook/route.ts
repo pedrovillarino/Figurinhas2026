@@ -1260,15 +1260,34 @@ async function transcribeAudio(audioBase64: string, mimeType: string): Promise<s
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction:
-        'You receive a Portuguese audio message from a Panini sticker album user listing sticker codes. ' +
+        'You receive a Portuguese audio message from a Panini FIFA World Cup 2026 sticker album user listing sticker codes. ' +
         'Transcribe verbatim in plain Portuguese, no punctuation cleanup, no prefix, no quotes. ' +
-        'IMPORTANT: Convert ALL spelled-out numbers to digits — "três" → "3", "treze" → "13", ' +
+        '\n\n=== NUMBERS ===\n' +
+        'Convert ALL spelled-out numbers to digits — "três" → "3", "treze" → "13", ' +
         '"vinte e cinco" → "25", "número quinze" → "15". ' +
-        'Country names stay as spoken — keep multi-word country names INTACT and properly spelled: ' +
-        '"Espanha 3", "Cabo Verde 7", "Brasil 12", "República Tcheca 5" (NOT "techa" or "checa"), ' +
-        '"Côte d\'Ivoire 8", "Coreia do Sul 14", "Arábia Saudita 6", "Estados Unidos 11", ' +
-        '"África do Sul 9", "Nova Zelândia 4". When you hear "tcheca" / "tchéquia" / "checa" → keep as "Tcheca". ' +
-        'If the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
+        'Numbers may come BEFORE or AFTER the country: "Tcheca 3, 5, 7" or "3, 5, 7 da Tcheca" — both valid. ' +
+        '\n\n=== COUNTRIES (CRITICAL) ===\n' +
+        'The user is listing country names + numbers. KEEP country names INTACT and properly spelled. ' +
+        'NEVER substitute a country name with a similar-sounding player name — players are CONTENT of the stickers, not what the user is saying out loud. ' +
+        'Common audio variants to MAP to canonical form:\n' +
+        '  • Czechia: "tcheca" / "tchéquia" / "techa" / "chéquia" / "chequia" / "checa" → "Tcheca"\n' +
+        '    ⚠️ "Tcheca" is NEVER "Mero", "Mexa", "Meca", "número" — those are wrong transcriptions\n' +
+        '  • Cabo Verde: "cabo verde" / "caboverde" → "Cabo Verde" (keep as 2 words)\n' +
+        '  • Côte d\'Ivoire: "costa do marfim" / "marfim" → "Costa do Marfim"\n' +
+        '  • Coreia do Sul: "coreia" / "coreia do sul" / "coréia" → "Coreia do Sul"\n' +
+        '  • Arábia Saudita: "arabia saudita" / "saudita" → "Arábia Saudita"\n' +
+        '  • Estados Unidos: "eua" / "estados unidos" → "Estados Unidos"\n' +
+        '  • África do Sul: "africa do sul" / "rsa" → "África do Sul"\n' +
+        '  • Nova Zelândia: "nova zelandia" → "Nova Zelândia"\n' +
+        '  • República Democrática do Congo: "rd congo" / "dr congo" / "congo democrática" → "RD Congo"\n' +
+        '  • Bósnia: "bosnia" / "bosnia e herzegovina" → "Bósnia"\n' +
+        '\n=== EXAMPLES ===\n' +
+        'Audio: "Tcheca três, cinco, sete"           → "Tcheca 3, 5, 7"\n' +
+        'Audio: "República Tcheca número treze"      → "República Tcheca 13"\n' +
+        'Audio: "Cabo Verde quatorze e dezesseis"    → "Cabo Verde 14 e 16"\n' +
+        'Audio: "Brasil um, dois, três"              → "Brasil 1, 2, 3"\n' +
+        'Audio: "Esp três e Arg cinco"               → "ESP 3 e ARG 5"\n' +
+        '\nIf the audio is silent, unintelligible, or not Portuguese, respond with the literal token UNINTELLIGIBLE.',
     })
     const result = await model.generateContent([
       { inlineData: { mimeType, data: audioBase64 } },
@@ -2716,11 +2735,71 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
+      // ─── Undo da última ação destrutiva (Pedro 2026-05-09, caso Cintia) ───
+      // Caso real: Cintia mandou "Sim" achando que era registro, removeu 9
+      // cromos sem querer, depois mandou "Não" tentando reverter mas o bot
+      // caiu em fallback. Solução: TTL 10min em profiles.last_reversible_action
+      // permite "desfaz" / "desfazer" / "errei" / "volta" pra reverter.
+      const isUndoIntent = /^(desfaz|desfazer|desfa[çc]a|errei(\s+isso|\s+a\s+remo[çc][ãa]o)?|tava\s+errad[ao]|estava\s+errad[ao]|me\s+arrependi|volta(r)?(\s+(tudo|as\s+figurinhas?|os\s+cromos?))?|n[ãa]o\s+era\s+pra\s+remover|removi\s+errad[ao]|cancela\s+(a\s+)?remo[çc][ãa]o)\.?$/i.test(lower.trim())
+      if (isUndoIntent) {
+        const supabaseAdminUndo = getAdmin()
+        const { data: undoProfile } = await supabaseAdminUndo
+          .from('profiles')
+          .select('last_reversible_action')
+          .eq('id', user.id)
+          .single()
+        const action = undoProfile?.last_reversible_action as
+          | { type: string; executed_at: string; stickers: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> }
+          | null
+        if (!action || action.type !== 'remove_stickers') {
+          await sendText(phone, '🤔 Não tenho nenhuma remoção recente pra desfazer. Se você precisa registrar uma figurinha, manda o código (ex: *BRA-1*) ou uma foto.')
+          return NextResponse.json({ ok: true })
+        }
+        const elapsedMin = (Date.now() - new Date(action.executed_at).getTime()) / 60000
+        if (elapsedMin > 10) {
+          await sendText(phone, `⏰ A última remoção foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Pra trazer de volta, registra de novo (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
+          return NextResponse.json({ ok: true })
+        }
+        // Restaura: usa upsert (caso o user tenha registrado de novo no meio do caminho)
+        const restorePayload = action.stickers.map((s) => ({
+          user_id: user.id,
+          sticker_id: s.sticker_id,
+          status: s.status_before,
+          quantity: s.quantity_before,
+          updated_at: new Date().toISOString(),
+        }))
+        const { error: undoErr, data: undoData } = await supabaseAdminUndo
+          .from('user_stickers')
+          .upsert(restorePayload, { onConflict: 'user_id,sticker_id' })
+          .select('sticker_id')
+        if (undoErr) {
+          console.error(`[wa-undo] FAILED user=${user.id}:`, undoErr.message)
+          await sendText(phone, '⚠️ Não consegui desfazer agora. Tenta de novo em alguns minutos? 🙏')
+          return NextResponse.json({ ok: true })
+        }
+        // Limpa a ação reversível (consumida)
+        await supabaseAdminUndo
+          .from('profiles')
+          .update({ last_reversible_action: null })
+          .eq('id', user.id)
+        const restoredCount = undoData?.length ?? action.stickers.length
+        const stats = await getUserStats(user.id)
+        let reply = `↩️ *Desfeito!* Re-adicionei ${restoredCount} figurinha(s):\n`
+        reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
+        reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        await sendText(phone, reply)
+        return NextResponse.json({ ok: true })
+      }
+
       // ─── Check for pending scan confirmation ───
       // Pedro 2026-05-04: além de "sim", aceita variantes naturais como
       // "registra tudo", "salva todas", "confirma tudo" — caso real do
       // Pedro Arcari que mandou "registre todas" e bot não entendeu.
+      // Pedro 2026-05-09 (caso Cintia): "REMOVER" também conta como confirm
+      // (mas só pra pendings de remove — proteção dentro do handler).
+      const isExplicitRemoveWord = /^(remover|remove|deletar|apagar)\.?$/i.test(lower.trim())
       const isYesConfirm =
+        isExplicitRemoveWord ||
         /^(sim|s|yes|y|confirma|confirmar|ok|okay|🆗|👍|✅|isso|isso ai|isso aí)\.?$/i.test(lower.trim()) ||
         /^(registra|registre|registrar|salva|salve|salvar|confirma|confirme|confirmar|cola|cole|colar)\s+(tud[oa]|tods?|toda?s|os\s+(tr[êe]s|dois|\d+))\.?$/i.test(lower.trim()) ||
         /^(pode|p[oô]e|colocar|registrar|salvar)\s+(tudo|todas|todos)\b/i.test(lower.trim())
@@ -2761,29 +2840,83 @@ export async function POST(req: NextRequest) {
           const registerPendings = allPending.filter((p: { source: string | null }) => p.source !== 'remove_text')
           console.log(
             `[wa-confirm] user=${user.id} register_pendings=${registerPendings.length} ` +
-            `remove_pendings=${removePendings.length}`
+            `remove_pendings=${removePendings.length} explicit_remove=${isExplicitRemoveWord}`
           )
+
+          // Pedro 2026-05-09 (caso Cintia): proteção contra confirmação
+          // acidental de REMOVE. Se há pending de remove e o user mandou
+          // "Sim" (ou variante genérica), NÃO REMOVE — re-pergunta exigindo
+          // a palavra exata "REMOVER". Caso real: Cintia mandou Sim achando
+          // que era registro, removeu 9 cromos sem querer.
+          // Se user mandou EXPLICITAMENTE "REMOVER", segue normal.
+          if (removePendings.length > 0 && !isExplicitRemoveWord) {
+            const removeCount = removePendings.reduce((acc, p) => {
+              const sd = p.scan_data as Array<unknown> | null
+              return acc + (Array.isArray(sd) ? sd.length : 0)
+            }, 0)
+            let warnMsg = `⚠️ *${removeCount} figurinha(s) aguardando REMOÇÃO do álbum.*\n\n`
+            warnMsg += `Pra evitar enganos, REMOVER precisa de confirmação explícita:\n\n`
+            warnMsg += `✅ Responde *REMOVER* (essa palavra) → confirma\n`
+            warnMsg += `❌ Responde *cancela* → aborta`
+            if (registerPendings.length > 0) {
+              warnMsg += `\n\n_(Você também tem ${registerPendings.length} registro(s) aguardando — vou processar todos juntos depois que decidir sobre a remoção.)_`
+            }
+            await sendBotTextFor(user.id, phone, warnMsg)
+            return NextResponse.json({ ok: true })
+          }
 
           // ── Processa REMOÇÕES ──
           let removedCount = 0
           const removedNumbers: string[] = []
+          // Pedro 2026-05-09 (caso Cintia): captura snapshot ANTES de deletar
+          // pra suportar undo via "desfaz" nos próximos 10min.
+          let undoSnapshot: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> = []
           if (removePendings.length > 0) {
             const stickerIdsToRemove = new Set<number>()
+            const numberByStickerId = new Map<number, string>()
             for (const pending of removePendings) {
               const scanData = pending.scan_data as Array<{ sticker_id: number; number: string; player_name: string }>
               for (const s of scanData) {
                 stickerIdsToRemove.add(s.sticker_id)
+                numberByStickerId.set(s.sticker_id, s.number)
                 if (!removedNumbers.includes(s.number)) removedNumbers.push(s.number)
               }
             }
             if (stickerIdsToRemove.size > 0) {
+              const idArray = Array.from(stickerIdsToRemove)
+              // 1) Captura status ANTES (pra undo)
+              const { data: beforeSnap } = await supabaseAdmin
+                .from('user_stickers')
+                .select('sticker_id, status, quantity')
+                .eq('user_id', user.id)
+                .in('sticker_id', idArray)
+              undoSnapshot = (beforeSnap || []).map((row: { sticker_id: number; status: string; quantity: number }) => ({
+                sticker_id: row.sticker_id,
+                number: numberByStickerId.get(row.sticker_id) || '',
+                status_before: row.status,
+                quantity_before: row.quantity,
+              }))
+              // 2) Deleta
               const { error: delErr, count } = await supabaseAdmin
                 .from('user_stickers')
                 .delete({ count: 'exact' })
                 .eq('user_id', user.id)
-                .in('sticker_id', Array.from(stickerIdsToRemove))
+                .in('sticker_id', idArray)
               if (delErr) console.error('[wa-confirm-remove] delete err:', delErr)
               removedCount = count ?? stickerIdsToRemove.size
+              // 3) Salva snapshot pra undo (TTL 10min — validado em código no handler de desfaz)
+              if (removedCount > 0 && undoSnapshot.length > 0) {
+                await supabaseAdmin
+                  .from('profiles')
+                  .update({
+                    last_reversible_action: {
+                      type: 'remove_stickers',
+                      executed_at: new Date().toISOString(),
+                      stickers: undoSnapshot,
+                    },
+                  })
+                  .eq('id', user.id)
+              }
             }
           }
 
@@ -2854,6 +2987,9 @@ export async function POST(req: NextRequest) {
           if (removedCount > 0) {
             reply += `🗑️ *${removedCount} figurinha(s) removida(s) do álbum:*\n`
             reply += removedNumbers.map((n) => `• ${n}`).join('\n') + '\n\n'
+            // Pedro 2026-05-09 (caso Cintia): oferta de undo logo após remoção.
+            // Janela de 10min, snapshot já salvo em last_reversible_action.
+            reply += `↩️ _Removeu errado? Manda *desfaz* nos próximos 10min pra voltar tudo._\n\n`
           }
           reply += `📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
 
@@ -2953,6 +3089,32 @@ export async function POST(req: NextRequest) {
             : `*Não contou scan* — `
           await sendText(phone, `❌ Cancelado. Nada foi registrado.\n${refundNote}manda outra foto, áudio ou texto se quiser tentar de novo!`)
           return NextResponse.json({ ok: true })
+        }
+
+        // Pedro 2026-05-09 (caso Cintia): user mandou "Não" sem pending ativo,
+        // MAS acabou de fazer uma remoção. Em vez de fallback genérico,
+        // propor undo da remoção recente. Isso captura o "arrependimento
+        // tardio" — exatamente o que rolou com a Cintia.
+        const { data: cancelProfileCheck } = await supabaseAdmin
+          .from('profiles')
+          .select('last_reversible_action')
+          .eq('id', user.id)
+          .single()
+        const cancelAction = cancelProfileCheck?.last_reversible_action as
+          | { type: string; executed_at: string; stickers: Array<{ number: string }> }
+          | null
+        if (cancelAction && cancelAction.type === 'remove_stickers') {
+          const elapsedMin = (Date.now() - new Date(cancelAction.executed_at).getTime()) / 60000
+          if (elapsedMin <= 10) {
+            const previewNumbers = cancelAction.stickers.slice(0, 5).map((s) => s.number).join(', ')
+            const moreCount = cancelAction.stickers.length - 5
+            const moreText = moreCount > 0 ? ` _+${moreCount} mais_` : ''
+            const reply =
+              `🤔 Não tem nada pendente pra cancelar agora — mas vi que há ${Math.round(elapsedMin)}min você *removeu ${cancelAction.stickers.length} figurinha(s)* (${previewNumbers}${moreText}).\n\n` +
+              `Quer desfazer essa remoção? Manda *desfaz* nos próximos ${10 - Math.round(elapsedMin)}min e eu re-adiciono tudo.`
+            await sendText(phone, reply)
+            return NextResponse.json({ ok: true })
+          }
         }
       }
 
@@ -3859,9 +4021,13 @@ export async function POST(req: NextRequest) {
           if (dontHaveItems.length > 0) {
             reply += `\n\n_(${dontHaveItems.map((s) => s.number).join(', ')} não estão no seu álbum — não vou mexer.)_`
           }
-          reply += `\n\n⚠️ *Ação não pode ser desfeita.*\n\n`
-          reply += `✅ *SIM* → remove\n`
-          reply += `❌ *NÃO* → cancela`
+          // Pedro 2026-05-09 (caso Cintia): confirmação de REMOVE não pode
+          // ser SIM/NÃO genérico — user pode dizer "Sim" no automático
+          // achando que é registro. Exigir palavra explícita ("REMOVER")
+          // garante que o user leu e entendeu a ação destrutiva.
+          reply += `\n\n⚠️ *Ação destrutiva.* Pra evitar enganos, preciso da palavra exata:\n\n`
+          reply += `✅ Responde *REMOVER* (essa palavra) → confirma\n`
+          reply += `❌ Responde *cancela* → aborta`
           await sendBotTextFor(user.id, phone, reply)
           break
         }
