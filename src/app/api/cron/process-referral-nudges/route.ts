@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br').trim()
-// Tempo mínimo de "silêncio" desde a última confirmação antes de enviar nudge.
-// Cada nova confirmação re-seta pending_referral_nudge_at, então só dispara
-// quando user efetivamente PAROU de mandar registros.
-const QUIET_WINDOW_MIN = 3
+// Pedro 2026-05-08: silêncio de 40s desde a última confirmação = fim do bloco.
+// Cron a cada 1min checa, então latência total é ~40-100s entre o user
+// dizer "sim" pelo último registro e receber o nudge.
+const QUIET_WINDOW_SEC = 40
 // Cooldown total entre 2 nudges pra mesmo user (independente de quantos
 // blocos ele faça nesse período).
 const COOLDOWN_HOURS = 72
@@ -34,7 +34,7 @@ async function processNudges() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  const quietCutoff = new Date(Date.now() - QUIET_WINDOW_MIN * 60 * 1000).toISOString()
+  const quietCutoff = new Date(Date.now() - QUIET_WINDOW_SEC * 1000).toISOString()
   const cooldownCutoff = new Date(Date.now() - COOLDOWN_HOURS * 3600 * 1000).toISOString()
 
   const { data: candidates, error } = await sb
