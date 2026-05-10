@@ -888,11 +888,16 @@ export default function AlbumClient({
                     </li>
                   </ul>
                 </div>
-                <p className="text-xs text-gray-600 mb-4 italic leading-relaxed">
+                <p className="text-xs text-gray-600 mb-3 italic leading-relaxed">
                   Use isso quando trocou muitas figurinhas e perdeu controle de quais ainda tem. Depois, fotografe a pilha de repetidas que SOBROU — registramos do zero.
                 </p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-xs text-emerald-900 leading-relaxed">
+                  💡 <strong>Quer tirar só algumas?</strong> Em vez de limpar tudo, use o botão{' '}
+                  <strong>−1</strong> diretamente no card de cada figurinha (aqui mesmo na lista).
+                  No WhatsApp também funciona com comandos como <em>&quot;dei BRA-5&quot;</em> ou <em>&quot;trocou CC-2&quot;</em>.
+                </div>
                 <p className="text-sm font-semibold text-gray-900 mb-2">
-                  Para confirmar, digite <span className="text-amber-700">LIMPAR</span> abaixo:
+                  Para confirmar a limpeza completa, digite <span className="text-amber-700">LIMPAR</span> abaixo:
                 </p>
                 <input
                   type="text"

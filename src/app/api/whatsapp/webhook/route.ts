@@ -3956,8 +3956,13 @@ export async function POST(req: NextRequest) {
         reply += `• *${dupes.length} cromo${dupes.length > 1 ? 's' : ''}* com duplicatas\n`
         reply += `• *${totalExtras} unidade${totalExtras > 1 ? 's' : ''} extra${totalExtras > 1 ? 's' : ''}* que vai${totalExtras > 1 ? 'o' : ''} zerar\n\n`
         reply += `_Use isso quando trocou muitas figurinhas e perdeu controle de quais ainda tem. Depois, fotografe a pilha de repetidas que SOBROU — registramos do zero._\n\n`
-        reply += `⚠️ *Ação destrutiva.* Para confirmar, responde a palavra exata:\n\n`
-        reply += `✅ Responde *LIMPAR* (essa palavra) → zera as duplicatas\n`
+        reply += `💡 *Quer tirar só algumas?* Em vez de limpar tudo, manda comandos individuais:\n`
+        reply += `• _"dei BRA-5"_ → tira 1 unidade da BRA-5\n`
+        reply += `• _"saiu ARG-3, MAR-12"_ → tira 1 de cada\n`
+        reply += `• _"trocou CC-2"_ → tira 1 do CC-2\n`
+        reply += `Você também pode entrar em ${APP_URL}/album → aba *Repetidas* e clicar em *−1* em cada cromo.\n\n`
+        reply += `⚠️ *Ação destrutiva.* Para confirmar a limpeza completa, responde a palavra exata:\n\n`
+        reply += `✅ Responde *LIMPAR* (essa palavra) → zera TODAS as duplicatas\n`
         reply += `❌ Responde *cancela* → mantém tudo como está`
         await sendBotTextFor(user.id, phone, reply)
         return NextResponse.json({ ok: true })
