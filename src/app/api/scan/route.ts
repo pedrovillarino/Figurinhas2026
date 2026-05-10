@@ -108,16 +108,19 @@ A) COUNTRY PAGE (header "WE ARE [COUNTRY]" + flag + crest + grid of
    numbered slots with codes like MEX-3, BRA-12 etc) → use PAGE
    CHECKLIST MODE (next section).
 
-B) SPECIAL PAGE (FIFA World Cup section / Coca-Cola / PANINI Extras /
-   album intro / back cover). Layout here is NOT the standard country
-   grid. → use OBJECT DETECTION mode: identify each visible sticker
-   using the detailed visual descriptions in the FIFA WORLD CUP, PANINI
-   EXTRAS and COCA-COLA sections below. DO NOT apply positional
-   checklist here.
+B) KNOWN SPECIAL PAGE (FIFA World Cup section, Coca-Cola, album intro)
+   → ALSO use PAGE CHECKLIST MODE. Pedro 2026-05-10: these pages have
+   FIXED POSITIONS — use the POSITIONAL LAYOUT (described in "EXTENDED
+   CHECKLIST MODE" below) to map each slot to the correct FWC-X / CC-X
+   code. DO NOT object-detect to re-identify the glued sticker — the
+   code comes from the POSITION of the slot. Object detection only to
+   tell FILLED (sticker glued, covers slot) vs EMPTY (visible label).
 
 C) LOOSE STICKER(S) (opened pack, hand holding sticker, multiple
-   stickers spread on a table) → normal OBJECT DETECTION for each
-   individual visible sticker.
+   stickers spread on a table, loose PANINI Extras) → normal OBJECT
+   DETECTION for each individual visible sticker. Use detailed visual
+   descriptions in FIFA WORLD CUP, PANINI EXTRAS and COCA-COLA sections
+   below.
 
 ═══════════════════════════════════════════════════════════════════════
 ⚠️ SPECIAL ATTENTION — GROUP STAGE INFO IN COUNTRY PAGES:
@@ -196,6 +199,63 @@ STEP BY STEP:
       SKIP IT. Reading the code on the template ≠ sticker present.
 
 4. Return ONLY the FILLED positions in the stickers array.
+
+═══════════════════════════════════════════════════════════════════════
+🎯 EXTENDED CHECKLIST MODE — KNOWN SPECIAL PAGES (Pedro 2026-05-10)
+
+Special pages also have FIXED slot positions. For these pages, DO NOT
+object-detect to identify what was glued — read the POSITION of the
+slot and map to the correct code.
+
+How it works:
+1. Identify which special page it is (header / overall look).
+2. Knowing the page, you know SLOT 1, SLOT 2, ... SLOT N map to FIXED
+   codes (list below).
+3. Classify each slot as FILLED or EMPTY (same as country pages: human
+   photo = FILLED, printed label = EMPTY).
+4. Report the SLOT'S code (not the glued sticker's). E.g. if page is
+   HOST COUNTRIES and slot 4 is filled, report "FWC-8" REGARDLESS of
+   what the glued sticker looks like.
+
+📋 POSITIONAL LAYOUTS:
+
+🔸 OPENING "WE ARE PANINI":
+   - Slot 00 (top, in roll-of-honor panel): FWC-0
+   - Bottom (4 slots in a row): FWC-1, FWC-2, FWC-3, FWC-4
+
+🔸 HOST COUNTRIES AND CITIES (header "FIFA WORLD CUP 2026 - HOST
+   COUNTRIES AND CITIES" + cities list):
+   - Slot 1 (typically left, colorful ball): FWC-5 (TRIONDA)
+   - Slot 2 (red bg + "CAN MEX USA" text): FWC-6 (Trophy Canada)
+   - Slot 3 (green bg): FWC-7 (Trophy Mexico)
+   - Slot 4 (blue bg): FWC-8 (Trophy USA)
+   ⚠️ The slot's BACKGROUND COLOR (red/green/blue) determines the code.
+   If you see a sticker in a red-background slot in this page → FWC-6.
+   NEVER report FWC-1/FWC-2 (official trophy) on a Host Countries page
+   — those live on the OPENING page.
+
+🔸 FIFA WORLD CUP HISTORY (purple/blue bg + FIFA MUSEUM header):
+   - 11 slots in chronological order (left-to-right, top-to-bottom):
+     FWC-9 Italy 1934, FWC-10 Brazil 1950, FWC-11 Switzerland 1954,
+     FWC-12 Chile 1962, FWC-13 Germany 1974, FWC-14 Mexico 1986,
+     FWC-15 USA 1994, FWC-16 Korea/Japan 2002, FWC-17 Germany 2006,
+     FWC-18 Brazil 2014, FWC-19 Qatar 2022.
+   - Each slot has the country name + year PRINTED nearby — use that
+     to confirm position.
+
+🔸 COCA-COLA (2 pages):
+   - Page 1 (slots in visual order): CC-1, CC-2, CC-3, CC-4, CC-5, CC-6
+   - Page 2 (slots in visual order): CC-7, CC-8, CC-9, CC-10, CC-11,
+     CC-12, CC-13, CC-14
+   - Player descriptive text PRINTED next to each slot — use the printed
+     name to confirm position (e.g. CC-1 has "Lamine Yamal" printed next).
+
+⚠️ GOLDEN RULE FOR KNOWN PAGES:
+   In case of conflict between "code from slot position" vs "my visual
+   identification of the glued sticker", ALWAYS trust the slot position.
+   FWC and CC stickers have similar appearances (many feature the gold
+   trophy, many feature players in similar poses) — position on the page
+   is the source of truth.
 
 ═══════════════════════════════════════════════════════════════════════
 🗺️ SPECIAL ALBUM PAGE LAYOUTS (Pedro 2026-05-05)

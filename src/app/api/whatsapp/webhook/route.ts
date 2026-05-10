@@ -2823,7 +2823,11 @@ export async function POST(req: NextRequest) {
       // cromos sem querer, depois mandou "Não" tentando reverter mas o bot
       // caiu em fallback. Solução: TTL 10min em profiles.last_reversible_action
       // permite "desfaz" / "desfazer" / "errei" / "volta" pra reverter.
-      const isUndoIntent = /^(desfaz|desfazer|desfa[çc]a|errei(\s+isso|\s+a\s+remo[çc][ãa]o)?|tava\s+errad[ao]|estava\s+errad[ao]|me\s+arrependi|volta(r)?(\s+(tudo|as\s+figurinhas?|os\s+cromos?))?|n[ãa]o\s+era\s+pra\s+remover|removi\s+errad[ao]|cancela\s+(a\s+)?remo[çc][ãa]o)\.?$/i.test(lower.trim())
+      //
+      // Pedro 2026-05-10 (caso Bruna): undo agora cobre TAMBÉM registro
+      // errado (scan leu FWC-2 quando era FWC-8). Snapshot é gravado
+      // ANTES do batchSave em pending_scans flow. type='register_stickers'.
+      const isUndoIntent = /^(desfaz|desfazer|desfa[çc]a|errei(\s+isso|\s+a\s+remo[çc][ãa]o|\s+o\s+registro|\s+ao?\s+registro)?|tava\s+errad[ao]|estava\s+errad[ao]|me\s+arrependi|volta(r)?(\s+(tudo|as\s+figurinhas?|os\s+cromos?))?|n[ãa]o\s+era\s+pra\s+(remover|registrar)|removi\s+errad[ao]|registrei\s+errad[ao]|cancela\s+(a\s+)?(remo[çc][ãa]o|registro))\.?$/i.test(lower.trim())
       if (isUndoIntent) {
         const supabaseAdminUndo = getAdmin()
         const { data: undoProfile } = await supabaseAdminUndo
@@ -2834,16 +2838,20 @@ export async function POST(req: NextRequest) {
         const action = undoProfile?.last_reversible_action as
           | { type: string; executed_at: string; stickers: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> }
           | null
-        if (!action || action.type !== 'remove_stickers') {
-          await sendText(phone, '🤔 Não tenho nenhuma remoção recente pra desfazer. Se você precisa registrar uma figurinha, manda o código (ex: *BRA-1*) ou uma foto.')
+        if (!action || (action.type !== 'remove_stickers' && action.type !== 'register_stickers')) {
+          await sendText(phone, '🤔 Não temos nenhuma ação recente pra desfazer. Se você precisa registrar uma figurinha, manda o código (ex: *BRA-1*) ou uma foto.')
           return NextResponse.json({ ok: true })
         }
         const elapsedMin = (Date.now() - new Date(action.executed_at).getTime()) / 60000
         if (elapsedMin > 10) {
-          await sendText(phone, `⏰ A última remoção foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Pra trazer de volta, registra de novo (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
+          const verb = action.type === 'register_stickers' ? 'registro' : 'remoção'
+          await sendText(phone, `⏰ O último ${verb} foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Se precisar ajustar, manda os códigos (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
           return NextResponse.json({ ok: true })
         }
-        // Restaura: usa upsert (caso o user tenha registrado de novo no meio do caminho)
+        // Restaura: upsert volta cada cromo pro estado anterior.
+        // Para register_stickers: status_before='missing'/quantity_before=0 ⇒
+        // upsert grava missing/0 (equivalente a deletar da perspectiva do user).
+        // Para remove_stickers: traz de volta o status/quantidade que tinha.
         const restorePayload = action.stickers.map((s) => ({
           user_id: user.id,
           sticker_id: s.sticker_id,
@@ -2856,8 +2864,8 @@ export async function POST(req: NextRequest) {
           .upsert(restorePayload, { onConflict: 'user_id,sticker_id' })
           .select('sticker_id')
         if (undoErr) {
-          console.error(`[wa-undo] FAILED user=${user.id}:`, undoErr.message)
-          await sendText(phone, '⚠️ Não consegui desfazer agora. Tenta de novo em alguns minutos? 🙏')
+          console.error(`[wa-undo] FAILED user=${user.id} type=${action.type}:`, undoErr.message)
+          await sendText(phone, '⚠️ Não conseguimos desfazer agora. Tenta de novo em alguns minutos? 🙏')
           return NextResponse.json({ ok: true })
         }
         // Limpa a ação reversível (consumida)
@@ -2865,12 +2873,20 @@ export async function POST(req: NextRequest) {
           .from('profiles')
           .update({ last_reversible_action: null })
           .eq('id', user.id)
-        const restoredCount = undoData?.length ?? action.stickers.length
+        const affectedCount = undoData?.length ?? action.stickers.length
         const stats = await safeGetUserStats(user.id, phone)
         if (!stats) return NextResponse.json({ ok: true })
-        let reply = `↩️ *Desfeito!* Re-adicionei ${restoredCount} figurinha(s):\n`
-        reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
-        reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        let reply: string
+        if (action.type === 'register_stickers') {
+          reply = `↩️ *Desfeito!* Removemos do seu álbum ${affectedCount} figurinha(s) que tinha registrado por engano:\n`
+          reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
+          reply += `\n\nSe quiser tentar de novo, manda outra foto mais nítida ou o código direto (ex: *BRA-1*).`
+          reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        } else {
+          reply = `↩️ *Desfeito!* Re-adicionamos ${affectedCount} figurinha(s):\n`
+          reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
+          reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        }
         await sendText(phone, reply)
         return NextResponse.json({ ok: true })
       }
@@ -3008,6 +3024,10 @@ export async function POST(req: NextRequest) {
           let saved = 0
           const savedNumbers: string[] = []
           let mergedStickers: Array<{ sticker_id: number; number: string; player_name: string; quantity: number }> = []
+          // Pedro 2026-05-10 (caso Bruna): undo de registro também. Captura
+          // snapshot ANTES de salvar pra reverter via "desfaz" se a leitura
+          // do scan saiu errada (ex: Bruna confirmou FWC-2 mas era FWC-8).
+          let registerUndoSnapshot: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> = []
           if (registerPendings.length > 0) {
             const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
             for (const pending of registerPendings) {
@@ -3023,6 +3043,25 @@ export async function POST(req: NextRequest) {
               `[wa-confirm] user=${user.id} merging ${registerPendings.length} pendings → ` +
               `${mergedStickers.length} unique stickers (numbers: ${mergedStickers.slice(0, 20).map(s => s.number).join(',')})`
             )
+            // Captura status ANTES de batchSave (pra undo)
+            const idsToSave = mergedStickers.map((s) => s.sticker_id)
+            const { data: beforeSnap } = await supabaseAdmin
+              .from('user_stickers')
+              .select('sticker_id, status, quantity')
+              .eq('user_id', user.id)
+              .in('sticker_id', idsToSave)
+            const beforeMap = new Map(
+              (beforeSnap || []).map((row: { sticker_id: number; status: string; quantity: number }) => [row.sticker_id, row]),
+            )
+            registerUndoSnapshot = mergedStickers.map((s) => {
+              const before = beforeMap.get(s.sticker_id) as { status: string; quantity: number } | undefined
+              return {
+                sticker_id: s.sticker_id,
+                number: s.number,
+                status_before: before?.status || 'missing',  // 'missing' = não existia row (ou era missing)
+                quantity_before: before?.quantity || 0,
+              }
+            })
             const result = await batchSaveStickers(
               supabaseAdmin,
               user.id,
@@ -3050,6 +3089,22 @@ export async function POST(req: NextRequest) {
 
           // Limpa todos os pendings consumidos
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
+
+          // Pedro 2026-05-10 (caso Bruna): grava snapshot pra undo de registro.
+          // Só sobrescreve last_reversible_action se houve registro real (saved > 0)
+          // E não houve REMOVE no mesmo turn (remove tem prioridade — já gravou).
+          if (saved > 0 && registerUndoSnapshot.length > 0 && removedCount === 0) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({
+                last_reversible_action: {
+                  type: 'register_stickers',
+                  executed_at: new Date().toISOString(),
+                  stickers: registerUndoSnapshot,
+                },
+              })
+              .eq('id', user.id)
+          }
 
           const stats = await getUserStats(user.id)
 
