@@ -1243,9 +1243,15 @@ function classifyStickerCommand(
   const hasQuestionMark = /\?/.test(rawText)
 
   // ─── REMOVE: tirar/remover/deletar/apagar/excluir ───
+  // Pedro 2026-05-10: estendido pra capturar verbos de TROCA — usuário
+  // diz "dei BRA-5" / "saiu ARG-3" / "trocou CC-2" quando entrega
+  // figurinha repetida pra outra pessoa. Mesma operação no DB
+  // (decrement quantity), só muda o verbo. Ainda mantém o fluxo de
+  // confirmação explícita ("REMOVER" / "DAR BAIXA") pra evitar
+  // acidente no caso Cintia.
   // (NÃO inclui "cancelar" — handler de cancel-pending tem fluxo próprio
   // pra "cancela registro/foto/áudio".)
-  if (/\b(tirar?|tire|remover?|remove|deletar?|delete|apagar?|apaga|excluir?|exclui)\b/.test(residue)) {
+  if (/\b(tirar?|tire|remover?|remove|deletar?|delete|apagar?|apaga|excluir?|exclui|dei|deu|saiu?|sa[ií]ram|saiuram|trocou?|troquei|entreguei|entregou|dar\s+baixa|dou)\b/.test(residue)) {
     return 'remove'
   }
 
@@ -2971,14 +2977,23 @@ export async function POST(req: NextRequest) {
         const action = undoProfile?.last_reversible_action as
           | { type: string; executed_at: string; stickers: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> }
           | null
-        if (!action || (action.type !== 'remove_stickers' && action.type !== 'register_stickers')) {
+        if (
+          !action ||
+          (action.type !== 'remove_stickers' &&
+            action.type !== 'register_stickers' &&
+            action.type !== 'clear_duplicates')
+        ) {
           await sendText(phone, '🤔 Não temos nenhuma ação recente pra desfazer. Se você precisa registrar uma figurinha, manda o código (ex: *BRA-1*) ou uma foto.')
           return NextResponse.json({ ok: true })
         }
         const elapsedMin = (Date.now() - new Date(action.executed_at).getTime()) / 60000
         if (elapsedMin > 10) {
-          const verb = action.type === 'register_stickers' ? 'registro' : 'remoção'
-          await sendText(phone, `⏰ O último ${verb} foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Se precisar ajustar, manda os códigos (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
+          const verb = action.type === 'register_stickers'
+            ? 'registro'
+            : action.type === 'clear_duplicates'
+              ? 'limpeza de repetidas'
+              : 'remoção'
+          await sendText(phone, `⏰ A última ${verb} foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Se precisar ajustar, manda os códigos (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
           return NextResponse.json({ ok: true })
         }
         // Restaura: upsert volta cada cromo pro estado anterior.
@@ -3015,6 +3030,16 @@ export async function POST(req: NextRequest) {
           reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
           reply += `\n\nSe quiser tentar de novo, manda outra foto mais nítida ou o código direto (ex: *BRA-1*).`
           reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        } else if (action.type === 'clear_duplicates') {
+          const totalRestored = action.stickers.reduce((sum, s) => sum + Math.max(0, s.quantity_before - 1), 0)
+          reply = `↩️ *Desfeito!* Restauramos as quantidades de ${affectedCount} cromo(s) (${totalRestored} unidade(s) extra(s) de volta):\n`
+          // mostra só os 5 primeiros pra não floodar
+          const sample = action.stickers.slice(0, 5)
+          reply += sample.map((s) => `• ${s.number} _(qty ${s.quantity_before})_`).join('\n')
+          if (action.stickers.length > 5) {
+            reply += `\n• _e mais ${action.stickers.length - 5}..._`
+          }
+          reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
         } else {
           reply = `↩️ *Desfeito!* Re-adicionamos ${affectedCount} figurinha(s):\n`
           reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
@@ -3036,7 +3061,108 @@ export async function POST(req: NextRequest) {
       // Pedro Arcari que mandou "registre todas" e bot não entendeu.
       // Pedro 2026-05-09 (caso Cintia): "REMOVER" também conta como confirm
       // (mas só pra pendings de remove — proteção dentro do handler).
-      const isExplicitRemoveWord = /^(remover|remove|deletar|apagar)\.?$/i.test(lower.trim())
+      // Pedro 2026-05-10: "DAR BAIXA" agora também é aceito como
+      // confirmação pro fluxo de trocas ("dei BRA-5"). "REMOVER"
+      // continua sendo a palavra principal e cobre tudo.
+      const isExplicitRemoveWord = /^(remover|remove|deletar|apagar|dar\s+baixa|d[aá]\s+baixa)\.?$/i.test(lower.trim())
+
+      // Pedro 2026-05-10: "LIMPAR" confirma o fluxo de clear_duplicates
+      // (zera quantidades das duplicatas). Trata ANTES do isYesConfirm
+      // pra não confundir com confirmação de registro/remove.
+      const isExplicitClearWord = /^(limpar|limpa)\.?$/i.test(lower.trim())
+      if (isExplicitClearWord) {
+        const supabaseAdminClear = getAdmin()
+        const { data: clearPending } = await supabaseAdminClear
+          .from('pending_scans')
+          .select('id, scan_data, expires_at')
+          .eq('user_id', user.id)
+          .eq('source', 'clear_duplicates')
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!clearPending) {
+          await sendText(
+            phone,
+            '🤔 Não temos um pedido recente de "limpar repetidas" aguardando confirmação. Manda *limpar repetidas* primeiro e depois confirma com *LIMPAR*.',
+          )
+          return NextResponse.json({ ok: true })
+        }
+
+        const snapshot = (clearPending.scan_data || []) as Array<{
+          sticker_id: number
+          number: string
+          player_name: string
+          quantity: number
+          status_before: string
+          quantity_before: number
+        }>
+        if (snapshot.length === 0) {
+          await supabaseAdminClear.from('pending_scans').delete().eq('id', clearPending.id)
+          await sendText(phone, '🤔 Não temos repetidas pra zerar agora. Cancelado.')
+          return NextResponse.json({ ok: true })
+        }
+
+        // Buscar players + numbers (pra exibir no undo / mensagem se preciso)
+        const stickerIds = snapshot.map((s) => s.sticker_id)
+        const { data: stickerInfo } = await supabaseAdminClear
+          .from('stickers')
+          .select('id, number, player_name')
+          .in('id', stickerIds)
+        const infoMap = new Map(
+          (stickerInfo || []).map((s: { id: number; number: string; player_name: string | null }) => [s.id, s]),
+        )
+
+        // UPDATE: status='owned', quantity=1 nos cromos com qty > 1
+        const { error: updErr, count } = await supabaseAdminClear
+          .from('user_stickers')
+          .update({ status: 'owned', quantity: 1, updated_at: new Date().toISOString() }, { count: 'exact' })
+          .eq('user_id', user.id)
+          .in('sticker_id', stickerIds)
+          .gt('quantity', 1)
+        if (updErr) {
+          console.error('[wa-clear-dup] update failed:', updErr.message)
+          await sendText(phone, '⚠️ Não conseguimos zerar as repetidas agora. Tenta de novo em alguns minutos? 🙏')
+          return NextResponse.json({ ok: true })
+        }
+
+        // Salva snapshot pra UNDO (10min)
+        const undoSnapshot = snapshot.map((s) => {
+          const info = infoMap.get(s.sticker_id) as { number: string; player_name: string | null } | undefined
+          return {
+            sticker_id: s.sticker_id,
+            number: info?.number || s.number || '',
+            status_before: s.status_before,
+            quantity_before: s.quantity_before,
+          }
+        })
+        await supabaseAdminClear
+          .from('profiles')
+          .update({
+            last_reversible_action: {
+              type: 'clear_duplicates',
+              executed_at: new Date().toISOString(),
+              stickers: undoSnapshot,
+            },
+          })
+          .eq('id', user.id)
+
+        // Limpa o pending consumido
+        await supabaseAdminClear.from('pending_scans').delete().eq('id', clearPending.id)
+
+        const totalExtrasRemoved = snapshot.reduce((sum, s) => sum + Math.max(0, s.quantity_before - 1), 0)
+        const cleared = count ?? snapshot.length
+        let reply = `✅ *Pronto!* Zeramos as duplicatas de *${cleared} cromo${cleared !== 1 ? 's' : ''}* — você ficou com 1 unidade de cada (${totalExtrasRemoved} unidade${totalExtrasRemoved !== 1 ? 's' : ''} extra${totalExtrasRemoved !== 1 ? 's' : ''} removida${totalExtrasRemoved !== 1 ? 's' : ''}).\n\n`
+        reply += `📥 *Próximos passos importantes:*\n\n`
+        reply += `1. Se sobrou repetidas depois das trocas, manda uma *foto da pilha* agora — registramos do zero.\n`
+        reply += `2. Se você *recebeu novas figurinhas* na troca e ainda não registrou, manda foto/áudio/texto:\n`
+        reply += `   • Áudio: _"Recebi argentina 5, marrocos 12"_\n`
+        reply += `   • Texto: _"ARG-5, MAR-12"_\n\n`
+        reply += `↩️ Errou alguma coisa? Manda *desfaz* nos próximos 10min para restaurar tudo. ⚽`
+        await sendText(phone, reply)
+        return NextResponse.json({ ok: true })
+      }
       const isYesConfirm =
         isExplicitRemoveWord ||
         /^(sim|s|yes|y|confirma|confirmar|ok|okay|🆗|👍|✅|isso|isso ai|isso aí)\.?$/i.test(lower.trim()) ||
@@ -3093,12 +3219,12 @@ export async function POST(req: NextRequest) {
               const sd = p.scan_data as Array<unknown> | null
               return acc + (Array.isArray(sd) ? sd.length : 0)
             }, 0)
-            let warnMsg = `⚠️ *${removeCount} figurinha(s) aguardando REMOÇÃO do álbum.*\n\n`
-            warnMsg += `Pra evitar enganos, REMOVER precisa de confirmação explícita:\n\n`
-            warnMsg += `✅ Responde *REMOVER* (essa palavra) → confirma\n`
+            let warnMsg = `⚠️ *${removeCount} figurinha(s) aguardando baixa do álbum.*\n\n`
+            warnMsg += `Para evitar enganos, esta ação precisa de confirmação explícita:\n\n`
+            warnMsg += `✅ Responde *REMOVER* (ou *DAR BAIXA*) → confirma\n`
             warnMsg += `❌ Responde *cancela* → aborta`
             if (registerPendings.length > 0) {
-              warnMsg += `\n\n_(Você também tem ${registerPendings.length} registro(s) aguardando — vou processar todos juntos depois que decidir sobre a remoção.)_`
+              warnMsg += `\n\n_(Você também tem ${registerPendings.length} registro(s) aguardando — vamos processar todos juntos depois que decidir sobre a remoção.)_`
             }
             await sendBotTextFor(user.id, phone, warnMsg)
             return NextResponse.json({ ok: true })
@@ -3769,6 +3895,78 @@ export async function POST(req: NextRequest) {
         // "ainda não X boleto" / "não consegui pagar boleto" (negação antes)
         /\b(ainda\s+n[ãa]o|n[ãa]o\s+(consegui|consigo|paguei|pago))\b[\s\S]{0,40}\bboleto\b/i.test(lower)
       )
+
+      // Pedro 2026-05-10: comando "limpar repetidas" — para usuários
+      // que trocaram muitas figurinhas e perderam controle de quais
+      // duplicatas ainda têm. Zera quantity de TUDO que tem qty > 1
+      // (status owned/duplicate) — mantém 1 unidade de cada (não perde
+      // figurinhas do álbum, só zera as duplicatas extras). Snapshot
+      // salvo em last_reversible_action pra suportar "desfaz" 10min.
+      const isClearDuplicatesIntent = (
+        /^(limpar|limpa|zerar|zera)\s+(as?\s+)?(repet|duplic)(ad[ao]s?|i[çc][ãa]o)?\.?$/i.test(lower.trim()) ||
+        /^acab(ei|amos)\s+de\s+troc(ar|amos)\.?$/i.test(lower.trim()) ||
+        /^(reset|resetar)\s+(as?\s+)?(repet|duplic)/i.test(lower.trim()) ||
+        /\b(limpar|limpa|zerar|zera)\s+(minhas?\s+)?(repet|duplic)/i.test(lower.trim())
+      )
+
+      if (isClearDuplicatesIntent) {
+        const supabaseAdminClear = getAdmin()
+        // Conta quantas duplicatas o user tem
+        const { data: duplicatesData, error: duplicatesErr } = await supabaseAdminClear
+          .from('user_stickers')
+          .select('sticker_id, quantity, status')
+          .eq('user_id', user.id)
+          .gt('quantity', 1)
+          .in('status', ['owned', 'duplicate'])
+        if (duplicatesErr) {
+          console.error('[wa-clear-dup] query failed:', duplicatesErr.message)
+          await sendText(phone, '⚠️ Não conseguimos consultar suas repetidas agora. Tenta de novo em alguns minutos? 🙏')
+          return NextResponse.json({ ok: true })
+        }
+        const dupes = (duplicatesData || []) as Array<{ sticker_id: number; quantity: number; status: string }>
+        if (dupes.length === 0) {
+          await sendText(
+            phone,
+            `🤔 Você não tem repetidas pra limpar agora — todos os seus cromos estão com quantidade 1 (ou faltando).\n\n` +
+            `Se quiser registrar novas figurinhas, manda foto/áudio/texto. ⚽`,
+          )
+          return NextResponse.json({ ok: true })
+        }
+        const totalExtras = dupes.reduce((sum, d) => sum + (d.quantity - 1), 0)
+        // Cria pending especial pra capturar a confirmação "LIMPAR"
+        // (não cobra scan, source único pra esse fluxo)
+        await supabaseAdminClear.from('pending_scans').insert({
+          user_id: user.id,
+          phone,
+          scan_data: dupes.map((d) => ({
+            sticker_id: d.sticker_id,
+            number: '',
+            player_name: '',
+            quantity: d.quantity,
+            status_before: d.status,
+            quantity_before: d.quantity,
+          })),
+          source: 'clear_duplicates',
+          expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        })
+
+        let reply = `🧹 *Limpar repetidas — atenção!*\n\n`
+        reply += `Esta ação vai *zerar a quantidade* de TODAS as suas figurinhas que estão com mais de 1 unidade. Você fica com *1 unidade* de cada uma — não perde nenhuma figurinha do álbum.\n\n`
+        reply += `📊 Você tem hoje:\n`
+        reply += `• *${dupes.length} cromo${dupes.length > 1 ? 's' : ''}* com duplicatas\n`
+        reply += `• *${totalExtras} unidade${totalExtras > 1 ? 's' : ''} extra${totalExtras > 1 ? 's' : ''}* que vai${totalExtras > 1 ? 'o' : ''} zerar\n\n`
+        reply += `_Use isso quando trocou muitas figurinhas e perdeu controle de quais ainda tem. Depois, fotografe a pilha de repetidas que SOBROU — registramos do zero._\n\n`
+        reply += `💡 *Quer tirar só algumas?* Em vez de limpar tudo, manda comandos individuais:\n`
+        reply += `• _"dei BRA-5"_ → tira 1 unidade da BRA-5\n`
+        reply += `• _"saiu ARG-3, MAR-12"_ → tira 1 de cada\n`
+        reply += `• _"trocou CC-2"_ → tira 1 do CC-2\n`
+        reply += `Você também pode entrar em ${APP_URL}/album → aba *Repetidas* e clicar em *−1* em cada cromo.\n\n`
+        reply += `⚠️ *Ação destrutiva.* Para confirmar a limpeza completa, responde a palavra exata:\n\n`
+        reply += `✅ Responde *LIMPAR* (essa palavra) → zera TODAS as duplicatas\n`
+        reply += `❌ Responde *cancela* → mantém tudo como está`
+        await sendBotTextFor(user.id, phone, reply)
+        return NextResponse.json({ ok: true })
+      }
 
       if (isBoletoPaidIntent && !isBoletoFutureOrNegative) {
         if (shouldSendBoletoResponse(user.id)) {
@@ -4540,21 +4738,35 @@ export async function POST(req: NextRequest) {
             source: 'remove_text',
           })
 
-          let reply = `🗑️ *Você quer REMOVER ${haveItems.length} figurinha${haveItems.length > 1 ? 's' : ''} do seu álbum?*\n\n`
+          // Pedro 2026-05-10: detecta se o verbo usado foi de TROCA
+          // ("dei", "saiu", "trocou") pra adaptar o copy — soa mais
+          // natural que "remover" quando o usuário deu cromo em troca.
+          // Operação no DB é a mesma (decrement quantity).
+          const isTradeVerb = /\b(dei|deu|saiu?|sa[ií]ram|saiuram|trocou?|troquei|entreguei|entregou|dou|dar\s+baixa)\b/.test(text.toLowerCase())
+          const headEmoji = isTradeVerb ? '🔁' : '🗑️'
+          const headVerb = isTradeVerb ? 'dar baixa de' : 'REMOVER'
+          let reply = `${headEmoji} *Você quer ${headVerb} ${haveItems.length} figurinha${haveItems.length > 1 ? 's' : ''} do seu álbum?*\n\n`
           reply += haveItems.map((s, i) => {
             const u = ownsMap.get(s.id)
             const qtyTail = (u?.quantity ?? 1) > 1 ? ` _(você tem ${u?.quantity})_` : ''
             return `*${i + 1}.* ${s.number}${s.player_name ? ' — ' + s.player_name : ''}${qtyTail}`
           }).join('\n')
           if (dontHaveItems.length > 0) {
-            reply += `\n\n_(${dontHaveItems.map((s) => s.number).join(', ')} não estão no seu álbum — não vou mexer.)_`
+            reply += `\n\n_(${dontHaveItems.map((s) => s.number).join(', ')} não estão no seu álbum — não vamos mexer.)_`
           }
           // Pedro 2026-05-09 (caso Cintia): confirmação de REMOVE não pode
           // ser SIM/NÃO genérico — user pode dizer "Sim" no automático
-          // achando que é registro. Exigir palavra explícita ("REMOVER")
-          // garante que o user leu e entendeu a ação destrutiva.
-          reply += `\n\n⚠️ *Ação destrutiva.* Pra evitar enganos, preciso da palavra exata:\n\n`
-          reply += `✅ Responde *REMOVER* (essa palavra) → confirma\n`
+          // achando que é registro. Exigir palavra explícita garante
+          // que o user leu e entendeu a ação destrutiva.
+          // Pedro 2026-05-10: aceita "DAR BAIXA" como sinônimo de "REMOVER"
+          // pra fluxo de trocas — mas a palavra "REMOVER" também sempre
+          // funciona pra qualquer caso (consistência).
+          reply += `\n\n⚠️ *Ação destrutiva.* Para evitar enganos, precisamos da confirmação exata:\n\n`
+          if (isTradeVerb) {
+            reply += `✅ Responde *DAR BAIXA* (ou *REMOVER*) → confirma\n`
+          } else {
+            reply += `✅ Responde *REMOVER* (essa palavra) → confirma\n`
+          }
           reply += `❌ Responde *cancela* → aborta`
           await sendBotTextFor(user.id, phone, reply)
           break
