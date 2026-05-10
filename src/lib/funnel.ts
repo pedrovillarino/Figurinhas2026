@@ -37,6 +37,10 @@ export const FUNNEL_EVENTS = {
   // Conversion
   PAYMENT_COMPLETED: 'payment_completed',
   PAYMENT_FAILED: 'payment_failed',
+  // Pedro 2026-05-10 (caso Danilo): user reporta no WhatsApp que pagou
+  // boleto, antes da compensação Stripe (2-3 dias úteis). Bot agora
+  // responde direto explicando o prazo.
+  BOLETO_PAID_REPORTED: 'boleto_paid_reported',
   // Engagement signals (not strict funnel, but useful for cohort)
   REFERRAL_LINK_SHARED: 'referral_link_shared',
   REFERRAL_LINK_CLICKED: 'referral_link_clicked',

@@ -326,6 +326,27 @@ function shouldSendWaitPending(userId: string): boolean {
   return true
 }
 
+// Pedro 2026-05-10 (caso Danilo): cooldown de 6h pra resposta automática
+// "paguei boleto". Boleto compensa em 2-3 dias úteis, então não faz sentido
+// responder mais que 1x por turno. In-memory (cold start de Vercel reseta —
+// ok pra MVP, evita spam dentro de uma sessão).
+const recentBoletoResponse = new Map<string, number>()
+const BOLETO_RESPONSE_COOLDOWN_MS = 6 * 60 * 60 * 1000
+
+function shouldSendBoletoResponse(userId: string): boolean {
+  const now = Date.now()
+  const last = recentBoletoResponse.get(userId) || 0
+  if (now - last < BOLETO_RESPONSE_COOLDOWN_MS) return false
+  recentBoletoResponse.set(userId, now)
+  if (recentBoletoResponse.size > 200) {
+    const cutoff = now - BOLETO_RESPONSE_COOLDOWN_MS
+    recentBoletoResponse.forEach((t, k) => {
+      if (t < cutoff) recentBoletoResponse.delete(k)
+    })
+  }
+  return true
+}
+
 /**
  * Pedro 2026-05-04 (caso Vinicius): pendings podem ser paralelos (foto+texto+
  * áudio em sequência rápida). Mensagem agregada agrupa por origem
@@ -3718,6 +3739,44 @@ export async function POST(req: NextRequest) {
         // Fallback to Gemini for ambiguous messages
         const detected = await detectIntent(text)
         intent = detected.intent
+      }
+
+      // Pedro 2026-05-10 (caso Danilo 5531989694075): user que pagou
+      // boleto fica frustrado porque a compensação Stripe demora 2-3 dias
+      // úteis. Antes: caía em fallback "unknown" → menu de help → user
+      // achava que pagamento falhou e reclamava. Agora: detecta intent
+      // de "paguei boleto" direto (sem custo de LLM), responde com
+      // explicação do prazo. Cooldown 6h por user.
+      const isBoletoPaidIntent = (
+        /\b(paguei|pago|paga|quitei|quitou|fiz\s+(o\s+)?pagamento|pagamento\s+(feito|realizado|efetuado))\b[\s\S]{0,40}\bboleto\b/i.test(lower) ||
+        /\bboleto\b[\s\S]{0,40}\b(paguei|pago|paga|quitei|quitou|caiu|compensou|compensad[oa]|comprovante|pagamento\s+(confirmad[oa]?|feito|realizado))\b/i.test(lower) ||
+        /\b(comprovante|recibo)\s+(do|de)\s+boleto\b/i.test(lower)
+      )
+      const isBoletoFutureOrNegative = (
+        // "vou pagar boleto", "pretendo emitir boleto"
+        /\b(vou|pretendo|quero|planejo|gostaria\s+de)\b[\s\S]{0,30}\b(pagar|emitir|gerar)\b[\s\S]{0,40}\bboleto\b/i.test(lower) ||
+        // "boleto não X" (negação após boleto)
+        /\bboleto\b[\s\S]{0,30}\b(n[ãa]o\s+(paguei|pago|caiu|chegou|veio|compensou)|ainda\s+n[ãa]o)\b/i.test(lower) ||
+        // "ainda não X boleto" / "não consegui pagar boleto" (negação antes)
+        /\b(ainda\s+n[ãa]o|n[ãa]o\s+(consegui|consigo|paguei|pago))\b[\s\S]{0,40}\bboleto\b/i.test(lower)
+      )
+
+      if (isBoletoPaidIntent && !isBoletoFutureOrNegative) {
+        if (shouldSendBoletoResponse(user.id)) {
+          trackEvent(user.id, FUNNEL_EVENTS.BOLETO_PAID_REPORTED, {
+            metadata: { textPreview: text.slice(0, 120) },
+          })
+          await sendText(
+            phone,
+            `👍 *Recebemos a informação de que você pagou o boleto!*\n\n` +
+            `Boletos costumam levar de *2 a 3 dias úteis* para compensar no nosso sistema. Assim que cair, você recebe a confirmação do upgrade automaticamente por aqui.\n\n` +
+            `Se passou esse prazo e o upgrade ainda não veio, é só nos avisar novamente que verificamos manualmente.\n\n` +
+            `Enquanto isso, continue registrando figurinhas — quando o pagamento confirmar, todos os benefícios já estarão disponíveis. ⚽`,
+          )
+        } else {
+          console.log(`[wa-boleto] cooldown active for user=${user.id}, suppressed`)
+        }
+        return NextResponse.json({ ok: true })
       }
 
       switch (intent) {
