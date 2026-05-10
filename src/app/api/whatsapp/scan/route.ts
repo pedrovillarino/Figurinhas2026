@@ -295,6 +295,21 @@ dentro. SLOT FILLED tem foto/imagem do cromo real colado.
    - 14 SLOTS distribuídos em 2 páginas (CC1-6 numa, CC7-14 noutra).
    - Slot vazio: retângulo branco com label "CC1", "CC2", etc.
 
+   ⚠️ COERÊNCIA DE BATCH (Pedro 2026-05-10, caso Igor):
+   Se você identificou 2+ cromos como Coca-Cola na MESMA foto, considere
+   ATIVAMENTE que cromos vizinhos com layout visual similar (foto in-game,
+   fundo escuro, mesma diagramação) também são Coca-Cola — mesmo que UMA
+   das 4 pistas (nome vertical, country code em parênteses, foto in-game,
+   emblema FIFA top-left) não esteja perfeitamente nítida na foto.
+
+   Páginas Coca-Cola têm 6-8 cromos vizinhos com o MESMO layout. É raro
+   um cromo "regular" estar colado ENTRE dois cromos Coca-Cola.
+
+   Quando em dúvida sobre cromo adjacente a Coca-Cola já identificada,
+   prefira country='Coca' (se o jogador também tem cromo na seção Coca
+   do álbum, como Yamal, Van Dijk, Gabriel Magalhães, Vinicius Jr,
+   Federico Valverde, Emiliano Martínez, Harry Kane).
+
 ═══════════════════════════════════════════════════════════════════════
 
 Para CADA figurinha física visível (frente ou verso):

@@ -348,6 +348,24 @@ human face inside. FILLED slot has the actual sticker covering it.
      other).
    - Empty slot: white rectangle with label "CC1", "CC2", etc.
 
+   ⚠️ BATCH COHERENCE (Pedro 2026-05-10, Igor case):
+   If you've identified 2+ stickers as Coca-Cola in the SAME photo,
+   actively consider that adjacent stickers with similar visual layout
+   (in-game photo, dark background, same diagrammation) are also
+   Coca-Cola — even if ONE of the 4 cues (vertical name, country code
+   in parentheses, in-game photo, FIFA emblem top-left) isn't perfectly
+   crisp in the image.
+
+   Coca-Cola pages contain 6-8 adjacent stickers all sharing the SAME
+   layout. It's rare for a "regular" sticker to be glued BETWEEN two
+   Coca-Cola stickers.
+
+   When in doubt about a sticker adjacent to an already-identified
+   Coca-Cola one, prefer country_code='COCA' (provided the player also
+   has a Coca-Cola sticker in the album — examples: Yamal, Van Dijk,
+   Gabriel Magalhães, Vinicius Jr, Federico Valverde, Emiliano Martínez,
+   Harry Kane).
+
 ═══════════════════════════════════════════════════════════════════════
 
 For EACH physical sticker you can see (front or back), return:
