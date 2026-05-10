@@ -5,6 +5,7 @@ import { sendText } from '@/lib/zapi'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { matchSymbolByName } from '@/lib/symbol-synonyms'
+import { releaseScanLock } from '@/lib/scan-lock'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -53,16 +54,20 @@ A) PÁGINA DE PAÍS (header "WE ARE [PAÍS]" + bandeira + escudo + grid de
    slots numerados com código tipo MEX-3, BRA-12 etc) → use MODO
    CHECKLIST DE PÁGINA (próxima seção).
 
-B) PÁGINA ESPECIAL (FIFA World Cup section / Coca-Cola / PANINI Extras
-   / abertura do álbum / contracapa). Aqui o layout NÃO é o grid padrão
-   de país. → use modo OBJECT DETECTION: identifique cada figurinha
-   visível usando as descrições visuais detalhadas das seções FIFA WORLD
-   CUP, PANINI EXTRAS e COCA-COLA mais abaixo. NÃO aplique checklist
-   posicional aqui.
+B) PÁGINA ESPECIAL CONHECIDA (FIFA World Cup section, Coca-Cola, abertura
+   do álbum) → TAMBÉM use MODO CHECKLIST DE PÁGINA. Pedro 2026-05-10:
+   essas páginas TÊM POSIÇÕES FIXAS conhecidas — use o LAYOUT POSICIONAL
+   (descrito em "MODO CHECKLIST ESTENDIDO" mais abaixo) pra mapear
+   cada slot ao código FWC-X / CC-X correto. NÃO faça object detection
+   pra re-identificar a figurinha colada — o código vem da POSIÇÃO do
+   slot na página. Object detection só pra confirmar que tem cromo
+   colado (FILLED) vs slot vazio com label impresso (EMPTY).
 
 C) FOTO DE FIGURINHA(S) AVULSA(S) (pacotinho aberto, mão segurando
-   figurinha, várias figurinhas espalhadas na mesa) → modo OBJECT
-   DETECTION normal pra cada figurinha individual visível.
+   figurinha, várias figurinhas espalhadas na mesa, PANINI Extras
+   soltos) → modo OBJECT DETECTION normal pra cada figurinha individual
+   visível. Use as descrições visuais detalhadas das seções FIFA WORLD
+   CUP, PANINI EXTRAS e COCA-COLA mais abaixo.
 
 ═══════════════════════════════════════════════════════════════════════
 ⚠️ ATENÇÃO ESPECIAL — INFO DE GROUP STAGE NAS PÁGINAS DE PAÍS:
@@ -142,6 +147,64 @@ PASSO A PASSO:
       Ler o código no template ≠ figurinha presente.
 
 4. Retorne SOMENTE as posições FILLED no array de stickers.
+
+═══════════════════════════════════════════════════════════════════════
+🎯 MODO CHECKLIST ESTENDIDO — PÁGINAS ESPECIAIS (Pedro 2026-05-10)
+
+Páginas especiais TAMBÉM têm slots em posições fixas. Pra estas páginas,
+NÃO faça object detection pra identificar O QUE foi colado — leia a
+POSIÇÃO do slot e mapeie pro código correto.
+
+Como funciona:
+1. Identifique qual página especial é (pelo header / aparência geral).
+2. Conhecendo a página, você sabe que slots SLOT 1, SLOT 2, ... SLOT N
+   correspondem a códigos FIXOS (lista abaixo).
+3. Pra cada slot, classifique FILLED ou EMPTY (mesma regra das páginas
+   de país: foto humana = FILLED, label impresso = EMPTY).
+4. Reporte o código DO SLOT (não da figurinha colada). Ex: se a página
+   é HOST COUNTRIES e o slot 4 está colado, reporte "FWC-8" SEMPRE —
+   independente do que a figurinha colada parecer.
+
+📋 LAYOUTS POSICIONAIS DAS PÁGINAS ESPECIAIS:
+
+🔸 ABERTURA "WE ARE PANINI":
+   - Slot 00 (topo, no quadro de honra): FWC-0
+   - Bottom (4 slots em fileira): FWC-1, FWC-2, FWC-3, FWC-4
+
+🔸 HOST COUNTRIES AND CITIES (header "FIFA WORLD CUP 2026 - HOST
+   COUNTRIES AND CITIES" + lista de cidades):
+   - Slot 1 (geralmente esquerda, bola colorida): FWC-5 (TRIONDA)
+   - Slot 2 (vermelho com texto CAN MEX USA): FWC-6 (Taça Canadá)
+   - Slot 3 (verde): FWC-7 (Taça México)
+   - Slot 4 (azul): FWC-8 (Taça USA)
+   ⚠️ A cor de fundo do SLOT (vermelho/verde/azul) determina o código.
+   Se vê uma figurinha colada num slot vermelho da página → FWC-6.
+   NUNCA reporte FWC-1/FWC-2 (taça oficial) numa página com layout de
+   Host Countries — essas estão na página de ABERTURA.
+
+🔸 FIFA WORLD CUP HISTORY (fundo roxo/azul + header FIFA MUSEUM):
+   - 11 slots em ordem cronológica (esquerda→direita, topo→base):
+     FWC-9 Italy 1934, FWC-10 Brazil 1950, FWC-11 Switzerland 1954,
+     FWC-12 Chile 1962, FWC-13 Germany 1974, FWC-14 Mexico 1986,
+     FWC-15 USA 1994, FWC-16 Korea/Japan 2002, FWC-17 Germany 2006,
+     FWC-18 Brazil 2014, FWC-19 Qatar 2022.
+   - Cada slot tem o nome do país + ano IMPRESSO ao lado/abaixo —
+     use isso pra confirmar a posição.
+
+🔸 COCA-COLA (2 páginas):
+   - Página 1 (slots na ordem visual): CC-1, CC-2, CC-3, CC-4, CC-5, CC-6
+   - Página 2 (slots na ordem visual): CC-7, CC-8, CC-9, CC-10, CC-11,
+     CC-12, CC-13, CC-14
+   - Texto descritivo do jogador IMPRESSO ao lado de cada slot — use
+     o nome impresso pra confirmar a posição (ex: o slot CC-1 tem nome
+     "Lamine Yamal" impresso ao lado).
+
+⚠️ REGRA DE OURO PRA PÁGINAS CONHECIDAS:
+   Em caso de divergência entre "código da posição do slot" vs "minha
+   identificação visual da figurinha colada", SEMPRE confie na posição
+   do slot. As figurinhas FWC e CC têm aparência similar (várias têm
+   taça dourada, várias têm jogadores em poses parecidas) — a posição
+   na página é a fonte de verdade.
 
 ═══════════════════════════════════════════════════════════════════════
 🗺️ MAPA DAS PÁGINAS ESPECIAIS DO ÁLBUM (Pedro 2026-05-05)
@@ -232,6 +295,21 @@ dentro. SLOT FILLED tem foto/imagem do cromo real colado.
 
    - 14 SLOTS distribuídos em 2 páginas (CC1-6 numa, CC7-14 noutra).
    - Slot vazio: retângulo branco com label "CC1", "CC2", etc.
+
+   ⚠️ COERÊNCIA DE BATCH (Pedro 2026-05-10, caso Igor):
+   Se você identificou 2+ cromos como Coca-Cola na MESMA foto, considere
+   ATIVAMENTE que cromos vizinhos com layout visual similar (foto in-game,
+   fundo escuro, mesma diagramação) também são Coca-Cola — mesmo que UMA
+   das 4 pistas (nome vertical, country code em parênteses, foto in-game,
+   emblema FIFA top-left) não esteja perfeitamente nítida na foto.
+
+   Páginas Coca-Cola têm 6-8 cromos vizinhos com o MESMO layout. É raro
+   um cromo "regular" estar colado ENTRE dois cromos Coca-Cola.
+
+   Quando em dúvida sobre cromo adjacente a Coca-Cola já identificada,
+   prefira country='Coca' (se o jogador também tem cromo na seção Coca
+   do álbum, como Yamal, Van Dijk, Gabriel Magalhães, Vinicius Jr,
+   Federico Valverde, Emiliano Martínez, Harry Kane).
 
 ═══════════════════════════════════════════════════════════════════════
 
@@ -646,10 +724,18 @@ function matchSticker(
 
 export async function POST(req: NextRequest) {
   let phone = ''
+  // Pedro 2026-05-10 (caso Anabelle / "7 fotos juntas"): garante release
+  // do scan_lock setado no webhook ANTES do scan async. Cobre sucesso,
+  // erro, paywall, validação. Sem release o user fica travado por 5min
+  // (timeout) sem conseguir mandar próxima foto.
+  let lockedUserId: string | null = null
   try {
     const body = await req.json()
     const { base64, mimeType, userId } = body
     phone = body.phone || ''
+    if (typeof userId === 'string' && userId.length > 0) {
+      lockedUserId = userId
+    }
     // Pedro 2026-05-06 (caso +55 67 98112-1341): user mandou foto + caption
     // "Eu tenho alguma dessas?". Bot tratou como register em vez de consultar.
     // Webhook agora passa mode='query' quando detecta caption de pergunta.
@@ -741,6 +827,13 @@ export async function POST(req: NextRequest) {
         ])
         responseText = result.response.text()
         console.log(`[WhatsApp scan] ${modelName} succeeded`)
+        // Pedro 2026-05-10: log raw response pra debug (caso Bruna FWC-8→FWC-2).
+        // Custo zero (já temos a string), delay zero (console.log não bloqueia).
+        // Limitado a 3000 chars pra não inflar logs.
+        console.log(
+          `[gemini-scan-raw] user=${userId} model=${modelName} ` +
+          `response=${responseText.replace(/\s+/g, ' ').slice(0, 3000)}`,
+        )
         break
       } catch (modelErr) {
         const msg = modelErr instanceof Error ? modelErr.message : String(modelErr)
@@ -1015,5 +1108,10 @@ export async function POST(req: NextRequest) {
       await sendText(phone, userMsg).catch(() => {})
     }
     return NextResponse.json({ error: 'scan failed' }, { status: 500 })
+  } finally {
+    if (lockedUserId) {
+      // best-effort — qualquer falha aqui já é logada dentro de releaseScanLock
+      await releaseScanLock(lockedUserId)
+    }
   }
 }

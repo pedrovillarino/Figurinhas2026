@@ -13,6 +13,8 @@ import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
 import { getAudioLimit, TIER_CONFIG, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
+import { tryAcquireScanLock, releaseScanLock } from '@/lib/scan-lock'
+import { enqueueImage, dequeueNextImage, getQueueLength, clearQueue } from '@/lib/image-queue'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -319,6 +321,27 @@ function shouldSendWaitPending(userId: string): boolean {
     const cutoff = now - WAIT_PENDING_DEDUP_MS
     recentWaitPendingSent.forEach((t, k) => {
       if (t < cutoff) recentWaitPendingSent.delete(k)
+    })
+  }
+  return true
+}
+
+// Pedro 2026-05-10 (caso Danilo): cooldown de 6h pra resposta automática
+// "paguei boleto". Boleto compensa em 2-3 dias úteis, então não faz sentido
+// responder mais que 1x por turno. In-memory (cold start de Vercel reseta —
+// ok pra MVP, evita spam dentro de uma sessão).
+const recentBoletoResponse = new Map<string, number>()
+const BOLETO_RESPONSE_COOLDOWN_MS = 6 * 60 * 60 * 1000
+
+function shouldSendBoletoResponse(userId: string): boolean {
+  const now = Date.now()
+  const last = recentBoletoResponse.get(userId) || 0
+  if (now - last < BOLETO_RESPONSE_COOLDOWN_MS) return false
+  recentBoletoResponse.set(userId, now)
+  if (recentBoletoResponse.size > 200) {
+    const cutoff = now - BOLETO_RESPONSE_COOLDOWN_MS
+    recentBoletoResponse.forEach((t, k) => {
+      if (t < cutoff) recentBoletoResponse.delete(k)
     })
   }
   return true
@@ -1318,8 +1341,17 @@ async function transcribeAudio(audioBase64: string, mimeType: string): Promise<s
         '  • Estados Unidos: "eua" / "estados unidos" → "Estados Unidos"\n' +
         '  • África do Sul: "africa do sul" / "rsa" → "África do Sul"\n' +
         '  • Nova Zelândia: "nova zelandia" → "Nova Zelândia"\n' +
-        '  • República Democrática do Congo: "rd congo" / "dr congo" / "congo democrática" → "RD Congo"\n' +
+        '  • Marrocos: "marrocos" / "marroco" / "marrocô" / "maroc" / "morocco" → "Marrocos"\n' +
+        '    ⚠️ Pedro 2026-05-10: usuários frequentemente falam só "Marroco" sem o "s" final — preserve a INTENÇÃO e escreva "Marrocos"\n' +
+        '  • RD Congo: "rd congo" / "dr congo" / "congo" / "república do congo" / "república democrática do congo" / "congo democrática" → "RD Congo"\n' +
+        '    ⚠️ Pedro 2026-05-10: no álbum Copa 2026 só tem o RD Congo (Kinshasa). Se o usuário fala só "Congo" ou "República do Congo", interprete como "RD Congo".\n' +
         '  • Bósnia: "bosnia" / "bosnia e herzegovina" → "Bósnia"\n' +
+        '\n=== SIGLAS ESPECIAIS (FIFA / Coca-Cola) ===\n' +
+        'O usuário pode soletrar siglas das seções especiais. SEMPRE normalize para a sigla canônica:\n' +
+        '  • FWC (FIFA World Cup): "F W C" / "F C W" / "F V C" / "fefa" / "fifa world cup" / "copa do mundo" → "FWC"\n' +
+        '    ⚠️ Pedro 2026-05-10: se ouvir letras na ordem errada (F C W em vez de F W C), CORRIJA pra "FWC" — o álbum só tem FWC, não FCW.\n' +
+        '  • CC (Coca-Cola): "C C" / "cê cê" / "coca cola" / "coca" → "CC"\n' +
+        '  • EXT (PANINI Extras): "E X T" / "extras" / "extra" → "EXT"\n' +
         '\n=== EXAMPLES ===\n' +
         'Audio: "Tcheca três, cinco, sete"           → "Tcheca 3, 5, 7"\n' +
         'Audio: "República Tcheca número treze"      → "República Tcheca 13"\n' +
@@ -1590,6 +1622,73 @@ function cleanupExpiredScans() {
       else if (count && count > 0) console.log(`[cleanup] Deleted ${count} expired pending scans`)
     })
     .catch(() => {}) // fire-and-forget
+}
+
+// ─── Dispatcher: processa próxima foto da fila (Pedro 2026-05-10, Opt 2) ───
+// Chamado após cada finalização de pending (SIM, NÃO, cancelar, desfaz).
+// Pega a próxima foto enfileirada, acquire lock, e dispara fetch /api/whatsapp/scan.
+// Sem perda — fotos enfileiradas durante busy state são re-baixadas e processadas.
+async function dispatchNextQueuedImage(userId: string, fallbackPhone: string): Promise<boolean> {
+  const next = await dequeueNextImage(userId)
+  if (!next) return false
+
+  // Tenta acquire lock — se algo correu errado e ainda há lock, recoloca a
+  // foto na fila pra próximo dispatch.
+  const acquired = await tryAcquireScanLock(userId, 5)
+  if (!acquired) {
+    console.warn(`[image-queue-dispatch] lock busy for ${userId}, re-enqueueing item ${next.id}`)
+    await enqueueImage({
+      userId,
+      phone: next.phone || fallbackPhone,
+      imageUrl: next.image_url,
+      imageBase64: next.image_base64,
+      mimeType: next.mime_type || 'image/jpeg',
+      caption: next.caption,
+      isQueryMode: next.is_query_mode,
+      msgId: next.msg_id,
+    })
+    return false
+  }
+
+  // Re-baixa imagem (pode estar como URL apenas)
+  let imageData: { base64: string; mimeType: string } | null = null
+  if (next.image_base64) {
+    imageData = { base64: next.image_base64, mimeType: next.mime_type || 'image/jpeg' }
+  } else if (next.image_url) {
+    imageData = await downloadImage(next.image_url, next.msg_id || undefined)
+  }
+
+  const targetPhone = next.phone || fallbackPhone
+  if (!imageData) {
+    await releaseScanLock(userId)
+    await sendText(targetPhone, '⚠️ Não conseguimos re-baixar uma das fotos da fila (link expirou). Manda de novo se quiser registrá-la? 📸').catch(() => {})
+    // Tenta a próxima da fila depois de erro nessa
+    return dispatchNextQueuedImage(userId, fallbackPhone)
+  }
+
+  const remaining = await getQueueLength(userId)
+  const queueNote = remaining > 0
+    ? ` _(${remaining + 1} fotos restantes na fila)_`
+    : ''
+  await sendText(targetPhone, `🔍 Analisando próxima foto da fila...${queueNote}`).catch(() => {})
+
+  waitUntil(
+    fetch(`${APP_URL}/api/whatsapp/scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      },
+      body: JSON.stringify({
+        base64: imageData.base64,
+        mimeType: imageData.mimeType,
+        phone: targetPhone,
+        userId,
+        mode: next.is_query_mode ? 'query' : 'register',
+      }),
+    }).catch((err) => console.error('[WhatsApp] dispatch next failed:', err)),
+  )
+  return true
 }
 
 // ─── Interactive button definitions ──────────────────────────────────────────
@@ -1996,36 +2095,23 @@ export async function POST(req: NextRequest) {
 
     // ─── Image ───
     if (messageType === 'image') {
-      // Serializa: 1 registro por vez. Se já tem pending, segura essa foto.
-      const pendingItemsImg = await countPendingScanItems(user.id)
-      if (pendingItemsImg > 0) {
-        // sendBotTextFor: salva o texto como last_bot_message pra que se
-        // user responder ("sim", "tira o 2"), agent veja contexto.
-        // Pedro 2026-05-04: throttle 30s pra não floodar caso user mande
-        // várias mensagens em sequência rápida.
-        if (shouldSendWaitPending(user.id)) {
-          await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
-        }
-        return NextResponse.json({ ok: true })
-      }
-
+      // Pedro 2026-05-10 (Opt 2): captura payload da imagem ANTES de
+      // qualquer decisão — pra poder enfileirar caso já tenha scan ou
+      // pending em andamento.
       const imageUrl = body.image?.imageUrl || body.image?.url || body.imageUrl
       const imageBase64 = body.image?.base64 || body.base64 || null
-      // Pedro 2026-05-06 (caso +55 67 98112-1341): user manda foto +
-      // caption "Eu tenho alguma dessas?". Detecta intent de CONSULTA
-      // (não registro) e marca o scan com mode='query'. Padrão é register.
-      const imageCaption = (
+      const imageCaptionRaw = (
         body.image?.caption ||
         body.caption ||
         body.image?.message ||
         ''
       ).toString().trim()
-      const isQueryCaption = imageCaption.length > 0 && (
-        /\b(tenho|tem|peguei|coloquei)\s*\??$/i.test(imageCaption) ||
-        /\b(alguma|algumas)\s+(dessas|delas|destas)\b/i.test(imageCaption) ||
-        /\bquais\s+(dessas|delas|destas|eu)\b/i.test(imageCaption) ||
-        /\bj[áa]\s+(tenho|peguei|coloquei)\b/i.test(imageCaption) ||
-        /\b(tem|tenho)\s+(alguma|alguma\s+coisa|essa|esse|essas|esses)\b/i.test(imageCaption)
+      const isQueryCaption = imageCaptionRaw.length > 0 && (
+        /\b(tenho|tem|peguei|coloquei)\s*\??$/i.test(imageCaptionRaw) ||
+        /\b(alguma|algumas)\s+(dessas|delas|destas)\b/i.test(imageCaptionRaw) ||
+        /\bquais\s+(dessas|delas|destas|eu)\b/i.test(imageCaptionRaw) ||
+        /\bj[áa]\s+(tenho|peguei|coloquei)\b/i.test(imageCaptionRaw) ||
+        /\b(tem|tenho)\s+(alguma|alguma\s+coisa|essa|esse|essas|esses)\b/i.test(imageCaptionRaw)
       )
 
       if (!imageUrl && !imageBase64) {
@@ -2033,9 +2119,55 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      // Scan credits are checked inside the /api/whatsapp/scan route
-      // All tiers have scan credits (free=5, estreante=50, etc.)
+      // Serializa: 1 registro por vez. Se já tem pending OU scan em
+      // andamento (lock), enfileira a foto pra processar depois.
+      const pendingItemsImg = await countPendingScanItems(user.id)
+      const lockAcquired = pendingItemsImg === 0
+        ? await tryAcquireScanLock(user.id, 5)
+        : false
 
+      if (!lockAcquired) {
+        // Pedro 2026-05-10 (Opt 2 — caso Anabelle / "7 fotos juntas"):
+        // em vez de descartar, enfileira pra processar automaticamente
+        // após user confirmar a foto atual. Sem perda — só serializa.
+        const enq = await enqueueImage({
+          userId: user.id,
+          phone,
+          imageUrl: imageUrl || null,
+          imageBase64: imageBase64 || null,
+          mimeType: 'image/jpeg',
+          caption: imageCaptionRaw || null,
+          isQueryMode: isQueryCaption,
+          msgId: msgId || null,
+        })
+
+        if (shouldSendWaitPending(user.id)) {
+          if (enq) {
+            const fila = enq.totalQueued
+            const filaTxt = fila === 1
+              ? '*1 foto* na fila pra ser processada após você confirmar a anterior.'
+              : `*${fila} fotos* na fila pra serem processadas uma por vez após você confirmar a anterior.`
+            const head = pendingItemsImg > 0
+              ? '📸 *Recebi sua foto!*\n\nVocê ainda tem uma lista aguardando confirmação acima — responda *SIM* / *NÃO* primeiro.'
+              : '📸 *Recebi sua foto!*\n\nEstamos analisando a anterior agora — em alguns segundos a lista chega.'
+            await sendBotTextFor(
+              user.id,
+              phone,
+              `${head}\n\n📥 ${filaTxt}\n\n_Vamos processar uma de cada vez automaticamente — só responda cada lista que aparecer._`,
+            )
+          } else if (pendingItemsImg > 0) {
+            // Fallback: enqueue falhou. Mantém comportamento antigo (msg de wait)
+            await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
+          }
+        }
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 2026-05-06 (caso +55 67 98112-1341): caption "Eu tenho
+      // alguma dessas?" → scan mode='query'. Captura já feita no topo
+      // do handler como imageCaptionRaw / isQueryCaption.
+
+      // Scan credits são checados dentro de /api/whatsapp/scan.
       // Download image
       let imageData: { base64: string; mimeType: string } | null = null
       if (imageBase64) {
@@ -2045,6 +2177,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!imageData) {
+        await releaseScanLock(user.id)
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
         return NextResponse.json({ ok: true })
       }
@@ -2823,7 +2956,11 @@ export async function POST(req: NextRequest) {
       // cromos sem querer, depois mandou "Não" tentando reverter mas o bot
       // caiu em fallback. Solução: TTL 10min em profiles.last_reversible_action
       // permite "desfaz" / "desfazer" / "errei" / "volta" pra reverter.
-      const isUndoIntent = /^(desfaz|desfazer|desfa[çc]a|errei(\s+isso|\s+a\s+remo[çc][ãa]o)?|tava\s+errad[ao]|estava\s+errad[ao]|me\s+arrependi|volta(r)?(\s+(tudo|as\s+figurinhas?|os\s+cromos?))?|n[ãa]o\s+era\s+pra\s+remover|removi\s+errad[ao]|cancela\s+(a\s+)?remo[çc][ãa]o)\.?$/i.test(lower.trim())
+      //
+      // Pedro 2026-05-10 (caso Bruna): undo agora cobre TAMBÉM registro
+      // errado (scan leu FWC-2 quando era FWC-8). Snapshot é gravado
+      // ANTES do batchSave em pending_scans flow. type='register_stickers'.
+      const isUndoIntent = /^(desfaz|desfazer|desfa[çc]a|errei(\s+isso|\s+a\s+remo[çc][ãa]o|\s+o\s+registro|\s+ao?\s+registro)?|tava\s+errad[ao]|estava\s+errad[ao]|me\s+arrependi|volta(r)?(\s+(tudo|as\s+figurinhas?|os\s+cromos?))?|n[ãa]o\s+era\s+pra\s+(remover|registrar)|removi\s+errad[ao]|registrei\s+errad[ao]|cancela\s+(a\s+)?(remo[çc][ãa]o|registro))\.?$/i.test(lower.trim())
       if (isUndoIntent) {
         const supabaseAdminUndo = getAdmin()
         const { data: undoProfile } = await supabaseAdminUndo
@@ -2834,16 +2971,20 @@ export async function POST(req: NextRequest) {
         const action = undoProfile?.last_reversible_action as
           | { type: string; executed_at: string; stickers: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> }
           | null
-        if (!action || action.type !== 'remove_stickers') {
-          await sendText(phone, '🤔 Não tenho nenhuma remoção recente pra desfazer. Se você precisa registrar uma figurinha, manda o código (ex: *BRA-1*) ou uma foto.')
+        if (!action || (action.type !== 'remove_stickers' && action.type !== 'register_stickers')) {
+          await sendText(phone, '🤔 Não temos nenhuma ação recente pra desfazer. Se você precisa registrar uma figurinha, manda o código (ex: *BRA-1*) ou uma foto.')
           return NextResponse.json({ ok: true })
         }
         const elapsedMin = (Date.now() - new Date(action.executed_at).getTime()) / 60000
         if (elapsedMin > 10) {
-          await sendText(phone, `⏰ A última remoção foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Pra trazer de volta, registra de novo (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
+          const verb = action.type === 'register_stickers' ? 'registro' : 'remoção'
+          await sendText(phone, `⏰ O último ${verb} foi há ${Math.round(elapsedMin)}min — janela de undo é 10min. Se precisar ajustar, manda os códigos (*${action.stickers.slice(0, 3).map(s => s.number).join(', ')}${action.stickers.length > 3 ? '...' : ''}*).`)
           return NextResponse.json({ ok: true })
         }
-        // Restaura: usa upsert (caso o user tenha registrado de novo no meio do caminho)
+        // Restaura: upsert volta cada cromo pro estado anterior.
+        // Para register_stickers: status_before='missing'/quantity_before=0 ⇒
+        // upsert grava missing/0 (equivalente a deletar da perspectiva do user).
+        // Para remove_stickers: traz de volta o status/quantidade que tinha.
         const restorePayload = action.stickers.map((s) => ({
           user_id: user.id,
           sticker_id: s.sticker_id,
@@ -2856,8 +2997,8 @@ export async function POST(req: NextRequest) {
           .upsert(restorePayload, { onConflict: 'user_id,sticker_id' })
           .select('sticker_id')
         if (undoErr) {
-          console.error(`[wa-undo] FAILED user=${user.id}:`, undoErr.message)
-          await sendText(phone, '⚠️ Não consegui desfazer agora. Tenta de novo em alguns minutos? 🙏')
+          console.error(`[wa-undo] FAILED user=${user.id} type=${action.type}:`, undoErr.message)
+          await sendText(phone, '⚠️ Não conseguimos desfazer agora. Tenta de novo em alguns minutos? 🙏')
           return NextResponse.json({ ok: true })
         }
         // Limpa a ação reversível (consumida)
@@ -2865,13 +3006,27 @@ export async function POST(req: NextRequest) {
           .from('profiles')
           .update({ last_reversible_action: null })
           .eq('id', user.id)
-        const restoredCount = undoData?.length ?? action.stickers.length
+        const affectedCount = undoData?.length ?? action.stickers.length
         const stats = await safeGetUserStats(user.id, phone)
         if (!stats) return NextResponse.json({ ok: true })
-        let reply = `↩️ *Desfeito!* Re-adicionei ${restoredCount} figurinha(s):\n`
-        reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
-        reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        let reply: string
+        if (action.type === 'register_stickers') {
+          reply = `↩️ *Desfeito!* Removemos do seu álbum ${affectedCount} figurinha(s) que tinha registrado por engano:\n`
+          reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
+          reply += `\n\nSe quiser tentar de novo, manda outra foto mais nítida ou o código direto (ex: *BRA-1*).`
+          reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        } else {
+          reply = `↩️ *Desfeito!* Re-adicionamos ${affectedCount} figurinha(s):\n`
+          reply += action.stickers.map((s) => `• ${s.number}`).join('\n')
+          reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
+        }
         await sendText(phone, reply)
+        // Pedro 2026-05-10 (Opt 2): após desfazer, dispara próxima foto
+        // da fila se houver — user provavelmente quer continuar registrando
+        // depois de corrigir.
+        waitUntil(dispatchNextQueuedImage(user.id, phone).catch((err) =>
+          console.error('[wa-undo] dispatchNextQueuedImage failed:', err)
+        ))
         return NextResponse.json({ ok: true })
       }
 
@@ -3008,6 +3163,10 @@ export async function POST(req: NextRequest) {
           let saved = 0
           const savedNumbers: string[] = []
           let mergedStickers: Array<{ sticker_id: number; number: string; player_name: string; quantity: number }> = []
+          // Pedro 2026-05-10 (caso Bruna): undo de registro também. Captura
+          // snapshot ANTES de salvar pra reverter via "desfaz" se a leitura
+          // do scan saiu errada (ex: Bruna confirmou FWC-2 mas era FWC-8).
+          let registerUndoSnapshot: Array<{ sticker_id: number; number: string; status_before: string; quantity_before: number }> = []
           if (registerPendings.length > 0) {
             const allStickers = new Map<number, { sticker_id: number; number: string; player_name: string; quantity: number }>()
             for (const pending of registerPendings) {
@@ -3023,6 +3182,25 @@ export async function POST(req: NextRequest) {
               `[wa-confirm] user=${user.id} merging ${registerPendings.length} pendings → ` +
               `${mergedStickers.length} unique stickers (numbers: ${mergedStickers.slice(0, 20).map(s => s.number).join(',')})`
             )
+            // Captura status ANTES de batchSave (pra undo)
+            const idsToSave = mergedStickers.map((s) => s.sticker_id)
+            const { data: beforeSnap } = await supabaseAdmin
+              .from('user_stickers')
+              .select('sticker_id, status, quantity')
+              .eq('user_id', user.id)
+              .in('sticker_id', idsToSave)
+            const beforeMap = new Map(
+              (beforeSnap || []).map((row: { sticker_id: number; status: string; quantity: number }) => [row.sticker_id, row]),
+            )
+            registerUndoSnapshot = mergedStickers.map((s) => {
+              const before = beforeMap.get(s.sticker_id) as { status: string; quantity: number } | undefined
+              return {
+                sticker_id: s.sticker_id,
+                number: s.number,
+                status_before: before?.status || 'missing',  // 'missing' = não existia row (ou era missing)
+                quantity_before: before?.quantity || 0,
+              }
+            })
             const result = await batchSaveStickers(
               supabaseAdmin,
               user.id,
@@ -3050,6 +3228,22 @@ export async function POST(req: NextRequest) {
 
           // Limpa todos os pendings consumidos
           await supabaseAdmin.from('pending_scans').delete().eq('user_id', user.id)
+
+          // Pedro 2026-05-10 (caso Bruna): grava snapshot pra undo de registro.
+          // Só sobrescreve last_reversible_action se houve registro real (saved > 0)
+          // E não houve REMOVE no mesmo turn (remove tem prioridade — já gravou).
+          if (saved > 0 && registerUndoSnapshot.length > 0 && removedCount === 0) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({
+                last_reversible_action: {
+                  type: 'register_stickers',
+                  executed_at: new Date().toISOString(),
+                  stickers: registerUndoSnapshot,
+                },
+              })
+              .eq('id', user.id)
+          }
 
           const stats = await getUserStats(user.id)
 
@@ -3151,6 +3345,12 @@ export async function POST(req: NextRequest) {
           }
 
           await sendText(phone, reply)
+          // Pedro 2026-05-10 (Opt 2): após registrar com sucesso, dispara
+          // próxima foto da fila se houver. Sem perda de fotos mandadas
+          // em rajada — processa uma por vez automaticamente.
+          waitUntil(dispatchNextQueuedImage(user.id, phone).catch((err) =>
+            console.error('[wa-confirm] dispatchNextQueuedImage failed:', err)
+          ))
           return NextResponse.json({ ok: true })
         }
         // No pending scan — fall through to normal intent handling
@@ -3205,6 +3405,13 @@ export async function POST(req: NextRequest) {
             ? `*Não contou ${refundCount} scans* — `
             : `*Não contou scan* — `
           await sendText(phone, `❌ Cancelado. Nada foi registrado.\n${refundNote}manda outra foto, áudio ou texto se quiser tentar de novo!`)
+          // Pedro 2026-05-10 (Opt 2): user cancelou tudo, mas pode ter
+          // fotos da rajada ainda na fila. Limpa fila também — se ele
+          // cancelou a primeira, faz sentido limpar as próximas (era
+          // a mesma intenção: desistir).
+          await clearQueue(user.id).catch((err) =>
+            console.error('[wa-cancel] clearQueue failed:', err)
+          )
           return NextResponse.json({ ok: true })
         }
 
@@ -3541,6 +3748,44 @@ export async function POST(req: NextRequest) {
         // Fallback to Gemini for ambiguous messages
         const detected = await detectIntent(text)
         intent = detected.intent
+      }
+
+      // Pedro 2026-05-10 (caso Danilo 5531989694075): user que pagou
+      // boleto fica frustrado porque a compensação Stripe demora 2-3 dias
+      // úteis. Antes: caía em fallback "unknown" → menu de help → user
+      // achava que pagamento falhou e reclamava. Agora: detecta intent
+      // de "paguei boleto" direto (sem custo de LLM), responde com
+      // explicação do prazo. Cooldown 6h por user.
+      const isBoletoPaidIntent = (
+        /\b(paguei|pago|paga|quitei|quitou|fiz\s+(o\s+)?pagamento|pagamento\s+(feito|realizado|efetuado))\b[\s\S]{0,40}\bboleto\b/i.test(lower) ||
+        /\bboleto\b[\s\S]{0,40}\b(paguei|pago|paga|quitei|quitou|caiu|compensou|compensad[oa]|comprovante|pagamento\s+(confirmad[oa]?|feito|realizado))\b/i.test(lower) ||
+        /\b(comprovante|recibo)\s+(do|de)\s+boleto\b/i.test(lower)
+      )
+      const isBoletoFutureOrNegative = (
+        // "vou pagar boleto", "pretendo emitir boleto"
+        /\b(vou|pretendo|quero|planejo|gostaria\s+de)\b[\s\S]{0,30}\b(pagar|emitir|gerar)\b[\s\S]{0,40}\bboleto\b/i.test(lower) ||
+        // "boleto não X" (negação após boleto)
+        /\bboleto\b[\s\S]{0,30}\b(n[ãa]o\s+(paguei|pago|caiu|chegou|veio|compensou)|ainda\s+n[ãa]o)\b/i.test(lower) ||
+        // "ainda não X boleto" / "não consegui pagar boleto" (negação antes)
+        /\b(ainda\s+n[ãa]o|n[ãa]o\s+(consegui|consigo|paguei|pago))\b[\s\S]{0,40}\bboleto\b/i.test(lower)
+      )
+
+      if (isBoletoPaidIntent && !isBoletoFutureOrNegative) {
+        if (shouldSendBoletoResponse(user.id)) {
+          trackEvent(user.id, FUNNEL_EVENTS.BOLETO_PAID_REPORTED, {
+            metadata: { textPreview: text.slice(0, 120) },
+          })
+          await sendText(
+            phone,
+            `👍 *Recebemos a informação de que você pagou o boleto!*\n\n` +
+            `Boletos costumam levar de *2 a 3 dias úteis* para compensar no nosso sistema. Assim que cair, você recebe a confirmação do upgrade automaticamente por aqui.\n\n` +
+            `Se passou esse prazo e o upgrade ainda não veio, é só nos avisar novamente que verificamos manualmente.\n\n` +
+            `Enquanto isso, continue registrando figurinhas — quando o pagamento confirmar, todos os benefícios já estarão disponíveis. ⚽`,
+          )
+        } else {
+          console.log(`[wa-boleto] cooldown active for user=${user.id}, suppressed`)
+        }
+        return NextResponse.json({ ok: true })
       }
 
       switch (intent) {

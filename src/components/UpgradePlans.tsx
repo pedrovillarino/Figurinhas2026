@@ -302,6 +302,9 @@ export default function UpgradePlans({
       <p className="text-[10px] text-gray-300 text-center">
         Pagamento único via Stripe. Aceita cartão e boleto.
       </p>
+      <p className="text-[10px] text-gray-300 text-center mt-1">
+        Cartão libera na hora. <strong>Boleto leva 2 a 3 dias úteis para compensar</strong> — o upgrade é confirmado automaticamente assim que o pagamento cair.
+      </p>
       <p className="text-[9px] text-gray-300 text-center mt-1">
         Válido até 31/12/2026 (edição Copa 2026).
       </p>

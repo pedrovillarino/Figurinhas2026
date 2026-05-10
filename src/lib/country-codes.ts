@@ -30,7 +30,15 @@ export const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   checa: 'CZE', 'republica checa': 'CZE', 'república checa': 'CZE',
   chequia: 'CZE', tchequia: 'CZE', 'tchéquia': 'CZE', 'chéquia': 'CZE',
   techa: 'CZE', 'republica techa': 'CZE', // typos de transcrição de áudio
-  'dr congo': 'COD', 'rd congo': 'COD', 'congo dr': 'COD', 'republica democratica do congo': 'COD', cod: 'COD',
+  // Pedro 2026-05-10 (caso real áudio): user fala "República do Congo"
+  // ou só "Congo" — no álbum Copa 2026 o representado é o DR Congo
+  // (Kinshasa), então mapeamos todas as variantes pra COD.
+  'dr congo': 'COD', 'rd congo': 'COD', 'congo dr': 'COD',
+  'republica democratica do congo': 'COD', 'república democrática do congo': 'COD',
+  'republica do congo': 'COD', 'república do congo': 'COD',
+  'r.d. congo': 'COD', 'r.d congo': 'COD',
+  'congo democratica': 'COD', 'congo democrática': 'COD',
+  congo: 'COD', cod: 'COD',
   ecuador: 'ECU', equador: 'ECU', ecu: 'ECU',
   egypt: 'EGY', egito: 'EGY', egy: 'EGY',
   england: 'ENG', inglaterra: 'ENG', eng: 'ENG',
@@ -44,7 +52,10 @@ export const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   japan: 'JPN', japao: 'JPN', japão: 'JPN', jpn: 'JPN',
   jordan: 'JOR', jordania: 'JOR', jordânia: 'JOR', jor: 'JOR',
   mexico: 'MEX', méxico: 'MEX', mex: 'MEX',
-  morocco: 'MAR', marrocos: 'MAR', mar: 'MAR',
+  // Pedro 2026-05-10 (caso real áudio): user fala "Marroco" (sem o s)
+  // ou "Marrocô" — Gemini transcreve assim e country code não match.
+  morocco: 'MAR', marrocos: 'MAR', marroco: 'MAR', marrocô: 'MAR',
+  maroc: 'MAR', mar: 'MAR',
   netherlands: 'NED', holanda: 'NED', 'paises baixos': 'NED', 'países baixos': 'NED', ned: 'NED',
   'new zealand': 'NZL', 'nova zelandia': 'NZL', 'nova zelândia': 'NZL', nzl: 'NZL',
   norway: 'NOR', noruega: 'NOR', nor: 'NOR',
@@ -68,7 +79,11 @@ export const COUNTRY_NAME_TO_CODE: Record<string, string> = {
 
   // Special sections
   'coca cola': 'CC', 'coca-cola': 'CC', cocacola: 'CC', coca: 'CC', cc: 'CC',
-  'fifa world cup': 'FWC', 'copa do mundo': 'FWC', fwc: 'FWC',
+  // Pedro 2026-05-10 (caso real áudio): user soletra "F C W" mas o
+  // código é "FWC". Se Gemini transcreve a ordem diferente, capturamos
+  // ambas as variantes (FCW errado, FVC erro de fala).
+  'fifa world cup': 'FWC', 'copa do mundo': 'FWC',
+  fwc: 'FWC', fcw: 'FWC', fvc: 'FWC',
   // PANINI Extras precisa de tier — deixamos pra outro momento (EXT-N-OUR/PRA/BRO/REG)
 }
 
@@ -110,9 +125,17 @@ export function expandCountryNamesToCodes(text: string): string {
 // "aBCD" (ABCD não é código → fica intacto). Também tenta variantes de
 // 3, 4 e 5 letras pra cobrir códigos como CC e FWC se forem soletrados.
 
-const VALID_CODES: Set<string> = new Set(
-  Object.values(COUNTRY_NAME_TO_CODE).concat(['CC', 'FWC']),
-)
+// Pedro 2026-05-10 (caso real áudio "F C W 1"): inclui também as
+// chaves 3-letras de COUNTRY_NAME_TO_CODE em uppercase, pra que
+// soletramentos errados ("FCW") sejam aceitos no collapse e o
+// expand subsequente normalize pra "FWC".
+const VALID_CODES: Set<string> = new Set([
+  ...Object.values(COUNTRY_NAME_TO_CODE),
+  'CC', 'FWC',
+  ...Object.keys(COUNTRY_NAME_TO_CODE)
+    .filter((k) => k.length >= 3 && k.length <= 5 && /^[a-z]+$/.test(k))
+    .map((k) => k.toUpperCase()),
+])
 
 /**
  * Detects 3-5 isolated single letters separated by space/hyphen/period and
