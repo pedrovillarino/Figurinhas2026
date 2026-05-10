@@ -14,6 +14,7 @@ import { backgroundHealthPing } from '@/lib/health-ping'
 import { getAudioLimit, TIER_CONFIG, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { tryAcquireScanLock, releaseScanLock } from '@/lib/scan-lock'
+import { enqueueImage, dequeueNextImage, getQueueLength, clearQueue } from '@/lib/image-queue'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -1593,6 +1594,73 @@ function cleanupExpiredScans() {
     .catch(() => {}) // fire-and-forget
 }
 
+// ─── Dispatcher: processa próxima foto da fila (Pedro 2026-05-10, Opt 2) ───
+// Chamado após cada finalização de pending (SIM, NÃO, cancelar, desfaz).
+// Pega a próxima foto enfileirada, acquire lock, e dispara fetch /api/whatsapp/scan.
+// Sem perda — fotos enfileiradas durante busy state são re-baixadas e processadas.
+async function dispatchNextQueuedImage(userId: string, fallbackPhone: string): Promise<boolean> {
+  const next = await dequeueNextImage(userId)
+  if (!next) return false
+
+  // Tenta acquire lock — se algo correu errado e ainda há lock, recoloca a
+  // foto na fila pra próximo dispatch.
+  const acquired = await tryAcquireScanLock(userId, 5)
+  if (!acquired) {
+    console.warn(`[image-queue-dispatch] lock busy for ${userId}, re-enqueueing item ${next.id}`)
+    await enqueueImage({
+      userId,
+      phone: next.phone || fallbackPhone,
+      imageUrl: next.image_url,
+      imageBase64: next.image_base64,
+      mimeType: next.mime_type || 'image/jpeg',
+      caption: next.caption,
+      isQueryMode: next.is_query_mode,
+      msgId: next.msg_id,
+    })
+    return false
+  }
+
+  // Re-baixa imagem (pode estar como URL apenas)
+  let imageData: { base64: string; mimeType: string } | null = null
+  if (next.image_base64) {
+    imageData = { base64: next.image_base64, mimeType: next.mime_type || 'image/jpeg' }
+  } else if (next.image_url) {
+    imageData = await downloadImage(next.image_url, next.msg_id || undefined)
+  }
+
+  const targetPhone = next.phone || fallbackPhone
+  if (!imageData) {
+    await releaseScanLock(userId)
+    await sendText(targetPhone, '⚠️ Não conseguimos re-baixar uma das fotos da fila (link expirou). Manda de novo se quiser registrá-la? 📸').catch(() => {})
+    // Tenta a próxima da fila depois de erro nessa
+    return dispatchNextQueuedImage(userId, fallbackPhone)
+  }
+
+  const remaining = await getQueueLength(userId)
+  const queueNote = remaining > 0
+    ? ` _(${remaining + 1} fotos restantes na fila)_`
+    : ''
+  await sendText(targetPhone, `🔍 Analisando próxima foto da fila...${queueNote}`).catch(() => {})
+
+  waitUntil(
+    fetch(`${APP_URL}/api/whatsapp/scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      },
+      body: JSON.stringify({
+        base64: imageData.base64,
+        mimeType: imageData.mimeType,
+        phone: targetPhone,
+        userId,
+        mode: next.is_query_mode ? 'query' : 'register',
+      }),
+    }).catch((err) => console.error('[WhatsApp] dispatch next failed:', err)),
+  )
+  return true
+}
+
 // ─── Interactive button definitions ──────────────────────────────────────────
 // Each command surfaces both as a button (one-tap) and as a text the user can
 // type freely. Button IDs map to canonical command words so the rest of the
@@ -1997,68 +2065,79 @@ export async function POST(req: NextRequest) {
 
     // ─── Image ───
     if (messageType === 'image') {
-      // Serializa: 1 registro por vez. Se já tem pending, segura essa foto.
-      const pendingItemsImg = await countPendingScanItems(user.id)
-      if (pendingItemsImg > 0) {
-        // sendBotTextFor: salva o texto como last_bot_message pra que se
-        // user responder ("sim", "tira o 2"), agent veja contexto.
-        // Pedro 2026-05-04: throttle 30s pra não floodar caso user mande
-        // várias mensagens em sequência rápida.
-        if (shouldSendWaitPending(user.id)) {
-          await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
-        }
-        return NextResponse.json({ ok: true })
-      }
-
-      // Pedro 2026-05-10 (caso Anabelle 5541988337264 + screenshot
-      // "7 fotos juntas"): countPendingScanItems falha quando user manda
-      // foto 2 ANTES do scan async da foto 1 ter inserido o pending
-      // (gap de 10-30s). Resultado antes: 7 scans paralelos, 7 listas
-      // separadas, spam. Lock atômico cobre esse gap — se já tem scan
-      // rodando, manda mensagem clara e descarta a foto extra (user
-      // precisa reenviar após confirmar a anterior). Sem perda silenciosa.
-      const lockAcquired = await tryAcquireScanLock(user.id, 5)
-      if (!lockAcquired) {
-        if (shouldSendWaitPending(user.id)) {
-          await sendBotTextFor(
-            user.id,
-            phone,
-            '📸 *Recebi sua foto!*\n\n' +
-            'Mas estamos analisando outra foto sua agora. Em alguns segundos você recebe a lista pra confirmar — depois do *SIM*, manda essa nova foto que processo na hora.\n\n' +
-            '_Mandar várias fotos juntas faz a gente processar uma de cada vez pra evitar erro._'
-          )
-        }
-        return NextResponse.json({ ok: true })
-      }
-
+      // Pedro 2026-05-10 (Opt 2): captura payload da imagem ANTES de
+      // qualquer decisão — pra poder enfileirar caso já tenha scan ou
+      // pending em andamento.
       const imageUrl = body.image?.imageUrl || body.image?.url || body.imageUrl
       const imageBase64 = body.image?.base64 || body.base64 || null
-      // Pedro 2026-05-06 (caso +55 67 98112-1341): user manda foto +
-      // caption "Eu tenho alguma dessas?". Detecta intent de CONSULTA
-      // (não registro) e marca o scan com mode='query'. Padrão é register.
-      const imageCaption = (
+      const imageCaptionRaw = (
         body.image?.caption ||
         body.caption ||
         body.image?.message ||
         ''
       ).toString().trim()
-      const isQueryCaption = imageCaption.length > 0 && (
-        /\b(tenho|tem|peguei|coloquei)\s*\??$/i.test(imageCaption) ||
-        /\b(alguma|algumas)\s+(dessas|delas|destas)\b/i.test(imageCaption) ||
-        /\bquais\s+(dessas|delas|destas|eu)\b/i.test(imageCaption) ||
-        /\bj[áa]\s+(tenho|peguei|coloquei)\b/i.test(imageCaption) ||
-        /\b(tem|tenho)\s+(alguma|alguma\s+coisa|essa|esse|essas|esses)\b/i.test(imageCaption)
+      const isQueryCaption = imageCaptionRaw.length > 0 && (
+        /\b(tenho|tem|peguei|coloquei)\s*\??$/i.test(imageCaptionRaw) ||
+        /\b(alguma|algumas)\s+(dessas|delas|destas)\b/i.test(imageCaptionRaw) ||
+        /\bquais\s+(dessas|delas|destas|eu)\b/i.test(imageCaptionRaw) ||
+        /\bj[áa]\s+(tenho|peguei|coloquei)\b/i.test(imageCaptionRaw) ||
+        /\b(tem|tenho)\s+(alguma|alguma\s+coisa|essa|esse|essas|esses)\b/i.test(imageCaptionRaw)
       )
 
       if (!imageUrl && !imageBase64) {
-        await releaseScanLock(user.id)
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
         return NextResponse.json({ ok: true })
       }
 
-      // Scan credits are checked inside the /api/whatsapp/scan route
-      // All tiers have scan credits (free=5, estreante=50, etc.)
+      // Serializa: 1 registro por vez. Se já tem pending OU scan em
+      // andamento (lock), enfileira a foto pra processar depois.
+      const pendingItemsImg = await countPendingScanItems(user.id)
+      const lockAcquired = pendingItemsImg === 0
+        ? await tryAcquireScanLock(user.id, 5)
+        : false
 
+      if (!lockAcquired) {
+        // Pedro 2026-05-10 (Opt 2 — caso Anabelle / "7 fotos juntas"):
+        // em vez de descartar, enfileira pra processar automaticamente
+        // após user confirmar a foto atual. Sem perda — só serializa.
+        const enq = await enqueueImage({
+          userId: user.id,
+          phone,
+          imageUrl: imageUrl || null,
+          imageBase64: imageBase64 || null,
+          mimeType: 'image/jpeg',
+          caption: imageCaptionRaw || null,
+          isQueryMode: isQueryCaption,
+          msgId: msgId || null,
+        })
+
+        if (shouldSendWaitPending(user.id)) {
+          if (enq) {
+            const fila = enq.totalQueued
+            const filaTxt = fila === 1
+              ? '*1 foto* na fila pra ser processada após você confirmar a anterior.'
+              : `*${fila} fotos* na fila pra serem processadas uma por vez após você confirmar a anterior.`
+            const head = pendingItemsImg > 0
+              ? '📸 *Recebi sua foto!*\n\nVocê ainda tem uma lista aguardando confirmação acima — responda *SIM* / *NÃO* primeiro.'
+              : '📸 *Recebi sua foto!*\n\nEstamos analisando a anterior agora — em alguns segundos a lista chega.'
+            await sendBotTextFor(
+              user.id,
+              phone,
+              `${head}\n\n📥 ${filaTxt}\n\n_Vamos processar uma de cada vez automaticamente — só responda cada lista que aparecer._`,
+            )
+          } else if (pendingItemsImg > 0) {
+            // Fallback: enqueue falhou. Mantém comportamento antigo (msg de wait)
+            await sendBotTextFor(user.id, phone, buildWaitPendingMsg(pendingItemsImg))
+          }
+        }
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 2026-05-06 (caso +55 67 98112-1341): caption "Eu tenho
+      // alguma dessas?" → scan mode='query'. Captura já feita no topo
+      // do handler como imageCaptionRaw / isQueryCaption.
+
+      // Scan credits são checados dentro de /api/whatsapp/scan.
       // Download image
       let imageData: { base64: string; mimeType: string } | null = null
       if (imageBase64) {
@@ -2912,6 +2991,12 @@ export async function POST(req: NextRequest) {
           reply += `\n\n📊 Progresso: *${stats.owned}/${stats.total}* (${stats.pct}%)`
         }
         await sendText(phone, reply)
+        // Pedro 2026-05-10 (Opt 2): após desfazer, dispara próxima foto
+        // da fila se houver — user provavelmente quer continuar registrando
+        // depois de corrigir.
+        waitUntil(dispatchNextQueuedImage(user.id, phone).catch((err) =>
+          console.error('[wa-undo] dispatchNextQueuedImage failed:', err)
+        ))
         return NextResponse.json({ ok: true })
       }
 
@@ -3230,6 +3315,12 @@ export async function POST(req: NextRequest) {
           }
 
           await sendText(phone, reply)
+          // Pedro 2026-05-10 (Opt 2): após registrar com sucesso, dispara
+          // próxima foto da fila se houver. Sem perda de fotos mandadas
+          // em rajada — processa uma por vez automaticamente.
+          waitUntil(dispatchNextQueuedImage(user.id, phone).catch((err) =>
+            console.error('[wa-confirm] dispatchNextQueuedImage failed:', err)
+          ))
           return NextResponse.json({ ok: true })
         }
         // No pending scan — fall through to normal intent handling
@@ -3284,6 +3375,13 @@ export async function POST(req: NextRequest) {
             ? `*Não contou ${refundCount} scans* — `
             : `*Não contou scan* — `
           await sendText(phone, `❌ Cancelado. Nada foi registrado.\n${refundNote}manda outra foto, áudio ou texto se quiser tentar de novo!`)
+          // Pedro 2026-05-10 (Opt 2): user cancelou tudo, mas pode ter
+          // fotos da rajada ainda na fila. Limpa fila também — se ele
+          // cancelou a primeira, faz sentido limpar as próximas (era
+          // a mesma intenção: desistir).
+          await clearQueue(user.id).catch((err) =>
+            console.error('[wa-cancel] clearQueue failed:', err)
+          )
           return NextResponse.json({ ok: true })
         }
 
