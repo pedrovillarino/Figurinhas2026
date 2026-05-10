@@ -1341,8 +1341,17 @@ async function transcribeAudio(audioBase64: string, mimeType: string): Promise<s
         '  • Estados Unidos: "eua" / "estados unidos" → "Estados Unidos"\n' +
         '  • África do Sul: "africa do sul" / "rsa" → "África do Sul"\n' +
         '  • Nova Zelândia: "nova zelandia" → "Nova Zelândia"\n' +
-        '  • República Democrática do Congo: "rd congo" / "dr congo" / "congo democrática" → "RD Congo"\n' +
+        '  • Marrocos: "marrocos" / "marroco" / "marrocô" / "maroc" / "morocco" → "Marrocos"\n' +
+        '    ⚠️ Pedro 2026-05-10: usuários frequentemente falam só "Marroco" sem o "s" final — preserve a INTENÇÃO e escreva "Marrocos"\n' +
+        '  • RD Congo: "rd congo" / "dr congo" / "congo" / "república do congo" / "república democrática do congo" / "congo democrática" → "RD Congo"\n' +
+        '    ⚠️ Pedro 2026-05-10: no álbum Copa 2026 só tem o RD Congo (Kinshasa). Se o usuário fala só "Congo" ou "República do Congo", interprete como "RD Congo".\n' +
         '  • Bósnia: "bosnia" / "bosnia e herzegovina" → "Bósnia"\n' +
+        '\n=== SIGLAS ESPECIAIS (FIFA / Coca-Cola) ===\n' +
+        'O usuário pode soletrar siglas das seções especiais. SEMPRE normalize para a sigla canônica:\n' +
+        '  • FWC (FIFA World Cup): "F W C" / "F C W" / "F V C" / "fefa" / "fifa world cup" / "copa do mundo" → "FWC"\n' +
+        '    ⚠️ Pedro 2026-05-10: se ouvir letras na ordem errada (F C W em vez de F W C), CORRIJA pra "FWC" — o álbum só tem FWC, não FCW.\n' +
+        '  • CC (Coca-Cola): "C C" / "cê cê" / "coca cola" / "coca" → "CC"\n' +
+        '  • EXT (PANINI Extras): "E X T" / "extras" / "extra" → "EXT"\n' +
         '\n=== EXAMPLES ===\n' +
         'Audio: "Tcheca três, cinco, sete"           → "Tcheca 3, 5, 7"\n' +
         'Audio: "República Tcheca número treze"      → "República Tcheca 13"\n' +

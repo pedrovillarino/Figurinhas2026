@@ -94,7 +94,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'Quais formas de pagamento?',
-        a: 'Aceitamos cartão de crédito e PIX via Stripe, a plataforma de pagamentos mais segura do mundo.',
+        a: 'Aceitamos cartão de crédito, boleto, Apple Pay e Google Pay via Stripe, a plataforma de pagamentos mais segura do mundo. Cartão libera o upgrade na hora; boleto leva de 2 a 3 dias úteis para compensar e a confirmação chega automaticamente assim que o pagamento cai.',
       },
       {
         q: 'Por que o pacote extra tem preço diferente por plano?',
