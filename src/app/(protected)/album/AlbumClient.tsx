@@ -327,6 +327,64 @@ export default function AlbumClient({
   const stickerLimit = getStickerLimit(tier)
   const [showLimitBanner, setShowLimitBanner] = useState(false)
 
+  // Pedro 2026-05-10: feature "limpar repetidas" — para usuários que
+  // trocaram muitas figurinhas presencialmente e perderam controle
+  // de quais ainda têm. Zera quantity > 1 → 1 nos cromos owned/duplicate.
+  // Salva snapshot em last_reversible_action (TTL 10min) pra undo.
+  const [showClearDupesModal, setShowClearDupesModal] = useState(false)
+  const [clearConfirmText, setClearConfirmText] = useState('')
+  const [clearLoading, setClearLoading] = useState(false)
+  const [clearResult, setClearResult] = useState<
+    | { affected: number; totalExtras: number }
+    | null
+  >(null)
+
+  // Conta duplicatas atuais pra mostrar no botão
+  const dupesStats = useMemo(() => {
+    let cromos = 0
+    let totalExtras = 0
+    for (const id in userMap) {
+      const us = userMap[id]
+      if ((us.status === 'owned' || us.status === 'duplicate') && us.quantity > 1) {
+        cromos++
+        totalExtras += us.quantity - 1
+      }
+    }
+    return { cromos, totalExtras }
+  }, [userMap])
+
+  async function handleClearDuplicates() {
+    setClearLoading(true)
+    try {
+      const res = await fetch('/api/album/clear-duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'unknown')
+      }
+      // Atualiza userMap localmente — todas duplicate→owned, qty=1
+      setUserMap((prev) => {
+        const next = { ...prev }
+        for (const id in next) {
+          const us = next[id]
+          if ((us.status === 'owned' || us.status === 'duplicate') && us.quantity > 1) {
+            next[id] = { status: 'owned', quantity: 1 }
+          }
+        }
+        return next
+      })
+      setClearResult({ affected: data.affected || 0, totalExtras: data.totalExtras || 0 })
+      setClearConfirmText('')
+    } catch (err) {
+      console.error('[clear-duplicates] failed:', err)
+      alert('Não conseguimos zerar as repetidas agora. Tente de novo em alguns minutos.')
+    } finally {
+      setClearLoading(false)
+    }
+  }
+
   function handleIncrement(e: React.MouseEvent, sticker: Sticker) {
     e.stopPropagation()
     const current = userMap[sticker.id]
@@ -735,6 +793,139 @@ export default function AlbumClient({
           </button>
         ))}
       </div>
+
+      {/* Pedro 2026-05-10: botão "Limpar repetidas" só aparece na tab
+          duplicates quando o usuário tem ao menos 1 duplicata.
+          Use case: trocou muitas figurinhas presencialmente e quer
+          zerar pra refotografar só o que sobrou. */}
+      {activeTab === 'duplicates' && dupesStats.cromos > 0 && (
+        <div className="mb-3 flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <div className="text-xs text-amber-900 leading-snug">
+            <strong>{dupesStats.cromos} cromo{dupesStats.cromos !== 1 ? 's' : ''}</strong> com repetidas
+            {' '}({dupesStats.totalExtras} unidade{dupesStats.totalExtras !== 1 ? 's' : ''} extra{dupesStats.totalExtras !== 1 ? 's' : ''})
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowClearDupesModal(true)
+              setClearConfirmText('')
+              setClearResult(null)
+            }}
+            className="shrink-0 px-3 py-2 text-[11px] font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 active:scale-95 transition"
+          >
+            🧹 Acabei de trocar
+          </button>
+        </div>
+      )}
+
+      {/* Modal "Limpar repetidas" */}
+      {showClearDupesModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => !clearLoading && setShowClearDupesModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {clearResult ? (
+              // Tela pós-confirmação
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">✅</span>
+                  <h2 className="text-lg font-bold text-gray-900">Pronto!</h2>
+                </div>
+                <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+                  Zeramos as duplicatas de <strong>{clearResult.affected} cromo{clearResult.affected !== 1 ? 's' : ''}</strong>
+                  {' '}— você ficou com 1 unidade de cada ({clearResult.totalExtras} unidade{clearResult.totalExtras !== 1 ? 's' : ''} extra{clearResult.totalExtras !== 1 ? 's' : ''} removida{clearResult.totalExtras !== 1 ? 's' : ''}).
+                </p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 text-sm text-emerald-900 leading-relaxed">
+                  <strong>Próximos passos importantes:</strong>
+                  <ol className="list-decimal pl-5 mt-2 space-y-1">
+                    <li>
+                      Sobrou repetidas? Tira <Link href="/scan" className="underline font-semibold">foto da pilha</Link>
+                      {' '}e registramos novamente.
+                    </li>
+                    <li>
+                      Recebeu cromos novos na troca? Registre eles também via{' '}
+                      <Link href="/scan" className="underline font-semibold">foto/áudio</Link>
+                      {' '}ou digite os códigos no WhatsApp.
+                    </li>
+                  </ol>
+                </div>
+                <p className="text-xs text-gray-500 mb-4">
+                  ↩️ Errou? No WhatsApp do bot, manda <strong>desfaz</strong> nos próximos 10min para restaurar tudo.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowClearDupesModal(false)
+                    setClearResult(null)
+                  }}
+                  className="w-full px-4 py-2.5 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 active:scale-95 transition"
+                >
+                  Fechar
+                </button>
+              </>
+            ) : (
+              // Tela de confirmação
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">🧹</span>
+                  <h2 className="text-lg font-bold text-gray-900">Limpar repetidas</h2>
+                </div>
+                <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+                  Esta ação vai <strong>zerar a quantidade</strong> de TODAS as suas figurinhas que estão com mais de 1 unidade. Você fica com <strong>1 unidade de cada</strong> — não perde nenhuma figurinha do álbum.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm text-blue-900">
+                  📊 Você tem hoje:
+                  <ul className="mt-1 space-y-0.5">
+                    <li>
+                      • <strong>{dupesStats.cromos} cromo{dupesStats.cromos !== 1 ? 's' : ''}</strong> com duplicatas
+                    </li>
+                    <li>
+                      • <strong>{dupesStats.totalExtras} unidade{dupesStats.totalExtras !== 1 ? 's' : ''} extra{dupesStats.totalExtras !== 1 ? 's' : ''}</strong> que vão zerar
+                    </li>
+                  </ul>
+                </div>
+                <p className="text-xs text-gray-600 mb-4 italic leading-relaxed">
+                  Use isso quando trocou muitas figurinhas e perdeu controle de quais ainda tem. Depois, fotografe a pilha de repetidas que SOBROU — registramos do zero.
+                </p>
+                <p className="text-sm font-semibold text-gray-900 mb-2">
+                  Para confirmar, digite <span className="text-amber-700">LIMPAR</span> abaixo:
+                </p>
+                <input
+                  type="text"
+                  value={clearConfirmText}
+                  onChange={(e) => setClearConfirmText(e.target.value.toUpperCase())}
+                  placeholder="Digite LIMPAR"
+                  disabled={clearLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-gray-100"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowClearDupesModal(false)}
+                    disabled={clearLoading}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 active:scale-95 transition disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearDuplicates}
+                    disabled={clearConfirmText !== 'LIMPAR' || clearLoading}
+                    className="flex-1 px-4 py-2.5 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {clearLoading ? 'Limpando...' : `Limpar ${dupesStats.totalExtras}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {filtered.length === 0 ? (
