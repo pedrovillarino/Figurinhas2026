@@ -13,6 +13,7 @@ import { checkRateLimit, getIp, webhookLimiter } from '@/lib/ratelimit'
 import { backgroundHealthPing } from '@/lib/health-ping'
 import { getAudioLimit, TIER_CONFIG, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
+import { tryAcquireScanLock, releaseScanLock } from '@/lib/scan-lock'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -2009,6 +2010,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
+      // Pedro 2026-05-10 (caso Anabelle 5541988337264 + screenshot
+      // "7 fotos juntas"): countPendingScanItems falha quando user manda
+      // foto 2 ANTES do scan async da foto 1 ter inserido o pending
+      // (gap de 10-30s). Resultado antes: 7 scans paralelos, 7 listas
+      // separadas, spam. Lock atômico cobre esse gap — se já tem scan
+      // rodando, manda mensagem clara e descarta a foto extra (user
+      // precisa reenviar após confirmar a anterior). Sem perda silenciosa.
+      const lockAcquired = await tryAcquireScanLock(user.id, 5)
+      if (!lockAcquired) {
+        if (shouldSendWaitPending(user.id)) {
+          await sendBotTextFor(
+            user.id,
+            phone,
+            '📸 *Recebi sua foto!*\n\n' +
+            'Mas estamos analisando outra foto sua agora. Em alguns segundos você recebe a lista pra confirmar — depois do *SIM*, manda essa nova foto que processo na hora.\n\n' +
+            '_Mandar várias fotos juntas faz a gente processar uma de cada vez pra evitar erro._'
+          )
+        }
+        return NextResponse.json({ ok: true })
+      }
+
       const imageUrl = body.image?.imageUrl || body.image?.url || body.imageUrl
       const imageBase64 = body.image?.base64 || body.base64 || null
       // Pedro 2026-05-06 (caso +55 67 98112-1341): user manda foto +
@@ -2029,6 +2051,7 @@ export async function POST(req: NextRequest) {
       )
 
       if (!imageUrl && !imageBase64) {
+        await releaseScanLock(user.id)
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
         return NextResponse.json({ ok: true })
       }
@@ -2045,6 +2068,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!imageData) {
+        await releaseScanLock(user.id)
         await sendText(phone, 'Não consegui baixar a imagem. Tenta mandar de novo? 📸')
         return NextResponse.json({ ok: true })
       }

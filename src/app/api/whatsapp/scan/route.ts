@@ -5,6 +5,7 @@ import { sendText } from '@/lib/zapi'
 import { getScanLimit, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { matchSymbolByName } from '@/lib/symbol-synonyms'
+import { releaseScanLock } from '@/lib/scan-lock'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -723,10 +724,18 @@ function matchSticker(
 
 export async function POST(req: NextRequest) {
   let phone = ''
+  // Pedro 2026-05-10 (caso Anabelle / "7 fotos juntas"): garante release
+  // do scan_lock setado no webhook ANTES do scan async. Cobre sucesso,
+  // erro, paywall, validação. Sem release o user fica travado por 5min
+  // (timeout) sem conseguir mandar próxima foto.
+  let lockedUserId: string | null = null
   try {
     const body = await req.json()
     const { base64, mimeType, userId } = body
     phone = body.phone || ''
+    if (typeof userId === 'string' && userId.length > 0) {
+      lockedUserId = userId
+    }
     // Pedro 2026-05-06 (caso +55 67 98112-1341): user mandou foto + caption
     // "Eu tenho alguma dessas?". Bot tratou como register em vez de consultar.
     // Webhook agora passa mode='query' quando detecta caption de pergunta.
@@ -1099,5 +1108,10 @@ export async function POST(req: NextRequest) {
       await sendText(phone, userMsg).catch(() => {})
     }
     return NextResponse.json({ error: 'scan failed' }, { status: 500 })
+  } finally {
+    if (lockedUserId) {
+      // best-effort — qualquer falha aqui já é logada dentro de releaseScanLock
+      await releaseScanLock(lockedUserId)
+    }
   }
 }
