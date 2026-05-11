@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import HomeLogin from "./HomeLogin";
 import { LogoFull, LogoMark } from "@/components/Logo";
 import InstagramWebViewPromo from "@/components/InstagramWebViewPromo";
+import SocialProof from "@/components/SocialProof";
 
 export const dynamic = 'force-dynamic';
 
@@ -94,6 +95,11 @@ export default async function Home() {
           </p>
         </div>
       </section>
+
+      {/* ── Social Proof (Pedro 2026-05-11) ──
+          Números agregados, snapshot diário em public_stats (migration 026).
+          Esconde-se sozinho se faltar floor ou der erro. */}
+      <SocialProof />
 
       {/* ── Value Props ── */}
       <section className="px-6 py-8 max-w-md mx-auto">
