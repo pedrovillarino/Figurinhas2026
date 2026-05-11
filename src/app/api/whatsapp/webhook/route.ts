@@ -3521,10 +3521,12 @@ export async function POST(req: NextRequest) {
       const isCancelIntent =
         isEmojiNoOnly ||
         /^(n[aã]o|n|nao|cancelar|cancel|cancela|cancele)\.?$/i.test(trimmedLower) ||
-        /\b(cancel|cancela|cancele|esquece|esquec[íi])\b.*\b(tud[oa]|registro|anterior|anteriores|isso|essa|essas?)\b/i.test(trimmedLower) ||
+        /\b(cancel|cancela|cancele|esquece|esquec[íi])\b.*\b(tud[oa]|tod[oa]s?|registro|anterior|anteriores|isso|essa|essas?|figurinhas?|itens?|lista)\b/i.test(trimmedLower) ||
         /^(deixa\s+(quieto|pra\s+l[áa]|pra\s+la|de\s+lado)|esquece(\s+isso)?|para\s+tudo|pare|stop)\b/i.test(trimmedLower) ||
         /\bvou\s+mandar\s+(por\s+)?(outro|escrito|texto|de\s+novo|outra\s+forma)\b/i.test(trimmedLower) ||
         /\b(prefiro|quero)\s+(mandar|enviar)\s+(por\s+)?(escrito|texto|outra)/i.test(trimmedLower) ||
+        // Pedro 12/05/2026 (caso Lucas 5535988690572): "quero cancelar todas as figurinhas" não pegava — agora pega
+        /\b(quero|gostaria|preciso)\s+cancelar\b/i.test(trimmedLower) ||
         /^(cancele?(\s+os)?(\s+registros?)?(\s+anteriores)?)\.?$/i.test(trimmedLower)
       if (isCancelIntent) {
         const supabaseAdmin = getAdmin()
@@ -3915,6 +3917,28 @@ export async function POST(req: NextRequest) {
       // (status owned/duplicate) — mantém 1 unidade de cada (não perde
       // figurinhas do álbum, só zera as duplicatas extras). Snapshot
       // salvo em last_reversible_action pra suportar "desfaz" 10min.
+      // Pedro 12/05/2026 (caso Lucas 5535988690572): "quero zerar o progresso"
+      // antes caia em fallback help. User pede ação destrutiva sobre TODO
+      // o álbum (não só duplicatas) — não temos essa feature, mas precisamos
+      // responder explicando alternativas ao invés de mostrar stats sem comentar.
+      const isResetAlbumIntent = (
+        /\b(zerar|zera|resetar|reseta|apagar|apaga|deletar|excluir|limpar|limpa)\s+(meu\s+|o\s+|todo\s+|toda\s+)?(album|álbum|progresso|coleção|colecao|tudo)\b/i.test(lower.trim()) ||
+        /\bcome[çc]ar\s+(tudo\s+)?(de\s+novo|do\s+zero|do\s+come[çc]o)\b/i.test(lower.trim()) ||
+        /\breiniciar\s+(o\s+|meu\s+)?(album|álbum|progresso)\b/i.test(lower.trim())
+      )
+      if (isResetAlbumIntent) {
+        await sendText(
+          phone,
+          `🤔 *Não dá pra "zerar" o álbum inteiro de uma vez*, mas posso te ajudar caso seja necessário.\n\n` +
+          `O que você pode fazer:\n\n` +
+          `🗑️ *Remover figurinhas específicas* — manda: _"tirar BRA-5"_ ou _"remover ARG-3"_\n\n` +
+          `🧹 *Limpar só as repetidas* — manda: _"limpar repetidas"_ (zera quantidades extras, mantém 1 de cada)\n\n` +
+          `🔄 *Reescanear depois de trocas* — manda: _"acabei de trocar"_ pra limpar repetidas e refazer\n\n` +
+          `Se você quer apagar a conta toda e recomeçar, fala com o nosso time direto (1ª resposta pode demorar algumas horas). ⚽`,
+        )
+        return NextResponse.json({ ok: true })
+      }
+
       const isClearDuplicatesIntent = (
         /^(limpar|limpa|zerar|zera)\s+(as?\s+)?(repet|duplic)(ad[ao]s?|i[çc][ãa]o)?\.?$/i.test(lower.trim()) ||
         /^acab(ei|amos)\s+de\s+troc(ar|amos)\.?$/i.test(lower.trim()) ||
