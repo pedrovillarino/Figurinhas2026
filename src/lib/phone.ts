@@ -21,6 +21,14 @@ export function normalizePhoneBR(input: string | null | undefined): string | nul
   const isExplicitIntl = trimmed.startsWith('+') && digits.slice(0, 2) !== '55'
   if (isExplicitIntl) return digits
 
+  // Pedro 12/05/2026 (caso Thiago US +1 702): 11 dígitos iniciando com '1'
+  // seguido de DDD NANP (2-9) → US/Canadá. DDDs BR válidos são 11-99
+  // (sempre 2 dígitos), então prefixo '1' isolado seguido de [2-9] nunca
+  // é BR. Cobre o caso real onde o input "+" foi dropado pelo type="tel".
+  if (digits.length === 11 && digits[0] === '1' && /[2-9]/.test(digits[1])) {
+    return digits
+  }
+
   // 10 dígitos: DDD + 8 antigo (sem DDI, sem 9 inicial)
   if (digits.length === 10) {
     return '55' + digits.slice(0, 2) + '9' + digits.slice(2)

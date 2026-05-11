@@ -1721,6 +1721,8 @@ const BUTTON_ID_TO_TEXT: Record<string, string> = {
   cmd_missing_top50: 'faltando top50',
   cmd_missing_brasil: 'faltando brasil',
   cmd_missing_all: 'faltando todas',
+  cmd_missing_pdf_compact: 'pdf faltantes',
+  cmd_missing_pdf_full: 'pdf tabelão',
   cmd_duplicates: 'repetidas',
   cmd_owned: 'coladas',
   cmd_trades: 'trocas',
@@ -4250,12 +4252,17 @@ export async function POST(req: NextRequest) {
           // intenção pelo texto: "todas", "tudo", "completa", "inteira".
           const wantsAll = /\b(todas?|tudo|completa?|inteir[ao]|toda\s+lista)\b/i.test(lower)
 
-          // Pedro 2026-05-09: PDF agora é o DEFAULT pra "o que falta" (sem
-          // filtro de país). Se user pediu explicitamente texto/lista/mensagem,
-          // mantém comportamento antigo (lista em mensagem). Se tem filtro de
-          // país, também mantém texto (PDF não filtra por seção).
-          const wantsTextual = /\b(texto|lista|mensagem|por\s+texto|em\s+texto|escrito|por\s+escrito)\b/i.test(lower)
-          const shouldSendPdf = filters.length === 0 && !wantsAll && !wantsTextual
+          // Pedro 12/05/2026 (caso real): user mandou "Lista faltantes" e
+          // antes era interpretado como "quero em texto", pulando direto
+          // pra menu Top50/Brasil/Tudo SEM perguntar formato. Agora:
+          //   - PDF explícito (pdf/tabelão/exporta) → direto PDF
+          //   - Texto explícito (texto/mensagem/escrito) → fluxo texto
+          //   - Filtros explícitos OU wantsAll → fluxo texto (PDF não
+          //     filtra por seção, esse caso vai pra texto)
+          //   - "lista faltantes" sem nada disso → AMBÍGUO, perguntar formato
+          const wantsExplicitPdf = /\b(pdf|exporta(r|\s+em\s+pdf)?|tabel[ãa]o)\b/i.test(lower)
+          const wantsExplicitText = /\b(texto|mensagem|por\s+texto|em\s+texto|escrito|por\s+escrito)\b/i.test(lower)
+          const shouldSendPdf = wantsExplicitPdf
 
           if (shouldSendPdf) {
             const internalSecret = process.env.CRON_SECRET || process.env.ADMIN_SECRET
@@ -4341,10 +4348,34 @@ export async function POST(req: NextRequest) {
             break
           }
 
+          // ── Pedro 12/05/2026: SEM filtro E SEM formato explícito → perguntar
+          // formato (PDF vs Texto) PRIMEIRO. Antes pulava direto pra menu de
+          // filtros textuais, confundindo o user que queria PDF.
+          if (filters.length === 0 && !wantsAll && !wantsExplicitText && stats.missing > 30) {
+            await sendButtonList(
+              phone,
+              `🔍 *Você tem ${stats.missing} figurinhas faltando!*\n\n` +
+                `Como prefere ver?`,
+              [
+                { id: 'cmd_missing_pdf_compact', label: '📄 PDF (só faltantes)' },
+                { id: 'cmd_missing_pdf_full', label: '📄 PDF (tabelão)' },
+                { id: 'cmd_missing_top50', label: '📃 Texto (top 50)' },
+              ],
+            )
+            await sendText(
+              phone,
+              `_Outras opções:_\n` +
+              `• _Texto filtrado: *faltando brasil*, *faltando argentina*, *faltando coca cola*_\n` +
+              `• _Texto completo: *faltando todas* (em partes)_\n` +
+              `• _PDF tabelão completo: *pdf tabelão*_`,
+            )
+            break
+          }
+
           // ── Pedro 2026-05-04 (caso Pedro Arcari): se SEM filtro E muito
-          // a listar (>80), perguntar antes pra evitar bombardear caixa do
-          // user com 150+ itens não solicitados. ──
-          if (filters.length === 0 && stats.missing > 80) {
+          // a listar (>80) E user JÁ escolheu texto, mostrar menu de
+          // filtragem textual. ──
+          if (filters.length === 0 && stats.missing > 80 && wantsExplicitText) {
             await sendButtonList(
               phone,
               `🔍 *Você tem ${stats.missing} figurinhas faltando!*\n\n` +
