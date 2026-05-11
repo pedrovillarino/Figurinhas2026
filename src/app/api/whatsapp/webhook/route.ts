@@ -3521,12 +3521,10 @@ export async function POST(req: NextRequest) {
       const isCancelIntent =
         isEmojiNoOnly ||
         /^(n[aã]o|n|nao|cancelar|cancel|cancela|cancele)\.?$/i.test(trimmedLower) ||
-        /\b(cancel|cancela|cancele|esquece|esquec[íi])\b.*\b(tud[oa]|tod[oa]s?|registro|anterior|anteriores|isso|essa|essas?|figurinhas?|itens?|lista)\b/i.test(trimmedLower) ||
+        /\b(cancel|cancela|cancele|esquece|esquec[íi])\b.*\b(tud[oa]|registro|anterior|anteriores|isso|essa|essas?)\b/i.test(trimmedLower) ||
         /^(deixa\s+(quieto|pra\s+l[áa]|pra\s+la|de\s+lado)|esquece(\s+isso)?|para\s+tudo|pare|stop)\b/i.test(trimmedLower) ||
         /\bvou\s+mandar\s+(por\s+)?(outro|escrito|texto|de\s+novo|outra\s+forma)\b/i.test(trimmedLower) ||
         /\b(prefiro|quero)\s+(mandar|enviar)\s+(por\s+)?(escrito|texto|outra)/i.test(trimmedLower) ||
-        // Pedro 12/05/2026 (caso Lucas 5535988690572): "quero cancelar todas as figurinhas" não pegava — agora pega
-        /\b(quero|gostaria|preciso)\s+cancelar\b/i.test(trimmedLower) ||
         /^(cancele?(\s+os)?(\s+registros?)?(\s+anteriores)?)\.?$/i.test(trimmedLower)
       if (isCancelIntent) {
         const supabaseAdmin = getAdmin()
@@ -3922,24 +3920,102 @@ export async function POST(req: NextRequest) {
       // figurinhas do álbum, só zera as duplicatas extras). Snapshot
       // salvo em last_reversible_action pra suportar "desfaz" 10min.
       // Pedro 12/05/2026 (caso Lucas 5535988690572): "quero zerar o progresso"
-      // antes caia em fallback help. User pede ação destrutiva sobre TODO
-      // o álbum (não só duplicatas) — não temos essa feature, mas precisamos
-      // responder explicando alternativas ao invés de mostrar stats sem comentar.
+      // ou "cancelar todas as figurinhas" devem cair num fluxo de RESET ALBUM
+      // com 3 opções (só coladas / coladas+repetidas / cancela) e confirmação
+      // por palavra exata destrutiva.
       const isResetAlbumIntent = (
-        /\b(zerar|zera|resetar|reseta|apagar|apaga|deletar|excluir|limpar|limpa)\s+(meu\s+|o\s+|todo\s+|toda\s+)?(album|álbum|progresso|coleção|colecao|tudo)\b/i.test(lower.trim()) ||
+        /\b(zerar|zera|resetar|reseta|apagar|apaga|deletar|delet[ae]r|excluir)\s+(meu\s+|o\s+|todo\s+|toda\s+|as?\s+)?(album|álbum|progresso|cole[çc][ãa]o|tudo|figurinhas?|registros?)\b/i.test(lower.trim()) ||
+        /\b(cancelar|cancele?)\s+(todas?|tudo)\s+(as?\s+)?(minhas?\s+)?figurinhas?\b/i.test(lower.trim()) ||
         /\bcome[çc]ar\s+(tudo\s+)?(de\s+novo|do\s+zero|do\s+come[çc]o)\b/i.test(lower.trim()) ||
         /\breiniciar\s+(o\s+|meu\s+)?(album|álbum|progresso)\b/i.test(lower.trim())
       )
       if (isResetAlbumIntent) {
-        await sendText(
+        const supabaseAdminReset = getAdmin()
+        // Conta quantas figurinhas o user tem registradas
+        const { data: counts } = await supabaseAdminReset
+          .from('user_stickers')
+          .select('status, quantity')
+          .eq('user_id', user.id)
+        const rows = (counts || []) as Array<{ status: string; quantity: number }>
+        const onlyOwned = rows.filter((r) => r.status === 'owned').length
+        const onlyDups = rows.filter((r) => r.status === 'duplicate').length
+        const totalRegs = onlyOwned + onlyDups
+        const totalUnits = rows
+          .filter((r) => r.status === 'owned' || r.status === 'duplicate')
+          .reduce((sum, r) => sum + (r.quantity || 0), 0)
+
+        if (totalRegs === 0) {
+          await sendText(phone, `🤔 Seu álbum já está vazio — não tem nada pra apagar. Manda foto/áudio/texto pra começar a registrar! ⚽`)
+          return NextResponse.json({ ok: true })
+        }
+
+        // Cria pending especial pra confirmação
+        await supabaseAdminReset.from('pending_scans').insert({
+          user_id: user.id,
           phone,
-          `🤔 *Não dá pra "zerar" o álbum inteiro de uma vez*, mas posso te ajudar caso seja necessário.\n\n` +
-          `O que você pode fazer:\n\n` +
-          `🗑️ *Remover figurinhas específicas* — manda: _"tirar BRA-5"_ ou _"remover ARG-3"_\n\n` +
-          `🧹 *Limpar só as repetidas* — manda: _"limpar repetidas"_ (zera quantidades extras, mantém 1 de cada)\n\n` +
-          `🔄 *Reescanear depois de trocas* — manda: _"acabei de trocar"_ pra limpar repetidas e refazer\n\n` +
-          `Se você quer apagar a conta toda e recomeçar, fala com o nosso time direto (1ª resposta pode demorar algumas horas). ⚽`,
-        )
+          scan_data: [{ scope_request: true, onlyOwned, onlyDups, totalRegs, totalUnits }],
+          source: 'reset_album',
+          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15min pra decidir
+        })
+
+        let reply = `⚠️ *Atenção — você quer APAGAR figurinhas do seu álbum?*\n\n`
+        reply += `📊 Hoje você tem:\n`
+        reply += `• *${onlyOwned}* coladas (1 unidade cada)\n`
+        reply += `• *${onlyDups}* com repetidas (${totalUnits - onlyOwned} unidades extras)\n`
+        reply += `• Total: *${totalRegs} figurinhas registradas* (${totalUnits} unidades)\n\n`
+        reply += `Escolha o que apagar respondendo a *palavra exata*:\n\n`
+        reply += `🗑️ *APAGAR COLADAS* → apaga só as coladas únicas (${onlyOwned} cromos)\n\n`
+        reply += `💥 *APAGAR TUDO* → apaga TUDO: coladas + repetidas (${totalRegs} cromos, ${totalUnits} unidades)\n\n`
+        reply += `❌ *cancela* → não apaga nada\n\n`
+        reply += `_⏰ Você tem 15 minutos pra decidir. Esta ação é DESTRUTIVA e não pode ser desfeita após confirmada._`
+        await sendBotTextFor(user.id, phone, reply)
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 12/05/2026 — confirmação destrutiva do reset
+      const resetConfirmMatch = lower.trim().match(/^(apagar|deletar|excluir)\s+(coladas?|tudo)\.?$/i)
+      if (resetConfirmMatch) {
+        const scope = resetConfirmMatch[2].toLowerCase().startsWith('cola') ? 'coladas' : 'tudo'
+        const supabaseAdminReset = getAdmin()
+        // Verifica se há pending de reset
+        const { data: pendingReset } = await supabaseAdminReset
+          .from('pending_scans')
+          .select('id, scan_data')
+          .eq('user_id', user.id)
+          .eq('source', 'reset_album')
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (!pendingReset) {
+          await sendText(phone, '🤔 Não tem nenhum pedido de apagar aguardando. Manda *zerar progresso* se quiser começar do zero.')
+          return NextResponse.json({ ok: true })
+        }
+
+        // Executa DELETE com count exato
+        let deleteQuery = supabaseAdminReset
+          .from('user_stickers')
+          .delete({ count: 'exact' })
+          .eq('user_id', user.id)
+        if (scope === 'coladas') {
+          deleteQuery = deleteQuery.eq('status', 'owned')
+        } else {
+          deleteQuery = deleteQuery.in('status', ['owned', 'duplicate'])
+        }
+        const { error: delErr, count } = await deleteQuery
+        if (delErr) {
+          console.error('[wa-reset] delete failed:', delErr.message)
+          await sendText(phone, '⚠️ Não conseguimos apagar agora. Tenta de novo em alguns minutos? 🙏')
+          return NextResponse.json({ ok: true })
+        }
+        // Limpa o pending consumido
+        await supabaseAdminReset.from('pending_scans').delete().eq('id', pendingReset.id)
+
+        const removed = count ?? 0
+        let okReply = `✅ *Pronto!* Apagamos ${removed} ${scope === 'coladas' ? 'cromo(s) colado(s)' : 'figurinha(s) (coladas + repetidas)'}.\n\n`
+        okReply += `📊 Seu álbum agora começa do zero${scope === 'coladas' ? ' nas coladas — as repetidas continuam' : ''}.\n\n`
+        okReply += `Manda foto/áudio/texto quando quiser registrar de novo. ⚽`
+        await sendText(phone, okReply)
         return NextResponse.json({ ok: true })
       }
 
