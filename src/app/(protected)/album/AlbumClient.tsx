@@ -13,6 +13,7 @@ import UndoToast from '@/components/UndoToast'
 import OnboardingModal from '@/components/OnboardingModal'
 import ImportListModal from '@/components/ImportListModal'
 import LocationBanner from '@/components/LocationBanner'
+import { QuickStartBanner, QuickStartWizard, type QuickStartStep } from '@/components/QuickStart'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
 
 type Sticker = {
@@ -39,11 +40,13 @@ export default function AlbumClient({
   userStickersMap: initialMap,
   userId,
   tier = 'free',
+  initialQuickStartStep = null,
 }: {
   stickers: Sticker[]
   userStickersMap: Record<number, UserStickerInfo>
   userId: string
   tier?: Tier
+  initialQuickStartStep?: QuickStartStep
 }) {
   const waToken = useWaLinkToken()
   const [userMap, setUserMap] = useState(initialMap)
@@ -70,6 +73,35 @@ export default function AlbumClient({
   const [undoAction, setUndoAction] = useState<{ stickerId: number; prevStatus: string; prevQty: number; message: string } | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  // Pedro 2026-05-11: Quick Start (modo onboarding 3 passos).
+  // Banner aparece se progresso < 10% E step === null.
+  // Faixa de modo + bloqueio do /scan ativam quando step ∈ {missing, extras, duplicates}.
+  // ?qs=resume na URL auto-abre o wizard (vindo da faixa amarela).
+  const [qsStep, setQsStep] = useState<QuickStartStep>(initialQuickStartStep)
+  const [qsWizardOpen, setQsWizardOpen] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('qs') === 'resume' || params.get('qs') === '1') {
+      setQsWizardOpen(true)
+    }
+  }, [])
+
+  // Quando o wizard registra faltantes/repetidas, o userMap precisa
+  // refletir. Recarrega do servidor (state autoritativo).
+  const reloadUserStickers = useCallback(async () => {
+    const { data } = await supabase
+      .from('user_stickers')
+      .select('sticker_id, status, quantity')
+      .eq('user_id', userId)
+    if (!data) return
+    const next: Record<number, UserStickerInfo> = {}
+    for (const row of data as Array<{ sticker_id: number; status: string; quantity: number }>) {
+      next[row.sticker_id] = { status: row.status, quantity: row.quantity }
+    }
+    setUserMap(next)
+  }, [supabase, userId])
 
   // Debounce de busca (300ms)
   useEffect(() => {
@@ -579,6 +611,18 @@ export default function AlbumClient({
 
   return (
     <main className="px-4 pt-4 pb-28" role="main">
+      {/* Pedro 2026-05-11: banner promocional do Quick Start. Só aparece
+          pra usuários novos no app (<10% colado) E que ainda não passaram
+          pelo modo (qsStep===null). Recomendação pra >50% físico está
+          no copy interno. */}
+      <div className="mb-4">
+        <QuickStartBanner
+          progressPct={progressPct}
+          step={qsStep}
+          onStart={() => setQsWizardOpen(true)}
+        />
+      </div>
+
       {/* Header with progress ring */}
       <header className="flex items-center justify-between mb-5">
         <div>
@@ -1107,6 +1151,15 @@ export default function AlbumClient({
 
       {/* Onboarding */}
       <OnboardingModal />
+
+      {/* Quick Start Wizard — controlled modal */}
+      <QuickStartWizard
+        isOpen={qsWizardOpen}
+        onClose={() => setQsWizardOpen(false)}
+        step={qsStep}
+        onStepChange={setQsStep}
+        onUserStickersChange={reloadUserStickers}
+      />
     </main>
   )
 }

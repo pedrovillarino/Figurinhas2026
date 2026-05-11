@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import InstallBanner from '@/components/InstallBanner'
+import QuickStartModeBarWrapper from '@/components/QuickStartModeBarWrapper'
 // PushPermission used to be rendered here at layout level — it asked for
 // notification permission 10s after every page mount, which interrupted users
 // before they had any reason to say yes. It now lives inline inside ScanClient
@@ -26,6 +27,10 @@ export default function ProtectedLayout({
   return (
     <div className="min-h-screen pb-20">
       <AppHeader />
+      {/* Pedro 2026-05-11: faixa amarela do Quick Start. Só renderiza se
+          user está em modo ativo (step ≠ null && ≠ 'done'). Fica logo
+          abaixo do header pra ficar visível em todas as telas. */}
+      <QuickStartModeBarWrapper />
       <div id="main-content">{children}</div>
       <InstallBanner />
       <ReferralApplier />

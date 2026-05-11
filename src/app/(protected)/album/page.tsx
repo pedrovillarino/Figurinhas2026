@@ -23,7 +23,11 @@ export default async function AlbumPage() {
   const [stickers, { data: userStickers }, { data: profile }] = await Promise.all([
     getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
-    supabase.from('profiles').select('tier, referral_code, display_name').eq('id', user.id).single(),
+    supabase
+      .from('profiles')
+      .select('tier, referral_code, display_name, quick_start_step')
+      .eq('id', user.id)
+      .single(),
   ])
 
   const userStickersMap: Record<number, { status: string; quantity: number }> = {}
@@ -51,6 +55,10 @@ export default async function AlbumPage() {
         userStickersMap={userStickersMap}
         userId={user.id}
         tier={(profile?.tier || 'free') as Tier}
+        initialQuickStartStep={
+          ((profile as { quick_start_step?: string | null })?.quick_start_step ?? null) as
+            | 'missing' | 'extras' | 'duplicates' | 'done' | null
+        }
       />
     </>
   )
