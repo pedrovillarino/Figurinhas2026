@@ -3805,15 +3805,19 @@ export async function POST(req: NextRequest) {
         /\b(meu\s+saldo|minhas?\s+(quotas?|cotas?)|quanto\s+(de\s+)?(scan|[áa]udio))\b/i.test(lower)
       ) {
         intent = 'quotas'
-      } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
-        intent = 'status'
       } else if (
         // Pedro 2026-05-09: PDF de faltantes ou repetidas. Roda ANTES dos
         // intents 'missing'/'duplicates' (que enviam lista em texto) pra que
         // "pdf das faltantes" / "exporta repetidas em pdf" peguem o PDF.
-        /\b(pdf|exporta(r|\s+em\s+pdf)?|baixar?\s+(pdf|arquivo|lista)|gerar?\s+(pdf|arquivo))\b/i.test(lower)
+        // Pedro 12/05/2026 (caso Pedro 5521997838210): "Tabelao completo"
+        // como resposta ao menu PDF caia em STATUS. Agora reconhece
+        // "tabelão" / "tabelao" / "só faltantes" sozinhos como export_pdf,
+        // e roda ANTES de status pra ganhar precedência.
+        /\b(pdf|exporta(r|\s+em\s+pdf)?|baixar?\s+(pdf|arquivo|lista)|gerar?\s+(pdf|arquivo)|tabel[ãa]o|s[óo]\s+falt(an|am)t?es?\s+(em\s+lista|enxut))\b/i.test(lower)
       ) {
         intent = 'export_pdf'
+      } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
+        intent = 'status'
       } else if (/(falt|missing|necessito|que me falta|o que falta|quais faltam)/.test(lower) && codeMatches.length === 0) {
         // "preciso/falta" sem código de sticker → lista geral. Se tem código,
         // já caiu em query_sticker acima.
