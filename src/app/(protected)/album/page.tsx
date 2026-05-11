@@ -23,8 +23,34 @@ export default async function AlbumPage() {
   const [stickers, { data: userStickers }, { data: profile }] = await Promise.all([
     getCachedStickers(),
     supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
-    supabase.from('profiles').select('tier, referral_code, display_name').eq('id', user.id).single(),
+    supabase
+      .from('profiles')
+      .select('tier, referral_code, display_name')
+      .eq('id', user.id)
+      .single(),
   ])
+
+  // Pedro 2026-05-11: quick_start_step em query separada com try/catch pra
+  // tolerar caso a migration 026 ainda não tenha rodado em produção.
+  // Sem isso o select inteiro do profile falharia com PostgREST 42703 e
+  // a página /album quebraria pra todos os usuários.
+  let initialQuickStartStep:
+    | 'missing' | 'extras' | 'duplicates' | 'done' | null = null
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('quick_start_step')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!error && data) {
+      const raw = (data as { quick_start_step?: string | null }).quick_start_step ?? null
+      if (raw === 'missing' || raw === 'extras' || raw === 'duplicates' || raw === 'done') {
+        initialQuickStartStep = raw
+      }
+    }
+  } catch {
+    // Coluna ainda não existe — Quick Start fica desativado até migration rodar.
+  }
 
   const userStickersMap: Record<number, { status: string; quantity: number }> = {}
   userStickers?.forEach((us) => {
@@ -51,6 +77,7 @@ export default async function AlbumPage() {
         userStickersMap={userStickersMap}
         userId={user.id}
         tier={(profile?.tier || 'free') as Tier}
+        initialQuickStartStep={initialQuickStartStep}
       />
     </>
   )
