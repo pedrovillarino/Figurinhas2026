@@ -135,12 +135,17 @@ export async function GET() {
     const { data: { user } } = await supabaseUser.auth.getUser()
     if (!user) return NextResponse.json({ step: null })
     const admin = getAdmin()
-    const { data } = await admin
+    // maybeSingle + select isolado: se a coluna ainda não existe
+    // (migration 026 pendente), retorna step=null em vez de 500. Isso
+    // mantém o site funcionando normalmente até a migration rodar.
+    const { data, error } = await admin
       .from('profiles')
       .select('quick_start_step')
       .eq('id', user.id)
-      .single()
-    return NextResponse.json({ step: data?.quick_start_step ?? null })
+      .maybeSingle()
+    if (error) return NextResponse.json({ step: null })
+    const raw = (data as { quick_start_step?: string | null } | null)?.quick_start_step ?? null
+    return NextResponse.json({ step: raw })
   } catch {
     return NextResponse.json({ step: null })
   }

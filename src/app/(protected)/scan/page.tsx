@@ -22,7 +22,7 @@ export default async function ScanPage() {
   const [{ data: profile }, { count }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('tier, referral_code, display_name, quick_start_step')
+      .select('tier, referral_code, display_name')
       .eq('id', user.id)
       .single(),
     supabase
@@ -34,7 +34,25 @@ export default async function ScanPage() {
   const tier = (profile?.tier || 'free') as Tier
   const referralCode = (profile as { referral_code?: string | null })?.referral_code ?? null
   const displayName = (profile as { display_name?: string | null })?.display_name ?? null
-  const quickStartStep = ((profile as { quick_start_step?: string | null })?.quick_start_step ?? null) as QuickStartStep
+
+  // Pedro 2026-05-11: quick_start_step em query separada com try/catch
+  // pra tolerar coluna ausente (migration 026 ainda não rodou).
+  let quickStartStep: QuickStartStep = null
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('quick_start_step')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!error && data) {
+      const raw = (data as { quick_start_step?: string | null }).quick_start_step ?? null
+      if (raw === 'missing' || raw === 'extras' || raw === 'duplicates' || raw === 'done') {
+        quickStartStep = raw
+      }
+    }
+  } catch {
+    // Coluna ainda não existe — gate desativado, /scan funciona normal.
+  }
 
   return (
     <ScanQuickStartGate initialStep={quickStartStep}>
