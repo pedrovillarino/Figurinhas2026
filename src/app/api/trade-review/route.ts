@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { checkRateLimit, getIp, generalLimiter } from '@/lib/ratelimit'
+import { awardLigaPoints } from '@/lib/liga'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,6 +129,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Você já avaliou esta troca.' }, { status: 409 })
       }
       return NextResponse.json({ error: 'Erro ao salvar avaliação.' }, { status: 500 })
+    }
+
+    // Pedro 12/05/2026: dispara hooks Liga.
+    // 1) Reviewer ganha TRADE_REVIEWED (5 pts, cap 3/dia)
+    // 2) Se rating ≥ 4, reviewed ganha GOOD_RATING_RECEIVED (5 pts)
+    // Awaits sem bloquear resposta (fire-and-forget OK aqui).
+    void awardLigaPoints({
+      userId: user.id,
+      eventType: 'TRADE_REVIEWED',
+      eventKey: `trade_reviewed:${trade_request_id}:${user.id}`,
+      metadata: { trade_id: trade_request_id, rating },
+    }).catch((err) => console.error('[trade-review] liga award reviewer failed:', err))
+
+    if (rating >= 4) {
+      void awardLigaPoints({
+        userId: reviewed_id,
+        eventType: 'GOOD_RATING_RECEIVED',
+        eventKey: `good_rating:${trade_request_id}:${reviewed_id}`,
+        metadata: { trade_id: trade_request_id, rating, from: user.id },
+      }).catch((err) => console.error('[trade-review] liga award reviewed failed:', err))
     }
 
     return NextResponse.json({

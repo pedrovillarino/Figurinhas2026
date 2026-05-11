@@ -19,6 +19,10 @@ type ApprovedTrade = {
   requestId: string
   requesterName: string
   contact: string | null // wa.me/... or email
+  // Pedro 12/05/2026 — Liga Complete Aí: estado da confirmação dupla
+  confirmedByMe?: boolean
+  confirmedByOther?: boolean
+  alreadyReviewed?: boolean
 }
 
 export default function TradeRequestsBanner({
@@ -34,6 +38,80 @@ export default function TradeRequestsBanner({
   const [responding, setResponding] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [approvedTrades, setApprovedTrades] = useState<ApprovedTrade[]>(initialApprovedTrades)
+  // Pedro 12/05/2026 — Liga Complete Aí: confirmação dupla + avaliação
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [reviewModalFor, setReviewModalFor] = useState<ApprovedTrade | null>(null)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+
+  async function handleConfirmTrade(trade: ApprovedTrade) {
+    setConfirming(trade.requestId)
+    try {
+      const res = await fetch('/api/trade-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trade_request_id: trade.requestId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Erro ao confirmar troca')
+        return
+      }
+      // Atualiza estado local
+      setApprovedTrades((prev) =>
+        prev.map((t) =>
+          t.requestId === trade.requestId
+            ? { ...t, confirmedByMe: true, confirmedByOther: data.both_confirmed === true }
+            : t,
+        ),
+      )
+      // Se AMBOS confirmaram, abre modal de avaliação
+      if (data.both_confirmed && !trade.alreadyReviewed) {
+        setReviewModalFor({ ...trade, confirmedByMe: true, confirmedByOther: true })
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Erro de rede. Tenta de novo.')
+    } finally {
+      setConfirming(null)
+    }
+  }
+
+  async function handleSubmitReview() {
+    if (!reviewModalFor || reviewRating < 1) return
+    setReviewSubmitting(true)
+    try {
+      const res = await fetch('/api/trade-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trade_request_id: reviewModalFor.requestId,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Erro ao enviar avaliação')
+        return
+      }
+      // Marca como avaliada e fecha modal
+      setApprovedTrades((prev) =>
+        prev.map((t) =>
+          t.requestId === reviewModalFor.requestId ? { ...t, alreadyReviewed: true } : t,
+        ),
+      )
+      setReviewModalFor(null)
+      setReviewRating(0)
+      setReviewComment('')
+    } catch (err) {
+      console.error(err)
+      alert('Erro de rede. Tenta de novo.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   if (requests.length === 0 && approvedTrades.length === 0) return null
 
@@ -127,8 +205,110 @@ export default function TradeRequestsBanner({
               Contato enviado por WhatsApp. Verifique suas mensagens.
             </p>
           )}
+
+          {/* Pedro 12/05/2026 — Liga Complete Aí: confirmação dupla da troca presencial */}
+          <div className="mt-3 pt-3 border-t border-emerald-200">
+            {trade.confirmedByMe && trade.confirmedByOther && trade.alreadyReviewed ? (
+              <p className="text-xs text-emerald-700 text-center font-semibold">
+                ✅ Troca concluída e avaliada — +pontos Liga aplicados
+              </p>
+            ) : trade.confirmedByMe && trade.confirmedByOther ? (
+              <button
+                type="button"
+                onClick={() => setReviewModalFor(trade)}
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition active:scale-[0.98]"
+              >
+                ⭐ Avaliar troca (+5 pts Liga)
+              </button>
+            ) : trade.confirmedByMe ? (
+              <p className="text-xs text-emerald-700 text-center font-medium">
+                ⏳ Aguardando {trade.requesterName} confirmar do outro lado...
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleConfirmTrade(trade)}
+                disabled={confirming === trade.requestId}
+                className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition active:scale-[0.98] disabled:opacity-50"
+              >
+                {confirming === trade.requestId
+                  ? 'Confirmando...'
+                  : '✅ Concluí a troca'}
+              </button>
+            )}
+          </div>
         </div>
       ))}
+
+      {/* Pedro 12/05/2026 — Modal de avaliação por estrelas */}
+      {reviewModalFor && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => !reviewSubmitting && setReviewModalFor(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">⭐</span>
+              <h2 className="text-lg font-bold text-gray-900">
+                Avaliar troca com {reviewModalFor.requesterName}
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+              Como foi a troca? Sua avaliação ajuda outros usuários a confiarem na rede.
+            </p>
+
+            {/* Estrelas */}
+            <div className="flex justify-center gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setReviewRating(n)}
+                  disabled={reviewSubmitting}
+                  className="text-4xl transition transform active:scale-90 disabled:opacity-50"
+                  aria-label={`${n} estrelas`}
+                >
+                  {n <= reviewRating ? '⭐' : '☆'}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value.slice(0, 200))}
+              placeholder="Comentário (opcional, máx 200 chars)"
+              disabled={reviewSubmitting}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 resize-none"
+              rows={3}
+            />
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setReviewModalFor(null)}
+                disabled={reviewSubmitting}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 active:scale-95 transition disabled:opacity-50"
+              >
+                Pular
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitReview}
+                disabled={reviewRating < 1 || reviewSubmitting}
+                className="flex-1 py-2.5 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reviewSubmitting ? 'Enviando...' : 'Enviar avaliação'}
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-3 text-center leading-snug">
+              +5 pts Liga por avaliar · +5 pts pra quem recebe nota 4-5⭐
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Pending requests */}
       {requests.length > 0 && (

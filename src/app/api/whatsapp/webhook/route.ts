@@ -15,6 +15,7 @@ import { getAudioLimit, TIER_CONFIG, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { tryAcquireScanLock, releaseScanLock } from '@/lib/scan-lock'
 import { enqueueImage, dequeueNextImage, getQueueLength, clearQueue } from '@/lib/image-queue'
+import { awardScanPointsForToday, awardFirstScanIfNew, checkAndRegisterUnlocks } from '@/lib/liga'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -1547,6 +1548,18 @@ async function batchSaveStickers(supabase: any, userId: string, stickers: { stic
       `attempted=${toInsert.length + toUpdate.length} actual_saved=${actualSaved} ` +
       `reason="${savedFailedReason}"`
     )
+  }
+
+  // Pedro 12/05/2026 — Liga Complete Aí: pontua scans salvos.
+  // - 1 ponto por sticker (cap 30/dia, fail-open no awardLigaPoints)
+  // - FIRST_PHOTO_SCAN se for o primeiro scan lifetime do user
+  // - Re-check unlocks (Trilha Digital) — dispara modal se atingir marco
+  // Fire-and-forget pra não atrasar response.
+  if (actualSaved > 0) {
+    void awardScanPointsForToday(userId, actualSaved)
+      .then(() => awardFirstScanIfNew(userId, 'photo'))
+      .then(() => checkAndRegisterUnlocks(userId))
+      .catch((err) => console.error('[liga] hook in batchSaveStickers failed:', err))
   }
 
   return { saved: actualSaved, numbers: savedNumbers }
