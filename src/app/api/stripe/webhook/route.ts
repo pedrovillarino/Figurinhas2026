@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { TIER_CONFIG } from '@/lib/tiers'
+import { awardLigaPoints, type LigaEventType } from '@/lib/liga'
 import { trackEvent, FUNNEL_EVENTS } from '@/lib/funnel'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,65 @@ function getAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+// Pedro 12/05/2026 — Liga Complete Aí: pontua user que virou pagante
+// + indicador (se referred_by) com Stripe APROVADO (≠ trial/cupom 100%).
+// Idempotente via event_key fixo.
+async function awardLigaForSubscription(
+  userId: string,
+  tier: string,
+  amountPaidCents: number,
+) {
+  if (amountPaidCents <= 0) {
+    // Cupom 100% off ou pagamento R$0 — não conta como Stripe aprovado
+    console.log(`[liga] skipping subscription points for ${userId} — amount=0`)
+    return
+  }
+
+  // 1) User que assinou ganha pontos da própria assinatura
+  const subscribeEvent: LigaEventType | null =
+    tier === 'estreante' ? 'SUBSCRIBE_ESTREANTE' :
+    tier === 'colecionador' ? 'SUBSCRIBE_COLECIONADOR' :
+    tier === 'copa_completa' ? 'SUBSCRIBE_COPA' :
+    null
+
+  if (subscribeEvent) {
+    await awardLigaPoints({
+      userId,
+      eventType: subscribeEvent,
+      eventKey: `subscribe:${userId}:${tier}`,
+      metadata: { tier, amount_cents: amountPaidCents },
+    }).catch((err) => console.error('[liga] subscribe award failed:', err))
+  }
+
+  // 2) Indicador (se houver) ganha "indicação qualificada"
+  const { createClient: createAdmin } = await import('@supabase/supabase-js')
+  const admin = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('referred_by')
+    .eq('id', userId)
+    .maybeSingle()
+  const referrerId = (profile as { referred_by: string | null } | null)?.referred_by
+  if (referrerId) {
+    const qualifiedEvent: LigaEventType | null =
+      tier === 'estreante' ? 'REFERRAL_QUALIFIED_ESTREANTE' :
+      tier === 'colecionador' ? 'REFERRAL_QUALIFIED_COLECIONADOR' :
+      tier === 'copa_completa' ? 'REFERRAL_QUALIFIED_COPA' :
+      null
+    if (qualifiedEvent) {
+      await awardLigaPoints({
+        userId: referrerId,
+        eventType: qualifiedEvent,
+        eventKey: `referral_qualified:${userId}:${tier}`,
+        metadata: { friend_user_id: userId, tier, amount_cents: amountPaidCents },
+      }).catch((err) => console.error('[liga] referral qualified award failed:', err))
+    }
+  }
 }
 
 async function upgradeTier(userId: string, tier: string, customerId: string | null) {
@@ -354,6 +414,8 @@ export async function POST(req: NextRequest) {
         // and EXCLUDES discount — so a 100% off coupon results in amount_total=0
         // and the referrer correctly does NOT earn the +5 points.
         await grantReferralUpgradeReward(userId, session.amount_total || 0, tier)
+        // Pedro 12/05/2026 — Liga Complete Aí: pontua own subscribe + referral qualified
+        await awardLigaForSubscription(userId, tier, session.amount_total || 0)
       }
     }
   }
@@ -393,6 +455,8 @@ export async function POST(req: NextRequest) {
       // Grant referral upgrade reward if applicable (async payment path —
       // amount_total reflects net amount paid, so 100% off won't trigger reward)
       await grantReferralUpgradeReward(userId, session.amount_total || 0, tier)
+      // Pedro 12/05/2026 — Liga Complete Aí: pontua own subscribe + referral qualified
+      await awardLigaForSubscription(userId, tier, session.amount_total || 0)
     }
   }
 

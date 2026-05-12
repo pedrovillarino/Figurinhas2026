@@ -15,6 +15,7 @@ import { getAudioLimit, TIER_CONFIG, type Tier } from '@/lib/tiers'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { tryAcquireScanLock, releaseScanLock } from '@/lib/scan-lock'
 import { enqueueImage, dequeueNextImage, getQueueLength, clearQueue } from '@/lib/image-queue'
+import { awardScanPointsForToday, awardFirstScanIfNew, checkAndRegisterUnlocks } from '@/lib/liga'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -1549,6 +1550,18 @@ async function batchSaveStickers(supabase: any, userId: string, stickers: { stic
     )
   }
 
+  // Pedro 12/05/2026 — Liga Complete Aí: pontua scans salvos.
+  // - 1 ponto por sticker (cap 30/dia, fail-open no awardLigaPoints)
+  // - FIRST_PHOTO_SCAN se for o primeiro scan lifetime do user
+  // - Re-check unlocks (Trilha Digital) — dispara modal se atingir marco
+  // Fire-and-forget pra não atrasar response.
+  if (actualSaved > 0) {
+    void awardScanPointsForToday(userId, actualSaved)
+      .then(() => awardFirstScanIfNew(userId, 'photo'))
+      .then(() => checkAndRegisterUnlocks(userId))
+      .catch((err) => console.error('[liga] hook in batchSaveStickers failed:', err))
+  }
+
   return { saved: actualSaved, numbers: savedNumbers }
 }
 
@@ -1708,6 +1721,8 @@ const BUTTON_ID_TO_TEXT: Record<string, string> = {
   cmd_missing_top50: 'faltando top50',
   cmd_missing_brasil: 'faltando brasil',
   cmd_missing_all: 'faltando todas',
+  cmd_missing_pdf_compact: 'pdf faltantes',
+  cmd_missing_pdf_full: 'pdf tabelão',
   cmd_duplicates: 'repetidas',
   cmd_owned: 'coladas',
   cmd_trades: 'trocas',
@@ -3790,15 +3805,28 @@ export async function POST(req: NextRequest) {
         /\b(meu\s+saldo|minhas?\s+(quotas?|cotas?)|quanto\s+(de\s+)?(scan|[áa]udio))\b/i.test(lower)
       ) {
         intent = 'quotas'
-      } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
-        intent = 'status'
       } else if (
         // Pedro 2026-05-09: PDF de faltantes ou repetidas. Roda ANTES dos
         // intents 'missing'/'duplicates' (que enviam lista em texto) pra que
         // "pdf das faltantes" / "exporta repetidas em pdf" peguem o PDF.
-        /\b(pdf|exporta(r|\s+em\s+pdf)?|baixar?\s+(pdf|arquivo|lista)|gerar?\s+(pdf|arquivo))\b/i.test(lower)
+        // Pedro 12/05/2026 (caso Pedro 5521997838210): "Tabelao completo"
+        // como resposta ao menu PDF caia em STATUS. Agora reconhece
+        // "tabelão" / "tabelao" / "só faltantes" sozinhos como export_pdf,
+        // e roda ANTES de status pra ganhar precedência.
+        /\b(pdf|exporta(r|\s+em\s+pdf)?|baixar?\s+(pdf|arquivo|lista)|gerar?\s+(pdf|arquivo)|tabel[ãa]o|s[óo]\s+falt(an|am)t?es?\s+(em\s+lista|enxut))\b/i.test(lower)
       ) {
         intent = 'export_pdf'
+      } else if (
+        // Pedro 12/05/2026 (caso 5511917390358): "E quanto a troca não é pelo
+        // app?" caia em status porque a regex pegava "quanto" sozinho.
+        // Refino: "quanto" só dispara status COM contexto de álbum/progresso
+        // (tenho/falta/colei/cromos/etc) OU como pergunta isolada ("quanto?").
+        // Pega normal: status/progresso/meu álbum/etc.
+        /\b(status|progresso|meu\s+album|meu\s+álbum|meu\s+progresso|ver\s+album|ver\s+álbum)\b/i.test(lower) ||
+        /\bquanto\s+(eu\s+)?(tenho|j[áa]\s+(tenho|colei)|falt|falta|colei|colou|colado|registrei|progress|do\s+album|do\s+álbum)\b/i.test(lower) ||
+        /^\s*quanto\s*\??\s*$/i.test(lower)
+      ) {
+        intent = 'status'
       } else if (/(falt|missing|necessito|que me falta|o que falta|quais faltam)/.test(lower) && codeMatches.length === 0) {
         // "preciso/falta" sem código de sticker → lista geral. Se tem código,
         // já caiu em query_sticker acima.
@@ -3902,6 +3930,106 @@ export async function POST(req: NextRequest) {
       // (status owned/duplicate) — mantém 1 unidade de cada (não perde
       // figurinhas do álbum, só zera as duplicatas extras). Snapshot
       // salvo em last_reversible_action pra suportar "desfaz" 10min.
+      // Pedro 12/05/2026 (caso Lucas 5535988690572): "quero zerar o progresso"
+      // ou "cancelar todas as figurinhas" devem cair num fluxo de RESET ALBUM
+      // com 3 opções (só coladas / coladas+repetidas / cancela) e confirmação
+      // por palavra exata destrutiva.
+      const isResetAlbumIntent = (
+        /\b(zerar|zera|resetar|reseta|apagar|apaga|deletar|delet[ae]r|excluir)\s+(meu\s+|o\s+|todo\s+|toda\s+|as?\s+)?(album|álbum|progresso|cole[çc][ãa]o|tudo|figurinhas?|registros?)\b/i.test(lower.trim()) ||
+        /\b(cancelar|cancele?)\s+(todas?|tudo)\s+(as?\s+)?(minhas?\s+)?figurinhas?\b/i.test(lower.trim()) ||
+        /\bcome[çc]ar\s+(tudo\s+)?(de\s+novo|do\s+zero|do\s+come[çc]o)\b/i.test(lower.trim()) ||
+        /\breiniciar\s+(o\s+|meu\s+)?(album|álbum|progresso)\b/i.test(lower.trim())
+      )
+      if (isResetAlbumIntent) {
+        const supabaseAdminReset = getAdmin()
+        // Conta quantas figurinhas o user tem registradas
+        const { data: counts } = await supabaseAdminReset
+          .from('user_stickers')
+          .select('status, quantity')
+          .eq('user_id', user.id)
+        const rows = (counts || []) as Array<{ status: string; quantity: number }>
+        const onlyOwned = rows.filter((r) => r.status === 'owned').length
+        const onlyDups = rows.filter((r) => r.status === 'duplicate').length
+        const totalRegs = onlyOwned + onlyDups
+        const totalUnits = rows
+          .filter((r) => r.status === 'owned' || r.status === 'duplicate')
+          .reduce((sum, r) => sum + (r.quantity || 0), 0)
+
+        if (totalRegs === 0) {
+          await sendText(phone, `🤔 Seu álbum já está vazio — não tem nada pra apagar. Manda foto/áudio/texto pra começar a registrar! ⚽`)
+          return NextResponse.json({ ok: true })
+        }
+
+        // Cria pending especial pra confirmação
+        await supabaseAdminReset.from('pending_scans').insert({
+          user_id: user.id,
+          phone,
+          scan_data: [{ scope_request: true, onlyOwned, onlyDups, totalRegs, totalUnits }],
+          source: 'reset_album',
+          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15min pra decidir
+        })
+
+        let reply = `⚠️ *Atenção — você quer APAGAR figurinhas do seu álbum?*\n\n`
+        reply += `📊 Hoje você tem:\n`
+        reply += `• *${onlyOwned}* coladas (1 unidade cada)\n`
+        reply += `• *${onlyDups}* com repetidas (${totalUnits - onlyOwned} unidades extras)\n`
+        reply += `• Total: *${totalRegs} figurinhas registradas* (${totalUnits} unidades)\n\n`
+        reply += `Escolha o que apagar respondendo a *palavra exata*:\n\n`
+        reply += `🗑️ *APAGAR COLADAS* → apaga só as coladas únicas (${onlyOwned} cromos)\n\n`
+        reply += `💥 *APAGAR TUDO* → apaga TUDO: coladas + repetidas (${totalRegs} cromos, ${totalUnits} unidades)\n\n`
+        reply += `❌ *cancela* → não apaga nada\n\n`
+        reply += `_⏰ Você tem 15 minutos pra decidir. Esta ação é DESTRUTIVA e não pode ser desfeita após confirmada._`
+        await sendBotTextFor(user.id, phone, reply)
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pedro 12/05/2026 — confirmação destrutiva do reset
+      const resetConfirmMatch = lower.trim().match(/^(apagar|deletar|excluir)\s+(coladas?|tudo)\.?$/i)
+      if (resetConfirmMatch) {
+        const scope = resetConfirmMatch[2].toLowerCase().startsWith('cola') ? 'coladas' : 'tudo'
+        const supabaseAdminReset = getAdmin()
+        // Verifica se há pending de reset
+        const { data: pendingReset } = await supabaseAdminReset
+          .from('pending_scans')
+          .select('id, scan_data')
+          .eq('user_id', user.id)
+          .eq('source', 'reset_album')
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (!pendingReset) {
+          await sendText(phone, '🤔 Não tem nenhum pedido de apagar aguardando. Manda *zerar progresso* se quiser começar do zero.')
+          return NextResponse.json({ ok: true })
+        }
+
+        // Executa DELETE com count exato
+        let deleteQuery = supabaseAdminReset
+          .from('user_stickers')
+          .delete({ count: 'exact' })
+          .eq('user_id', user.id)
+        if (scope === 'coladas') {
+          deleteQuery = deleteQuery.eq('status', 'owned')
+        } else {
+          deleteQuery = deleteQuery.in('status', ['owned', 'duplicate'])
+        }
+        const { error: delErr, count } = await deleteQuery
+        if (delErr) {
+          console.error('[wa-reset] delete failed:', delErr.message)
+          await sendText(phone, '⚠️ Não conseguimos apagar agora. Tenta de novo em alguns minutos? 🙏')
+          return NextResponse.json({ ok: true })
+        }
+        // Limpa o pending consumido
+        await supabaseAdminReset.from('pending_scans').delete().eq('id', pendingReset.id)
+
+        const removed = count ?? 0
+        let okReply = `✅ *Pronto!* Apagamos ${removed} ${scope === 'coladas' ? 'cromo(s) colado(s)' : 'figurinha(s) (coladas + repetidas)'}.\n\n`
+        okReply += `📊 Seu álbum agora começa do zero${scope === 'coladas' ? ' nas coladas — as repetidas continuam' : ''}.\n\n`
+        okReply += `Manda foto/áudio/texto quando quiser registrar de novo. ⚽`
+        await sendText(phone, okReply)
+        return NextResponse.json({ ok: true })
+      }
+
       const isClearDuplicatesIntent = (
         /^(limpar|limpa|zerar|zera)\s+(as?\s+)?(repet|duplic)(ad[ao]s?|i[çc][ãa]o)?\.?$/i.test(lower.trim()) ||
         /^acab(ei|amos)\s+de\s+troc(ar|amos)\.?$/i.test(lower.trim()) ||
@@ -4133,12 +4261,17 @@ export async function POST(req: NextRequest) {
           // intenção pelo texto: "todas", "tudo", "completa", "inteira".
           const wantsAll = /\b(todas?|tudo|completa?|inteir[ao]|toda\s+lista)\b/i.test(lower)
 
-          // Pedro 2026-05-09: PDF agora é o DEFAULT pra "o que falta" (sem
-          // filtro de país). Se user pediu explicitamente texto/lista/mensagem,
-          // mantém comportamento antigo (lista em mensagem). Se tem filtro de
-          // país, também mantém texto (PDF não filtra por seção).
-          const wantsTextual = /\b(texto|lista|mensagem|por\s+texto|em\s+texto|escrito|por\s+escrito)\b/i.test(lower)
-          const shouldSendPdf = filters.length === 0 && !wantsAll && !wantsTextual
+          // Pedro 12/05/2026 (caso real): user mandou "Lista faltantes" e
+          // antes era interpretado como "quero em texto", pulando direto
+          // pra menu Top50/Brasil/Tudo SEM perguntar formato. Agora:
+          //   - PDF explícito (pdf/tabelão/exporta) → direto PDF
+          //   - Texto explícito (texto/mensagem/escrito) → fluxo texto
+          //   - Filtros explícitos OU wantsAll → fluxo texto (PDF não
+          //     filtra por seção, esse caso vai pra texto)
+          //   - "lista faltantes" sem nada disso → AMBÍGUO, perguntar formato
+          const wantsExplicitPdf = /\b(pdf|exporta(r|\s+em\s+pdf)?|tabel[ãa]o)\b/i.test(lower)
+          const wantsExplicitText = /\b(texto|mensagem|por\s+texto|em\s+texto|escrito|por\s+escrito)\b/i.test(lower)
+          const shouldSendPdf = wantsExplicitPdf
 
           if (shouldSendPdf) {
             const internalSecret = process.env.CRON_SECRET || process.env.ADMIN_SECRET
@@ -4224,10 +4357,34 @@ export async function POST(req: NextRequest) {
             break
           }
 
+          // ── Pedro 12/05/2026: SEM filtro E SEM formato explícito → perguntar
+          // formato (PDF vs Texto) PRIMEIRO. Antes pulava direto pra menu de
+          // filtros textuais, confundindo o user que queria PDF.
+          if (filters.length === 0 && !wantsAll && !wantsExplicitText && stats.missing > 30) {
+            await sendButtonList(
+              phone,
+              `🔍 *Você tem ${stats.missing} figurinhas faltando!*\n\n` +
+                `Como prefere ver?`,
+              [
+                { id: 'cmd_missing_pdf_compact', label: '📄 PDF (só faltantes)' },
+                { id: 'cmd_missing_pdf_full', label: '📄 PDF (tabelão)' },
+                { id: 'cmd_missing_top50', label: '📃 Texto (top 50)' },
+              ],
+            )
+            await sendText(
+              phone,
+              `_Outras opções:_\n` +
+              `• _Texto filtrado: *faltando brasil*, *faltando argentina*, *faltando coca cola*_\n` +
+              `• _Texto completo: *faltando todas* (em partes)_\n` +
+              `• _PDF tabelão completo: *pdf tabelão*_`,
+            )
+            break
+          }
+
           // ── Pedro 2026-05-04 (caso Pedro Arcari): se SEM filtro E muito
-          // a listar (>80), perguntar antes pra evitar bombardear caixa do
-          // user com 150+ itens não solicitados. ──
-          if (filters.length === 0 && stats.missing > 80) {
+          // a listar (>80) E user JÁ escolheu texto, mostrar menu de
+          // filtragem textual. ──
+          if (filters.length === 0 && stats.missing > 80 && wantsExplicitText) {
             await sendButtonList(
               phone,
               `🔍 *Você tem ${stats.missing} figurinhas faltando!*\n\n` +

@@ -75,8 +75,12 @@ export default async function TradesPage() {
     safe(supabase.rpc('get_pending_trade_requests', { p_user_id: user.id })),
     // Sent requests (still pending)
     safe(supabase.from('trade_requests').select('target_id').eq('requester_id', user.id).eq('status', 'pending')),
-    // Recently approved trades
-    safe(supabase.from('trade_requests').select('id, requester_id, responded_at').eq('target_id', user.id).eq('status', 'approved').order('responded_at', { ascending: false }).limit(5)),
+    // Recently approved trades — Pedro 12/05/2026: agora puxa também
+    // estado de confirmação dupla pra UI do Liga.
+    safe(supabase.from('trade_requests')
+      .select('id, requester_id, responded_at, confirmed_by_requester_at, confirmed_by_target_at')
+      .eq('target_id', user.id).eq('status', 'approved')
+      .order('responded_at', { ascending: false }).limit(5)),
   ])
 
   const nearbyMatches = ((matchesResult.data || []) as NearbyMatch[]).slice(0, 5)
@@ -85,24 +89,46 @@ export default async function TradesPage() {
   const sentRequestUserIds = (sentResult.data || []).map((r: { target_id: string }) => r.target_id)
 
   // Build approved trades with requester profiles
-  let approvedTrades: Array<{ requestId: string; requesterName: string; contact: string | null }> = []
-  const approved = approvedResult.data as Array<{ id: string; requester_id: string; responded_at: string }> | null
+  let approvedTrades: Array<{
+    requestId: string
+    requesterName: string
+    contact: string | null
+    confirmedByMe?: boolean
+    confirmedByOther?: boolean
+    alreadyReviewed?: boolean
+  }> = []
+  const approved = approvedResult.data as Array<{
+    id: string
+    requester_id: string
+    responded_at: string
+    confirmed_by_requester_at: string | null
+    confirmed_by_target_at: string | null
+  }> | null
   if (approved && approved.length > 0) {
     const requesterIds = approved.map(a => a.requester_id)
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, display_name, phone, email')
-      .in('id', requesterIds)
+    const tradeIds = approved.map(a => a.id)
+    const [profilesRes, reviewsRes] = await Promise.all([
+      supabase.from('profiles').select('id, display_name, phone, email').in('id', requesterIds),
+      supabase.from('trade_reviews').select('trade_request_id').in('trade_request_id', tradeIds).eq('reviewer_id', user.id),
+    ])
+    const profiles = profilesRes.data
+    const reviewedSet = new Set((reviewsRes.data || []).map((r: { trade_request_id: string }) => r.trade_request_id))
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
 
     approvedTrades = approved.map(a => {
       const p = profileMap.get(a.requester_id)
       const phone = p?.phone?.replace(/\D/g, '')
+      // viewer é o target. Confirmou do meu lado = confirmed_by_target_at
+      const confirmedByMe = !!a.confirmed_by_target_at
+      const confirmedByOther = !!a.confirmed_by_requester_at
       return {
         requestId: a.id,
         requesterName: p?.display_name || 'Usuário',
         contact: phone ? `wa.me/${phone}` : p?.email || null,
+        confirmedByMe,
+        confirmedByOther,
+        alreadyReviewed: reviewedSet.has(a.id),
       }
     })
   }

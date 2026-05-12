@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { REFERRAL_CONSTANTS } from '@/lib/referrals'
+// Pedro 12/05/2026: REFERRAL_CONSTANTS não é mais usado aqui (tab Prêmios
+// substituída pela Liga). Removido pra evitar import morto.
 
 const tabs = [
   {
@@ -54,27 +55,31 @@ const tabs = [
     ),
   },
   {
-    // Embaixadores campaign — 6th tab during the launch (2026 Q2). The label
-    // "Prêmios" sells the value (gift icon = obvious benefit) better than
-    // "Campanha" or "Embaixadores", and fits the 6-tab cramped width.
-    href: '/campanha',
-    label: 'Prêmios',
+    // Liga Complete Aí — 6ª tab durante a Liga (15/05 → 16/07/2026).
+    // Substitui "Prêmios" da campanha embaixadores. Some após 17/07.
+    // Ícone: troféu (medalha = óbvio + conecta com "liga"/"ranking").
+    href: '/liga',
+    label: 'Liga',
     icon: (active: boolean) => (
       <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.003 6.003 0 01-4.52 0" />
       </svg>
     ),
   },
 ]
 
+// Pedro 12/05/2026: Liga roda de 15/05 a 16/07/2026. Após 17/07 (revelação do
+// Campeão Geral), a tab some — fica 5 tabs.
+const LIGA_END_DATE_ISO = '2026-07-17T23:59:59-03:00'
+
 export default function BottomNav() {
   const pathname = usePathname()
   const [pendingCount, setPendingCount] = useState(0)
 
-  // Hide the "Prêmios" tab automatically once the Embaixadores campaign ends
-  // (no need for a deploy to take it down). After that date, only 5 tabs show.
-  const campaignActive = Date.now() < new Date(REFERRAL_CONSTANTS.CAMPAIGN_END_DATE_ISO).getTime()
-  const visibleTabs = campaignActive ? tabs : tabs.filter((t) => t.href !== '/campanha')
+  // Pedro 12/05/2026: Liga roda até 16/07/2026 + Campeão Geral 17/07. Após isso
+  // a tab "Liga" some automaticamente — sem precisar de deploy. Fica 5 tabs.
+  const ligaActive = Date.now() < new Date(LIGA_END_DATE_ISO).getTime()
+  const visibleTabs = ligaActive ? tabs : tabs.filter((t) => t.href !== '/liga')
 
   useEffect(() => {
     fetch('/api/trade-requests-count')
