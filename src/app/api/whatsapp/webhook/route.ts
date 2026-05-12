@@ -3816,7 +3816,16 @@ export async function POST(req: NextRequest) {
         /\b(pdf|exporta(r|\s+em\s+pdf)?|baixar?\s+(pdf|arquivo|lista)|gerar?\s+(pdf|arquivo)|tabel[ãa]o|s[óo]\s+falt(an|am)t?es?\s+(em\s+lista|enxut))\b/i.test(lower)
       ) {
         intent = 'export_pdf'
-      } else if (/(status|progresso|quanto|meu album|meu álbum|meu progresso|ver album|ver álbum)/.test(lower)) {
+      } else if (
+        // Pedro 12/05/2026 (caso 5511917390358): "E quanto a troca não é pelo
+        // app?" caia em status porque a regex pegava "quanto" sozinho.
+        // Refino: "quanto" só dispara status COM contexto de álbum/progresso
+        // (tenho/falta/colei/cromos/etc) OU como pergunta isolada ("quanto?").
+        // Pega normal: status/progresso/meu álbum/etc.
+        /\b(status|progresso|meu\s+album|meu\s+álbum|meu\s+progresso|ver\s+album|ver\s+álbum)\b/i.test(lower) ||
+        /\bquanto\s+(eu\s+)?(tenho|j[áa]\s+(tenho|colei)|falt|falta|colei|colou|colado|registrei|progress|do\s+album|do\s+álbum)\b/i.test(lower) ||
+        /^\s*quanto\s*\??\s*$/i.test(lower)
+      ) {
         intent = 'status'
       } else if (/(falt|missing|necessito|que me falta|o que falta|quais faltam)/.test(lower) && codeMatches.length === 0) {
         // "preciso/falta" sem código de sticker → lista geral. Se tem código,
