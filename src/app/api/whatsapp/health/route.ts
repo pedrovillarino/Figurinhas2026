@@ -135,64 +135,127 @@ export async function GET(req: NextRequest) {
       ? (recentMsgs === 0 && baselineMed >= 5 && ratio < 0.2)
       : (recentMsgs === 0)  // fallback: app novo, sem dado pra comparar
 
+    // Pedro 2026-05-12: nova lógica conservadora pra anti-spam.
+    //   1. Exige 2 ciclos consecutivos de anomalia antes de agir.
+    //      Mata falso positivo de janela quieta natural.
+    //   2. Notificação em TRANSIÇÃO de estado (ok→failed, failed→recovered).
+    //      Sucesso repetido na mesma série = silêncio (não floodar).
+    //      Falha repetida = cooldown 2h (ação humana ainda pode ser preciso).
+    //   3. Estado persistido em watchdog_state (id='webhook_recovery'):
+    //      consecutive_anomaly_count, last_state ('ok'|'recovered'|'failed'),
+    //      last_alert_at (mantido pra gate do cooldown 2h em falha).
+    const { data: stateRow } = await sb
+      .from('watchdog_state')
+      .select('consecutive_anomaly_count, last_state, last_alert_at')
+      .eq('id', 'webhook_recovery')
+      .maybeSingle()
+
+    const prevCount = Number(stateRow?.consecutive_anomaly_count ?? 0)
+    const prevState = String(stateRow?.last_state ?? 'ok')
+    const prevLastAlertAt = (stateRow?.last_alert_at as string | null) ?? null
+
     if (isAnomaly && isActiveHour && zapiOk) {
-      console.warn('[Health] Webhook inbound silent — triggering auto-recovery')
-      const recovered = await setReceiveWebhook()
-      results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
+      const newCount = prevCount + 1
+      results.webhook_consecutive_anomalies = newCount
 
-      // Pedro 2026-05-08: cooldown atômico de 2h pra notification.
-      // Sem isso, watchdog rodando a cada 15min em silêncio prolongado
-      // floodava o admin (4 msgs/h durante quieto natural manhã/dia).
-      // UPDATE atômico via "or" condition garante que só UMA chamada
-      // claim a janela — race-safe.
-      const COOLDOWN_HOURS = 2
-      const cooldownCutoff = new Date(
-        Date.now() - COOLDOWN_HOURS * 3600 * 1000
-      ).toISOString()
-      const { data: claimed } = await sb
-        .from('watchdog_state')
-        .update({ last_alert_at: new Date().toISOString() })
-        .eq('id', 'webhook_recovery')
-        .or(`last_alert_at.is.null,last_alert_at.lt.${cooldownCutoff}`)
-        .select('id')
+      if (newCount < 2) {
+        // 1º ciclo consecutivo — observa só. Janela única quieta pode ser
+        // padrão natural (fim de semana cedo, horário morto). Espera 2º.
+        await sb.from('watchdog_state')
+          .update({ consecutive_anomaly_count: newCount })
+          .eq('id', 'webhook_recovery')
+        results.webhook_action = 'observing'
+      } else {
+        console.warn('[Health] Webhook silence confirmado (2+ ciclos) — auto-recovery')
+        const recovered = await setReceiveWebhook()
+        const newState = recovered ? 'recovered' : 'failed'
+        results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
 
-      const shouldNotify = claimed && claimed.length > 0
-      results.recovery_alert_cooldown = shouldNotify ? 'sent' : 'suppressed'
+        const stateChanged = prevState !== newState
+        let shouldNotify = false
 
-      if (shouldNotify && ADMIN_PHONE) {
-        const baselineLine = useBaseline
-          ? `Mediana dos últimos 7 dias nessa janela: *${baselineMed} msgs*. Atual: *0*. Anomalia.`
-          : `Janela de ${silenceThresholdMin}min sem mensagens (sem histórico ainda pra comparar).`
-        const recoveryMsg = recovered
-          ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
-            `${baselineLine} ` +
-            `Acabamos de reconfigurar a URL (PUT update-webhook-received). ` +
-            `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
-            `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
-            `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
-          : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
-            `${baselineLine} PUT update-webhook-received não funcionou. ` +
-            `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
-            `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
-            `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
-        try {
-          await sendText(ADMIN_PHONE, recoveryMsg)
-          results.recovery_alert_sent = 'whatsapp'
-        } catch (e) {
-          console.error('[Health] failed to notify admin of recovery:', e)
-          results.recovery_alert_sent = 'failed'
+        if (newState === 'recovered') {
+          // Sucesso: só notifica em transição. Repetido = silêncio total.
+          shouldNotify = stateChanged
+          await sb.from('watchdog_state')
+            .update({
+              consecutive_anomaly_count: newCount,
+              last_state: newState,
+              ...(shouldNotify ? { last_alert_at: new Date().toISOString() } : {}),
+            })
+            .eq('id', 'webhook_recovery')
+        } else {
+          // Falha: transição notifica direto; persistente respeita cooldown 2h.
+          if (stateChanged) {
+            shouldNotify = true
+            await sb.from('watchdog_state')
+              .update({
+                consecutive_anomaly_count: newCount,
+                last_state: newState,
+                last_alert_at: new Date().toISOString(),
+              })
+              .eq('id', 'webhook_recovery')
+          } else {
+            const COOLDOWN_HOURS = 2
+            const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 3600 * 1000).toISOString()
+            const { data: claimed } = await sb
+              .from('watchdog_state')
+              .update({
+                consecutive_anomaly_count: newCount,
+                last_state: newState,
+                last_alert_at: new Date().toISOString(),
+              })
+              .eq('id', 'webhook_recovery')
+              .or(`last_alert_at.is.null,last_alert_at.lt.${cutoff}`)
+              .select('id')
+            shouldNotify = !!(claimed && claimed.length > 0)
+            if (!shouldNotify) {
+              // Cooldown ativo — só persiste count/state, mantém last_alert_at.
+              await sb.from('watchdog_state')
+                .update({ consecutive_anomaly_count: newCount, last_state: newState })
+                .eq('id', 'webhook_recovery')
+            }
+          }
         }
 
-        // Pedro 2026-05-08: pra evitar DUPLICAÇÃO entre o WhatsApp direto
-        // (acima) E o canal alerts geral (linha ~175 que envia mais 1
-        // WhatsApp + email se authed), só pushamos pro alerts SE este
-        // ciclo NÃO notificou via canal direto. Isso garante que o admin
-        // recebe UMA mensagem (preferencialmente o canal direto, mais rápido).
-      } else if (!shouldNotify) {
-        // Cooldown ativo — silenciamos completamente. Logamos só.
-        console.log('[Health] recovery alert suppressed by 2h cooldown')
+        results.recovery_alert_cooldown = shouldNotify ? 'sent' : 'suppressed'
+
+        if (shouldNotify && ADMIN_PHONE) {
+          const baselineLine = useBaseline
+            ? `Mediana dos últimos 7 dias nessa janela: *${baselineMed} msgs*. Atual: *0*. Anomalia confirmada em 2 ciclos.`
+            : `2 ciclos consecutivos de ${silenceThresholdMin}min sem mensagens (sem histórico ainda pra comparar).`
+          const recoveryMsg = recovered
+            ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
+              `${baselineLine} ` +
+              `Acabamos de reconfigurar a URL (PUT update-webhook-received). ` +
+              `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
+              `_(Próximo aviso só se o estado mudar — não vou re-avisar enquanto continuar OK.)_\n` +
+              `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
+            : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
+              `${baselineLine} PUT update-webhook-received não funcionou. ` +
+              `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
+              `_(Próximo aviso só daqui a 2h se ainda falhar.)_\n` +
+              `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
+          try {
+            await sendText(ADMIN_PHONE, recoveryMsg)
+            results.recovery_alert_sent = 'whatsapp'
+          } catch (e) {
+            console.error('[Health] failed to notify admin of recovery:', e)
+            results.recovery_alert_sent = 'failed'
+          }
+        } else if (!shouldNotify) {
+          console.log('[Health] recovery alert suprimido (cooldown 2h ou success repetido)')
+        }
+      }
+    } else {
+      // Sem anomalia / fora de janela ativa / Z-API down: reset série + marca ok.
+      if (prevCount !== 0 || prevState !== 'ok') {
+        await sb.from('watchdog_state')
+          .update({ consecutive_anomaly_count: 0, last_state: 'ok' })
+          .eq('id', 'webhook_recovery')
       }
     }
+    void prevLastAlertAt
   } catch (err) {
     results.webhook_inbound = { error: String(err).slice(0, 100) }
     // Non-critical — don't alert (reading webhook_dedup might fail with table missing/perm)
