@@ -2,25 +2,38 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Complete Aí <noreply@completeai.com.br>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.completeai.com.br'
 
-export async function sendEmail(to: string, subject: string, html: string) {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  options?: { replyTo?: string },
+) {
   if (!RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not configured, skipping email')
     return false
   }
 
   try {
+    // Pedro 2026-05-13: replyTo opcional pra emails que esperam resposta
+    // (ex.: pedido de endereço dos vencedores Embaixadores → contato@).
+    // Sem replyTo, respostas batem no noreply@ e somem.
+    const payload: Record<string, unknown> = {
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+    }
+    if (options?.replyTo) {
+      payload.reply_to = options.replyTo
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to,
-        subject,
-        html,
-      }),
+      body: JSON.stringify(payload),
     })
 
     if (!res.ok) {

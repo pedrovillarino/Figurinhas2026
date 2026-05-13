@@ -243,14 +243,9 @@ export default function CampanhaClient({
                 <span>Vale tudo: <strong>scan, troca com vizinho, registro por áudio…</strong> tudo conta</span>
               </li>
             </ul>
-            <Link
-              href={isLoggedIn ? '/liga' : '/register'}
-              className="inline-flex items-center justify-center w-full sm:w-auto bg-brand text-white font-bold px-6 py-2.5 rounded-xl hover:bg-brand-dark transition active:scale-95 text-sm"
-            >
-              {isLoggedIn ? '🏆 Conhecer a Liga' : 'Criar conta e participar'}
-            </Link>
-            <p className="text-[10px] text-gray-400 mt-3">
-              A partir de 15/05 às 00:00 (horário de Brasília).
+            {/* Pedro 2026-05-13: sem CTA pra /liga — Liga ainda não tem URL pública estável. */}
+            <p className="text-xs text-gray-500 mt-1">
+              Mais detalhes vão ser anunciados na sexta-feira (15/05) pelos canais oficiais.
             </p>
           </div>
         </section>
