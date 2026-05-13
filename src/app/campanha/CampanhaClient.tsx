@@ -212,6 +212,50 @@ export default function CampanhaClient({
         <WinnersPodium ranking={ranking} />
       )}
 
+      {/* ── Teaser da Liga — só pós-campanha, antes do "próxima fase é a Liga" ── */}
+      {!campaignActive && (
+        <section className="px-4 max-w-2xl mx-auto mb-10">
+          <div className="rounded-2xl border-2 border-brand/30 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 sm:p-6">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand text-white mb-3">
+              🚀 Próxima fase
+            </span>
+            <h2 className="text-lg sm:text-xl font-black text-navy mb-2">
+              Sexta (15/05) começa a <span className="text-brand">Liga Complete Aí</span>
+            </h2>
+            <p className="text-sm text-gray-700 leading-relaxed mb-4">
+              Cada ação no app vira XP — scan, troca, indicação, login.
+              A cada <strong>15 dias</strong> rola uma <strong>Temporada</strong> com
+              ranking próprio e Top 3 levando <strong>prêmios físicos</strong>.
+              No fim de tudo (16/07), o <strong>Campeão Geral</strong> leva mini
+              bola Trionda + protetor de álbum oficial.
+            </p>
+            <ul className="text-xs text-gray-600 space-y-1.5 mb-4">
+              <li className="flex items-start gap-2">
+                <span className="text-brand mt-0.5">✓</span>
+                <span><strong>Prêmios quinzenais</strong> — sem precisar esperar 2 meses pra ganhar</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand mt-0.5">✓</span>
+                <span><strong>Trilha Digital</strong> com 5 marcos de recompensa — você nunca gasta XP</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand mt-0.5">✓</span>
+                <span>Vale tudo: <strong>scan, troca com vizinho, registro por áudio…</strong> tudo conta</span>
+              </li>
+            </ul>
+            <Link
+              href={isLoggedIn ? '/liga' : '/register'}
+              className="inline-flex items-center justify-center w-full sm:w-auto bg-brand text-white font-bold px-6 py-2.5 rounded-xl hover:bg-brand-dark transition active:scale-95 text-sm"
+            >
+              {isLoggedIn ? '🏆 Conhecer a Liga' : 'Criar conta e participar'}
+            </Link>
+            <p className="text-[10px] text-gray-400 mt-3">
+              A partir de 15/05 às 00:00 (horário de Brasília).
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* ── Active campaign deadline banner ── */}
       {campaignActive && (
         <section className="px-4 max-w-2xl mx-auto mb-6">
