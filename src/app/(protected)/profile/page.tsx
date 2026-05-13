@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useWaLinkToken, buildWaDeepLink } from '@/hooks/use-wa-link-token'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -51,7 +51,8 @@ export default function ProfilePage() {
   //  'gps' (granted geolocation), 'manual' (typed below),
   //  'phone' (inferred from DDD), or null.
   const [locCity, setLocCity] = useState('')
-  const [locNeighborhood, setLocNeighborhood] = useState('') // not persisted, only for forward-geocoding precision
+  // Pedro 2026-05-13 (caso Isadora): bairro PERSISTE agora em profiles.neighborhood.
+  const [locNeighborhood, setLocNeighborhood] = useState('')
   const [locSavedCity, setLocSavedCity] = useState<string | null>(null)
   const [locSource, setLocSource] = useState<'gps' | 'manual' | 'phone' | null>(null)
   const [locSaving, setLocSaving] = useState(false)
@@ -76,6 +77,13 @@ export default function ProfilePage() {
   const [sendingSuggestion, setSendingSuggestion] = useState(false)
   const [suggestionSent, setSuggestionSent] = useState(false)
 
+  // Pedro 2026-05-13 (caso Isadora): mudar/remover foto de perfil. Storage
+  // bucket "avatars" com path {user_id}/avatar.<ext>. Cliente redimensiona
+  // pra 512x512 antes do upload pra economizar storage e banda.
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarMsg, setAvatarMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
   useEffect(() => {
     loadProfile()
     loadStats()
@@ -88,7 +96,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, audio_credits, audio_uses_count, referral_code, is_minor, city, state, location_lat, courtesy_credits_at, courtesy_message, courtesy_seen_at')
+      .select('display_name, email, phone, avatar_url, tier, scan_credits, trade_credits, audio_credits, audio_uses_count, referral_code, is_minor, city, state, neighborhood, location_lat, courtesy_credits_at, courtesy_message, courtesy_seen_at')
       .eq('id', user.id)
       .single()
 
@@ -110,6 +118,9 @@ export default function ProfilePage() {
       setEmail(data.email || user.email || '')
       setLocCity(data.city || '')
       setLocSavedCity(data.city || null)
+      // Pedro 2026-05-13 (caso Isadora): bairro salvo agora aparece de volta no
+      // input. Antes voltava vazio porque nem chegava a persistir.
+      setLocNeighborhood(data.neighborhood || '')
       // Source heuristic: lat present → GPS or manual forward-geocode;
       // city without lat → DDD inference (the only code path that does that);
       // nothing → never set.
@@ -218,6 +229,112 @@ export default function ProfilePage() {
       setLocMsg({ type: 'err', text: 'Erro de conexão.' })
     }
     setLocSaving(false)
+  }
+
+  // Pedro 2026-05-13 (caso Isadora): mudar foto de perfil. Cliente redimensiona
+  // pra 512x512 (canvas + JPEG 0.85) antes do upload pra manter ~50KB no storage
+  // independente do tamanho original. Path: {user_id}/avatar.jpg.
+  async function resizeImage(file: File, maxDim = 512): Promise<Blob> {
+    const img = new Image()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    img.src = dataUrl
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+    })
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+    const w = Math.round(img.width * scale)
+    const h = Math.round(img.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas indisponível')
+    ctx.drawImage(img, 0, 0, w, h)
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob falhou'))), 'image/jpeg', 0.85)
+    })
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarMsg(null)
+    if (!file.type.startsWith('image/')) {
+      setAvatarMsg({ type: 'err', text: 'Selecione uma imagem (JPG, PNG ou WebP).' })
+      return
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setAvatarMsg({ type: 'err', text: 'Imagem muito grande. Máx 8MB antes do redimensionamento.' })
+      return
+    }
+    setAvatarUploading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setAvatarMsg({ type: 'err', text: 'Sessão expirada. Faz login de novo.' })
+        return
+      }
+      const blob = await resizeImage(file, 512)
+      const path = `${user.id}/avatar.jpg`
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true, cacheControl: '0' })
+      if (upErr) {
+        console.error('[avatar] upload error:', upErr.message)
+        setAvatarMsg({ type: 'err', text: 'Erro ao enviar foto. Tenta de novo?' })
+        return
+      }
+      // Adiciona timestamp pro browser não pegar do cache (mesma URL, novo conteúdo)
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = `${pub.publicUrl}?v=${Date.now()}`
+      const { error: updErr } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+      if (updErr) {
+        console.error('[avatar] profile update error:', updErr.message)
+        setAvatarMsg({ type: 'err', text: 'Foto enviada mas não consegui atualizar o perfil. Tenta de novo?' })
+        return
+      }
+      setProfile((p) => (p ? { ...p, avatar_url: url } : p))
+      setAvatarMsg({ type: 'ok', text: 'Foto atualizada!' })
+    } catch (err) {
+      console.error('[avatar] unexpected:', err)
+      setAvatarMsg({ type: 'err', text: 'Erro ao processar imagem.' })
+    } finally {
+      setAvatarUploading(false)
+      // Limpa o input pra permitir re-upload do mesmo arquivo
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+    }
+  }
+
+  async function handleAvatarRemove() {
+    if (!profile?.avatar_url) return
+    if (!confirm('Remover sua foto de perfil?')) return
+    setAvatarMsg(null)
+    setAvatarUploading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setAvatarMsg({ type: 'err', text: 'Sessão expirada.' })
+        return
+      }
+      // Apaga do storage (silencioso se URL veio de fora — ex.: Google OAuth)
+      await supabase.storage.from('avatars').remove([`${user.id}/avatar.jpg`]).catch(() => {})
+      const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id)
+      if (error) {
+        console.error('[avatar] remove update error:', error.message)
+        setAvatarMsg({ type: 'err', text: 'Não consegui remover. Tenta de novo?' })
+        return
+      }
+      setProfile((p) => (p ? { ...p, avatar_url: null } : p))
+      setAvatarMsg({ type: 'ok', text: 'Foto removida.' })
+    } finally {
+      setAvatarUploading(false)
+    }
   }
 
   function requestGps() {
@@ -446,9 +563,27 @@ export default function ProfilePage() {
 
       {/* User info */}
       <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center text-brand text-xl font-bold">
-            {profile?.display_name?.[0]?.toUpperCase() || '?'}
+        <div className="flex items-center gap-3 mb-3">
+          {/* Pedro 2026-05-13 (caso Isadora): avatar real + botões de mudar/remover.
+              Antes só mostrava a inicial mesmo quando havia avatar_url. */}
+          <div className="relative w-14 h-14 shrink-0">
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt="Foto de perfil"
+                className="w-14 h-14 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <div className="w-14 h-14 bg-brand-light rounded-full flex items-center justify-center text-brand text-2xl font-bold">
+                {profile?.display_name?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+            {avatarUploading && (
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                <span className="text-white text-[10px]">…</span>
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -456,8 +591,41 @@ export default function ProfilePage() {
               <UserTierBadge tier={profile?.tier} size="sm" />
             </div>
             <p className="text-xs text-gray-500 truncate">{profile?.email}</p>
+            <div className="flex items-center gap-3 mt-1.5">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleAvatarChange}
+                className="hidden"
+                aria-label="Selecionar nova foto de perfil"
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="text-xs text-brand hover:underline disabled:opacity-50"
+              >
+                {profile?.avatar_url ? 'Mudar foto' : 'Adicionar foto'}
+              </button>
+              {profile?.avatar_url && (
+                <button
+                  type="button"
+                  onClick={handleAvatarRemove}
+                  disabled={avatarUploading}
+                  className="text-xs text-gray-500 hover:text-red-600 hover:underline disabled:opacity-50"
+                >
+                  Remover
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        {avatarMsg && (
+          <p className={`text-[11px] mb-3 ${avatarMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-500'}`}>
+            {avatarMsg.text}
+          </p>
+        )}
 
         {/* Pedro 2026-05-03 (Fix H): se phone está vazio, CTA pra conectar
             WhatsApp. Texto pré-formatado pelo wa.me — bot identifica
