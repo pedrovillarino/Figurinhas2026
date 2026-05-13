@@ -48,3 +48,6 @@ public/.next/
 # Pedro 2026-05-03: ignorar worktrees + marketing assets locais
 .claude/worktrees/
 marketing/node_modules/
+
+# email previews locais (gerados por scripts/send-embaixadores-winners.ts --write-html)
+public/_preview/

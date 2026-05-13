@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getDuplicateStats } from '@/lib/duplicate-stats'
 import PDFDocument from 'pdfkit'
 import QRCode from 'qrcode'
 import path from 'path'
@@ -91,51 +92,73 @@ export async function GET(req: NextRequest) {
   const firstName = displayName.split(' ')[0] || displayName
   const refCode = (profile.referral_code as string | null) || null
 
-  // 2) Stickers + user_stickers — TUDO (counts_for_completion=true) + Coca-Cola.
-  // Pedro 2026-05-09: PANINI Extras (variant=gold/silver/bronze/regular) NÃO
-  // entra no PDF. Mas Coca-Cola entra (linha própria).
-  // Pedro 2026-05-09 (bug 237 vs 315): supabase REST com .or() em produção
-  // estava retornando lista incompleta (Vercel issue?). Adicionado .range
-  // explícito + log do count pra detectar.
-  const [{ data: allStickers, error: allErr }, { data: userStickers, error: userErr }] = await Promise.all([
+  // 2) Stickers + user_stickers
+  // Pedro 2026-05-12: depois de auditoria, alinhamos o escopo de "repetidas"
+  // entre PDF, /album, /trades e /status do WhatsApp (Opção A — tudo é
+  // tradeável). PANINI Extras agora entra no PDF de REPETIDAS. No PDF de
+  // FALTANTES segue só completable + Coca-Cola (não conta pro X/980).
+  //
+  // Bug 237 vs 315: supabase REST com .or() em produção retornava lista
+  // incompleta — e PostgREST se enrosca com espaço em valor não-quoted
+  // (ex.: "PANINI Extras"). Solução: fetch sem filtro + scope in-memory.
+  // São ~1072 rows, dá pra trazer tudo em 2 .range() consecutivos.
+  const [stickersP1, stickersP2, userStickersRes] = await Promise.all([
     admin.from('stickers')
-      .select('id, number, player_name, country, section, type, variant')
-      .or('counts_for_completion.eq.true,section.eq.Coca-Cola')
-      .range(0, 1999),
+      .select('id, number, player_name, country, section, type, variant, counts_for_completion')
+      .range(0, 999),
+    admin.from('stickers')
+      .select('id, number, player_name, country, section, type, variant, counts_for_completion')
+      .range(1000, 1999),
     admin.from('user_stickers')
       .select('sticker_id, status, quantity')
       .eq('user_id', userId)
       .range(0, 1999),
   ])
+  const allStickers = [...(stickersP1.data || []), ...(stickersP2.data || [])]
+  const userStickers = userStickersRes.data
+  const allErr = stickersP1.error || stickersP2.error
+  const userErr = userStickersRes.error
   if (allErr) console.error(`[pdf-export] stickers query error:`, allErr.message)
   if (userErr) console.error(`[pdf-export] user_stickers query error:`, userErr.message)
 
   const userMap = new Map<number, { status: string; quantity: number }>()
   ;(userStickers || []).forEach((us) => userMap.set((us as { sticker_id: number }).sticker_id, us as { status: string; quantity: number }))
 
-  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null }
-  const allList: Sticker[] = (allStickers || []) as Sticker[]
+  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null; counts_for_completion: boolean }
+  // Escopo do PDF: album (counts_for_completion) + Coca-Cola + PANINI Extras.
+  // Outras seções decorativas que não se encaixem aqui ficam fora.
+  const allList: Sticker[] = (allStickers as Sticker[]).filter((s) =>
+    s.counts_for_completion === true ||
+    s.section === 'Coca-Cola' ||
+    s.section === 'PANINI Extras'
+  )
 
-  // Conta stats pra exibir no título — usa count exato direto do DB pra
-  // evitar dependência de paginação implícita do REST.
-  const { count: countOwnedExact } = await admin
-    .from('user_stickers')
-    .select('sticker_id, stickers!inner(counts_for_completion,section)', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .in('status', ['owned', 'duplicate'])
-    .or('counts_for_completion.eq.true,section.eq.Coca-Cola', { foreignTable: 'stickers' })
-  const { count: countDuplicatesExact } = await admin
-    .from('user_stickers')
-    .select('sticker_id, stickers!inner(counts_for_completion,section)', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'duplicate')
-    .or('counts_for_completion.eq.true,section.eq.Coca-Cola', { foreignTable: 'stickers' })
-  const countOwned = countOwnedExact ?? 0
-  const countDuplicates = countDuplicatesExact ?? 0
+  // Helper: o sticker faz parte do escopo "album X/Y" (completable + Coca-Cola,
+  // SEM PANINI Extras). Usado pra title do PDF de faltantes e pro grid de
+  // faltantes — Extras não movem a barra X/980.
+  const isAlbumScope = (s: Sticker) => s.section !== 'PANINI Extras'
+
+  // Helper: o sticker é uma PANINI Extra (variant=gold/silver/bronze/regular).
+  const isPaniniExtra = (s: Sticker) => s.section === 'PANINI Extras'
+
+  // Conta progresso do álbum (X/Y) — escopo "album": exclui PANINI Extras.
+  let countOwned = 0
+  let countAlbum = 0
+  for (const s of allList) {
+    if (!isAlbumScope(s)) continue
+    countAlbum++
+    const us = userMap.get(s.id)
+    if (us && (us.status === 'owned' || us.status === 'duplicate')) countOwned++
+  }
+
+  // Conta repetidas — escopo Opção A: TODA figurinha duplicada (album + Extras).
+  // Importado do helper canônico pra outras superfícies usarem o mesmo cálculo.
+  const { uniqueDuplicates: countDuplicates, totalExtras } = getDuplicateStats(allList, userMap)
+
   console.log(
     `[pdf-export] user=${userId} type=${type} view=${view} ` +
     `allStickers=${allList.length} userStickers=${userStickers?.length ?? 0} ` +
-    `countOwned=${countOwned} countDuplicates=${countDuplicates}`,
+    `countOwned=${countOwned}/${countAlbum} countDuplicates=${countDuplicates} totalExtras=${totalExtras}`,
   )
 
   // 3) QR code (data URL → PNG buffer pra embedar no PDF)
@@ -177,11 +200,11 @@ export async function GET(req: NextRequest) {
   // Modo 'missing': marca verde = tem (vazias = falta colar)
   // Modo 'duplicates': marca âmbar = tem repetida (vazias = não pode trocar)
   const titleStr = type === 'missing'
-    ? `Seu álbum: ${countOwned}/${allList.length}`
-    : `Suas repetidas: ${countDuplicates}`
+    ? `Seu álbum: ${countOwned}/${countAlbum}`
+    : `Suas repetidas: ${totalExtras} (em ${countDuplicates} cromos)`
   const subtitleStr = type === 'missing'
     ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em verde = já tem · vazio = falta colar`
-    : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em âmbar = você tem repetida pra trocar`
+    : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em âmbar = você tem repetida · número na célula = quantas extras (sem contar a colada)`
 
   // ── Page header (logo + título + QR) — repetido em TODAS as páginas ──
   // Pedro 2026-05-09: economiza espaço (footer separado some). QR em
@@ -230,26 +253,48 @@ export async function GET(req: NextRequest) {
 
   drawPageHeader()
 
-  // ── Layout matriz: 13 colunas fixas, linha = seção ──
-  // Sem PANINI Extras (Pedro 2026-05-09).
-  // Filtra: só counts_for_completion + Coca-Cola (variant=null), exclui Extras.
-  // PANINI Extras tem variant != null (gold/silver/bronze/regular).
-  const filteredForGrid = allList.filter((s) => s.section !== 'PANINI Extras' && s.variant === null)
+  // ── Layout matriz: 20 colunas fixas, linha = seção ──
+  // Pedro 2026-05-12: PANINI Extras entra no grid SÓ no relatório de
+  // REPETIDAS (Opção A). No de FALTANTES segue excluído — não conta pro
+  // X/980 e o user já lida com eles via app.
+  const filteredForGrid = type === 'duplicates'
+    ? allList
+    : allList.filter((s) => isAlbumScope(s))
 
-  // Agrupa por seção (country pra times, section pra Coca-Cola/FIFA WC)
+  // Agrupa por seção (country pra times, section pra Coca-Cola/FIFA WC,
+  // section+variant pra PANINI Extras).
   const groups: Record<string, Sticker[]> = {}
   for (const s of filteredForGrid) {
-    // Usa section pra Coca-Cola e FIFA WC, country pros times
-    const key = (s.section === 'Coca-Cola' || s.section === 'FIFA World Cup')
-      ? s.section
-      : (s.country || s.section || 'Outros')
+    let key: string
+    if (s.section === 'Coca-Cola' || s.section === 'FIFA World Cup') {
+      key = s.section
+    } else if (isPaniniExtra(s)) {
+      // 4 sub-rows por variant (ex.: "PANINI OURO", "PANINI PRATA") — cabem
+      // em rows de 20 colunas idênticas ao resto do grid.
+      key = s.variant ? `PANINI ${s.variant.toUpperCase()}` : 'PANINI EXTRAS'
+    } else {
+      key = s.country || s.section || 'Outros'
+    }
     if (!groups[key]) groups[key] = []
     groups[key].push(s)
   }
-  // Ordem: países alfabéticos primeiro, depois FIFA WC, depois Coca-Cola
-  const countryKeys = Object.keys(groups).filter((k) => k !== 'Coca-Cola' && k !== 'FIFA World Cup').sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  // Ordem: países A-Z → FIFA WC → Coca-Cola → PANINI variants (ouro > prata > bronze > regular)
+  const PANINI_ORDER: Record<string, number> = {
+    OURO: 0, GOLD: 0, PRATA: 1, SILVER: 1, BRONZE: 2, REGULAR: 3,
+  }
+  const isPaniniKey = (k: string) => k.startsWith('PANINI ')
+  const countryKeys = Object.keys(groups)
+    .filter((k) => k !== 'Coca-Cola' && k !== 'FIFA World Cup' && !isPaniniKey(k))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
   const specialKeys = ['FIFA World Cup', 'Coca-Cola'].filter((k) => groups[k])
-  const sortedKeys = [...countryKeys, ...specialKeys]
+  const paniniKeys = Object.keys(groups)
+    .filter(isPaniniKey)
+    .sort((a, b) => {
+      const va = a.replace('PANINI ', '')
+      const vb = b.replace('PANINI ', '')
+      return (PANINI_ORDER[va] ?? 99) - (PANINI_ORDER[vb] ?? 99)
+    })
+  const sortedKeys = [...countryKeys, ...specialKeys, ...paniniKeys]
 
   // ── MODO COMPACT — só faltantes em lista densa (Pedro 2026-05-09) ──
   // Otimizado pra caber em poucas páginas. Cada seção: header + lista
@@ -295,10 +340,15 @@ export async function GET(req: NextRequest) {
       totalMissing += items.length
 
       const x = colXText(curCol)
-      // Header da seção
+      // Header da seção (Pedro 2026-05-12: prefixa o código do cromo —
+      // ex.: "BRA · BRASIL" — pra casar com o que vê no app de troca).
+      const sectionCode = items[0]?.number.split('-')[0] || ''
+      const sectionLabel = sectionCode
+        ? `${sectionCode} · ${sectionKey.toUpperCase()}`
+        : sectionKey.toUpperCase()
       ensureCompactSpace(14)
       doc.fillColor(COLOR_GREEN).font('Helvetica-Bold').fontSize(9)
-        .text(`${sectionKey.toUpperCase()} (${items.length})`, x, curY, { width: COL_W_TEXT, lineBreak: false })
+        .text(`${sectionLabel} (${items.length})`, x, curY, { width: COL_W_TEXT, lineBreak: false })
       curY += 12
 
       // Lista corrida de números, quebrando em múltiplas linhas se preciso
@@ -370,7 +420,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding') => {
+  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding', extras: number = 0) => {
     // Background
     if (state === 'padding') {
       doc.rect(x, y, CELL_W, CELL_H).fillColor('#D1D5DB').fill()  // cinza médio = "não existe"
@@ -386,15 +436,18 @@ export async function GET(req: NextRequest) {
     if (state === 'padding') {
       // sem texto
     } else if (state === 'marked') {
-      // Número
+      // Pedro 2026-05-12: em modo 'duplicates', mostra "N×K" (N = nº do cromo,
+      // K = quantidade de extras desconsiderando a colada). Substitui o X
+      // diagonal — a informação textual já marca a célula.
+      const display = type === 'duplicates' && extras > 0 ? `${label}×${extras}` : label
       doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
-        .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
-      // X riscando (Pedro 2026-05-09): além da cor, X em cima reforça
-      // visualmente "já tem". Cor mais escura que o fill pra contraste.
-      const xColor = type === 'missing' ? '#047857' : '#B45309'  // verde escuro / âmbar escuro
-      doc.lineWidth(1).strokeColor(xColor)
-        .moveTo(x + 3, y + 3).lineTo(x + CELL_W - 3, y + CELL_H - 3).stroke()
-        .moveTo(x + CELL_W - 3, y + 3).lineTo(x + 3, y + CELL_H - 3).stroke()
+        .text(display, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
+      if (type === 'missing') {
+        // X riscando em modo 'missing': além da cor, reforça "já tem".
+        doc.lineWidth(1).strokeColor('#047857')
+          .moveTo(x + 3, y + 3).lineTo(x + CELL_W - 3, y + CELL_H - 3).stroke()
+          .moveTo(x + CELL_W - 3, y + 3).lineTo(x + 3, y + CELL_H - 3).stroke()
+      }
     } else {
       doc.fillColor('#6B7280').font('Helvetica').fontSize(8)
         .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
@@ -433,15 +486,22 @@ export async function GET(req: NextRequest) {
     // Background zebra
     doc.rect(sectionX, sectionY, SECTION_NAME_W, sectionH).fillColor(zebra ? '#F3F4F6' : '#E5E7EB').fill()
     doc.lineWidth(0.5).strokeColor('#374151').rect(sectionX, sectionY, SECTION_NAME_W, sectionH).stroke()
-    // Texto centrado
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(9)
-      .text(sectionKey.toUpperCase(), sectionX + 6, sectionY + sectionH / 2 - 9, {
-        width: SECTION_NAME_W - 12,
+    // Texto centrado — Pedro 2026-05-12: prefixa código (ex.: "BRA · BRASIL")
+    // pra casar com o que aparece no app de trocas e nas figurinhas físicas.
+    // Mantém layout 2-linhas pra caber em seções de 1 row (18pt).
+    const sectionCode = items[0]?.number.split('-')[0] || ''
+    const sectionLabel = sectionCode
+      ? `${sectionCode} · ${sectionKey.toUpperCase()}`
+      : sectionKey.toUpperCase()
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
+      .text(sectionLabel, sectionX + 4, sectionY + sectionH / 2 - 9, {
+        width: SECTION_NAME_W - 8,
         lineBreak: false,
+        ellipsis: true,
       })
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
-      .text(`(${items.length})`, sectionX + 6, sectionY + sectionH / 2 + 2, {
-        width: SECTION_NAME_W - 12,
+      .text(`(${items.length})`, sectionX + 4, sectionY + sectionH / 2 + 2, {
+        width: SECTION_NAME_W - 8,
         lineBreak: false,
       })
     zebra = !zebra
@@ -459,7 +519,8 @@ export async function GET(req: NextRequest) {
           const isDuplicate = !!us && us.status === 'duplicate'
           const shouldMark = type === 'missing' ? isOwned : isDuplicate
           const numPart = s.number.split('-')[1] || s.number
-          drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty')
+          const extras = isDuplicate ? Math.max(0, (us!.quantity || 0) - 1) : 0
+          drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty', extras)
         } else {
           drawCell(x, y, '', 'padding')
         }

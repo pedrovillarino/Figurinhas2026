@@ -181,21 +181,75 @@ export default function CampanhaClient({
         <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3 ${
           campaignActive
             ? 'bg-amber-400/20 text-amber-700'
-            : 'bg-gray-200 text-gray-600'
+            : 'bg-emerald-100 text-emerald-700'
         }`}>
-          {campaignActive ? '🏆 Campanha de Lançamento' : '🏁 Campanha encerrada'}
+          {campaignActive ? '🏆 Campanha de Lançamento' : '🎉 Resultado final'}
         </span>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-navy mb-3">
-          Embaixadores Complete Aí
+          {campaignActive ? 'Embaixadores Complete Aí' : 'Obrigado, Embaixadores!'}
         </h1>
         <p className="text-base text-gray-600 leading-relaxed">
           {campaignActive ? (
             <>Indique amigos, ganhe figurinhas e cupons. <strong>Top 3 da campanha</strong> recebe pacotes Panini e porta-figurinha em casa.</>
           ) : (
-            <>A campanha de lançamento foi encerrada em <strong>{campaignEndDateLabel} às {campaignEndTimeLabel}</strong>. Obrigado por participar!</>
+            <>
+              {totals.ambassadors > 0 ? (
+                <>
+                  <strong>{totals.ambassadors} embaixadores</strong> colocaram o Complete Aí no mapa,
+                  trazendo <strong>{totals.confirmed} novos colecionadores</strong> nessa fase de lançamento.
+                  Valeu demais — o pódio tá logo abaixo. ⚽
+                </>
+              ) : (
+                <>A campanha de lançamento foi encerrada em <strong>{campaignEndDateLabel} às {campaignEndTimeLabel}</strong>. Obrigado por participar!</>
+              )}
+            </>
           )}
         </p>
       </section>
+
+      {/* ── Pódio dos vencedores (somente pós-campanha, com ranking suficiente) ── */}
+      {!campaignActive && ranking.length >= 1 && (
+        <WinnersPodium ranking={ranking} />
+      )}
+
+      {/* ── Teaser da Liga — só pós-campanha, antes do "próxima fase é a Liga" ── */}
+      {!campaignActive && (
+        <section className="px-4 max-w-2xl mx-auto mb-10">
+          <div className="rounded-2xl border-2 border-brand/30 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 sm:p-6">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand text-white mb-3">
+              🚀 Próxima fase
+            </span>
+            <h2 className="text-lg sm:text-xl font-black text-navy mb-2">
+              Sexta (15/05) começa a <span className="text-brand">Liga Complete Aí</span>
+            </h2>
+            <p className="text-sm text-gray-700 leading-relaxed mb-4">
+              Cada ação no app vira XP — scan, troca, indicação, login.
+              A cada <strong>15 dias</strong> rola uma <strong>Temporada</strong> com
+              ranking próprio e Top 3 levando <strong>prêmios físicos</strong>.
+              No fim de tudo (16/07), o <strong>Campeão Geral</strong> leva mini
+              bola Trionda + protetor de álbum oficial.
+            </p>
+            <ul className="text-xs text-gray-600 space-y-1.5 mb-4">
+              <li className="flex items-start gap-2">
+                <span className="text-brand mt-0.5">✓</span>
+                <span><strong>Prêmios quinzenais</strong> — sem precisar esperar 2 meses pra ganhar</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand mt-0.5">✓</span>
+                <span><strong>Trilha Digital</strong> com 5 marcos de recompensa — você nunca gasta XP</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand mt-0.5">✓</span>
+                <span>Vale tudo: <strong>scan, troca com vizinho, registro por áudio…</strong> tudo conta</span>
+              </li>
+            </ul>
+            {/* Pedro 2026-05-13: sem CTA pra /liga — Liga ainda não tem URL pública estável. */}
+            <p className="text-xs text-gray-500 mt-1">
+              Mais detalhes vão ser anunciados na sexta-feira (15/05) pelos canais oficiais.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── Active campaign deadline banner ── */}
       {campaignActive && (
@@ -375,8 +429,8 @@ export default function CampanhaClient({
         </section>
       )}
 
-      {/* ── CTA pra não-logado ── */}
-      {!isLoggedIn && (
+      {/* ── CTA pra não-logado — só durante a campanha (pós-campanha o CTA fixo do rodapé já cobre) ── */}
+      {!isLoggedIn && campaignActive && (
         <section className="px-4 max-w-2xl mx-auto mb-10">
           <div className="bg-white rounded-2xl border-2 border-brand/20 shadow-sm p-6 text-center">
             <p className="text-base font-bold text-navy mb-2">Quer participar?</p>
@@ -393,7 +447,8 @@ export default function CampanhaClient({
         </section>
       )}
 
-      {/* ── Como funciona (regras claras) ── */}
+      {/* ── Como funciona (regras claras) — só durante a campanha ── */}
+      {campaignActive && (
       <section className="px-4 max-w-2xl mx-auto mb-10">
         <h2 className="text-xl font-black text-navy mb-4">📖 Como funciona</h2>
 
@@ -459,8 +514,10 @@ export default function CampanhaClient({
           </p>
         </div>
       </section>
+      )}
 
-      {/* ── Prêmios visualmente ── */}
+      {/* ── Prêmios visualmente — só durante a campanha (post-campanha o pódio mostra os vencedores diretamente) ── */}
+      {campaignActive && (
       <section className="px-4 max-w-2xl mx-auto mb-10">
         <h2 className="text-xl font-black text-navy mb-4">🏆 Prêmios do Top 3</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -493,10 +550,13 @@ export default function CampanhaClient({
           Além do top 3, <strong>todo mundo que indicar ganha</strong> scans, trocas e cupons.
         </p>
       </section>
+      )}
 
       {/* ── Ranking público ── */}
       <section className="px-4 max-w-2xl mx-auto mb-10">
-        <h2 className="text-xl font-black text-navy mb-4">📊 Ranking ao vivo</h2>
+        <h2 className="text-xl font-black text-navy mb-4">
+          {campaignActive ? '📊 Ranking ao vivo' : '📊 Ranking final'}
+        </h2>
         {!showRanking ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
             <p className="text-sm text-gray-500">
@@ -525,32 +585,37 @@ export default function CampanhaClient({
 
       {/* ── Live community counters ── */}
       <section className="px-4 max-w-2xl mx-auto mb-10">
-        <h2 className="text-xl font-black text-navy mb-4">🌍 Comunidade ao vivo</h2>
+        <h2 className="text-xl font-black text-navy mb-4">
+          {campaignActive ? '🌍 Comunidade ao vivo' : '🌍 Resultado da comunidade'}
+        </h2>
 
-        {/* Participant progress (min 50 rule) — always visible */}
-        <div className={`mb-3 rounded-2xl border p-4 ${
-          minParticipantsMet ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
-        }`}>
-          <div className="flex items-center justify-between mb-2">
-            <p className={`text-xs font-bold ${minParticipantsMet ? 'text-emerald-700' : 'text-amber-700'}`}>
-              👥 Participantes confirmados
-            </p>
-            <p className={`text-sm font-black ${minParticipantsMet ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {participantCount} / {constants.minParticipants}
+        {/* Participant progress (min 50 rule) — só durante a campanha. Pós-campanha
+            o status de "Faltam X" não faz mais sentido. */}
+        {campaignActive && (
+          <div className={`mb-3 rounded-2xl border p-4 ${
+            minParticipantsMet ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-xs font-bold ${minParticipantsMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+                👥 Participantes confirmados
+              </p>
+              <p className={`text-sm font-black ${minParticipantsMet ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {participantCount} / {constants.minParticipants}
+              </p>
+            </div>
+            <div className="h-2 bg-white rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-700 ${minParticipantsMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                style={{ width: `${Math.min(100, (participantCount / constants.minParticipants) * 100)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-600 mt-2 leading-tight">
+              {minParticipantsMet
+                ? '✅ Mínimo atingido — campanha rola na data prevista.'
+                : `Faltam ${Math.max(0, constants.minParticipants - participantCount)} pra atingir o mínimo. Se não chegar lá, a Complete Aí pode prorrogar a data final.`}
             </p>
           </div>
-          <div className="h-2 bg-white rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all duration-700 ${minParticipantsMet ? 'bg-emerald-500' : 'bg-amber-500'}`}
-              style={{ width: `${Math.min(100, (participantCount / constants.minParticipants) * 100)}%` }}
-            />
-          </div>
-          <p className="text-[10px] text-gray-600 mt-2 leading-tight">
-            {minParticipantsMet
-              ? '✅ Mínimo atingido — campanha rola na data prevista.'
-              : `Faltam ${Math.max(0, constants.minParticipants - participantCount)} pra atingir o mínimo. Se não chegar lá, a Complete Aí pode prorrogar a data final.`}
-          </p>
-        </div>
+        )}
 
         {/* Numeric counters — only after we cross the display threshold */}
         {canShowPublicNumbers ? (
@@ -568,17 +633,27 @@ export default function CampanhaClient({
         )}
       </section>
 
-      {/* ── Footer note: separate Instagram concurso ── */}
-      <section className="px-4 max-w-2xl mx-auto mb-10">
-        <p className="text-[11px] text-gray-400 text-center">
-          Tem também o <Link href="/regulamentoconcurso" className="text-brand underline hover:text-brand-dark">Concurso de Engajamento no Instagram</Link>{' '}
-          (29/04 a 02/05) — sorteio de álbum + porta-figurinhas.
-        </p>
-      </section>
+      {/* ── Footer note: separate Instagram concurso (só ativo durante a janela 29/04 a 02/05) ── */}
+      {campaignActive && (
+        <section className="px-4 max-w-2xl mx-auto mb-10">
+          <p className="text-[11px] text-gray-400 text-center">
+            Tem também o <Link href="/regulamentoconcurso" className="text-brand underline hover:text-brand-dark">Concurso de Engajamento no Instagram</Link>{' '}
+            (29/04 a 02/05) — sorteio de álbum + porta-figurinhas.
+          </p>
+        </section>
+      )}
 
       {/* ── CTA fixo no rodapé ── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 sm:hidden">
-        {isLoggedIn && !userExcluded && referralCode ? (
+        {!campaignActive ? (
+          // Post-campanha: leva pra Liga (Copa) ou álbum — não faz sentido continuar pedindo indicação.
+          <Link
+            href={isLoggedIn ? '/album' : '/register'}
+            className="block w-full bg-brand text-white text-center font-bold py-3 rounded-xl active:scale-95 transition"
+          >
+            {isLoggedIn ? 'Voltar ao meu álbum' : 'Criar minha conta'}
+          </Link>
+        ) : isLoggedIn && !userExcluded && referralCode ? (
           <button
             onClick={nativeShare}
             className="w-full bg-brand text-white font-bold py-3 rounded-xl active:scale-95 transition"
@@ -681,5 +756,68 @@ function CounterCard({ label, value, icon }: { label: string; value: number; ico
       <p className="text-xl font-black text-navy">{value.toLocaleString('pt-BR')}</p>
       <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">{label}</p>
     </div>
+  )
+}
+
+// Pódio dos vencedores — só renderiza pós-campanha. Mostra Top 3 com nome,
+// pontos e prêmio. Quando o ranking tem menos de 3 pessoas, ajusta o layout
+// pra mostrar só quem entrou. Pedro 2026-05-13.
+function WinnersPodium({ ranking }: { ranking: RankingRow[] }) {
+  const podium = ranking.slice(0, 3)
+  const PRIZE_BY_RANK: Record<number, string> = {
+    1: 'Porta-figurinha + 10 pacotes Panini + 5 trocas extras',
+    2: 'Porta-figurinha + 8 pacotes Panini + 5 trocas extras',
+    3: '5 pacotes Panini + 5 trocas extras',
+  }
+  const MEDAL_BY_RANK: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
+  const POSITION_LABEL: Record<number, string> = { 1: '1º lugar', 2: '2º lugar', 3: '3º lugar' }
+
+  return (
+    <section className="px-4 max-w-2xl mx-auto mb-10">
+      <h2 className="text-xl font-black text-navy mb-1 text-center">🏆 Vencedores</h2>
+      <p className="text-sm text-gray-500 text-center mb-5">
+        Os três embaixadores que mais pontuaram na campanha de lançamento
+      </p>
+      <ol className="space-y-3">
+        {podium.map((row) => {
+          const isFirst = row.rank === 1
+          return (
+            <li
+              key={row.user_id}
+              className={`rounded-2xl border-2 p-4 sm:p-5 flex items-center gap-4 ${
+                isFirst
+                  ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300 shadow-md'
+                  : row.rank === 2
+                  ? 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-300'
+                  : 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-300'
+              }`}
+            >
+              <span className={`flex-shrink-0 ${isFirst ? 'text-5xl' : 'text-4xl'}`}>
+                {MEDAL_BY_RANK[row.rank] || `#${row.rank}`}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className={`font-black text-navy truncate ${isFirst ? 'text-lg' : 'text-base'}`}>
+                  {displayPublicName(row.display_name)}
+                  {row.self_upgraded && <span className="ml-1.5" title="Assinou plano pago — +5 pts bônus">⭐</span>}
+                </p>
+                <p className="text-[11px] text-gray-500 mb-1.5">{POSITION_LABEL[row.rank]}</p>
+                <p className="text-xs text-gray-700 leading-snug">
+                  {PRIZE_BY_RANK[row.rank]}
+                </p>
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <p className={`font-black text-brand ${isFirst ? 'text-2xl' : 'text-xl'}`}>
+                  {row.total_points}
+                </p>
+                <p className="text-[10px] text-gray-500 -mt-0.5">pts</p>
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+      <p className="text-[11px] text-gray-500 text-center mt-4 leading-relaxed">
+        Vamos entrar em contato com os vencedores pelo email cadastrado pra confirmar o envio dos prêmios pelos Correios.
+      </p>
+    </section>
   )
 }
