@@ -129,13 +129,15 @@ export async function POST(req: NextRequest) {
         }
         const results = await geoResponse.json()
         if (!Array.isArray(results) || results.length === 0) {
-          // CEP achou cidade mas Nominatim não geocodou — salva só cidade/estado
+          // CEP achou cidade mas Nominatim não geocodou — salva cidade/estado/bairro
+          // Pedro 2026-05-13 (caso Isadora): bairro agora persiste no perfil.
           await admin.from('profiles').update({
             city: cleanCity,
             state: cleanState ?? null,
+            neighborhood: cleanNeighborhood ?? null,
             cep_nudge_dismissed_at: new Date().toISOString(),
           }).eq('id', user.id)
-          return NextResponse.json({ ok: true, mode: 'cep', city: cleanCity, state: cleanState, lat: null, lng: null })
+          return NextResponse.json({ ok: true, mode: 'cep', city: cleanCity, state: cleanState, neighborhood: cleanNeighborhood, lat: null, lng: null })
         }
         const top = results[0]
         const lat2 = parseFloat(top.lat)
@@ -143,6 +145,7 @@ export async function POST(req: NextRequest) {
         const update: Record<string, unknown> = {
           city: cleanCity,
           state: cleanState ?? null,
+          neighborhood: cleanNeighborhood ?? null,
           cep_nudge_dismissed_at: new Date().toISOString(),
         }
         if (Number.isFinite(lat2)) update.location_lat = lat2
@@ -235,9 +238,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Endereço sem coordenadas válidas.' }, { status: 502 })
     }
 
+    // Pedro 2026-05-13 (caso Isadora): bairro agora persiste no perfil.
+    // Antes era usado só pra refinar a busca Nominatim e descartado, fazendo
+    // o user achar que tinha salvado mas o campo voltar vazio no reload.
     const update: Record<string, unknown> = {
       city: cleanCity,
       state: cleanState ?? null,
+      neighborhood: cleanNeighborhood ?? null,
       location_lat: lat2,
       location_lng: lng2,
       cep_nudge_dismissed_at: new Date().toISOString(),
