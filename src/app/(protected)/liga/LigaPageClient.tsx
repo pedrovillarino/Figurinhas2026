@@ -5,7 +5,7 @@ import Link from 'next/link'
 import type { Cardapio } from '@/lib/liga'
 
 // Marcos: nomes/descrições que aparecem APENAS após desbloqueio (fog of war).
-// Antes de desbloquear, mostramos "???" — só Copa Completa vê o último (4.000).
+// Antes de desbloquear, mostramos só o cadeado (sem texto).
 const NOMES_MARCOS_FREE: Record<number, string> = {
   100: '5 scans foto + 5 scans áudio extras',
   300: 'Cupom 30% off em qualquer plano (válido 3 dias)',
@@ -21,6 +21,89 @@ const NOMES_MARCOS_COPA: Record<number, string> = {
   1500: '2 cupons 60% off Copa Completa pra amigos',
   4000: '4 pacotinhos físicos (cap 15 ganhadores)',
 }
+
+// Tabela de pontuação — agrupada por seção com linguagem clara.
+type PontoRow = { label: string; pontos: string; nota?: string }
+type PontoSecao = { titulo: string; emoji: string; rows: PontoRow[] }
+
+const TABELA_PONTUACAO: PontoSecao[] = [
+  {
+    titulo: 'Cadastro e assinatura',
+    emoji: '🎟️',
+    rows: [
+      { label: 'Criar conta no Complete Aí', pontos: '+10' },
+      { label: 'Completar perfil + escanear 1ª figurinha', pontos: '+30' },
+      { label: 'Assinar o plano Estreante', pontos: '+100' },
+      { label: 'Assinar o plano Colecionador', pontos: '+200' },
+      { label: 'Assinar o plano Copa Completa', pontos: '+300' },
+      {
+        label: 'Bônus por subir de plano',
+        pontos: '+100',
+        nota: 'Se pular direto pra Copa Completa (de Estreante), o bônus é +200.',
+      },
+    ],
+  },
+  {
+    titulo: 'Indicar amigos',
+    emoji: '🤝',
+    rows: [
+      { label: 'Amigo se cadastra usando seu link', pontos: '+10' },
+      { label: 'Amigo escaneia 5 figurinhas (vira ativo)', pontos: '+30' },
+      { label: 'Amigo assina Estreante', pontos: '+100' },
+      { label: 'Amigo assina Colecionador', pontos: '+200' },
+      { label: 'Amigo assina Copa Completa', pontos: '+300' },
+    ],
+  },
+  {
+    titulo: 'Trocar figurinhas',
+    emoji: '🔄',
+    rows: [
+      {
+        label: 'Pedir uma troca que foi confirmada',
+        pontos: '+10',
+        nota: 'Valem as 3 primeiras por dia.',
+      },
+      {
+        label: 'Aceitar uma troca confirmada',
+        pontos: '+20',
+        nota: 'Valem as 3 primeiras por dia.',
+      },
+      { label: 'Avaliar uma troca que você fez', pontos: '+5' },
+      { label: 'Receber uma avaliação boa (4★ ou 5★)', pontos: '+5' },
+    ],
+  },
+  {
+    titulo: 'Usar o app',
+    emoji: '📷',
+    rows: [
+      { label: 'Sua 1ª figurinha escaneada por foto', pontos: '+10', nota: 'Só na 1ª vez.' },
+      { label: 'Sua 1ª figurinha escaneada por áudio', pontos: '+10', nota: 'Só na 1ª vez.' },
+      {
+        label: 'Cada figurinha escaneada (foto ou áudio)',
+        pontos: '+1',
+        nota: 'Até 30 por dia.',
+      },
+      {
+        label: 'Completar uma seleção (todos os 20 cromos do mesmo país)',
+        pontos: '+20',
+      },
+    ],
+  },
+  {
+    titulo: 'Aparecer todo dia',
+    emoji: '🔥',
+    rows: [
+      { label: 'Abrir o app uma vez no dia', pontos: '+1' },
+      {
+        label: 'Sequência de 3 dias seguidos abrindo o app',
+        pontos: '+5',
+        nota: 'Só ganha 1 vez. Se quebrar a sequência, começa do zero.',
+      },
+      { label: 'Sequência de 7 dias seguidos', pontos: '+20', nota: 'Só ganha 1 vez.' },
+      { label: 'Sequência de 15 dias seguidos', pontos: '+50', nota: 'Só ganha 1 vez.' },
+    ],
+  },
+]
 
 type Props = {
   optedIn: boolean
@@ -54,7 +137,8 @@ export default function LigaPageClient(props: Props) {
   const [optingIn, setOptingIn] = useState(false)
   const [optInDone, setOptInDone] = useState(false)
   const nomesMarcos = cardapio === 'copa' ? NOMES_MARCOS_COPA : NOMES_MARCOS_FREE
-  const ultimoMarco = marcos[marcos.length - 1]
+  const ultimoMarcoDesbloqueado = unlocks.length > 0 ? Math.max(...unlocks) : null
+  const trilhaCompleta = proximoMarco === null
 
   async function handleOptIn() {
     setOptingIn(true)
@@ -141,86 +225,125 @@ export default function LigaPageClient(props: Props) {
           )}
         </div>
 
-        {/* Trilha Digital — fog of war */}
+        {/* Trilha Digital — só último desbloqueado + próximo */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">
-            🎁 Sua Trilha Digital — {cardapio === 'copa' ? 'Copa Completa' : 'Grátis/Estreante/Colecionador'}
+          <h2 className="text-sm font-bold text-gray-900 mb-1">
+            🎁 Sua Trilha Digital
           </h2>
-          <div className="space-y-2">
-            {marcos.map((m, idx) => {
-              const unlocked = unlocks.includes(m)
-              const isNext = !unlocked && m === proximoMarco
-              const isLastCopaMarker = cardapio === 'copa' && m === ultimoMarco
-              const showName = unlocked || isNext || isLastCopaMarker
+          <p className="text-[11px] text-gray-500 mb-3">
+            Cardápio {cardapio === 'copa' ? 'Copa Completa' : 'Grátis / Estreante / Colecionador'} ·
+            {' '}{unlocks.length}/{marcos.length} conquistados
+          </p>
 
-              return (
-                <div
-                  key={m}
-                  className={`flex items-start gap-2.5 p-2.5 rounded-lg border ${
-                    unlocked
-                      ? 'bg-emerald-50 border-emerald-200'
-                      : isNext
-                        ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200'
-                        : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <span className="text-lg shrink-0">
-                    {unlocked ? '✅' : isNext ? '🎁' : isLastCopaMarker ? '🏆' : '🔒'}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-gray-900">
-                      {m} XP {isNext && <span className="text-amber-700">— PRÓXIMO</span>}
-                      {isLastCopaMarker && !unlocked && (
-                        <span className="text-amber-700"> — FINAL</span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-gray-700 leading-snug">
-                      {showName ? nomesMarcos[m] : '???'}
-                    </div>
-                    {isNext && (
-                      <div className="text-[10px] text-amber-700 mt-1 font-semibold">
-                        Faltam {faltaProximo} XP
-                      </div>
-                    )}
+          <div className="space-y-2">
+            {/* Último desbloqueado */}
+            {ultimoMarcoDesbloqueado !== null && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg border bg-emerald-50 border-emerald-200">
+                <span className="text-lg shrink-0">✅</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">
+                    Última conquista
+                  </div>
+                  <div className="text-xs font-bold text-gray-900 mt-0.5">
+                    {ultimoMarcoDesbloqueado} XP
+                  </div>
+                  <div className="text-[11px] text-gray-700 leading-snug">
+                    {nomesMarcos[ultimoMarcoDesbloqueado]}
                   </div>
                 </div>
-              )
-            })}
+              </div>
+            )}
+
+            {/* Próximo marco */}
+            {proximoMarco !== null ? (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg border bg-amber-50 border-amber-300 ring-2 ring-amber-200">
+                <span className="text-lg shrink-0">🎁</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold text-amber-800 uppercase tracking-wide">
+                    Próxima conquista
+                  </div>
+                  <div className="text-xs font-bold text-gray-900 mt-0.5">
+                    {proximoMarco} XP
+                  </div>
+                  <div className="text-[11px] text-gray-700 leading-snug">
+                    {nomesMarcos[proximoMarco]}
+                  </div>
+                  <div className="text-[10px] text-amber-800 mt-1 font-semibold">
+                    Faltam {faltaProximo} XP
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg border bg-amber-50 border-amber-300">
+                <span className="text-lg shrink-0">🏆</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-amber-900">
+                    Trilha completa!
+                  </div>
+                  <div className="text-[11px] text-amber-800 leading-snug">
+                    Você destravou todos os marcos. Continue acumulando XP pra disputar o Campeão Geral.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cadeado representando os próximos marcos ocultos */}
+            {!trilhaCompleta && (
+              <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-gray-500">
+                <span className="text-base">🔒</span>
+                <span>
+                  Mais {marcos.length - unlocks.length - 1} conquista
+                  {marcos.length - unlocks.length - 1 === 1 ? '' : 's'} adiante — revelada
+                  {marcos.length - unlocks.length - 1 === 1 ? '' : 's'} quando você chegar lá.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Ações que mais rendem */}
+        {/* Tabela de pontuação — por seção */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="text-sm font-bold text-gray-900 mb-3">⚡ Ações que mais rendem</h2>
-          <ul className="text-xs text-gray-700 space-y-1.5">
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold w-12">+340</span>
-              <span>Indicar amigo que vire <strong>Copa Completa</strong></span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold w-12">+50</span>
-              <span>Atingir streak de <strong>15 dias</strong> consecutivos</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold w-12">+30</span>
-              <span><strong>Aceitar troca</strong> confirmada (top 3/dia)</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold w-12">+20</span>
-              <span><strong>Completar 1 seleção</strong> (20 cromos do mesmo país)</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold w-12">+10</span>
-              <span><strong>Pedir troca</strong> confirmada (top 3/dia)</span>
-            </li>
-          </ul>
+          <h2 className="text-sm font-bold text-gray-900 mb-1">⭐ Como ganhar XP</h2>
+          <p className="text-[11px] text-gray-500 mb-4">
+            Toda ação no app vira pontos. Os caps diários evitam farm.
+          </p>
 
-          <div className="mt-4 flex gap-2">
+          <div className="space-y-5">
+            {TABELA_PONTUACAO.map((secao) => (
+              <div key={secao.titulo}>
+                <div className="flex items-center gap-1.5 mb-2 pb-1.5 border-b border-gray-100">
+                  <span className="text-base">{secao.emoji}</span>
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                    {secao.titulo}
+                  </h3>
+                </div>
+                <ul className="space-y-2">
+                  {secao.rows.map((row) => (
+                    <li key={row.label} className="flex items-start gap-2.5">
+                      <span className="text-emerald-600 font-bold text-xs shrink-0 w-12 text-right tabular-nums pt-0.5">
+                        {row.pontos}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-gray-800 leading-snug">{row.label}</div>
+                        {row.nota && (
+                          <div className="text-[10px] text-gray-500 italic mt-0.5 leading-snug">
+                            {row.nota}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 flex gap-2">
             <Link
               href="/scan"
               className="flex-1 text-center px-3 py-2 bg-brand text-white text-xs font-bold rounded-lg hover:bg-brand-dark active:scale-95 transition"
             >
-              📷 Scanear
+              📷 Escanear
             </Link>
             <Link
               href="/trades"
