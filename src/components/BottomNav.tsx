@@ -3,7 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { REFERRAL_CONSTANTS } from '@/lib/referrals'
+
+// Liga Complete Aí: tab "Prêmios" → /liga aparece a partir de
+// 15/05/2026 09:00 BRT (= 12:00:00 UTC). Antes disso a tab fica oculta,
+// pra alinhar com o anúncio público da Liga.
+const LIGA_NAV_VISIBLE_FROM_ISO = '2026-05-15T12:00:00.000Z'
 
 const tabs = [
   {
@@ -54,12 +58,10 @@ const tabs = [
     ),
   },
   {
-    // Embaixadores campaign — 6th tab during the launch (2026 Q2). The label
-    // "Prêmios" sells the value (gift icon = obvious benefit) better than
-    // "Campanha" or "Embaixadores", and fits the 6-tab cramped width.
-    // Pedro 12/05/2026: voltamos pra cá — Liga foi adiantada por engano e
-    // a Embaixadores encerra hoje (12/05).
-    href: '/campanha',
+    // Liga Complete Aí — tab aparece a partir de 15/05/2026 09:00 BRT
+    // (gate em LIGA_NAV_VISIBLE_FROM_ISO abaixo). Label "Prêmios" mantido
+    // porque vende o benefício e cabe na largura cramped de 6 tabs.
+    href: '/liga',
     label: 'Prêmios',
     icon: (active: boolean) => (
       <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8}>
@@ -73,10 +75,10 @@ export default function BottomNav() {
   const pathname = usePathname()
   const [pendingCount, setPendingCount] = useState(0)
 
-  // Hide the "Prêmios" tab automatically once the Embaixadores campaign ends
-  // (no need for a deploy to take it down). After that date, only 5 tabs show.
-  const campaignActive = Date.now() < new Date(REFERRAL_CONSTANTS.CAMPAIGN_END_DATE_ISO).getTime()
-  const visibleTabs = campaignActive ? tabs : tabs.filter((t) => t.href !== '/campanha')
+  // Tab "Prêmios" → /liga só aparece após 15/05/2026 09:00 BRT. Antes,
+  // mostra-se apenas as 5 outras tabs (gate de tempo client-side).
+  const ligaTabVisible = Date.now() >= new Date(LIGA_NAV_VISIBLE_FROM_ISO).getTime()
+  const visibleTabs = ligaTabVisible ? tabs : tabs.filter((t) => t.href !== '/liga')
 
   useEffect(() => {
     fetch('/api/trade-requests-count')
