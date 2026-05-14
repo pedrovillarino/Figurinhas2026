@@ -396,7 +396,8 @@ export default function ScanHub({
         .in('status', ['owned', 'duplicate'])
 
       const totalQty = toSave.reduce((sum, s) => sum + (s.quantity || 1), 0)
-      setSavedCount(totalQty - saveErrors)
+      const successQty = totalQty - saveErrors
+      setSavedCount(successQty)
       setOwnedCount(count || 0)
 
       if (saveErrors > 0 && saveErrors === toSave.length) {
@@ -416,6 +417,16 @@ export default function ScanHub({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, sticker_ids: savedIds }),
+        }).catch(() => {})
+      }
+
+      // Liga Complete Aí: pontua scan no site (mesma regra do WhatsApp).
+      // Fire-and-forget — endpoint é fail-open.
+      if (successQty > 0) {
+        fetch('/api/liga/award-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ savedCount: successQty }),
         }).catch(() => {})
       }
 
