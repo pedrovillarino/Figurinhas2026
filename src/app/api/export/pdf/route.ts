@@ -91,9 +91,12 @@ export async function GET(req: NextRequest) {
   const firstName = displayName.split(' ')[0] || displayName
   const refCode = (profile.referral_code as string | null) || null
 
-  // 2) Stickers + user_stickers — TUDO (counts_for_completion=true) + Coca-Cola.
-  // Pedro 2026-05-09: PANINI Extras (variant=gold/silver/bronze/regular) NÃO
-  // entra no PDF. Mas Coca-Cola entra (linha própria).
+  // 2) Stickers + user_stickers
+  // Pedro 2026-05-14 (alinha com o resto do app): o denominador "álbum"
+  // exibido no título usa SÓ counts_for_completion=true (980). Coca-Cola
+  // ainda aparece como SEÇÃO visual no tabelão (linha própria), mas não
+  // entra na fração X/Y do header — assim bate com /album, /scan, /profile
+  // e dashboard.
   // Pedro 2026-05-09 (bug 237 vs 315): supabase REST com .or() em produção
   // estava retornando lista incompleta (Vercel issue?). Adicionado .range
   // explícito + log do count pra detectar.
@@ -115,26 +118,28 @@ export async function GET(req: NextRequest) {
 
   type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null }
   const allList: Sticker[] = (allStickers || []) as Sticker[]
+  // Total do álbum (denominador) = só counts_for_completion=true. Bate com
+  // /album, /scan, /profile e dashboard.
+  const albumTotal = allList.filter((s) => s.section !== 'Coca-Cola').length
 
-  // Conta stats pra exibir no título — usa count exato direto do DB pra
-  // evitar dependência de paginação implícita do REST.
-  const { count: countOwnedExact } = await admin
-    .from('user_stickers')
-    .select('sticker_id, stickers!inner(counts_for_completion,section)', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .in('status', ['owned', 'duplicate'])
-    .or('counts_for_completion.eq.true,section.eq.Coca-Cola', { foreignTable: 'stickers' })
-  const { count: countDuplicatesExact } = await admin
-    .from('user_stickers')
-    .select('sticker_id, stickers!inner(counts_for_completion,section)', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'duplicate')
-    .or('counts_for_completion.eq.true,section.eq.Coca-Cola', { foreignTable: 'stickers' })
-  const countOwned = countOwnedExact ?? 0
-  const countDuplicates = countDuplicatesExact ?? 0
+  // Pedro 2026-05-14: contagem feita em JS sobre as listas já carregadas.
+  // O .or() em foreign table do PostgREST tinha quirks que produziam
+  // contagens significativamente menores (caso real: PDF mostrava ~300
+  // mas álbum mostrava ~500). Como já temos allList + userMap em mem, é
+  // mais robusto contar localmente.
+  const albumStickerIds = new Set(
+    allList.filter((s) => s.section !== 'Coca-Cola').map((s) => s.id),
+  )
+  let countOwned = 0
+  let countDuplicates = 0
+  for (const us of (userStickers || []) as Array<{ sticker_id: number; status: string }>) {
+    if (!albumStickerIds.has(us.sticker_id)) continue
+    if (us.status === 'owned' || us.status === 'duplicate') countOwned++
+    if (us.status === 'duplicate') countDuplicates++
+  }
   console.log(
     `[pdf-export] user=${userId} type=${type} view=${view} ` +
-    `allStickers=${allList.length} userStickers=${userStickers?.length ?? 0} ` +
+    `allStickers=${allList.length} albumTotal=${albumTotal} userStickers=${userStickers?.length ?? 0} ` +
     `countOwned=${countOwned} countDuplicates=${countDuplicates}`,
   )
 
@@ -150,26 +155,30 @@ export async function GET(req: NextRequest) {
   const iconPath = path.join(process.cwd(), 'public', 'icon-192.png')
   const hasIcon = fs.existsSync(iconPath)
 
-  // 5) Gera PDF — paisagem (A4 landscape) com checkboxes pra marcar
-  // Pedro 2026-05-09: paisagem cabe 6 colunas (densidade alta pra menos
-  // páginas impressas) e checkboxes permitem usar como checklist físico.
+  // 5) Gera PDF
+  // Pedro 2026-05-14: A4 PORTRAIT single-page no modo 'full' (tabelão).
+  // Objetivo: caber 50 seções (48 países + FIFA WC + Coca-Cola) em UMA
+  // folha A4 quando o user mandar imprimir. Foto do Panini control sheet
+  // como referência. Modo 'compact' continua usando landscape multi-página.
+  const isFullPortrait = view === 'full'
   const doc = new PDFDocument({
-    margin: 24,
+    margin: 18,
     size: 'A4',
-    layout: 'landscape',
+    layout: isFullPortrait ? 'portrait' : 'landscape',
     info: { Title: 'Complete Aí', Author: 'Complete Aí' },
   })
   const chunks: Buffer[] = []
   doc.on('data', (c) => chunks.push(c))
   const endPromise = new Promise<void>((resolve) => doc.on('end', resolve))
 
-  // A4 landscape: 842 × 595 pontos. Margem 24 → área útil 794 × 547.
-  const PAGE_WIDTH = 842
-  const PAGE_HEIGHT = 595
-  const MARGIN = 24
-  const HEADER_H = 60            // header único compacto (texto AO LADO do QR)
+  // A4 portrait: 595 × 842pt. A4 landscape: 842 × 595pt.
+  const PAGE_WIDTH = isFullPortrait ? 595 : 842
+  const PAGE_HEIGHT = isFullPortrait ? 842 : 595
+  const MARGIN = isFullPortrait ? 18 : 24
+  // Header compacto no portrait (1 linha de logo+title+QR mini)
+  const HEADER_H = isFullPortrait ? 38 : 60
   const HEADER_BOTTOM = MARGIN + HEADER_H
-  const CONTENT_TOP = HEADER_BOTTOM + 6
+  const CONTENT_TOP = HEADER_BOTTOM + 4
 
   // ── Título / subtítulo ──
   // Pedro 2026-05-09: layout matriz — TODAS figurinhas em grid de 20 colunas,
@@ -177,30 +186,55 @@ export async function GET(req: NextRequest) {
   // Modo 'missing': marca verde = tem (vazias = falta colar)
   // Modo 'duplicates': marca âmbar = tem repetida (vazias = não pode trocar)
   const titleStr = type === 'missing'
-    ? `Seu álbum: ${countOwned}/${allList.length}`
+    ? `Seu álbum: ${countOwned}/${albumTotal}`
     : `Suas repetidas: ${countDuplicates}`
   const subtitleStr = type === 'missing'
     ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em verde = já tem · vazio = falta colar`
     : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em âmbar = você tem repetida pra trocar`
 
-  // ── Page header (logo + título + QR) — repetido em TODAS as páginas ──
-  // Pedro 2026-05-09: economiza espaço (footer separado some). QR em
-  // toda página → user pode imprimir qualquer página solta e ainda ter
-  // o link de indicação visível.
+  // ── Page header (logo + título + QR) ──
+  // Compact portrait: 1 linha (38pt). Landscape antigo: 60pt com subtítulo.
   const drawPageHeader = () => {
     const yTop = MARGIN
-    // Logo + nome
-    if (hasIcon) {
-      doc.image(iconPath, MARGIN, yTop, { width: 30 })
+    if (isFullPortrait) {
+      // Layout enxuto pra portrait single-page
+      const logoSize = 22
+      if (hasIcon) doc.image(iconPath, MARGIN, yTop, { width: logoSize })
+      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(13)
+        .text('Complete', MARGIN + logoSize + 6, yTop + 4, { continued: true })
+      doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
+
+      // Título e subtítulo no meio
+      const titleX = MARGIN + logoSize + 90
+      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(11)
+        .text(titleStr, titleX, yTop + 4, { width: 280, lineBreak: false })
+      doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
+        .text(subtitleStr, titleX, yTop + 20, { width: 280, lineBreak: false })
+
+      // QR no canto direito, com texto pequeno à esquerda
+      const qrSize = 34
+      const qrX = PAGE_WIDTH - MARGIN - qrSize
+      doc.image(qrBuffer, qrX, yTop, { width: qrSize, height: qrSize })
+      const textW = 130
+      const textX = qrX - textW - 4
+      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7)
+        .text('completeai.com.br', textX, yTop + 4, { width: textW, align: 'right', lineBreak: false })
+      doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6)
+        .text('Indique pelo QR e ganhe benefícios!', textX, yTop + 16, { width: textW, align: 'right' })
+
+      doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
+        .strokeColor('#E5E7EB').lineWidth(0.6).stroke()
+      return
     }
+
+    // Landscape (modo legado, mantido pra view=compact)
+    if (hasIcon) doc.image(iconPath, MARGIN, yTop, { width: 30 })
     doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(16)
       .text('Complete', MARGIN + 38, yTop + 4, { continued: true })
     doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
       .text('Álbum FIFA WC 2026 com IA', MARGIN + 38, yTop + 26)
 
-    // Título imediatamente após o logo (sem centralizar — evita colisão
-    // com o bloco texto+QR à direita)
     const titleX = MARGIN + 220
     const titleW = 360
     doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(14)
@@ -208,13 +242,9 @@ export async function GET(req: NextRequest) {
     doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(8)
       .text(subtitleStr, titleX, yTop + 30, { width: titleW, lineBreak: false })
 
-    // QR à direita + texto AO LADO (à esquerda do QR) — Pedro 2026-05-09
-    // QR no canto direito; texto wrappa numa coluna à esquerda dele.
     const qrSize = 56
     const qrX = PAGE_WIDTH - MARGIN - qrSize
     doc.image(qrBuffer, qrX, yTop, { width: qrSize, height: qrSize })
-    // Texto à esquerda do QR (largura ~150pt, alinhado à direita pra ficar
-    // colado no QR). Domínio em cima + chamada embaixo.
     const textW = 150
     const textX = qrX - textW - 6
     doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
@@ -223,7 +253,6 @@ export async function GET(req: NextRequest) {
       .text('Indique através desse QR code seus amigos e ganhe benefícios!',
         textX, yTop + 22, { width: textW, align: 'right' })
 
-    // Linha separadora
     doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM)
       .strokeColor('#E5E7EB').lineWidth(0.8).stroke()
   }
@@ -331,73 +360,119 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // ── TABELÃO ──
-  // Pedro 2026-05-09: estilo planilha clássica — cabeçalho numerado,
-  // bordas sólidas em todas as células, zebra striping nas seções.
-  // 20 colunas casa exato com países (20 cromos) e FIFA WC (20).
-  // Coca-Cola (14 cromos) ocupa as primeiras 14 + 6 paddings cinza.
+  // ── TABELÃO (Pedro 2026-05-14, estilo Panini control sheet) ──
+  // Cada linha = 1 seção (país, FIFA WC ou Coca-Cola).
+  // Colunas: NOME PT-BR · CÓD 3-letras · BANDEIRA · 20 células de cromos
+  // Células alternam verde/branco (zebra) pra facilitar leitura visual.
+  // Quando o user já tem o cromo: célula com fundo cheio + X marcando.
+
+  // Map country (EN, vindo do DB) → { display PT-BR, FIFA code, flag path }
+  // PT-BR display: nomes oficiais Panini / FIFA Copa 2026.
+  const FIFA_CODE_BY_COUNTRY: Record<string, string> = {
+    Algeria: 'ALG', Argentina: 'ARG', Australia: 'AUS', Austria: 'AUT',
+    Belgium: 'BEL', 'Bosnia and Herzegovina': 'BIH', Brazil: 'BRA', Canada: 'CAN',
+    'Cape Verde': 'CPV', Colombia: 'COL', Croatia: 'CRO', Curacao: 'CUW',
+    'Czech Republic': 'CZE', 'DR Congo': 'COD', Ecuador: 'ECU', Egypt: 'EGY',
+    England: 'ENG', France: 'FRA', Germany: 'GER', Ghana: 'GHA', Haiti: 'HAI',
+    Iran: 'IRN', Iraq: 'IRQ', 'Ivory Coast': 'CIV', Japan: 'JPN', Jordan: 'JOR',
+    Mexico: 'MEX', Morocco: 'MAR', Netherlands: 'NED', 'New Zealand': 'NZL',
+    Norway: 'NOR', Panama: 'PAN', Paraguay: 'PAR', Portugal: 'POR', Qatar: 'QAT',
+    'Saudi Arabia': 'KSA', Scotland: 'SCO', Senegal: 'SEN', 'South Africa': 'RSA',
+    'South Korea': 'KOR', Spain: 'ESP', Sweden: 'SWE', Switzerland: 'SUI',
+    Tunisia: 'TUN', Turkey: 'TUR', USA: 'USA', Uruguay: 'URU', Uzbekistan: 'UZB',
+  }
+  const PT_NAME_BY_KEY: Record<string, string> = {
+    Algeria: 'ARGÉLIA', Argentina: 'ARGENTINA', Australia: 'AUSTRÁLIA', Austria: 'ÁUSTRIA',
+    Belgium: 'BÉLGICA', 'Bosnia and Herzegovina': 'BÓSNIA', Brazil: 'BRASIL', Canada: 'CANADÁ',
+    'Cape Verde': 'CABO VERDE', Colombia: 'COLÔMBIA', Croatia: 'CROÁCIA', Curacao: 'CURAÇAO',
+    'Czech Republic': 'REP. TCHECA', 'DR Congo': 'R.D. CONGO', Ecuador: 'EQUADOR', Egypt: 'EGITO',
+    England: 'INGLATERRA', France: 'FRANÇA', Germany: 'ALEMANHA', Ghana: 'GANA', Haiti: 'HAITI',
+    Iran: 'IRÃ', Iraq: 'IRAQUE', 'Ivory Coast': 'COSTA DO MARFIM', Japan: 'JAPÃO', Jordan: 'JORDÂNIA',
+    Mexico: 'MÉXICO', Morocco: 'MARROCOS', Netherlands: 'HOLANDA', 'New Zealand': 'NOVA ZELÂNDIA',
+    Norway: 'NORUEGA', Panama: 'PANAMÁ', Paraguay: 'PARAGUAI', Portugal: 'PORTUGAL', Qatar: 'CATAR',
+    'Saudi Arabia': 'ARÁBIA SAUDITA', Scotland: 'ESCÓCIA', Senegal: 'SENEGAL', 'South Africa': 'ÁFRICA DO SUL',
+    'South Korea': 'COREIA DO SUL', Spain: 'ESPANHA', Sweden: 'SUÉCIA', Switzerland: 'SUÍÇA',
+    Tunisia: 'TUNÍSIA', Turkey: 'TURQUIA', USA: 'ESTADOS UNIDOS', Uruguay: 'URUGUAI', Uzbekistan: 'UZBEQUISTÃO',
+    'FIFA World Cup': 'FIFA WORLD CUP', 'Coca-Cola': 'COCA-COLA',
+  }
+  const FIFA_CODE_BY_SPECIAL: Record<string, string> = {
+    'FIFA World Cup': 'FWC',
+    'Coca-Cola': 'CC',
+  }
+
+  const flagsDir = path.join(process.cwd(), 'public', 'flags')
+  const flagPathFor = (fifaCode: string): string | null => {
+    const p = path.join(flagsDir, `${fifaCode}.png`)
+    return fs.existsSync(p) ? p : null
+  }
+
+  // Pedro 2026-05-14: dimensões responsivas por orientação.
+  // PORTRAIT (modo default 'full'): tudo precisa caber em 1 página A4.
+  //   50 linhas em ~742pt verticais → CELL_H=14pt.
+  // LANDSCAPE (modo 'compact' legado): respira mais.
   const NUM_COLS = 20
-  const SECTION_NAME_W = 100
+  const NAME_W = isFullPortrait ? 78 : 96
+  const CODE_W = isFullPortrait ? 20 : 30
+  const FLAG_W = isFullPortrait ? 18 : 28
+  const META_W = NAME_W + CODE_W + FLAG_W
   const TABLE_W = PAGE_WIDTH - 2 * MARGIN
-  const GRID_W = TABLE_W - SECTION_NAME_W
-  const CELL_W = GRID_W / NUM_COLS  // ~34pt em landscape
-  const CELL_H = 18
-  const TABLE_HEADER_H = 16
+  const GRID_W = TABLE_W - META_W
+  const CELL_W = GRID_W / NUM_COLS
+  const CELL_H = isFullPortrait ? 14 : 16
+  const TABLE_HEADER_H = isFullPortrait ? 13 : 16
+  // Tamanhos de fonte casados com a altura da célula
+  const FS_TABLE_HEADER = isFullPortrait ? 7 : 8
+  const FS_META = isFullPortrait ? 7 : 8
+  const FS_CELL = isFullPortrait ? 6 : 7
 
   let curY = CONTENT_TOP
-  const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 12
+  const PAGE_BOTTOM = PAGE_HEIGHT - MARGIN - 8
 
-  const cellX = (col: number) => MARGIN + SECTION_NAME_W + col * CELL_W
+  const cellX = (col: number) => MARGIN + META_W + col * CELL_W
 
-  // Cabeçalho da tabela (1, 2, 3... 13)
+  // Cabeçalho da tabela (1..20)
   const drawTableHeader = (y: number) => {
-    // Fundo escuro
+    const textY = y + (TABLE_HEADER_H - FS_TABLE_HEADER) / 2 - 0.5
     doc.rect(MARGIN, y, TABLE_W, TABLE_HEADER_H).fillColor(COLOR_NAVY).fill()
-    // "Seção" à esquerda
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8)
-      .text('SEÇÃO', MARGIN + 6, y + 5, { width: SECTION_NAME_W - 10, lineBreak: false })
-    // Números 1-13
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(FS_TABLE_HEADER)
+      .text('SELEÇÃO', MARGIN + 4, textY, { width: NAME_W - 6, lineBreak: false })
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(FS_TABLE_HEADER)
+      .text('CÓD', MARGIN + NAME_W, textY, { width: CODE_W, align: 'center', lineBreak: false })
+    // Coluna da bandeira sem rótulo
     for (let c = 0; c < NUM_COLS; c++) {
       const x = cellX(c)
-      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8)
-        .text(String(c + 1), x, y + 5, { width: CELL_W, align: 'center', lineBreak: false })
-    }
-    // Bordas verticais brancas no header (separa colunas)
-    doc.strokeColor('#FFFFFF').lineWidth(0.4)
-    for (let c = 1; c <= NUM_COLS; c++) {
-      const x = cellX(c - 1) + (c === NUM_COLS ? 0 : 0)
-      // skip — bordas serão desenhadas no corpo
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(FS_TABLE_HEADER)
+        .text(String(c + 1), x, textY, { width: CELL_W, align: 'center', lineBreak: false })
     }
   }
 
-  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding') => {
-    // Background
+  // Cor pra estado preenchido (já tem)
+  const fillColorMarked = type === 'missing' ? '#A7F3D0' : '#FCD34D'  // verde claro | âmbar
+  const xStrokeMarked = type === 'missing' ? '#047857' : '#B45309'    // verde escuro / âmbar escuro
+
+  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding', zebraGreen: boolean) => {
     if (state === 'padding') {
-      doc.rect(x, y, CELL_W, CELL_H).fillColor('#D1D5DB').fill()  // cinza médio = "não existe"
+      doc.rect(x, y, CELL_W, CELL_H).fillColor('#1F2937').fill()  // preto/cinza escuro = inexistente
     } else if (state === 'marked') {
-      const fillColor = type === 'missing' ? '#A7F3D0' : '#FCD34D'  // verde claro | âmbar claro
-      doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColor).fill()
+      doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColorMarked).fill()
     } else {
-      doc.rect(x, y, CELL_W, CELL_H).fillColor('#FFFFFF').fill()
+      // Zebra: pares = verde claro Panini, ímpares = branco
+      doc.rect(x, y, CELL_W, CELL_H).fillColor(zebraGreen ? '#C8E6C9' : '#FFFFFF').fill()
     }
-    // Borda
-    doc.lineWidth(0.5).strokeColor('#374151').rect(x, y, CELL_W, CELL_H).stroke()
-    // Label
-    if (state === 'padding') {
-      // sem texto
-    } else if (state === 'marked') {
-      // Número
-      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(8)
-        .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
-      // X riscando (Pedro 2026-05-09): além da cor, X em cima reforça
-      // visualmente "já tem". Cor mais escura que o fill pra contraste.
-      const xColor = type === 'missing' ? '#047857' : '#B45309'  // verde escuro / âmbar escuro
-      doc.lineWidth(1).strokeColor(xColor)
-        .moveTo(x + 3, y + 3).lineTo(x + CELL_W - 3, y + CELL_H - 3).stroke()
-        .moveTo(x + CELL_W - 3, y + 3).lineTo(x + 3, y + CELL_H - 3).stroke()
+    doc.lineWidth(0.4).strokeColor('#9CA3AF').rect(x, y, CELL_W, CELL_H).stroke()
+
+    if (state === 'padding') return
+    const textY = y + (CELL_H - FS_CELL) / 2 - 0.5
+    if (state === 'marked') {
+      doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(FS_CELL)
+        .text(label, x, textY, { width: CELL_W, align: 'center', lineBreak: false })
+      const xPad = Math.max(2, Math.floor(CELL_W * 0.1))
+      doc.lineWidth(0.8).strokeColor(xStrokeMarked)
+        .moveTo(x + xPad, y + 2).lineTo(x + CELL_W - xPad, y + CELL_H - 2).stroke()
+        .moveTo(x + CELL_W - xPad, y + 2).lineTo(x + xPad, y + CELL_H - 2).stroke()
     } else {
-      doc.fillColor('#6B7280').font('Helvetica').fontSize(8)
-        .text(label, x, y + 6, { width: CELL_W, align: 'center', lineBreak: false })
+      doc.fillColor('#374151').font('Helvetica').fontSize(FS_CELL)
+        .text(label, x, textY, { width: CELL_W, align: 'center', lineBreak: false })
     }
   }
 
@@ -405,7 +480,7 @@ export async function GET(req: NextRequest) {
   drawTableHeader(curY)
   curY += TABLE_HEADER_H
 
-  let zebra = false  // alterna fundo da célula de nome de seção
+  let rowZebra = false  // alterna fundo da linha (faixa branca/cinza claro)
 
   for (const sectionKey of sortedKeys) {
     const items = groups[sectionKey].sort((a, b) => {
@@ -414,58 +489,88 @@ export async function GET(req: NextRequest) {
       return numA - numB
     })
 
-    const numRows = Math.ceil(items.length / NUM_COLS)
-    const sectionHeight = numRows * CELL_H
+    // 1 linha por seção (todos os cromos cabem em 20 colunas: países=20, FWC≤20, Coca-Cola=14)
+    const sectionHeight = CELL_H
 
-    // Quebra de página: se não cabe seção inteira + page header + table header, vai pra próxima
+    // Quebra de página
     if (curY + sectionHeight > PAGE_BOTTOM) {
       doc.addPage()
       drawPageHeader()
       curY = CONTENT_TOP
       drawTableHeader(curY)
       curY += TABLE_HEADER_H
+      rowZebra = false
     }
 
-    // Coluna do nome da seção (rowspan visual: ocupa todas as numRows fileiras)
-    const sectionX = MARGIN
-    const sectionY = curY
-    const sectionH = sectionHeight
-    // Background zebra
-    doc.rect(sectionX, sectionY, SECTION_NAME_W, sectionH).fillColor(zebra ? '#F3F4F6' : '#E5E7EB').fill()
-    doc.lineWidth(0.5).strokeColor('#374151').rect(sectionX, sectionY, SECTION_NAME_W, sectionH).stroke()
-    // Texto centrado
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(9)
-      .text(sectionKey.toUpperCase(), sectionX + 6, sectionY + sectionH / 2 - 9, {
-        width: SECTION_NAME_W - 12,
-        lineBreak: false,
-      })
-    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
-      .text(`(${items.length})`, sectionX + 6, sectionY + sectionH / 2 + 2, {
-        width: SECTION_NAME_W - 12,
-        lineBreak: false,
-      })
-    zebra = !zebra
+    // Resolve nome PT-BR, código e bandeira
+    const ptName = PT_NAME_BY_KEY[sectionKey] || sectionKey.toUpperCase()
+    const fifaCode = FIFA_CODE_BY_COUNTRY[sectionKey] || FIFA_CODE_BY_SPECIAL[sectionKey] || ''
+    const flagPath = fifaCode && !FIFA_CODE_BY_SPECIAL[sectionKey] ? flagPathFor(fifaCode) : null
 
-    // Células do grid (números 1..13 na 1ª fileira, 14..26 na 2ª, etc)
-    for (let row = 0; row < numRows; row++) {
-      const y = curY + row * CELL_H
-      for (let col = 0; col < NUM_COLS; col++) {
-        const idx = row * NUM_COLS + col
-        const x = cellX(col)
-        if (idx < items.length) {
-          const s = items[idx]
-          const us = userMap.get(s.id)
-          const isOwned = !!us && (us.status === 'owned' || us.status === 'duplicate')
-          const isDuplicate = !!us && us.status === 'duplicate'
-          const shouldMark = type === 'missing' ? isOwned : isDuplicate
-          const numPart = s.number.split('-')[1] || s.number
-          drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty')
-        } else {
-          drawCell(x, y, '', 'padding')
+    // Fundo da faixa de metadados (zebra horizontal sutil)
+    const bandY = curY
+    const bandBg = rowZebra ? '#F9FAFB' : '#FFFFFF'
+    doc.rect(MARGIN, bandY, META_W, CELL_H).fillColor(bandBg).fill()
+    doc.lineWidth(0.4).strokeColor('#9CA3AF').rect(MARGIN, bandY, META_W, CELL_H).stroke()
+
+    const textY = bandY + (CELL_H - FS_META) / 2 - 0.5
+    // NOME
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(FS_META)
+      .text(ptName, MARGIN + 3, textY, { width: NAME_W - 5, lineBreak: false, ellipsis: true })
+
+    // CÓDIGO
+    doc.fillColor(COLOR_GRAY).font('Helvetica-Bold').fontSize(FS_META)
+      .text(fifaCode, MARGIN + NAME_W, textY, { width: CODE_W, align: 'center', lineBreak: false })
+    // separador vertical entre nome e código
+    doc.lineWidth(0.4).strokeColor('#9CA3AF')
+      .moveTo(MARGIN + NAME_W, bandY).lineTo(MARGIN + NAME_W, bandY + CELL_H).stroke()
+    doc.moveTo(MARGIN + NAME_W + CODE_W, bandY).lineTo(MARGIN + NAME_W + CODE_W, bandY + CELL_H).stroke()
+
+    // BANDEIRA (somente países). Mantém aspect ratio (flagcdn w80 ≈ 80×53,
+    // ou seja ratio 3:2). Calcula largura limitada por altura da célula
+    // e pela largura do slot, o que for menor.
+    if (flagPath) {
+      try {
+        const slotPad = 2
+        const maxH = CELL_H - slotPad * 2
+        const maxW = FLAG_W - slotPad * 2
+        let flagDrawH = maxH
+        let flagDrawW = maxH * 1.5
+        if (flagDrawW > maxW) {
+          flagDrawW = maxW
+          flagDrawH = maxW / 1.5
         }
+        const flagX = MARGIN + NAME_W + CODE_W + (FLAG_W - flagDrawW) / 2
+        const flagY = bandY + (CELL_H - flagDrawH) / 2
+        doc.image(flagPath, flagX, flagY, { width: flagDrawW, height: flagDrawH })
+      } catch (e) {
+        // se embed falhar, mostra ".." pra não quebrar layout
+        doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
+          .text('—', MARGIN + NAME_W + CODE_W, bandY + 4, { width: FLAG_W, align: 'center', lineBreak: false })
+      }
+    }
+    // Seções especiais (FIFA WC, Coca-Cola) não têm bandeira — deixa em branco.
+    // (Helvetica padrão não tem ★/◉, então evitamos ícones unicode aqui.)
+
+    // 20 células de cromos
+    for (let col = 0; col < NUM_COLS; col++) {
+      const x = cellX(col)
+      const y = bandY
+      if (col < items.length) {
+        const s = items[col]
+        const us = userMap.get(s.id)
+        const isOwned = !!us && (us.status === 'owned' || us.status === 'duplicate')
+        const isDuplicate = !!us && us.status === 'duplicate'
+        const shouldMark = type === 'missing' ? isOwned : isDuplicate
+        const numPart = s.number.split('-')[1] || s.number
+        // Zebra alternando dentro da linha (col par = verde claro, ímpar = branco)
+        drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty', col % 2 === 0)
+      } else {
+        drawCell(x, y, '', 'padding', false)
       }
     }
 
+    rowZebra = !rowZebra
     curY += sectionHeight
   }
 
