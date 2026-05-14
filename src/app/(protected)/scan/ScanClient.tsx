@@ -310,7 +310,8 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         .eq('user_id', userId)
         .in('status', ['owned', 'duplicate'])
 
-      setSavedCount(toSave.length - saveErrors)
+      const successCount = toSave.length - saveErrors
+      setSavedCount(successCount)
       setOwnedCount(count || 0)
 
       if (saveErrors > 0 && saveErrors === toSave.length) {
@@ -321,6 +322,16 @@ export default function ScanClient({ userId, totalStickers }: { userId: string; 
         setState('success')
       } else {
         setState('success')
+      }
+
+      // Liga Complete Aí: pontua scan no site (mesma regra do WhatsApp).
+      // Fire-and-forget — endpoint é fail-open.
+      if (successCount > 0) {
+        fetch('/api/liga/award-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ savedCount: successCount }),
+        }).catch(() => {})
       }
     } catch (err) {
       console.error('[save] Unexpected error:', err)

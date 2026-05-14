@@ -105,6 +105,8 @@ const TABELA_PONTUACAO: PontoSecao[] = [
   },
 ]
 
+type RankRow = { rank: number; firstName: string; points: number; isMe: boolean }
+
 type Props = {
   optedIn: boolean
   displayName: string | null
@@ -117,7 +119,9 @@ type Props = {
   marcos: readonly number[]
   proximoMarco: number | null
   faltaProximo: number
+  proximosBloqueados: number[]
   unlocks: number[]
+  top10Periodo: RankRow[]
   pontosEvento: Record<string, number>
 }
 
@@ -132,13 +136,14 @@ export default function LigaPageClient(props: Props) {
     marcos,
     proximoMarco,
     faltaProximo,
+    proximosBloqueados,
     unlocks,
+    top10Periodo,
   } = props
   const [optingIn, setOptingIn] = useState(false)
   const [optInDone, setOptInDone] = useState(false)
   const nomesMarcos = cardapio === 'copa' ? NOMES_MARCOS_COPA : NOMES_MARCOS_FREE
   const ultimoMarcoDesbloqueado = unlocks.length > 0 ? Math.max(...unlocks) : null
-  const trilhaCompleta = proximoMarco === null
 
   async function handleOptIn() {
     setOptingIn(true)
@@ -287,19 +292,86 @@ export default function LigaPageClient(props: Props) {
               </div>
             )}
 
-            {/* Cadeado representando os próximos marcos ocultos */}
-            {!trilhaCompleta && (
-              <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-gray-500">
-                <span className="text-base">🔒</span>
-                <span>
-                  Mais {marcos.length - unlocks.length - 1} conquista
-                  {marcos.length - unlocks.length - 1 === 1 ? '' : 's'} adiante — revelada
-                  {marcos.length - unlocks.length - 1 === 1 ? '' : 's'} quando você chegar lá.
-                </span>
+            {/* Próximos marcos bloqueados — mostra XP, esconde nome */}
+            {proximosBloqueados.length > 0 && (
+              <div className="pt-1 space-y-1.5">
+                {proximosBloqueados.map((m) => (
+                  <div
+                    key={m}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-gray-50 border-gray-200"
+                  >
+                    <span className="text-base shrink-0">🔒</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-gray-700">{m} XP</div>
+                      <div className="text-[10px] text-gray-400">Surpresa</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
+
+        {/* Ranking da Temporada — top 10 + sua posição */}
+        {temporadaAtual !== null && top10Periodo.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <h2 className="text-sm font-bold text-gray-900 mb-1">
+              🏅 Top 10 da Temporada {temporadaAtual}
+            </h2>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Top 3 ao final do período leva prêmio físico (pacotes + porta-figurinha).
+            </p>
+            <ol className="space-y-1">
+              {top10Periodo.map((row) => (
+                <li
+                  key={row.rank}
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${
+                    row.isMe
+                      ? 'bg-amber-50 border border-amber-300 ring-1 ring-amber-200'
+                      : ''
+                  }`}
+                >
+                  <span
+                    className={`text-xs font-bold w-6 text-center tabular-nums ${
+                      row.rank === 1
+                        ? 'text-amber-600'
+                        : row.rank === 2
+                          ? 'text-gray-500'
+                          : row.rank === 3
+                            ? 'text-orange-700'
+                            : 'text-gray-400'
+                    }`}
+                  >
+                    {row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : `#${row.rank}`}
+                  </span>
+                  <span className="flex-1 text-xs text-gray-800 truncate">
+                    {row.firstName}
+                    {row.isMe && <span className="ml-1 text-amber-700 font-semibold">(você)</span>}
+                  </span>
+                  <span className="text-xs font-bold text-gray-900 tabular-nums">
+                    {row.points} XP
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {/* Linha extra com sua posição se estiver fora do top 10 */}
+            {positionPeriodo !== null && positionPeriodo > 10 && (
+              <div className="mt-2 pt-2 border-t border-dashed border-gray-200">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-300">
+                  <span className="text-xs font-bold w-6 text-center text-gray-600 tabular-nums">
+                    #{positionPeriodo}
+                  </span>
+                  <span className="flex-1 text-xs text-gray-800">
+                    Você <span className="text-amber-700">— sua posição atual</span>
+                  </span>
+                  <span className="text-xs font-bold text-gray-900 tabular-nums">
+                    {xpPeriodo} XP
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tabela de pontuação — por seção */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
