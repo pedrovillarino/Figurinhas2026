@@ -18,12 +18,23 @@ import ClientHealthCheck from '@/components/ClientHealthCheck'
 import LaunchPromoModal from '@/components/LaunchPromoModal'
 import AuthCompletionTracker from '@/components/AuthCompletionTracker'
 import PendingPhoneSync from '@/components/PendingPhoneSync'
+import { createClient } from '@/lib/supabase/server'
+import { awardLoginAndStreak } from '@/lib/liga'
 
-export default function ProtectedLayout({
+export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Liga Complete Aí: marca login do dia + dispara streak 3/7/15.
+  // Fire-and-forget — não bloqueia o render do layout. Idempotente por dia
+  // (PK em daily_logins + event_key incluindo data).
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    void awardLoginAndStreak(user.id)
+  }
+
   return (
     <div className="min-h-screen pb-20">
       <AppHeader />

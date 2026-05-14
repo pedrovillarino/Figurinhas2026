@@ -378,3 +378,101 @@ export async function checkAndRegisterUnlocks(userId: string): Promise<number[]>
   }
   return novos
 }
+
+// ─── Helper: login diário + streak (3/7/15 dias seguidos) ───────────────
+
+/**
+ * Retorna YYYY-MM-DD do "hoje" em horário de Brasília (BRT/UTC-3, sem DST).
+ * Usamos BRT pra alinhar a contagem de streak com o calendário do user
+ * (não com UTC, que vira "novo dia" às 21:00 BRT).
+ */
+function todayBRT(): string {
+  const now = new Date()
+  // BRT = UTC - 3
+  const brtMs = now.getTime() - 3 * 60 * 60 * 1000
+  return new Date(brtMs).toISOString().substring(0, 10)
+}
+
+/**
+ * Marca login do dia, awarda LOGIN_DAILY (+1) e verifica se atingiu marcos
+ * de streak (3/7/15 dias seguidos). Idempotente — chamar várias vezes no
+ * mesmo dia tem custo de 1 round-trip mas não dispara pontuação extra.
+ *
+ * Streak = quantos dias consecutivos terminando em hoje (inclusive) o user
+ * teve registro em daily_logins. Buscamos os últimos 16 dias e contamos
+ * pra trás a partir de hoje, parando ao primeiro gap.
+ *
+ * Fail-open por padrão (catch externo). Chamado em fire-and-forget pelo
+ * (protected)/layout.tsx.
+ */
+export async function awardLoginAndStreak(userId: string): Promise<void> {
+  const admin = getAdmin()
+  const today = todayBRT()
+
+  // 1. Marca login do dia (idempotente via PK)
+  const { error: insErr } = await admin
+    .from('daily_logins')
+    .upsert({ user_id: userId, login_date: today }, { onConflict: 'user_id,login_date' })
+  if (insErr) {
+    console.error('[liga] daily_logins upsert failed:', insErr.message)
+    // Continua mesmo assim — talvez já existisse e o upsert falhou por outra razão
+  }
+
+  // 2. Awarda LOGIN_DAILY (+1) com event_key incluindo data — idempotente.
+  //    Se já pontuou hoje, é no-op no awardLigaPoints.
+  await awardLigaPoints({
+    userId,
+    eventType: 'LOGIN_DAILY',
+    eventKey: `login_daily:${userId}:${today}`,
+    metadata: { date: today },
+  }).catch((err) => console.error('[liga] LOGIN_DAILY failed:', err))
+
+  // 3. Conta streak: pega últimos 16 dias de logins desse user, conta
+  //    consecutivos terminando em hoje.
+  const sixteenDaysAgo = new Date()
+  sixteenDaysAgo.setUTCDate(sixteenDaysAgo.getUTCDate() - 16)
+  const { data: recentLogins } = await admin
+    .from('daily_logins')
+    .select('login_date')
+    .eq('user_id', userId)
+    .gte('login_date', sixteenDaysAgo.toISOString().substring(0, 10))
+    .order('login_date', { ascending: false })
+
+  const datesSet = new Set(
+    ((recentLogins || []) as Array<{ login_date: string }>).map((r) => r.login_date),
+  )
+
+  let streak = 0
+  const cursor = new Date(today + 'T00:00:00Z')
+  while (datesSet.has(cursor.toISOString().substring(0, 10))) {
+    streak++
+    cursor.setUTCDate(cursor.getUTCDate() - 1)
+    if (streak > 20) break // hard cap defensivo
+  }
+
+  // 4. Marcos de streak — cada um é 1× lifetime (event_key fixo por user).
+  if (streak >= 3) {
+    await awardLigaPoints({
+      userId,
+      eventType: 'STREAK_3',
+      eventKey: `streak_3:${userId}`,
+    }).catch((err) => console.error('[liga] STREAK_3 failed:', err))
+  }
+  if (streak >= 7) {
+    await awardLigaPoints({
+      userId,
+      eventType: 'STREAK_7',
+      eventKey: `streak_7:${userId}`,
+    }).catch((err) => console.error('[liga] STREAK_7 failed:', err))
+  }
+  if (streak >= 15) {
+    await awardLigaPoints({
+      userId,
+      eventType: 'STREAK_15',
+      eventKey: `streak_15:${userId}`,
+    }).catch((err) => console.error('[liga] STREAK_15 failed:', err))
+  }
+
+  // 5. Re-check unlocks da Trilha (streak de 15 dá +50 → pode passar marco 100)
+  await checkAndRegisterUnlocks(userId).catch(() => {})
+}

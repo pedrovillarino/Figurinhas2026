@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Termos de Serviço — Complete Aí',
@@ -442,8 +443,197 @@ export default function TermosPage() {
           </P>
         </Section>
 
-        {/* 13. Lei Aplicável e Foro */}
-        <Section number={13} title="Lei Aplicável e Foro">
+        {/* 13. Liga Complete Aí 2026 */}
+        <Section number={13} title="Liga Complete Aí 2026">
+          <P>
+            A &quot;Liga Complete Aí 2026&quot; é um programa de engajamento opcional, oferecido
+            durante o período de 15/05/2026 a 16/07/2026, em que usuários acumulam pontos
+            (&quot;XP&quot;) realizando ações no Serviço e podem desbloquear recompensas digitais
+            e disputar prêmios físicos. A participação na Liga não é requisito para uso normal
+            do Serviço.
+          </P>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.1 Estrutura e janela
+          </h3>
+          <UL>
+            <li>
+              A Liga é dividida em até 4 Temporadas de 15 dias cada, com 1 dia de intervalo
+              entre Temporadas.
+            </li>
+            <li>
+              A continuidade das Temporadas 2, 3 e 4 está condicionada ao atingimento de
+              indicadores mínimos de participação e pontuação da Temporada anterior — divulgados
+              no anúncio de cada nova Temporada.
+            </li>
+            <li>
+              Caso uma Temporada não atinja os indicadores, a Liga segue valendo XP individual,
+              sem premiação física daquela Temporada. O Campeão Geral é definido normalmente em
+              16/07/2026.
+            </li>
+            <li>
+              O Complete Aí não se compromete antecipadamente com a realização das Temporadas
+              seguintes — cada uma é confirmada apenas após o fechamento da anterior.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.2 Participação
+          </h3>
+          <UL>
+            <li>
+              Para participar, o usuário deve clicar em &quot;Participar da Liga&quot; dentro do
+              app — ato que constitui aceite expresso deste regulamento.
+            </li>
+            <li>
+              Na ativação, o sistema carrega no XP Total do usuário as ações mensuráveis do seu
+              histórico (cadastro, 1ª figurinha escaneada, scans realizados, seleções completas
+              etc.). O XP de cada Temporada começa SEMPRE em zero.
+            </li>
+            <li>
+              É vedada a criação de múltiplas contas. Identificação por IP, dispositivo e
+              e-mail únicos. Contas duplicadas serão removidas da Liga sem aviso prévio.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.3 Pontuação e regras
+          </h3>
+          <UL>
+            <li>
+              A tabela de pontuação vigente é a publicada na página{' '}
+              <Link href="/liga" className="text-brand hover:text-brand-dark underline">
+                /liga
+              </Link>{' '}
+              no início de cada Temporada.
+            </li>
+            <li>
+              O Complete Aí reserva-se o direito de ajustar a tabela de pontuação entre
+              Temporadas — sempre com aviso prévio no anúncio da nova Temporada.
+            </li>
+            <li>
+              Pontos da Trilha Digital (marcos de XP) acumulam ao longo de toda a Liga. Pontos
+              do Ranking de Temporada zeram a cada nova Temporada.
+            </li>
+            <li>
+              Caps diários (ex.: máximo 30 figurinhas escaneadas por dia, máximo 3 trocas
+              confirmadas por dia) são aplicados automaticamente para prevenir abuso.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.4 Prêmios
+          </h3>
+          <UL>
+            <li>
+              Cada Temporada premia o Top 3 do ranking de período com pacotes de figurinhas
+              físicas e, no caso do 1º lugar, um porta-figurinhas.
+            </li>
+            <li>
+              Prêmios físicos são enviados via Correios após o encerramento da respectiva
+              Temporada, ao endereço cadastrado pelo usuário.
+            </li>
+            <li>
+              Prêmios digitais (cupons de desconto, scans extras, trocas extras) são liberados
+              automaticamente no app no momento do desbloqueio do marco correspondente.
+            </li>
+            <li>
+              Cap de ganhadores em marcos físicos da Trilha Digital pode ser ajustado a
+              qualquer momento, com aviso na própria descrição do marco.
+            </li>
+            <li>
+              Cupons emitidos pela Liga têm validade limitada (informada no momento do
+              desbloqueio) e não são acumuláveis com outras promoções, salvo indicação em
+              contrário.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.5 Indicações
+          </h3>
+          <UL>
+            <li>
+              Indicações de Cadastro e Ativação (amigo escaneou 5+ figurinhas) pontuam
+              independente de pagamento.
+            </li>
+            <li>
+              Indicações Qualificadas (amigo assinou plano pago) pontuam apenas após
+              processamento e aprovação do pagamento via Stripe. Não valem trial, cupom
+              100% ou conta criada do mesmo dispositivo do indicador.
+            </li>
+            <li>
+              Indicações suspeitas de fraude (mesmo IP/dispositivo/e-mail) são invalidadas
+              automaticamente.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.6 Trocas e anti-fraude
+          </h3>
+          <UL>
+            <li>
+              Trocas só pontuam após confirmação dos dois lados (solicitante e
+              recebedor) dentro do app.
+            </li>
+            <li>
+              O Complete Aí reserva-se o direito de invalidar pontos, desclassificar usuários
+              do ranking e remover prêmios em caso de fraude comprovada — sem aviso prévio
+              e sem direito a recurso.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.7 Critério de desempate (tiebreaker)
+          </h3>
+          <P>Em caso de empate na pontuação, aplica-se a seguinte ordem:</P>
+          <UL>
+            <li>(a) Usuário assinante (qualquer plano pago) vence usuário gratuito;</li>
+            <li>(b) Maior número de indicações qualificadas;</li>
+            <li>(c) Quem atingiu a pontuação primeiro (timestamp do evento);</li>
+            <li>(d) Quem se cadastrou primeiro na plataforma.</li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.8 Campeão Geral e encerramento
+          </h3>
+          <UL>
+            <li>
+              O Campeão Geral é definido pela soma total de XP acumulado ao final de
+              16/07/2026, considerando todas as Temporadas (incluindo as que não tiveram
+              premiação física).
+            </li>
+            <li>
+              Prêmio do Campeão Geral: protetor de álbum + mini bola oficial Trionda Copa
+              2026, enviado via Correios.
+            </li>
+            <li>
+              Revelação do Campeão Geral em 17/07/2026.
+            </li>
+            <li>
+              Selos, conquistas e o XP Total permanecem visíveis no perfil do usuário após
+              o encerramento da Liga, como histórico permanente.
+            </li>
+          </UL>
+
+          <h3 className="text-base font-semibold text-navy mt-4 mb-2">
+            13.9 Decisões finais
+          </h3>
+          <P>
+            As decisões da equipe Complete Aí sobre apuração de pontos, validação de
+            indicações e atribuição de prêmios são finais e inapeláveis. Em caso de dúvidas
+            sobre apuração, o usuário pode entrar em contato em{' '}
+            <a
+              href="mailto:contato@completeai.com.br"
+              className="text-brand hover:text-brand-dark underline"
+            >
+              contato@completeai.com.br
+            </a>
+            .
+          </P>
+        </Section>
+
+        {/* 14. Lei Aplicável e Foro */}
+        <Section number={14} title="Lei Aplicável e Foro">
           <P>
             Estes Termos são regidos pela legislação da República Federativa do Brasil. Para
             dirimir quaisquer controvérsias oriundas destes Termos, fica eleito o foro da Comarca
@@ -455,8 +645,8 @@ export default function TermosPage() {
           </P>
         </Section>
 
-        {/* 14. Contato */}
-        <Section number={14} title="Contato">
+        {/* 15. Contato */}
+        <Section number={15} title="Contato">
           <P>
             Para dúvidas, solicitações ou reclamações, entre em contato conosco:
           </P>
