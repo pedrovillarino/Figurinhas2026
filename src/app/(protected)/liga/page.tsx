@@ -62,6 +62,7 @@ export default async function LigaPage() {
   let temporadaAtual: number | null = null
   let unlocksAtuais: number[] = []
   let positionPeriodo: number | null = null
+  let top10Periodo: Array<{ rank: number; firstName: string; points: number; isMe: boolean }> = []
 
   if (optedIn) {
     // XP total
@@ -105,6 +106,26 @@ export default async function LigaPage() {
       const sorted = Array.from(byUser.entries()).sort((a, b) => b[1] - a[1])
       const idx = sorted.findIndex(([uid]) => uid === user.id)
       positionPeriodo = idx >= 0 ? idx + 1 : null
+
+      // Top 10 da Temporada — privacidade: só primeiro nome.
+      const topIds = sorted.slice(0, 10).map(([uid]) => uid)
+      if (topIds.length > 0) {
+        const { data: topProfiles } = await admin
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', topIds)
+        const nameById = new Map<string, string>()
+        for (const p of (topProfiles || []) as Array<{ id: string; display_name: string | null }>) {
+          const first = (p.display_name || '').trim().split(/\s+/)[0] || 'Anônimo'
+          nameById.set(p.id, first)
+        }
+        top10Periodo = sorted.slice(0, 10).map(([uid, pts], i) => ({
+          rank: i + 1,
+          firstName: nameById.get(uid) || 'Anônimo',
+          points: pts,
+          isMe: uid === user.id,
+        }))
+      }
     }
 
     // Unlocks atuais
@@ -116,8 +137,10 @@ export default async function LigaPage() {
     unlocksAtuais = ((unlocks || []) as Array<{ milestone: number }>).map((u) => u.milestone)
   }
 
-  // Próximo marco
-  const proximoMarco = marcos.find((m) => xpTotal < m) ?? null
+  // Próximo marco + os 4 marcos bloqueados seguintes (visíveis com XP, sem nome).
+  const restantes = marcos.filter((m) => xpTotal < m)
+  const proximoMarco = restantes[0] ?? null
+  const proximosBloqueados = restantes.slice(1, 5)
   const faltaProximo = proximoMarco !== null ? proximoMarco - xpTotal : 0
 
   return (
@@ -133,7 +156,9 @@ export default async function LigaPage() {
       marcos={marcos}
       proximoMarco={proximoMarco}
       faltaProximo={faltaProximo}
+      proximosBloqueados={proximosBloqueados}
       unlocks={unlocksAtuais}
+      top10Periodo={top10Periodo}
       pontosEvento={LIGA_EVENT_POINTS}
     />
   )
