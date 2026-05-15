@@ -1,6 +1,5 @@
-// Renderiza o tabelão (sem precisar de Supabase) com 48 países mock + FIFA WC + Coca-Cola.
-// Marca aleatoriamente ~50% das células pra simular um user médio. Output: /tmp/tabelao-preview.pdf.
-// Pedro 2026-05-14: A4 portrait single-page, igual ao modo 'full' real.
+// Renderiza o tabelão (sem precisar de Supabase) com 48 países + FIFA WC + Coca-Cola
+// na MESMA ordem do álbum (consultada via DB em 2026-05-14). Output: /tmp/tabelao-preview.pdf.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,61 +16,79 @@ const COLOR_GREEN = '#00C896'
 const COLOR_GRAY = '#374151'
 const COLOR_GRAY_LIGHT = '#6B7280'
 
-const FIFA_CODE_BY_COUNTRY = {
-  Algeria: 'ALG', Argentina: 'ARG', Australia: 'AUS', Austria: 'AUT',
-  Belgium: 'BEL', 'Bosnia and Herzegovina': 'BIH', Brazil: 'BRA', Canada: 'CAN',
-  'Cape Verde': 'CPV', Colombia: 'COL', Croatia: 'CRO', Curacao: 'CUW',
-  'Czech Republic': 'CZE', 'DR Congo': 'COD', Ecuador: 'ECU', Egypt: 'EGY',
-  England: 'ENG', France: 'FRA', Germany: 'GER', Ghana: 'GHA', Haiti: 'HAI',
-  Iran: 'IRN', Iraq: 'IRQ', 'Ivory Coast': 'CIV', Japan: 'JPN', Jordan: 'JOR',
-  Mexico: 'MEX', Morocco: 'MAR', Netherlands: 'NED', 'New Zealand': 'NZL',
-  Norway: 'NOR', Panama: 'PAN', Paraguay: 'PAR', Portugal: 'POR', Qatar: 'QAT',
-  'Saudi Arabia': 'KSA', Scotland: 'SCO', Senegal: 'SEN', 'South Africa': 'RSA',
-  'South Korea': 'KOR', Spain: 'ESP', Sweden: 'SWE', Switzerland: 'SUI',
-  Tunisia: 'TUN', Turkey: 'TUR', USA: 'USA', Uruguay: 'URU', Uzbekistan: 'UZB',
-}
-const PT_NAME_BY_KEY = {
-  Algeria: 'ARGÉLIA', Argentina: 'ARGENTINA', Australia: 'AUSTRÁLIA', Austria: 'ÁUSTRIA',
-  Belgium: 'BÉLGICA', 'Bosnia and Herzegovina': 'BÓSNIA', Brazil: 'BRASIL', Canada: 'CANADÁ',
-  'Cape Verde': 'CABO VERDE', Colombia: 'COLÔMBIA', Croatia: 'CROÁCIA', Curacao: 'CURAÇAO',
-  'Czech Republic': 'REP. TCHECA', 'DR Congo': 'R.D. CONGO', Ecuador: 'EQUADOR', Egypt: 'EGITO',
-  England: 'INGLATERRA', France: 'FRANÇA', Germany: 'ALEMANHA', Ghana: 'GANA', Haiti: 'HAITI',
-  Iran: 'IRÃ', Iraq: 'IRAQUE', 'Ivory Coast': 'COSTA DO MARFIM', Japan: 'JAPÃO', Jordan: 'JORDÂNIA',
-  Mexico: 'MÉXICO', Morocco: 'MARROCOS', Netherlands: 'HOLANDA', 'New Zealand': 'NOVA ZELÂNDIA',
-  Norway: 'NORUEGA', Panama: 'PANAMÁ', Paraguay: 'PARAGUAI', Portugal: 'PORTUGAL', Qatar: 'CATAR',
-  'Saudi Arabia': 'ARÁBIA SAUDITA', Scotland: 'ESCÓCIA', Senegal: 'SENEGAL', 'South Africa': 'ÁFRICA DO SUL',
-  'South Korea': 'COREIA DO SUL', Spain: 'ESPANHA', Sweden: 'SUÉCIA', Switzerland: 'SUÍÇA',
-  Tunisia: 'TUNÍSIA', Turkey: 'TURQUIA', USA: 'ESTADOS UNIDOS', Uruguay: 'URUGUAI', Uzbekistan: 'UZBEQUISTÃO',
-  'FIFA World Cup': 'FIFA WORLD CUP', 'Coca-Cola': 'COCA-COLA',
-}
-const FIFA_CODE_BY_SPECIAL = { 'FIFA World Cup': 'FWC', 'Coca-Cola': 'CC' }
+// Ordem real do álbum (display_order min de cada seção, em 2026-05-14)
+// FIFA WC primeiro, países em ordem de grupo FIFA, Coca-Cola por último.
+const SECTIONS_ORDERED = [
+  { name: 'FIFA World Cup', code: 'FWC', count: 20 },
+  { name: 'Mexico', code: 'MEX', count: 20 },
+  { name: 'South Africa', code: 'RSA', count: 20 },
+  { name: 'Korea Republic', code: 'KOR', count: 20 },
+  { name: 'Czechia', code: 'CZE', count: 20 },
+  { name: 'Canada', code: 'CAN', count: 20 },
+  { name: 'Bosnia and Herzegovina', code: 'BIH', count: 20, display: 'BOSNIA' },
+  { name: 'Qatar', code: 'QAT', count: 20 },
+  { name: 'Switzerland', code: 'SUI', count: 20 },
+  { name: 'Brazil', code: 'BRA', count: 20 },
+  { name: 'Morocco', code: 'MAR', count: 20 },
+  { name: 'Haiti', code: 'HAI', count: 20 },
+  { name: 'Scotland', code: 'SCO', count: 20 },
+  { name: 'USA', code: 'USA', count: 20 },
+  { name: 'Paraguay', code: 'PAR', count: 20 },
+  { name: 'Australia', code: 'AUS', count: 20 },
+  { name: 'Turkey', code: 'TUR', count: 20 },
+  { name: 'Germany', code: 'GER', count: 20 },
+  { name: 'Curaçao', code: 'CUW', count: 20 },
+  { name: "Côte d'Ivoire", code: 'CIV', count: 20 },
+  { name: 'Ecuador', code: 'ECU', count: 20 },
+  { name: 'Netherlands', code: 'NED', count: 20 },
+  { name: 'Japan', code: 'JPN', count: 20 },
+  { name: 'Sweden', code: 'SWE', count: 20 },
+  { name: 'Tunisia', code: 'TUN', count: 20 },
+  { name: 'Belgium', code: 'BEL', count: 20 },
+  { name: 'Egypt', code: 'EGY', count: 20 },
+  { name: 'Iran', code: 'IRN', count: 20 },
+  { name: 'New Zealand', code: 'NZL', count: 20 },
+  { name: 'Spain', code: 'ESP', count: 20 },
+  { name: 'Cabo Verde', code: 'CPV', count: 20 },
+  { name: 'Saudi Arabia', code: 'KSA', count: 20 },
+  { name: 'Uruguay', code: 'URU', count: 20 },
+  { name: 'France', code: 'FRA', count: 20 },
+  { name: 'Senegal', code: 'SEN', count: 20 },
+  { name: 'Iraq', code: 'IRQ', count: 20 },
+  { name: 'Norway', code: 'NOR', count: 20 },
+  { name: 'Argentina', code: 'ARG', count: 20 },
+  { name: 'Algeria', code: 'ALG', count: 20 },
+  { name: 'Austria', code: 'AUT', count: 20 },
+  { name: 'Jordan', code: 'JOR', count: 20 },
+  { name: 'Portugal', code: 'POR', count: 20 },
+  { name: 'DR Congo', code: 'COD', count: 20 },
+  { name: 'Uzbekistan', code: 'UZB', count: 20 },
+  { name: 'Colombia', code: 'COL', count: 20 },
+  { name: 'England', code: 'ENG', count: 20 },
+  { name: 'Croatia', code: 'CRO', count: 20 },
+  { name: 'Ghana', code: 'GHA', count: 20 },
+  { name: 'Panama', code: 'PAN', count: 20 },
+  { name: 'Coca-Cola', code: 'CC', count: 14 },
+]
 
 const flagsDir = path.resolve(__dirname, '..', 'public', 'flags')
-const flagPathFor = (fifaCode) => {
-  const p = path.join(flagsDir, `${fifaCode}.png`)
+const flagPathFor = (code) => {
+  const p = path.join(flagsDir, `${code}.png`)
   return fs.existsSync(p) ? p : null
 }
 
-const countryKeys = Object.keys(FIFA_CODE_BY_COUNTRY).sort()
-const specialKeys = ['FIFA World Cup', 'Coca-Cola']
-const sortedKeys = [...countryKeys, ...specialKeys]
-
-const groups = {}
-let stickerId = 1
-for (const key of countryKeys) {
-  const code = FIFA_CODE_BY_COUNTRY[key]
-  groups[key] = Array.from({ length: 20 }, (_, i) => ({ id: stickerId++, number: `${code}-${i + 1}` }))
-}
-groups['FIFA World Cup'] = Array.from({ length: 20 }, (_, i) => ({ id: stickerId++, number: `FWC-${i + 1}` }))
-groups['Coca-Cola'] = Array.from({ length: 14 }, (_, i) => ({ id: stickerId++, number: `CC-${i + 1}` }))
-
 const userMap = new Map()
-for (const key of sortedKeys) {
-  for (const s of groups[key]) if (Math.random() < 0.5) userMap.set(s.id, { status: 'owned', quantity: 1 })
+let stickerId = 1
+const groups = {}
+for (const sec of SECTIONS_ORDERED) {
+  groups[sec.name] = Array.from({ length: sec.count }, (_, i) => ({
+    id: stickerId++, number: `${sec.code}-${i + 1}`,
+  }))
+  for (const s of groups[sec.name]) if (Math.random() < 0.5) userMap.set(s.id, { status: 'owned' })
 }
 
 const type = 'missing'
-const albumTotal = countryKeys.reduce((sum, k) => sum + groups[k].length, 0) + groups['FIFA World Cup'].length
+const albumTotal = SECTIONS_ORDERED.filter((s) => s.name !== 'Coca-Cola').reduce((a, s) => a + s.count, 0)
 const countOwned = Array.from(userMap.values()).filter((u) => u.status === 'owned' || u.status === 'duplicate').length
 
 async function main() {
@@ -88,27 +105,21 @@ async function main() {
   const HEADER_H = 38, HEADER_BOTTOM = MARGIN + HEADER_H, CONTENT_TOP = HEADER_BOTTOM + 4
 
   const titleStr = `Seu álbum: ${countOwned}/${albumTotal}`
-  const subtitleStr = `Preview · ${new Date().toLocaleDateString('pt-BR')} · verde = já tem · vazio = falta colar`
+  const subtitleStr = `Preview · ${new Date().toLocaleDateString('pt-BR')} · verde com X = já tem · branco = falta colar`
 
   const drawPageHeader = () => {
-    const yTop = MARGIN
-    const logoSize = 22
+    const yTop = MARGIN, logoSize = 22
     if (hasIcon) doc.image(iconPath, MARGIN, yTop, { width: logoSize })
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(13)
-      .text('Complete', MARGIN + logoSize + 6, yTop + 4, { continued: true })
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(13).text('Complete', MARGIN + logoSize + 6, yTop + 4, { continued: true })
     doc.fillColor(COLOR_GREEN).text(' Aí', { continued: false })
     const titleX = MARGIN + logoSize + 90
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(11)
-      .text(titleStr, titleX, yTop + 4, { width: 280, lineBreak: false })
-    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7)
-      .text(subtitleStr, titleX, yTop + 20, { width: 280, lineBreak: false })
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(11).text(titleStr, titleX, yTop + 4, { width: 280, lineBreak: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(7).text(subtitleStr, titleX, yTop + 20, { width: 280, lineBreak: false })
     const qrSize = 34, qrX = PAGE_WIDTH - MARGIN - qrSize
     doc.image(qrBuffer, qrX, yTop, { width: qrSize, height: qrSize })
     const textW = 130, textX = qrX - textW - 4
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7)
-      .text('completeai.com.br', textX, yTop + 4, { width: textW, align: 'right', lineBreak: false })
-    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6)
-      .text('Indique pelo QR e ganhe benefícios!', textX, yTop + 16, { width: textW, align: 'right' })
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(7).text('completeai.com.br', textX, yTop + 4, { width: textW, align: 'right', lineBreak: false })
+    doc.fillColor(COLOR_GRAY_LIGHT).font('Helvetica').fontSize(6).text('Indique pelo QR e ganhe benefícios!', textX, yTop + 16, { width: textW, align: 'right' })
     doc.moveTo(MARGIN, HEADER_BOTTOM).lineTo(PAGE_WIDTH - MARGIN, HEADER_BOTTOM).strokeColor('#E5E7EB').lineWidth(0.6).stroke()
   }
   drawPageHeader()
@@ -132,10 +143,10 @@ async function main() {
   }
   const fillColorMarked = '#A7F3D0'
   const xStrokeMarked = '#047857'
-  const drawCell = (x, y, label, state, zebraGreen) => {
+  const drawCell = (x, y, label, state) => {
     if (state === 'padding') doc.rect(x, y, CELL_W, CELL_H).fillColor('#1F2937').fill()
     else if (state === 'marked') doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColorMarked).fill()
-    else doc.rect(x, y, CELL_W, CELL_H).fillColor(zebraGreen ? '#C8E6C9' : '#FFFFFF').fill()
+    else doc.rect(x, y, CELL_W, CELL_H).fillColor('#FFFFFF').fill()
     doc.lineWidth(0.4).strokeColor('#9CA3AF').rect(x, y, CELL_W, CELL_H).stroke()
     if (state === 'padding') return
     const textY = y + (CELL_H - FS_CELL) / 2 - 0.5
@@ -152,16 +163,16 @@ async function main() {
 
   drawTableHeader(curY); curY += TABLE_HEADER_H
   let rowZebra = false
-  for (const sectionKey of sortedKeys) {
-    const items = groups[sectionKey]
-    const ptName = PT_NAME_BY_KEY[sectionKey] || sectionKey.toUpperCase()
-    const fifaCode = FIFA_CODE_BY_COUNTRY[sectionKey] || FIFA_CODE_BY_SPECIAL[sectionKey] || ''
-    const flagPath = fifaCode && !FIFA_CODE_BY_SPECIAL[sectionKey] ? flagPathFor(fifaCode) : null
+  for (const sec of SECTIONS_ORDERED) {
+    const items = groups[sec.name]
+    const displayName = sec.display || sec.name.toUpperCase()
+    const fifaCode = items[0].number.split('-')[0]
+    const flagPath = flagPathFor(fifaCode)
     const bandY = curY, bandBg = rowZebra ? '#F9FAFB' : '#FFFFFF'
     doc.rect(MARGIN, bandY, META_W, CELL_H).fillColor(bandBg).fill()
     doc.lineWidth(0.4).strokeColor('#9CA3AF').rect(MARGIN, bandY, META_W, CELL_H).stroke()
     const textY = bandY + (CELL_H - FS_META) / 2 - 0.5
-    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(FS_META).text(ptName, MARGIN + 3, textY, { width: NAME_W - 5, lineBreak: false, ellipsis: true })
+    doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(FS_META).text(displayName, MARGIN + 3, textY, { width: NAME_W - 5, height: FS_META + 2, lineBreak: false, ellipsis: true })
     doc.fillColor(COLOR_GRAY).font('Helvetica-Bold').fontSize(FS_META).text(fifaCode, MARGIN + NAME_W, textY, { width: CODE_W, align: 'center', lineBreak: false })
     doc.lineWidth(0.4).strokeColor('#9CA3AF').moveTo(MARGIN + NAME_W, bandY).lineTo(MARGIN + NAME_W, bandY + CELL_H).stroke()
     doc.moveTo(MARGIN + NAME_W + CODE_W, bandY).lineTo(MARGIN + NAME_W + CODE_W, bandY + CELL_H).stroke()
@@ -180,19 +191,25 @@ async function main() {
         const isOwned = !!us && (us.status === 'owned' || us.status === 'duplicate')
         const shouldMark = type === 'missing' ? isOwned : false
         const numPart = s.number.split('-')[1] || s.number
-        drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty', col % 2 === 0)
+        drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty')
       } else {
-        drawCell(x, y, '', 'padding', false)
+        drawCell(x, y, '', 'padding')
       }
     }
     rowZebra = !rowZebra
     curY += CELL_H
   }
 
-  // Diagnóstico: imprime onde a tabela terminou — confirma que cabe em 1 página
   console.log(`Final curY = ${curY.toFixed(1)}pt, page height = ${PAGE_HEIGHT}pt, margin bottom = ${MARGIN}pt`)
   console.log(`Slack = ${(PAGE_HEIGHT - MARGIN - curY).toFixed(1)}pt`)
   console.log(`Total pages = ${doc.bufferedPageRange().count}`)
+  // Sanity check: garante 48 bandeiras presentes
+  let missingFlags = 0
+  for (const sec of SECTIONS_ORDERED) {
+    if (sec.code === 'FWC' || sec.code === 'CC') continue
+    if (!flagPathFor(sec.code)) { console.error(`MISSING FLAG: ${sec.code}`); missingFlags++ }
+  }
+  console.log(`Flags ausentes: ${missingFlags}`)
   doc.end()
   console.log(`Wrote ${outPath}`)
 }
