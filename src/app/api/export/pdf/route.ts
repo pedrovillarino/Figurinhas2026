@@ -130,17 +130,29 @@ export async function GET(req: NextRequest) {
   const albumStickerIds = new Set(
     allList.filter((s) => s.section !== 'Coca-Cola').map((s) => s.id),
   )
+  // Pedro 2026-05-15: contagem alinhada com /album (AlbumClient stats):
+  //   countOwned: só completable stickers (exclui Coca-Cola) → bate com X/980
+  //   countDupeStickers: TODAS figurinhas distintas com status='duplicate',
+  //     incluindo Coca-Cola (são moeda de troca igual a qualquer extra)
+  //   countDupeExtras: total de cromos físicos extras = soma de (qty - 1)
+  // Antes o PDF excluía Coca-Cola das repetidas e não somava qty — daí
+  // não batia com o número que o user via no /album.
   let countOwned = 0
-  let countDuplicates = 0
-  for (const us of (userStickers || []) as Array<{ sticker_id: number; status: string }>) {
-    if (!albumStickerIds.has(us.sticker_id)) continue
-    if (us.status === 'owned' || us.status === 'duplicate') countOwned++
-    if (us.status === 'duplicate') countDuplicates++
+  let countDupeStickers = 0
+  let countDupeExtras = 0
+  for (const us of (userStickers || []) as Array<{ sticker_id: number; status: string; quantity: number }>) {
+    if (albumStickerIds.has(us.sticker_id)) {
+      if (us.status === 'owned' || us.status === 'duplicate') countOwned++
+    }
+    if (us.status === 'duplicate') {
+      countDupeStickers++
+      countDupeExtras += Math.max(0, (us.quantity ?? 1) - 1)
+    }
   }
   console.log(
     `[pdf-export] user=${userId} type=${type} view=${view} ` +
     `allStickers=${allList.length} albumTotal=${albumTotal} userStickers=${userStickers?.length ?? 0} ` +
-    `countOwned=${countOwned} countDuplicates=${countDuplicates}`,
+    `countOwned=${countOwned} countDupeStickers=${countDupeStickers} countDupeExtras=${countDupeExtras}`,
   )
 
   // 3) QR code (data URL → PNG buffer pra embedar no PDF)
@@ -185,9 +197,12 @@ export async function GET(req: NextRequest) {
   // 1 linha por seção. Marcadas as que o user já tem.
   // Modo 'missing': marca verde = tem (vazias = falta colar)
   // Modo 'duplicates': marca âmbar = tem repetida (vazias = não pode trocar)
+  const pct = albumTotal > 0 ? Math.round((countOwned / albumTotal) * 100) : 0
+  // Repetidas no formato do /album: "X cromos · Y figs" (físico · distintas).
+  const dupesStr = `${countDupeExtras} cromo${countDupeExtras === 1 ? '' : 's'} · ${countDupeStickers} fig${countDupeStickers === 1 ? '' : 's'}`
   const titleStr = type === 'missing'
-    ? `Seu álbum: ${countOwned}/${albumTotal}`
-    : `Suas repetidas: ${countDuplicates}`
+    ? `Seu álbum: ${countOwned}/${albumTotal} (${pct}%) · repetidas: ${dupesStr}`
+    : `Suas repetidas: ${dupesStr} · álbum ${countOwned}/${albumTotal} (${pct}%)`
   const subtitleStr = type === 'missing'
     ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · verde com X = já tem · branco = falta colar`
     : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · âmbar com X = você tem repetida pra trocar`

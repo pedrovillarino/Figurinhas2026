@@ -90,6 +90,10 @@ for (const sec of SECTIONS_ORDERED) {
 const type = 'missing'
 const albumTotal = SECTIONS_ORDERED.filter((s) => s.name !== 'Coca-Cola').reduce((a, s) => a + s.count, 0)
 const countOwned = Array.from(userMap.values()).filter((u) => u.status === 'owned' || u.status === 'duplicate').length
+const countDupeStickers = Array.from(userMap.values()).filter((u) => u.status === 'duplicate').length
+const countDupeExtras = Array.from(userMap.values()).reduce((a, u) => a + (u.status === 'duplicate' ? Math.max(0, (u.quantity ?? 1) - 1) : 0), 0)
+const pct = albumTotal > 0 ? Math.round((countOwned / albumTotal) * 100) : 0
+const dupesStr = `${countDupeExtras} cromo${countDupeExtras === 1 ? '' : 's'} · ${countDupeStickers} fig${countDupeStickers === 1 ? '' : 's'}`
 
 async function main() {
   const qrUrl = `${APP_URL}/u/PREVIEW`
@@ -104,7 +108,7 @@ async function main() {
   const PAGE_WIDTH = 595, PAGE_HEIGHT = 842, MARGIN = 18
   const HEADER_H = 38, HEADER_BOTTOM = MARGIN + HEADER_H, CONTENT_TOP = HEADER_BOTTOM + 4
 
-  const titleStr = `Seu álbum: ${countOwned}/${albumTotal}`
+  const titleStr = `Seu álbum: ${countOwned}/${albumTotal} (${pct}%) · repetidas: ${dupesStr}`
   const subtitleStr = `Preview · ${new Date().toLocaleDateString('pt-BR')} · verde com X = já tem · branco = falta colar`
 
   const drawPageHeader = () => {
