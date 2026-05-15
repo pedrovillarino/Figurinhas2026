@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
   // explícito + log do count pra detectar.
   const [{ data: allStickers, error: allErr }, { data: userStickers, error: userErr }] = await Promise.all([
     admin.from('stickers')
-      .select('id, number, player_name, country, section, type, variant')
+      .select('id, number, player_name, country, section, type, variant, display_order')
       .or('counts_for_completion.eq.true,section.eq.Coca-Cola')
       .range(0, 1999),
     admin.from('user_stickers')
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
   const userMap = new Map<number, { status: string; quantity: number }>()
   ;(userStickers || []).forEach((us) => userMap.set((us as { sticker_id: number }).sticker_id, us as { status: string; quantity: number }))
 
-  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null }
+  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null; display_order: number | null }
   const allList: Sticker[] = (allStickers || []) as Sticker[]
   // Total do álbum (denominador) = só counts_for_completion=true. Bate com
   // /album, /scan, /profile e dashboard.
@@ -189,8 +189,8 @@ export async function GET(req: NextRequest) {
     ? `Seu álbum: ${countOwned}/${albumTotal}`
     : `Suas repetidas: ${countDuplicates}`
   const subtitleStr = type === 'missing'
-    ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em verde = já tem · vazio = falta colar`
-    : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · em âmbar = você tem repetida pra trocar`
+    ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · verde com X = já tem · branco = falta colar`
+    : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · âmbar com X = você tem repetida pra trocar`
 
   // ── Page header (logo + título + QR) ──
   // Compact portrait: 1 linha (38pt). Landscape antigo: 60pt com subtítulo.
@@ -275,10 +275,25 @@ export async function GET(req: NextRequest) {
     if (!groups[key]) groups[key] = []
     groups[key].push(s)
   }
-  // Ordem: países alfabéticos primeiro, depois FIFA WC, depois Coca-Cola
-  const countryKeys = Object.keys(groups).filter((k) => k !== 'Coca-Cola' && k !== 'FIFA World Cup').sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  const specialKeys = ['FIFA World Cup', 'Coca-Cola'].filter((k) => groups[k])
-  const sortedKeys = [...countryKeys, ...specialKeys]
+  // Pedro 2026-05-14: ordem das seções segue o display_order do álbum
+  // físico (mesma ordem que /album mostra): intro FWC → times em ordem de
+  // grupo FIFA A-L → FIFA history → Coca-Cola. Cada seção é ordenada pelo
+  // MENOR display_order dos seus itens. Fallback alfabético quando NULL.
+  const sectionMinOrder: Record<string, number> = {}
+  for (const [key, items] of Object.entries(groups)) {
+    let minOrder = Number.POSITIVE_INFINITY
+    for (const s of items) {
+      const ord = s.display_order ?? Number.POSITIVE_INFINITY
+      if (ord < minOrder) minOrder = ord
+    }
+    sectionMinOrder[key] = minOrder
+  }
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    const oa = sectionMinOrder[a]
+    const ob = sectionMinOrder[b]
+    if (oa !== ob) return oa - ob
+    return a.localeCompare(b, 'pt-BR')
+  })
 
   // ── MODO COMPACT — só faltantes em lista densa (Pedro 2026-05-09) ──
   // Otimizado pra caber em poucas páginas. Cada seção: header + lista
@@ -368,36 +383,14 @@ export async function GET(req: NextRequest) {
 
   // Map country (EN, vindo do DB) → { display PT-BR, FIFA code, flag path }
   // PT-BR display: nomes oficiais Panini / FIFA Copa 2026.
-  const FIFA_CODE_BY_COUNTRY: Record<string, string> = {
-    Algeria: 'ALG', Argentina: 'ARG', Australia: 'AUS', Austria: 'AUT',
-    Belgium: 'BEL', 'Bosnia and Herzegovina': 'BIH', Brazil: 'BRA', Canada: 'CAN',
-    'Cape Verde': 'CPV', Colombia: 'COL', Croatia: 'CRO', Curacao: 'CUW',
-    'Czech Republic': 'CZE', 'DR Congo': 'COD', Ecuador: 'ECU', Egypt: 'EGY',
-    England: 'ENG', France: 'FRA', Germany: 'GER', Ghana: 'GHA', Haiti: 'HAI',
-    Iran: 'IRN', Iraq: 'IRQ', 'Ivory Coast': 'CIV', Japan: 'JPN', Jordan: 'JOR',
-    Mexico: 'MEX', Morocco: 'MAR', Netherlands: 'NED', 'New Zealand': 'NZL',
-    Norway: 'NOR', Panama: 'PAN', Paraguay: 'PAR', Portugal: 'POR', Qatar: 'QAT',
-    'Saudi Arabia': 'KSA', Scotland: 'SCO', Senegal: 'SEN', 'South Africa': 'RSA',
-    'South Korea': 'KOR', Spain: 'ESP', Sweden: 'SWE', Switzerland: 'SUI',
-    Tunisia: 'TUN', Turkey: 'TUR', USA: 'USA', Uruguay: 'URU', Uzbekistan: 'UZB',
-  }
-  const PT_NAME_BY_KEY: Record<string, string> = {
-    Algeria: 'ARGÉLIA', Argentina: 'ARGENTINA', Australia: 'AUSTRÁLIA', Austria: 'ÁUSTRIA',
-    Belgium: 'BÉLGICA', 'Bosnia and Herzegovina': 'BÓSNIA', Brazil: 'BRASIL', Canada: 'CANADÁ',
-    'Cape Verde': 'CABO VERDE', Colombia: 'COLÔMBIA', Croatia: 'CROÁCIA', Curacao: 'CURAÇAO',
-    'Czech Republic': 'REP. TCHECA', 'DR Congo': 'R.D. CONGO', Ecuador: 'EQUADOR', Egypt: 'EGITO',
-    England: 'INGLATERRA', France: 'FRANÇA', Germany: 'ALEMANHA', Ghana: 'GANA', Haiti: 'HAITI',
-    Iran: 'IRÃ', Iraq: 'IRAQUE', 'Ivory Coast': 'COSTA DO MARFIM', Japan: 'JAPÃO', Jordan: 'JORDÂNIA',
-    Mexico: 'MÉXICO', Morocco: 'MARROCOS', Netherlands: 'HOLANDA', 'New Zealand': 'NOVA ZELÂNDIA',
-    Norway: 'NORUEGA', Panama: 'PANAMÁ', Paraguay: 'PARAGUAI', Portugal: 'PORTUGAL', Qatar: 'CATAR',
-    'Saudi Arabia': 'ARÁBIA SAUDITA', Scotland: 'ESCÓCIA', Senegal: 'SENEGAL', 'South Africa': 'ÁFRICA DO SUL',
-    'South Korea': 'COREIA DO SUL', Spain: 'ESPANHA', Sweden: 'SUÉCIA', Switzerland: 'SUÍÇA',
-    Tunisia: 'TUNÍSIA', Turkey: 'TURQUIA', USA: 'ESTADOS UNIDOS', Uruguay: 'URUGUAI', Uzbekistan: 'UZBEQUISTÃO',
-    'FIFA World Cup': 'FIFA WORLD CUP', 'Coca-Cola': 'COCA-COLA',
-  }
-  const FIFA_CODE_BY_SPECIAL: Record<string, string> = {
-    'FIFA World Cup': 'FWC',
-    'Coca-Cola': 'CC',
+  // Pedro 2026-05-14: nomes em inglês idênticos ao álbum, e o CÓDIGO FIFA
+  // é derivado do prefixo do `number` (BRA-1 → BRA). Sem maps de tradução
+  // de país: o display é `sectionKey.toUpperCase()` e o código vem do
+  // sticker em si — à prova de novos países/renames no DB.
+  // Único override: nomes longos demais que sobrariam da célula (mesmo
+  // padrão do impresso Panini). Code FIFA segue oficial no CÓD.
+  const DISPLAY_OVERRIDES: Record<string, string> = {
+    'Bosnia and Herzegovina': 'BOSNIA',
   }
 
   const flagsDir = path.join(process.cwd(), 'public', 'flags')
@@ -450,14 +443,15 @@ export async function GET(req: NextRequest) {
   const fillColorMarked = type === 'missing' ? '#A7F3D0' : '#FCD34D'  // verde claro | âmbar
   const xStrokeMarked = type === 'missing' ? '#047857' : '#B45309'    // verde escuro / âmbar escuro
 
-  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding', zebraGreen: boolean) => {
+  const drawCell = (x: number, y: number, label: string, state: 'empty' | 'marked' | 'padding') => {
     if (state === 'padding') {
       doc.rect(x, y, CELL_W, CELL_H).fillColor('#1F2937').fill()  // preto/cinza escuro = inexistente
     } else if (state === 'marked') {
       doc.rect(x, y, CELL_W, CELL_H).fillColor(fillColorMarked).fill()
     } else {
-      // Zebra: pares = verde claro Panini, ímpares = branco
-      doc.rect(x, y, CELL_W, CELL_H).fillColor(zebraGreen ? '#C8E6C9' : '#FFFFFF').fill()
+      // Pedro 2026-05-14: faltantes SEMPRE brancas (sem zebra verde).
+      // Verde fica reservado pra "já tem" — sem ambiguidade visual.
+      doc.rect(x, y, CELL_W, CELL_H).fillColor('#FFFFFF').fill()
     }
     doc.lineWidth(0.4).strokeColor('#9CA3AF').rect(x, y, CELL_W, CELL_H).stroke()
 
@@ -503,9 +497,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Resolve nome PT-BR, código e bandeira
-    const ptName = PT_NAME_BY_KEY[sectionKey] || sectionKey.toUpperCase()
-    const fifaCode = FIFA_CODE_BY_COUNTRY[sectionKey] || FIFA_CODE_BY_SPECIAL[sectionKey] || ''
-    const flagPath = fifaCode && !FIFA_CODE_BY_SPECIAL[sectionKey] ? flagPathFor(fifaCode) : null
+    // Nome: igual ao álbum (inglês), só caixa alta — com override pra
+    // nomes longos que sobrariam da célula (ex: Bosnia and Herzegovina).
+    const displayName = DISPLAY_OVERRIDES[sectionKey] || sectionKey.toUpperCase()
+    // Código: deriva do prefixo do número da figurinha. "BRA-1" → "BRA",
+    // "FWC-0" → "FWC", "CC-1" → "CC". Garante código nunca em branco.
+    const fifaCode = items[0]?.number.split('-')[0] || ''
+    // Bandeira: existe? só países têm; FWC/CC não tem flag PNG no disco.
+    const flagPath = fifaCode ? flagPathFor(fifaCode) : null
 
     // Fundo da faixa de metadados (zebra horizontal sutil)
     const bandY = curY
@@ -516,7 +515,7 @@ export async function GET(req: NextRequest) {
     const textY = bandY + (CELL_H - FS_META) / 2 - 0.5
     // NOME
     doc.fillColor(COLOR_NAVY).font('Helvetica-Bold').fontSize(FS_META)
-      .text(ptName, MARGIN + 3, textY, { width: NAME_W - 5, lineBreak: false, ellipsis: true })
+      .text(displayName, MARGIN + 3, textY, { width: NAME_W - 5, height: FS_META + 2, lineBreak: false, ellipsis: true })
 
     // CÓDIGO
     doc.fillColor(COLOR_GRAY).font('Helvetica-Bold').fontSize(FS_META)
@@ -563,10 +562,9 @@ export async function GET(req: NextRequest) {
         const isDuplicate = !!us && us.status === 'duplicate'
         const shouldMark = type === 'missing' ? isOwned : isDuplicate
         const numPart = s.number.split('-')[1] || s.number
-        // Zebra alternando dentro da linha (col par = verde claro, ímpar = branco)
-        drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty', col % 2 === 0)
+        drawCell(x, y, numPart, shouldMark ? 'marked' : 'empty')
       } else {
-        drawCell(x, y, '', 'padding', false)
+        drawCell(x, y, '', 'padding')
       }
     }
 
