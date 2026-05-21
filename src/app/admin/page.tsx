@@ -7,6 +7,7 @@ import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
 import SupportAdminSection from './SupportAdminSection'
 import NotificationsAdminSection from './NotificationsAdminSection'
 import LigaAdminSection from './LigaAdminSection'
+import TrialAdminSection from './TrialAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -643,6 +644,10 @@ export default async function AdminPage({
       {/* Liga Complete Aí 2026 — controle da campanha de pontos (15/05 → 16/07).
           Substituiu EmbaixadoresAdminSection (encerrada 12/05) — Pedro 21/05. */}
       <LigaAdminSection />
+
+      {/* Trial Funnel — paywall híbrido lançado em 21/05. Mostra users em
+          trial ativo, expirados, convertidos + taxa de conversão. */}
+      <TrialAdminSection />
 
       {/* Pedro 2026-05-03: Notificações automáticas — histórico + taxa de
           volta 24h por tipo. Útil pra ver se as notificações estão
