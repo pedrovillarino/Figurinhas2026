@@ -16,6 +16,7 @@ import ReferralApplier from '@/components/ReferralApplier'
 import AuthRefresh from '@/components/AuthRefresh'
 import ClientHealthCheck from '@/components/ClientHealthCheck'
 import LaunchPromoModal from '@/components/LaunchPromoModal'
+import TrialStateBanner from '@/components/TrialStateBanner'
 import AuthCompletionTracker from '@/components/AuthCompletionTracker'
 import PendingPhoneSync from '@/components/PendingPhoneSync'
 import { createClient } from '@/lib/supabase/server'
@@ -38,6 +39,10 @@ export default async function ProtectedLayout({
   return (
     <div className="min-h-screen pb-20">
       <AppHeader />
+      {/* Pedro 2026-05-21: banner do trial (ativo / expirado). Fica logo
+          abaixo do header em todas as telas protected. Auto-some pra
+          pagantes e free legacy. */}
+      <TrialStateBanner />
       {/* Pedro 2026-05-11: faixa amarela do Quick Start. Só renderiza se
           user está em modo ativo (step ≠ null && ≠ 'done'). Fica logo
           abaixo do header pra ficar visível em todas as telas. */}
