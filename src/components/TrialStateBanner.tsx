@@ -51,16 +51,16 @@ export default function TrialStateBanner() {
     return (
       <div className={`${bgClass} border-b px-4 py-2.5 flex items-center justify-between gap-3 text-sm`}>
         <div className={`flex-1 ${textClass}`}>
-          <span className="font-bold">🎁 Trial Boost ativo</span>{' '}
+          <span className="font-bold">🎁 7 dias grátis</span>{' '}
           <span className="text-xs">
             {days === 0
-              ? 'expira hoje'
+              ? '· expira hoje, depois precisa assinar'
               : days === 1
-                ? '· 1 dia restante'
-                : `· ${days} dias restantes`}
+                ? '· 1 dia, depois precisa assinar pra continuar'
+                : `· ${days} dias, depois precisa assinar pra continuar`}
           </span>
           <span className="hidden sm:inline text-xs ml-2 opacity-80">
-            Aproveite: 150 scans + áudio ilimitado + 15 trocas
+            (Aproveita: 150 scans + áudio + trocas)
           </span>
         </div>
         <Link

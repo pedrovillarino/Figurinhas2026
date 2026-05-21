@@ -17,6 +17,11 @@ const tutorialSteps = [
   },
   {
     icon: '🎁',
+    title: 'Você ganhou 7 dias grátis',
+    description: 'Pelos próximos 7 dias você tem o plano completo desbloqueado: 150 scans com IA + áudio ilimitado + 15 trocas. Depois desse período, pra continuar usando você assina um plano (a partir de R$ 9,90 — pagamento único, sem mensalidade).',
+  },
+  {
+    icon: '🤝',
     title: 'Convide amigos e ganhe!',
     description: 'Indique o Complete Aí para quem também coleciona. Quando seu amigo entrar, vocês dois ganham créditos de troca e scan. Compartilhe seu link no Perfil!',
   },

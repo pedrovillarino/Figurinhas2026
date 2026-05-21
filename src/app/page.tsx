@@ -197,10 +197,12 @@ export default async function Home() {
             por WhatsApp quando aparece um match na sua região.
           </p>
           <p>
-            Funciona 100% pelo navegador, sem precisar baixar nada. Tem plano
-            grátis para começar e planos pagos a partir de R$ 9,90 (pagamento
-            único, sem mensalidade) para desbloquear scans e trocas ilimitadas
-            durante toda a Copa 2026.
+            Funciona 100% pelo navegador, sem precisar baixar nada. Ao se
+            cadastrar você ganha <strong className="font-semibold text-navy">
+            7 dias completos grátis</strong> (150 scans + áudio ilimitado +
+            15 trocas) pra testar tudo. Depois desse período, pra continuar
+            usando você assina um plano a partir de R$ 9,90 — pagamento
+            único, sem mensalidade.
           </p>
         </div>
       </section>
@@ -211,8 +213,11 @@ export default async function Home() {
           <p className="text-lg font-bold text-navy mb-1">
             Falta pouco pra completar
           </p>
-          <p className="text-xs text-gray-400 mb-5">
-            Crie sua conta grátis e escaneie a primeira figurinha em 30 segundos.
+          <p className="text-xs text-gray-400 mb-1">
+            Crie sua conta e escaneie a primeira figurinha em 30 segundos.
+          </p>
+          <p className="text-xs text-emerald-700 font-semibold mb-5">
+            🎁 7 dias grátis pra testar tudo. Depois R$ 9,90 (pagamento único).
           </p>
           <HomeLogin />
         </div>
