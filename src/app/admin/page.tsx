@@ -1,13 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { TIER_CONFIG, type Tier } from '@/lib/tiers'
-import EmbaixadoresAdminSection from './EmbaixadoresAdminSection'
 import FunnelAdminSection from './FunnelAdminSection'
 import ScanEngagementAdminSection from './ScanEngagementAdminSection'
 import AudioEngagementAdminSection from './AudioEngagementAdminSection'
 import ScanFeedbackAdminSection from './ScanFeedbackAdminSection'
 import SupportAdminSection from './SupportAdminSection'
 import NotificationsAdminSection from './NotificationsAdminSection'
-import StoreAdminSection from './StoreAdminSection'
+import LigaAdminSection from './LigaAdminSection'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'completeai2026'
 
@@ -641,18 +640,14 @@ export default async function AdminPage({
       {/* Scan feedback — perceived quality of the scan feature (👍/👎 + comments) */}
       <ScanFeedbackAdminSection />
 
-      {/* Embaixadores campaign — read-only summary (ranking + counters) */}
-      <EmbaixadoresAdminSection />
+      {/* Liga Complete Aí 2026 — controle da campanha de pontos (15/05 → 16/07).
+          Substituiu EmbaixadoresAdminSection (encerrada 12/05) — Pedro 21/05. */}
+      <LigaAdminSection />
 
       {/* Pedro 2026-05-03: Notificações automáticas — histórico + taxa de
           volta 24h por tipo. Útil pra ver se as notificações estão
           gerando engajamento ou virando ruído. */}
       <NotificationsAdminSection />
-
-      {/* Pedro 2026-05-05: Loja afiliados ML + ads contextuais pra free.
-          Gerencia produtos da /loja standalone e mapeia produto → placement
-          (album_empty, scan_no_results, etc). Free users veem ads inline. */}
-      <StoreAdminSection adminSecret={ADMIN_SECRET} />
 
       {/* Tier breakdown */}
       <SectionTitle>Usuarios por plano</SectionTitle>
