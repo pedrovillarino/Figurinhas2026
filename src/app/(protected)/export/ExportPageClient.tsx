@@ -71,27 +71,28 @@ export default function ExportPageClient({
     const lines: string[] = [title, '']
 
     if (groupByCountry) {
-      const groups: Record<string, Sticker[]> = {}
+      // Map preserva insertion order; stickerList já vem em display_order (ordem do álbum),
+      // então a primeira aparição de cada país define a posição do grupo. Bate com o PDF.
+      const groups = new Map<string, Sticker[]>()
       stickerList.forEach((s) => {
-        if (!groups[s.country]) groups[s.country] = []
-        groups[s.country].push(s)
+        const existing = groups.get(s.country)
+        if (existing) existing.push(s)
+        else groups.set(s.country, [s])
       })
 
-      Object.entries(groups)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .forEach(([country, countryStickers]) => {
-          lines.push(`${country} (${countryStickers.length}):`)
-          const nums = countryStickers.map((s) => {
-            if (type === 'duplicates') {
-              const qty = userMap[s.id]?.quantity || 0
-              const extras = qty - 1
-              return extras > 1 ? `${s.number} (x${extras})` : s.number
-            }
-            return s.number
-          })
-          lines.push(nums.join(', '))
-          lines.push('')
+      groups.forEach((countryStickers, country) => {
+        lines.push(`${country} (${countryStickers.length}):`)
+        const nums = countryStickers.map((s) => {
+          if (type === 'duplicates') {
+            const qty = userMap[s.id]?.quantity || 0
+            const extras = qty - 1
+            return extras > 1 ? `${s.number} (x${extras})` : s.number
+          }
+          return s.number
         })
+        lines.push(nums.join(', '))
+        lines.push('')
+      })
     } else {
       const nums = stickerList.map((s) => {
         if (type === 'duplicates') {
