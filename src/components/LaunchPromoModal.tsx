@@ -3,26 +3,19 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { REFERRAL_CONSTANTS } from '@/lib/referrals'
 import { shouldShowModal, markModalOpen, markModalClosed, MODAL_PRIORITY } from '@/lib/modal-coordinator'
 
-// ── Embaixadores campaign promo ──
-// This modal replaced the old "COPA100/COPA50 cupom" promo on 2026-04-29.
-// It surfaces the new launch campaign (referral program) to logged-in users
-// of any tier — pagantes also win pontos no ranking, então faz sentido pra
-// todos. Auto-stops appearing after the campaign end date.
-const PROMO_END_DATE = new Date(REFERRAL_CONSTANTS.CAMPAIGN_END_DATE_ISO)
-// Friendly "DD/MM" + "HHhMM" labels in Brazilian locale, derived from the
-// canonical end-date constant so we never drift out of sync again.
-const CAMPAIGN_END_DAY = PROMO_END_DATE.toLocaleDateString('pt-BR', {
-  timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit',
-})
-const CAMPAIGN_END_TIME = PROMO_END_DATE.toLocaleTimeString('pt-BR', {
-  timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit',
-}).replace(':', 'h')
-const STORAGE_KEY = 'embaixadores-promo-last-shown'
-// Show once every 3 days (campaign is short — don't burn out users)
-const REPEAT_MS = 3 * 24 * 60 * 60 * 1000
+// ── Liga Complete Aí 2026 promo ──
+// Substituiu o promo da campanha Embaixadores em 21/05 (Embaixadores encerrou
+// 12/05 e a Liga começou 15/05 09:00 BRT). Surface pra users autenticados que
+// AINDA NÃO deram opt-in na Liga (liga_opt_in_at IS NULL).
+//
+// Estrutura/cooldown preservados do anterior: aparece 8s após login, a cada
+// 3 dias, respeita modal-coordinator (não pisa em FirstScan / Onboarding) e
+// pula novos users (<24h) e quem já está em /liga.
+const PROMO_END_DATE = new Date('2026-07-16T23:59:59-03:00') // fim da T4
+const STORAGE_KEY = 'liga-promo-last-shown'
+const REPEAT_MS = 3 * 24 * 60 * 60 * 1000 // a cada 3 dias
 const DELAY_MS = 8_000
 
 export default function LaunchPromoModal() {
@@ -43,34 +36,31 @@ export default function LaunchPromoModal() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelled) return
 
-      // Show to everyone (free + paid). Paid users still benefit from ranking
-      // and from sharing their code. Skip only on /campanha itself (avoid
-      // redundancy — they're already there).
-      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/campanha')) {
+      // Skip on /liga (user já está vendo a Liga; modal seria redundante).
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/liga')) {
         return
       }
 
-      // Don't pile this on top of the OnboardingModal for brand new users.
-      // They're already getting the legal/age + tutorial flow which now
-      // ends with a scan CTA. Wait at least 24h before this campaign
-      // promo enters the rotation.
+      // Skip pra brand-new users (< 24h) — eles ainda estão no fluxo de
+      // onboarding (legal/age + tutorial). Liga entra depois.
+      // Também skipa se já deu opt-in na Liga.
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('created_at')
+          .select('created_at, liga_opt_in_at')
           .eq('id', user.id)
           .maybeSingle()
-        const createdAt = (profile as { created_at?: string } | null)?.created_at
+        const p = profile as { created_at?: string; liga_opt_in_at?: string | null } | null
+        if (p?.liga_opt_in_at) return // já participa
+        const createdAt = p?.created_at
         if (createdAt) {
           const ageHours = (Date.now() - new Date(createdAt).getTime()) / (3600 * 1000)
           if (ageHours < 24) return
         }
-      } catch { /* show anyway on profile-fetch error */ }
+      } catch { /* segue mostrando se profile falhar */ }
 
       timerId = setTimeout(() => {
         if (cancelled) return
-        // Defer to higher-priority modals (FirstScanPrompt, Onboarding) and
-        // honor the inter-modal cooldown so we don't stack popups.
         if (!shouldShowModal('launch_promo', MODAL_PRIORITY.LAUNCH_PROMO)) return
         markModalOpen('launch_promo', MODAL_PRIORITY.LAUNCH_PROMO)
         setVisible(true)
@@ -104,11 +94,11 @@ export default function LaunchPromoModal() {
     setVisible(false)
   }
 
-  function goToCampanha() {
+  function goToLiga() {
     localStorage.setItem(STORAGE_KEY, String(Date.now()))
     markModalClosed('launch_promo')
     setVisible(false)
-    router.push('/campanha')
+    router.push('/liga')
   }
 
   if (!visible) return null
@@ -118,7 +108,7 @@ export default function LaunchPromoModal() {
       className="fixed inset-0 z-[60] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="embaixadores-promo-title"
+      aria-labelledby="liga-promo-title"
       onClick={close}
     >
       <div
@@ -138,33 +128,33 @@ export default function LaunchPromoModal() {
         <div className="bg-gradient-to-br from-[#0A1628] via-[#1A2332] to-[#0A1628] px-6 pt-7 pb-6 text-center">
           <div className="text-4xl mb-2">🏆</div>
           <p className="text-[10px] font-bold tracking-widest text-[#FFB800] uppercase mb-1">
-            Campanha de Lançamento
+            Já começou
           </p>
-          <h2 id="embaixadores-promo-title" className="text-2xl font-black text-white leading-tight">
-            Embaixadores{' '}
-            <span className="text-[#00C896]">Complete Aí</span>
+          <h2 id="liga-promo-title" className="text-2xl font-black text-white leading-tight">
+            Liga{' '}
+            <span className="text-[#00C896]">Complete Aí 2026</span>
           </h2>
-          <p className="text-xs text-gray-300 mt-2">Indique amigos. Ganhe figurinhas.</p>
+          <p className="text-xs text-gray-300 mt-2">Acumule pontos durante a Copa. Top 3 ganha brindes.</p>
         </div>
 
         <div className="px-6 py-6 space-y-3">
-          <PromoLine icon="🎁" text="A cada amigo cadastrado: +1 scan grátis" />
-          <PromoLine icon="🎫" text="A cada 5 amigos: cupom 50% off (48h)" />
-          <PromoLine icon="💎" text="Amigo que assina = 5 pontos pra você" />
-          <PromoLine icon="🥇" text="Top 3 da campanha ganha pacotes em casa" />
+          <PromoLine icon="📸" text="Cada figurinha registrada vira pontos" />
+          <PromoLine icon="🔓" text="Bata marcos e desbloqueie cupons e scans extras" />
+          <PromoLine icon="🥇" text="Top 3 de cada Temporada ganha porta-figurinhas + pacotes" />
+          <PromoLine icon="🏆" text="Campeão Geral em 17/07 leva kit colecionador completo" />
 
           <div className="rounded-2xl border-2 border-[#00C896] bg-[#E6FAF4] p-3 text-center">
             <p className="text-xs font-bold text-[#0A1628]">
-              Campanha vai até <span className="text-[#00A67D]">{CAMPAIGN_END_DAY} às {CAMPAIGN_END_TIME}</span>
+              T1 já está rolando · termina em <span className="text-[#00A67D]">30/05</span>
             </p>
-            <p className="text-[10px] text-gray-600 mt-0.5">Bora começar agora?</p>
+            <p className="text-[10px] text-gray-600 mt-0.5">Quanto antes começar, mais pontos acumula.</p>
           </div>
 
           <button
-            onClick={goToCampanha}
+            onClick={goToLiga}
             className="w-full bg-[#00C896] text-white font-bold rounded-2xl py-3.5 text-sm hover:bg-[#00A67D] active:scale-[0.98] transition shadow-lg shadow-[#00C896]/30"
           >
-            Quero participar
+            Entrar na Liga
           </button>
           <button
             onClick={close}
