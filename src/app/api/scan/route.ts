@@ -756,7 +756,7 @@ export async function POST(request: NextRequest) {
       })
       return NextResponse.json(
         {
-          error: `🚫 Seu Trial Boost de 7 dias acabou.\n\nPra continuar escaneando, escolha um plano:\n• Estreante R$9,90 — 30 scans/mês\n• Colecionador R$19,90 — 150 scans/mês\n• Copa Completa R$29,90 — scans ilimitados\n\n💛 Pagamento único, sem mensalidade.`,
+          error: `🚫 Seu Trial Boost de 7 dias acabou.\n\nPra continuar escaneando, escolha um plano:\n• Estreante R$9,90 — +30 scans (~240 figurinhas)\n• Colecionador R$19,90 — +150 scans (~1.200 figurinhas)\n• Copa Completa R$29,90 — scans ilimitados\n\n💛 Pagamento único, sem mensalidade.`,
           needsUpgrade: true,
           trialExpired: true,
         },

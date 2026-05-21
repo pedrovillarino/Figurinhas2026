@@ -235,7 +235,7 @@ Pedro definiu o modelo final após análise. Resumo:
 | **Modelo geral** | "Trial-paywall híbrido" — lockout em features ativas, leitura preservada | Não é Trial Boost puro nem trial-paywall total |
 | **Tier do trial** | Colecionador (150 scans + áudio ilimitado + 15 trocas + sem ads) | Custo Gemini ~3× maior que Estreante. Aposta no wow factor |
 | **Backfill** | Só novos cadastros (de 22/05 em diante) | Modelo dual no DB: legacy free + novos trial |
-| **Users legacy (918 free)** | Grandfathered — mantêm Free 5 scans/dia como hoje | Preserva motor viral existente |
+| **Users legacy (918 free)** | Grandfathered — mantêm Free 5 scans lifetime (modelo atual) | Preserva motor viral existente |
 | **Pós-expiração (BLOQUEIA)** | scan, registro de figurinha, trade, áudio, **Liga** (opt-in + pontos) | Hard lockout nas features ativas |
 | **Pós-expiração (PRESERVA)** | ver /album próprio, exportar PDF, ver ranking nacional, /loja | Read-only do que já tem |
 | **Liga** | Trial ativo pode dar opt-in. Expirado bloqueia | User que entrou em 22/05 e não pagar até 29/05 perde pontos acumulados — UX delicada |
@@ -277,7 +277,7 @@ function effectiveTier(profile): Tier | 'expired' {
 
 | Feature | Free legacy | Trial ativo | Expirado |
 |---|---|---|---|
-| Scan (foto) | ✅ 5/dia | ✅ 150/dia | ❌ 0 (paywall) |
+| Scan (foto) | ✅ 5 lifetime | ✅ 150 lifetime | ❌ 0 (paywall) |
 | Registro manual de figurinha | ✅ ilimitado | ✅ ilimitado | ❌ 0 |
 | Trade request | ✅ 2 lifetime | ✅ 15 | ❌ 0 |
 | Áudio WhatsApp | ✅ 7 lifetime | ✅ ilimitado | ❌ 0 |
