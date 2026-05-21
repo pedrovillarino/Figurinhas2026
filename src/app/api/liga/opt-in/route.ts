@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { awardLigaPoints, LIGA_EVENT_POINTS, type LigaEventType } from '@/lib/liga'
+import { getEffectiveTier, type TrialProfile } from '@/lib/trial'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     // 1) Idempotência: se já opt-in, retorna estado atual
     const { data: existing } = await admin
       .from('profiles')
-      .select('liga_opt_in_at, tier, audio_uses_count, created_at')
+      .select('liga_opt_in_at, tier, audio_uses_count, created_at, is_grandfathered_free, trial_starts_at, trial_ends_at')
       .eq('id', userId)
       .single()
     const profile = existing as {
@@ -61,10 +62,28 @@ export async function POST(req: NextRequest) {
       tier: string | null
       audio_uses_count: number | null
       created_at: string | null
+      is_grandfathered_free: boolean | null
+      trial_starts_at: string | null
+      trial_ends_at: string | null
     } | null
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile não encontrado' }, { status: 404 })
+    }
+
+    // Trial-paywall (Pedro 21/05): trial expirado não pode dar opt-in nem
+    // ganhar pontos. Quem já era opt-in mantém liga_opt_in_at (não tira),
+    // mas o gating de eventos pontuáveis (awardLigaPoints em outros lugares)
+    // também precisa respeitar — feito caso a caso na Fase 2.
+    if (getEffectiveTier(profile as TrialProfile) === 'expired') {
+      return NextResponse.json(
+        {
+          error: '🚫 Seu Trial Boost acabou. A Liga só fica disponível pra quem tem plano ativo. Assine a partir de R$9,90 pra entrar.',
+          needsUpgrade: true,
+          trialExpired: true,
+        },
+        { status: 402 },
+      )
     }
 
     if (profile.liga_opt_in_at) {

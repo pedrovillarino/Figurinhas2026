@@ -7,6 +7,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import sharp from 'sharp'
 import { getScanLimit, getAudioLimit, type Tier } from '@/lib/tiers'
+import { getEffectiveTier, type TrialProfile } from '@/lib/trial'
 import { checkRateLimit, getIp, scanLimiter } from '@/lib/ratelimit'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 import { createPerfLogger } from '@/lib/perf'
@@ -732,7 +733,7 @@ export async function POST(request: NextRequest) {
     // pra cliente tentar de novo (vez de cobrar paywall errado).
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('tier')
+      .select('tier, is_grandfathered_free, trial_starts_at, trial_ends_at')
       .eq('id', user.id)
       .single()
 
@@ -744,7 +745,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const userTier = (profile.tier || 'free') as Tier
+    // Trial-paywall (Pedro 21/05): novos cadastros têm 7d Colecionador grátis.
+    // Trial expirado = lockout TOTAL no scan até assinar. Free legacy
+    // (cadastrou antes de 22/05) cai em getEffectiveTier → 'free' normalmente.
+    const effTierRaw = getEffectiveTier(profile as TrialProfile)
+    if (effTierRaw === 'expired') {
+      trackEvent(user.id, FUNNEL_EVENTS.SCAN_LIMIT_HIT, {
+        tier: 'free',
+        metadata: { reason: 'trial_expired' },
+      })
+      return NextResponse.json(
+        {
+          error: `🚫 Seu Trial Boost de 7 dias acabou.\n\nPra continuar escaneando, escolha um plano:\n• Estreante R$9,90 — 30 scans/mês\n• Colecionador R$19,90 — 150 scans/mês\n• Copa Completa R$29,90 — scans ilimitados\n\n💛 Pagamento único, sem mensalidade.`,
+          needsUpgrade: true,
+          trialExpired: true,
+        },
+        { status: 402 },
+      )
+    }
+    const userTier = effTierRaw as Tier
     const tierScanLimit = getScanLimit(userTier)
 
     const { data: usageData, error: usageError } = await supabaseAdmin

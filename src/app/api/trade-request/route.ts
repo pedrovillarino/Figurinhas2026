@@ -9,6 +9,7 @@ import { checkRateLimit, getIp, tradeLimiter } from '@/lib/ratelimit'
 import { createPerfLogger } from '@/lib/perf'
 import { getTradeLimit } from '@/lib/tiers'
 import type { Tier } from '@/lib/tiers'
+import { getEffectiveTier, type TrialProfile } from '@/lib/trial'
 import { trackEvent, trackEventOnce, FUNNEL_EVENTS } from '@/lib/funnel'
 
 export const maxDuration = 30
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
     // 1.5. Check if requester is a minor (blocked from trades) + get tier for limit check
     const { data: requesterCheck } = await admin
       .from('profiles')
-      .select('is_minor, tier')
+      .select('is_minor, tier, is_grandfathered_free, trial_starts_at, trial_ends_at')
       .eq('id', user.id)
       .single()
 
@@ -104,8 +105,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Trocas não disponíveis para menores de 18 anos.' }, { status: 403 })
     }
 
+    // Trial-paywall (Pedro 21/05): trial expirado = lockout em trades até assinar.
+    const effTierRaw = getEffectiveTier(requesterCheck as TrialProfile | null)
+    if (effTierRaw === 'expired') {
+      trackEvent(user.id, FUNNEL_EVENTS.TRADE_LIMIT_HIT, {
+        tier: 'free',
+        metadata: { reason: 'trial_expired' },
+      })
+      return NextResponse.json(
+        {
+          error: '🚫 Seu Trial Boost de 7 dias acabou. Pra continuar trocando figurinhas, escolha um plano (a partir de R$9,90 — pagamento único).',
+          needsUpgrade: true,
+          trialExpired: true,
+        },
+        { status: 402 },
+      )
+    }
+
     // 1.6. Check and increment trade usage (enforces tier limit + purchased credits)
-    const userTier = (requesterCheck?.tier || 'free') as Tier
+    const userTier = effTierRaw as Tier
     const tierTradeLimit = getTradeLimit(userTier)
     const pTierLimit = tierTradeLimit === Infinity ? -1 : tierTradeLimit
 

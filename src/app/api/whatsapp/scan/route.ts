@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendText } from '@/lib/zapi'
 import { getScanLimit, type Tier } from '@/lib/tiers'
+import { getEffectiveTier, type TrialProfile } from '@/lib/trial'
 import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { matchSymbolByName } from '@/lib/symbol-synonyms'
 import { releaseScanLock } from '@/lib/scan-lock'
@@ -760,7 +761,7 @@ export async function POST(req: NextRequest) {
     // pagante. Agora: erro NÃO assume free — avisa user pra tentar de novo.
     const { data: profile, error: profileError } = await adminDb
       .from('profiles')
-      .select('tier')
+      .select('tier, is_grandfathered_free, trial_starts_at, trial_ends_at')
       .eq('id', userId)
       .single()
 
@@ -770,7 +771,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    const userTier = (profile.tier || 'free') as Tier
+    // Trial-paywall (Pedro 21/05): trial expirado = lockout no scan pelo WhatsApp.
+    const effTierRaw = getEffectiveTier(profile as TrialProfile)
+    if (effTierRaw === 'expired') {
+      await sendText(
+        phone,
+        `🚫 Seu Trial Boost de 7 dias acabou!\n\nPra continuar escaneando figurinhas, assina um plano:\n• Estreante R$9,90 — 30 scans/mês\n• Colecionador R$19,90 — 150 scans/mês\n• Copa Completa R$29,90 — scans ilimitados\n\n💛 Pagamento único, sem mensalidade.\n\n${APP_URL}/upgrade`,
+      )
+      return NextResponse.json({ ok: true })
+    }
+    const userTier = effTierRaw as Tier
     const tierScanLimit = getScanLimit(userTier)
 
     const { data: usageData } = await adminDb
