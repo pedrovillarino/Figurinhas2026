@@ -226,4 +226,84 @@ Decisão de continuar/reverter em 30d:
 
 ---
 
-*Documento gerado em 21/05/2026 como output da task #6 "Analisar trial 7d".*
+## 13. DECISÕES BATIDAS — 21/05/2026
+
+Pedro definiu o modelo final após análise. Resumo:
+
+| Decisão | Escolha | Implica |
+|---|---|---|
+| **Modelo geral** | "Trial-paywall híbrido" — lockout em features ativas, leitura preservada | Não é Trial Boost puro nem trial-paywall total |
+| **Tier do trial** | Colecionador (150 scans + áudio ilimitado + 15 trocas + sem ads) | Custo Gemini ~3× maior que Estreante. Aposta no wow factor |
+| **Backfill** | Só novos cadastros (de 22/05 em diante) | Modelo dual no DB: legacy free + novos trial |
+| **Users legacy (918 free)** | Grandfathered — mantêm Free 5 scans/dia como hoje | Preserva motor viral existente |
+| **Pós-expiração (BLOQUEIA)** | scan, registro de figurinha, trade, áudio, **Liga** (opt-in + pontos) | Hard lockout nas features ativas |
+| **Pós-expiração (PRESERVA)** | ver /album próprio, exportar PDF, ver ranking nacional, /loja | Read-only do que já tem |
+| **Liga** | Trial ativo pode dar opt-in. Expirado bloqueia | User que entrou em 22/05 e não pagar até 29/05 perde pontos acumulados — UX delicada |
+| **Bot WhatsApp** | Foto cria conta com trial auto | `pending_registrations` → profile já nasce com `trial_starts_at=NOW` |
+| **Velocidade** | v1 completa em 5d (Fases 1–5) | Ship ~28/05; admin LigaAdminSection vira BootAdminSection (também) |
+
+### Schema final ajustado
+
+```sql
+ALTER TABLE profiles
+  ADD COLUMN trial_starts_at TIMESTAMPTZ,
+  ADD COLUMN trial_ends_at TIMESTAMPTZ,
+  ADD COLUMN trial_expired_notified_at TIMESTAMPTZ,
+  ADD COLUMN is_grandfathered_free BOOLEAN DEFAULT false;
+
+-- Backfill (one-shot na migration): existentes ganham flag legacy
+UPDATE profiles SET is_grandfathered_free = true
+  WHERE created_at < '2026-05-22T00:00:00-03:00' AND tier = 'free';
+
+-- Trigger: novo profile sem grandfather automático ganha trial 7d
+CREATE OR REPLACE FUNCTION set_trial_on_signup() RETURNS TRIGGER ...
+  -- if NEW.is_grandfathered_free = false → trial_starts_at = now, ends_at = +7d
+```
+
+### Função `effective_tier` (lógica de gating)
+
+```typescript
+function effectiveTier(profile): Tier | 'expired' {
+  if (profile.tier !== 'free') return profile.tier // pagantes sempre
+  if (profile.is_grandfathered_free) return 'free'  // legacy mantém
+  // Novos: depende do trial
+  if (!profile.trial_ends_at) return 'free' // bug? fallback safe
+  if (new Date() < new Date(profile.trial_ends_at)) return 'colecionador' // trial ativo
+  return 'expired' // novo estado — bloqueio de scan/trade/áudio/Liga
+}
+```
+
+### Comportamento por feature pós-`expired`
+
+| Feature | Free legacy | Trial ativo | Expirado |
+|---|---|---|---|
+| Scan (foto) | ✅ 5/dia | ✅ 150/dia | ❌ 0 (paywall) |
+| Registro manual de figurinha | ✅ ilimitado | ✅ ilimitado | ❌ 0 |
+| Trade request | ✅ 2 lifetime | ✅ 15 | ❌ 0 |
+| Áudio WhatsApp | ✅ 7 lifetime | ✅ ilimitado | ❌ 0 |
+| Liga (opt-in + ganhar pontos) | ✅ sim | ✅ sim | ❌ não |
+| Ver /album próprio | ✅ | ✅ | ✅ |
+| Exportar PDF | ✅ | ✅ | ✅ |
+| Ver ranking nacional | ✅ | ✅ | ✅ |
+| Ver /loja afiliados ML | ✅ | ✅ | ✅ |
+| Ads contextuais | ✅ vê | ❌ tier Colec não tem | ✅ vê (re-ativa ads no expired) |
+
+Nota: ads voltam pro expired — receita auxiliar continua rolando.
+
+### Riscos críticos identificados pós-decisão
+
+1. **Liga reclamation hell**: novos users que dão opt-in no trial vão perder pontos ao expirar. Mitigation: copy explícita ao opt-in ("seus pontos da Liga ficam preservados se você assinar antes de DD/MM"), email T-1d agressivo
+2. **Funnel topo de WhatsApp**: bot que aceita foto antes do cadastro vira "trial automático" — user pode achar que o bot é grátis e descobrir trial só depois. Mitigation: bot envia mensagem de welcome explicitando "7 dias completos pra brincar"
+3. **Bug de duplo-fluxo**: legacy free + novos trial cria 2 código paths. Mitigation: testes unitários em `effectiveTier()` cobrindo todos os estados
+
+### Plano de implementação revisado (5 fases × 1d cada)
+
+- **Fase 1 — Foundation**: migration 030 + lib/trial.ts + endpoint /api/me/trial
+- **Fase 2 — Gating**: trocar `userTier` por `effectiveTier()` em scan, audio, trades, liga endpoints. Adicionar estado 'expired' ao TIER_CONFIG
+- **Fase 3 — UI**: TrialBanner no /album, ExpiredBanner pós-trial, PaywallModal com copy específica, OnboardingModal explica trial
+- **Fase 4 — Notif + Bot**: cron T-1d via WhatsApp + email opcional, bot copy "seu trial vai até..."
+- **Fase 5 — Métricas**: funnel_events trial_started/expired/converted, nova seção admin "Trial Funnel"
+
+---
+
+*Documento gerado em 21/05/2026 como output da task #6 "Analisar trial 7d". Atualizado mesmo dia com decisões batidas.*
