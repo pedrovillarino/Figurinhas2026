@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { computeAlbumStats } from '@/lib/album-stats'
 
 type Sticker = {
   id: number
@@ -9,6 +10,7 @@ type Sticker = {
   country: string
   section: string
   type: string
+  counts_for_completion?: boolean
 }
 
 type UserStickerInfo = { status: string; quantity: number }
@@ -29,7 +31,15 @@ export default function ExportPageClient({
   const [copied, setCopied] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
 
-  const TOTAL = stickers.length || 1028
+  // Stats canônicos — header mostra X/980 (álbum oficial, alinhado com /album).
+  // Listas de export incluem todos os stickers (álbum + Coca/PANINI) porque
+  // são todos trocáveis. Card de Repetidas usa `stats.all`.
+  const stats = useMemo(
+    () => computeAlbumStats(stickers, userMap),
+    [stickers, userMap],
+  )
+  const TOTAL = stats.album.total || 1028
+  const ownedCount = stats.album.pasted
 
   const missingStickers = useMemo(
     () => stickers.filter((s) => {
@@ -44,21 +54,7 @@ export default function ExportPageClient({
     [stickers, userMap]
   )
 
-  const ownedCount = useMemo(() => {
-    let count = 0
-    Object.values(userMap).forEach((us) => {
-      if (us.status === 'owned' || us.status === 'duplicate') count++
-    })
-    return count
-  }, [userMap])
-
-  const totalDuplicateExtras = useMemo(
-    () => duplicateStickers.reduce((acc, s) => {
-      const qty = userMap[s.id]?.quantity || 0
-      return acc + (qty - 1)
-    }, 0),
-    [duplicateStickers, userMap]
-  )
+  const totalDuplicateExtras = stats.all.duplicateCopies
 
   const hasSelection = exportMissing || exportDuplicates
   const hasStickersToExport = (exportMissing && missingStickers.length > 0) || (exportDuplicates && duplicateStickers.length > 0)
@@ -280,7 +276,7 @@ export default function ExportPageClient({
           <p className={`text-2xl font-bold mt-2 ${exportDuplicates ? 'text-brand' : 'text-gray-300'}`}>
             {duplicateStickers.length}
             {totalDuplicateExtras > 0 && (
-              <span className="text-xs font-normal ml-1">({totalDuplicateExtras} extras)</span>
+              <span className="text-xs font-normal ml-1">({totalDuplicateExtras} cópias)</span>
             )}
           </p>
         </button>

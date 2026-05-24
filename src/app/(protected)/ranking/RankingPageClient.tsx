@@ -30,8 +30,6 @@ type RankingData = {
   [key: string]: unknown
 } | null
 
-const EXTRAS_TOTAL = 92  // 12 Coca-Cola + 80 PANINI Extras (20 jogadores × 4 cores)
-
 function ExtrasBreakdown({ ranking, compact = false }: { ranking: NonNullable<RankingData>; compact?: boolean }) {
   const g = ranking.extras_gold ?? 0
   const s = ranking.extras_silver ?? 0
@@ -83,7 +81,9 @@ export default function RankingPageClient({
   sections,
   owned,
   duplicates,
+  duplicateCopies,
   total,
+  extrasTotal,
   userId,
   userDisplayName,
   userAvatar,
@@ -100,8 +100,14 @@ export default function RankingPageClient({
   neighborhoodStats: any[]
   sections: string[]
   owned: number
+  /** Cromos distintos com status='duplicate' (álbum oficial + Coca/PANINI). */
   duplicates: number
+  /** Cópias físicas extras = sum(quantity - 1) onde status='duplicate'. */
+  duplicateCopies: number
   total: number
+  /** Total de stickers de Coca-Cola + PANINI Extras no álbum (vem do DB,
+   *  não hardcoded como antes). undefined = oculta a linha de Extras. */
+  extrasTotal?: number
   userId: string
   userDisplayName: string | null
   userAvatar: string | null
@@ -258,11 +264,15 @@ export default function RankingPageClient({
           <div className="min-w-0 flex-1">
             <p className="text-lg font-bold text-navy">{owned}/{total}</p>
             <p className="text-xs text-gray-500">figurinhas coladas</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{duplicates} repetidas · {total - owned} faltando</p>
-            {ranking && (ranking.extras_total ?? 0) >= 0 && (
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {duplicates} repetidas
+              {duplicateCopies > 0 && <span> ({duplicateCopies} cópias)</span>}
+              {' · '}{total - owned} faltando
+            </p>
+            {ranking && extrasTotal !== undefined && extrasTotal > 0 && (ranking.extras_total ?? 0) >= 0 && (
               <div className="mt-2 pt-2 border-t border-gray-100">
                 <p className="text-[10px] font-semibold text-amber-700 mb-0.5">
-                  ⭐ Extras: {ranking.extras_total ?? 0}/{EXTRAS_TOTAL}
+                  ⭐ Extras: {ranking.extras_total ?? 0}/{extrasTotal}
                 </p>
                 <ExtrasBreakdown ranking={ranking} />
               </div>

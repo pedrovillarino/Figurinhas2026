@@ -15,6 +15,7 @@ import ImportListModal from '@/components/ImportListModal'
 import LocationBanner from '@/components/LocationBanner'
 import { QuickStartBanner, QuickStartWizard, type QuickStartStep } from '@/components/QuickStart'
 import { getStickerLimit, type Tier } from '@/lib/tiers'
+import { computeAlbumStats } from '@/lib/album-stats'
 
 type Sticker = {
   id: number
@@ -146,40 +147,19 @@ export default function AlbumClient({
     [stickers, collator]
   )
 
-  // Only stickers with counts_for_completion=true (treat undefined as true for
-  // backward compat) move the X/980 progress bar. Decorative sections like
-  // Coca-Cola and PANINI Extras still render but don't pull the percentage.
-  const completableStickers = useMemo(
-    () => sortedStickers.filter((s) => s.counts_for_completion !== false),
-    [sortedStickers],
+  // Stats canônicos vindos de @/lib/album-stats — mesma fonte que bot/profile/
+  // dashboard/ranking/trades/export/PDF. Devolve {album, extras, all} com
+  // distintos + cópias separados. "Repetidas" combina os dois (Coca/Extras
+  // são trocáveis), com split disponível pra mostrar quebra quando útil.
+  // album.total já considera só counts_for_completion=true (treat undefined
+  // as true) — decorativos (Coca-Cola, PANINI Extras) ficam em `extras`.
+  const albumStats = useMemo(
+    () => computeAlbumStats(sortedStickers, userMap),
+    [sortedStickers, userMap],
   )
-  const completableIds = useMemo(
-    () => new Set(completableStickers.map((s) => s.id)),
-    [completableStickers],
-  )
-
-  const TOTAL = completableStickers.length || 980
-
-  const stats = useMemo(() => {
-    let owned = 0, duplicates = 0, totalDupeQty = 0
-    Object.entries(userMap).forEach(([id, us]) => {
-      const isCompletable = completableIds.has(Number(id))
-      // Owned only counts the 980 completable stickers — Coca-Cola and PANINI
-      // Extras don't move X/980, so they don't bump the progress bar past 100%.
-      if (isCompletable) {
-        if (us.status === 'owned') owned++
-        if (us.status === 'duplicate') owned++
-      }
-      // Duplicates count EVERY duplicate sticker the user has, including
-      // Coca-Cola and PANINI Extras — they're tradeable inventory just like
-      // any other extra, so they belong in the "Repetidas" tab and stat card.
-      if (us.status === 'duplicate') {
-        duplicates++
-        totalDupeQty += us.quantity - 1
-      }
-    })
-    return { owned, missing: TOTAL - owned, duplicates, totalDupeQty }
-  }, [userMap, TOTAL, completableIds])
+  const stats = albumStats.album
+  const dupAll = albumStats.all
+  const TOTAL = stats.total || 980
 
   // Section stats (group by section name, not country — so special sections like Legends, Stadiums appear separately)
   const sectionStats = useMemo(() => {
@@ -196,7 +176,7 @@ export default function AlbumClient({
     return sections
   }, [sortedStickers, userMap])
 
-  const progressPct = TOTAL > 0 ? Math.round((stats.owned / TOTAL) * 100) : 0
+  const progressPct = stats.pct
 
   const matchesSearch = useCallback((s: Sticker, q: string) =>
     s.number.toLowerCase().includes(q) ||
@@ -423,7 +403,7 @@ export default function AlbumClient({
 
     // Check tier sticker limit for new stickers
     const isNewSticker = !current || current.status === 'missing'
-    if (isNewSticker && stats.owned >= stickerLimit) {
+    if (isNewSticker && stats.pasted >= stickerLimit) {
       setShowLimitBanner(true)
       return
     }
@@ -492,9 +472,10 @@ export default function AlbumClient({
     if (!debouncedSearch.trim()) {
       return {
         all: completable.length,
-        owned: stats.owned,
+        owned: stats.pasted,
         missing: stats.missing,
-        duplicates: stats.duplicates,
+        // Tab de duplicates mostra TODOS (álbum + extras) — mesma fonte do card.
+        duplicates: dupAll.duplicateStickers,
         extras: extrasAll.length,
       }
     }
@@ -517,7 +498,7 @@ export default function AlbumClient({
       duplicates: searchDupes.length,
       extras: searchExtras.length,
     }
-  }, [sortedStickers, debouncedSearch, userMap, stats, matchesSearch])
+  }, [sortedStickers, debouncedSearch, userMap, stats, dupAll, matchesSearch])
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'all', label: 'Todas', count: tabCounts.all },
@@ -627,7 +608,7 @@ export default function AlbumClient({
       <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-black tracking-tight text-gray-900">Meu Álbum</h1>
-          <p className="text-[11px] text-gray-500 mt-0.5">{stats.owned} de {TOTAL} figurinhas</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">{stats.pasted} de {TOTAL} figurinhas</p>
         </div>
         <div className="relative w-14 h-14">
           <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
@@ -665,7 +646,7 @@ export default function AlbumClient({
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
           </div>
           <div className="text-left">
-            <p className="text-lg font-bold text-gray-800 leading-none">{stats.owned}</p>
+            <p className="text-lg font-bold text-gray-800 leading-none">{stats.pasted}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">Coladas</p>
           </div>
         </button>
@@ -693,15 +674,23 @@ export default function AlbumClient({
             <div className="w-2 h-2 rounded-full bg-blue-500" />
           </div>
           <div className="text-left">
-            {/* Pedro 2026-05-02: mostra TOTAL de cromos extras pra trocar
-                (totalDupeQty) como número principal — é o que importa pra
-                trocas. Sublabel mostra também quantas figurinhas distintas
-                têm repetidas, pra contexto. Ex: "3 cromos · 1 fig". */}
-            <p className="text-lg font-bold text-gray-800 leading-none">{stats.totalDupeQty}</p>
+            {/* Pedro 2026-05-24: sempre os dois números (distintos + cópias)
+                no card, sem destacar um sobre o outro — eram visões diferentes
+                do mesmo dado e cada surface destacava um, gerando confusão.
+                Inclui Coca/Extras (são trocáveis); split aparece em sublabel
+                quando há repetidas fora do álbum oficial. */}
+            <p className="text-base font-bold text-gray-800 leading-tight">
+              {dupAll.duplicateStickers}
+              <span className="text-gray-400 font-normal"> · </span>
+              {dupAll.duplicateCopies}
+              <span className="text-gray-400 font-normal text-xs"> cópias</span>
+            </p>
             <p className="text-[10px] text-gray-500 mt-0.5">
               Repetidas
-              {stats.duplicates > 0 && (
-                <span className="text-gray-400"> · {stats.duplicates} {stats.duplicates === 1 ? 'fig' : 'figs'}</span>
+              {albumStats.extras.duplicateStickers > 0 && (
+                <span className="text-gray-400">
+                  {' '}· {albumStats.album.duplicateStickers} álbum + {albumStats.extras.duplicateStickers} extras
+                </span>
               )}
             </p>
           </div>
@@ -764,12 +753,12 @@ export default function AlbumClient({
           - 10/20/30/.../100%: milestone-based, escolhe placement
             de acordo com o bracket atual. Dismiss em grupo via
             FreeUserAd.tsx (esconde toda a série por 24h se 1 dispensar). */}
-      {stats.owned === 0 && (
+      {stats.pasted === 0 && (
         <div className="mb-3">
           <FreeUserAd placement="album_empty" tier={tier} />
         </div>
       )}
-      {stats.owned > 0 && pickAlbumMilestonePlacement(progressPct) && (
+      {stats.pasted > 0 && pickAlbumMilestonePlacement(progressPct) && (
         <div className="mb-3">
           <FreeUserAd
             placement={pickAlbumMilestonePlacement(progressPct)!}

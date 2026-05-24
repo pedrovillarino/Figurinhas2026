@@ -11,6 +11,7 @@ import UserTierBadge from '@/components/UserTierBadge'
 import PaywallModal from '@/components/PaywallModal'
 import TradeRequestsBanner from '@/components/TradeRequestsBanner'
 import FreeUserAd from '@/components/FreeUserAd'
+import { computeAlbumStats } from '@/lib/album-stats'
 
 type Sticker = {
   id: number
@@ -19,6 +20,7 @@ type Sticker = {
   country: string
   section: string
   type: string
+  counts_for_completion?: boolean
 }
 
 type UserStickerInfo = { status: string; quantity: number }
@@ -294,15 +296,17 @@ export default function TradesHub({
 
   const watchedCount = watchedIds.length
 
-  const duplicateStickers = useMemo(() =>
-    stickers.filter((s) => userStickersMap[s.id]?.status === 'duplicate'),
-    [stickers, userStickersMap]
+  // Stats canônicos — mesma fonte que /album, /dashboard, etc. Os números
+  // do "X/Y completo" usam o álbum oficial (counts_for_completion=true),
+  // não o total bruto com extras. Coca/PANINI continuam visíveis na
+  // watchlist (missingStickers acima) — só não inflam o denominador.
+  const stats = useMemo(
+    () => computeAlbumStats(stickers, userStickersMap),
+    [stickers, userStickersMap],
   )
-
-  const totalExtras = useMemo(() =>
-    duplicateStickers.reduce((acc, s) => acc + ((userStickersMap[s.id]?.quantity || 0) - 1), 0),
-    [duplicateStickers, userStickersMap]
-  )
+  // "Repetidas" no header de trocas usa o `all` (álbum + extras), porque
+  // duplicate de Coca/PANINI também é trocável.
+  const totalExtras = stats.all.duplicateCopies
 
   const STICKER_PRICE = 1.5
   const PACK_SIZE = 5
@@ -311,9 +315,9 @@ export default function TradesHub({
 
   // ─── Probabilidade & Custo (Problema do Colecionador de Cupons) ───
   const albumStats = useMemo(() => {
-    const N = stickers.length
-    const k = N - missingStickers.length // figurinhas ja coladas
-    const missing = missingStickers.length
+    const N = stats.album.total
+    const k = stats.album.pasted
+    const missing = stats.album.missing
     const totalExtrasCount = totalExtras
 
     if (N === 0) return null
@@ -360,8 +364,7 @@ export default function TradesHub({
       savingsVsAlone: Math.round(savingsVsAlone),
       savingsOptPercent,
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stickers.length, missingStickers.length, totalExtras])
+  }, [stats.album.total, stats.album.pasted, stats.album.missing, totalExtras])
 
   const nearbyStickersAvailable = useMemo(() =>
     matches.reduce((acc, m) => acc + m.they_have, 0),

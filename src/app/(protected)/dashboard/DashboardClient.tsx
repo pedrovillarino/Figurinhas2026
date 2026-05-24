@@ -6,6 +6,7 @@ import { getFlag } from '@/lib/countries'
 import Link from 'next/link'
 import FreeUserAd from '@/components/FreeUserAd'
 import type { Tier } from '@/lib/tiers'
+import { computeAlbumStats } from '@/lib/album-stats'
 
 type Sticker = {
   id: number
@@ -154,39 +155,23 @@ export default function DashboardClient({
   const waToken = useWaLinkToken()
   const [showAll, setShowAll] = useState(false)
 
-  // Only completable stickers (counts_for_completion=true) move the X/980
-  // bar. Coca-Cola and PANINI Extras render in the album but don't count.
-  const completableStickers = useMemo(
-    () => stickers.filter((s) => s.counts_for_completion !== false),
-    [stickers],
+  // Stats canônicos via @/lib/album-stats — mesma fonte que bot/profile/album.
+  // `album` = oficial (counts_for_completion=true), `extras` = Coca/PANINI,
+  // `all` = combinado. Card de Repetidas mostra distintos + cópias do `all`
+  // pra alinhar com /album.
+  const albumStats = useMemo(
+    () => computeAlbumStats(stickers, userStickersMap),
+    [stickers, userStickersMap],
   )
-  const completableIds = useMemo(
-    () => new Set(completableStickers.map((s) => s.id)),
-    [completableStickers],
-  )
-
-  const TOTAL = completableStickers.length || 980
-
-  // ─── Core Stats ───
-  const stats = useMemo(() => {
-    let owned = 0, duplicates = 0, totalExtras = 0
-    Object.entries(userStickersMap).forEach(([id, us]) => {
-      if (!completableIds.has(Number(id))) return
-      if (us.status === 'owned') owned++
-      if (us.status === 'duplicate') {
-        owned++
-        duplicates++
-        totalExtras += us.quantity - 1
-      }
-    })
-    return {
-      owned,
-      missing: TOTAL - owned,
-      duplicates,
-      totalExtras,
-      pct: TOTAL > 0 ? Math.round((owned / TOTAL) * 100) : 0,
-    }
-  }, [userStickersMap, TOTAL, completableIds])
+  const TOTAL = albumStats.album.total || 980
+  const stats = useMemo(() => ({
+    owned: albumStats.album.pasted,
+    missing: albumStats.album.missing,
+    // Repetidas do dashboard inclui Coca/Extras (igual /album e bot).
+    duplicates: albumStats.all.duplicateStickers,
+    totalExtras: albumStats.all.duplicateCopies,
+    pct: albumStats.album.pct,
+  }), [albumStats])
 
   // ─── Country Breakdown ───
   const countryData = useMemo(() => {

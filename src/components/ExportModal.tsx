@@ -219,7 +219,7 @@ export default function ExportModal({
               <p className={`text-xl font-bold mt-1 ${exportDuplicates ? 'text-brand' : 'text-gray-300'}`}>
                 {duplicateStickers.length}
                 {totalDuplicateExtras > 0 && (
-                  <span className="text-xs font-normal ml-1">({totalDuplicateExtras} extras)</span>
+                  <span className="text-xs font-normal ml-1">({totalDuplicateExtras} cópias)</span>
                 )}
               </p>
             </button>

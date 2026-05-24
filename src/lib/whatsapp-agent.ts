@@ -17,6 +17,8 @@ import { GoogleGenerativeAI, SchemaType, FunctionCallingMode, type FunctionDecla
 import { createClient } from '@supabase/supabase-js'
 import { type Tier, TIER_CONFIG } from '@/lib/tiers'
 import { getQuotas } from '@/lib/whatsapp-quotas'
+import { computeAlbumStats, formatDuplicateLabel, type UserStickerEntry } from '@/lib/album-stats'
+import { getCachedStickers } from '@/lib/stickers-cache'
 
 function getAdmin() {
   return createClient(
@@ -227,33 +229,31 @@ async function executeTool(
   const supabase = getAdmin()
 
   if (name === 'get_user_stats') {
-    const { data: rows } = await supabase
-      .from('user_stickers')
-      .select('status, stickers!inner(counts_for_completion)')
-      .eq('user_id', ctx.userId)
-      .in('status', ['owned', 'duplicate'])
-    type Row = { status: string; stickers: { counts_for_completion: boolean } | { counts_for_completion: boolean }[] }
-    const list = (rows || []) as unknown as Row[]
-    const completable = list.filter((r) => {
-      const s = Array.isArray(r.stickers) ? r.stickers[0] : r.stickers
-      return s?.counts_for_completion === true
-    })
-    const owned = completable.filter((r) => r.status === 'owned').length
-    const dups = completable.filter((r) => r.status === 'duplicate').length
-    const { count: total } = await supabase
-      .from('stickers')
-      .select('id', { count: 'exact', head: true })
-      .eq('counts_for_completion', true)
-    const totalN = total || 980
-    const have = owned + dups
-    const missing = totalN - have
-    const pct = totalN > 0 ? Math.round((have / totalN) * 100) : 0
+    const [stickers, { data: rows }] = await Promise.all([
+      getCachedStickers(),
+      supabase
+        .from('user_stickers')
+        .select('sticker_id, status, quantity')
+        .eq('user_id', ctx.userId),
+    ])
+    const userMap: Record<number, UserStickerEntry> = {}
+    for (const r of (rows || []) as Array<{ sticker_id: number; status: string; quantity: number }>) {
+      userMap[r.sticker_id] = { status: r.status, quantity: r.quantity }
+    }
+    const stats = computeAlbumStats(stickers, userMap)
+    const { album, extras } = stats
+    // "Repetidas" no bot inclui Coca/Extras (são trocáveis). Mostra split
+    // só quando o user tem extras pra evitar ruído. Cópias só aparecem
+    // quando há mais cópias do que cromos distintos.
+    const dupLine = extras.duplicateStickers > 0
+      ? `🔁 Repetidas: *${stats.all.duplicateStickers}* (${album.duplicateStickers} álbum + ${extras.duplicateStickers} extras)`
+      : `🔁 Repetidas: *${formatDuplicateLabel(album)}*`
     const text =
       `📊 *Seu álbum:*\n` +
-      `✅ Coladas: *${owned}*\n` +
-      `🔁 Repetidas: *${dups}*\n` +
-      `❌ Faltam: *${missing}*\n` +
-      `📈 Progresso: *${pct}%* (${have}/${totalN})`
+      `✅ Coladas: *${album.pasted}*\n` +
+      `${dupLine}\n` +
+      `❌ Faltam: *${album.missing}*\n` +
+      `📈 Progresso: *${album.pct}%* (${album.pasted}/${album.total})`
     return { kind: 'tool_result', toolName: name, text }
   }
 
