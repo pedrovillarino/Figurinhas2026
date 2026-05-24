@@ -16,6 +16,7 @@ import { getQuotas, buildPaywallMessage } from '@/lib/whatsapp-quotas'
 import { tryAcquireScanLock, releaseScanLock } from '@/lib/scan-lock'
 import { enqueueImage, dequeueNextImage, getQueueLength, clearQueue } from '@/lib/image-queue'
 import { awardScanPointsForToday, awardFirstScanIfNew, checkAndRegisterUnlocks } from '@/lib/liga'
+import { logWaMessage } from '@/lib/whatsapp-log'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -1887,6 +1888,23 @@ export async function POST(req: NextRequest) {
     } catch (debugErr) {
       console.error('[WA_DEBUG] failed:', debugErr)
     }
+
+    // Persist inbound for forensics / debugging conversations later.
+    // Best-effort: never blocks the webhook on failure.
+    const inboundText = (body.text?.message || body.body || body.message || '').toString()
+    const inboundMeta: Record<string, unknown> = {}
+    if (buttonId) inboundMeta.button_id = buttonId
+    if (hasImage) inboundMeta.image_url = body.image?.imageUrl || body.image?.url || body.imageUrl
+    if (hasImage && body.image?.caption) inboundMeta.caption = body.image.caption
+    if (hasAudio) inboundMeta.audio_url = body.audio?.audioUrl || body.audio?.url
+    void logWaMessage({
+      phone,
+      direction: 'in',
+      messageType,
+      body: inboundText || null,
+      messageId: msgId || null,
+      meta: Object.keys(inboundMeta).length ? inboundMeta : null,
+    })
 
     // Find user by phone
     let user = await findUserByPhone(phone)
