@@ -15,6 +15,7 @@ import PDFDocument from 'pdfkit'
 import QRCode from 'qrcode'
 import path from 'path'
 import fs from 'fs'
+import { computeAlbumStats, type UserStickerEntry } from '@/lib/album-stats'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'   // pdfkit precisa Node runtime
@@ -92,17 +93,16 @@ export async function GET(req: NextRequest) {
   const refCode = (profile.referral_code as string | null) || null
 
   // 2) Stickers + user_stickers
-  // Pedro 2026-05-14 (alinha com o resto do app): o denominador "álbum"
-  // exibido no título usa SÓ counts_for_completion=true (980). Coca-Cola
-  // ainda aparece como SEÇÃO visual no tabelão (linha própria), mas não
-  // entra na fração X/Y do header — assim bate com /album, /scan, /profile
-  // e dashboard.
-  // Pedro 2026-05-09 (bug 237 vs 315): supabase REST com .or() em produção
-  // estava retornando lista incompleta (Vercel issue?). Adicionado .range
-  // explícito + log do count pra detectar.
+  // PDF traz álbum oficial (counts_for_completion=true) + Coca-Cola, pulando
+  // PANINI Extras (decisão de produto: PDF não inclui variantes coloridas).
+  // Stats canônicos via @/lib/album-stats: stats.album = oficial (=denominador
+  // do X/Y do header, bate com /album e bot), stats.all = álbum + Coca
+  // (=numerador de "repetidas pra trocar"). Bug histórico (PDF mostrava ~300
+  // vs álbum ~500) era .or() em foreign table do PostgREST devolvendo lista
+  // truncada — agora contamos em JS sobre a lista já carregada.
   const [{ data: allStickers, error: allErr }, { data: userStickers, error: userErr }] = await Promise.all([
     admin.from('stickers')
-      .select('id, number, player_name, country, section, type, variant, display_order')
+      .select('id, number, player_name, country, section, type, variant, display_order, counts_for_completion')
       .or('counts_for_completion.eq.true,section.eq.Coca-Cola')
       .range(0, 1999),
     admin.from('user_stickers')
@@ -113,34 +113,28 @@ export async function GET(req: NextRequest) {
   if (allErr) console.error(`[pdf-export] stickers query error:`, allErr.message)
   if (userErr) console.error(`[pdf-export] user_stickers query error:`, userErr.message)
 
-  const userMap = new Map<number, { status: string; quantity: number }>()
-  ;(userStickers || []).forEach((us) => userMap.set((us as { sticker_id: number }).sticker_id, us as { status: string; quantity: number }))
-
-  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null; display_order: number | null }
+  type Sticker = { id: number; number: string; player_name: string | null; country: string; section: string; type: string; variant: string | null; display_order: number | null; counts_for_completion: boolean | null }
   const allList: Sticker[] = (allStickers || []) as Sticker[]
-  // Total do álbum (denominador) = só counts_for_completion=true. Bate com
-  // /album, /scan, /profile e dashboard.
-  const albumTotal = allList.filter((s) => s.section !== 'Coca-Cola').length
 
-  // Pedro 2026-05-14: contagem feita em JS sobre as listas já carregadas.
-  // O .or() em foreign table do PostgREST tinha quirks que produziam
-  // contagens significativamente menores (caso real: PDF mostrava ~300
-  // mas álbum mostrava ~500). Como já temos allList + userMap em mem, é
-  // mais robusto contar localmente.
-  const albumStickerIds = new Set(
-    allList.filter((s) => s.section !== 'Coca-Cola').map((s) => s.id),
-  )
-  let countOwned = 0
-  let countDuplicates = 0
-  for (const us of (userStickers || []) as Array<{ sticker_id: number; status: string }>) {
-    if (!albumStickerIds.has(us.sticker_id)) continue
-    if (us.status === 'owned' || us.status === 'duplicate') countOwned++
-    if (us.status === 'duplicate') countDuplicates++
+  const userMap = new Map<number, UserStickerEntry>()
+  const userMapRecord: Record<number, UserStickerEntry> = {}
+  for (const us of (userStickers || []) as Array<{ sticker_id: number; status: string; quantity: number }>) {
+    const entry: UserStickerEntry = { status: us.status, quantity: us.quantity }
+    userMap.set(us.sticker_id, entry)
+    userMapRecord[us.sticker_id] = entry
   }
+
+  const stats = computeAlbumStats(allList, userMapRecord)
+  const albumTotal = stats.album.total
+  const countOwned = stats.album.pasted
+  // "Repetidas" no PDF inclui Coca-Cola (são trocáveis), mesma definição
+  // do bot e /album. PANINI Extras já está fora da query por design.
+  const countDuplicates = stats.all.duplicateStickers
+  const countDuplicateCopies = stats.all.duplicateCopies
   console.log(
     `[pdf-export] user=${userId} type=${type} view=${view} ` +
     `allStickers=${allList.length} albumTotal=${albumTotal} userStickers=${userStickers?.length ?? 0} ` +
-    `countOwned=${countOwned} countDuplicates=${countDuplicates}`,
+    `countOwned=${countOwned} countDuplicates=${countDuplicates} countDuplicateCopies=${countDuplicateCopies}`,
   )
 
   // 3) QR code (data URL → PNG buffer pra embedar no PDF)
@@ -187,7 +181,9 @@ export async function GET(req: NextRequest) {
   // Modo 'duplicates': marca âmbar = tem repetida (vazias = não pode trocar)
   const titleStr = type === 'missing'
     ? `Seu álbum: ${countOwned}/${albumTotal}`
-    : `Suas repetidas: ${countDuplicates}`
+    : countDuplicateCopies > countDuplicates
+      ? `Suas repetidas: ${countDuplicates} · ${countDuplicateCopies} cópias`
+      : `Suas repetidas: ${countDuplicates}`
   const subtitleStr = type === 'missing'
     ? `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · verde com X = já tem · branco = falta colar`
     : `${firstName} · ${new Date().toLocaleDateString('pt-BR')} · âmbar com X = você tem repetida pra trocar`

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getCachedStickers } from '@/lib/stickers-cache'
 import RankingPageClient from './RankingPageClient'
 import type { Metadata } from 'next'
+import { computeAlbumStats, type UserStickerEntry } from '@/lib/album-stats'
 
 export const metadata: Metadata = {
   title: 'Ranking',
@@ -78,26 +79,24 @@ export default async function RankingPage() {
     neighborhoodStats = nbs.data || []
   } catch { /* stats unavailable */ }
 
-  // Only completable stickers count for the X/980 progress shown on the
-  // ranking card. Coca-Cola and PANINI Extras (counts_for_completion=false)
-  // appear in the album but don't move the bar.
-  const completableStickers = stickers.filter(
-    (s: { counts_for_completion?: boolean }) => s.counts_for_completion !== false,
-  )
-  const completableIds = new Set(completableStickers.map((s: { id: number }) => s.id))
-
-  // User stats — only count user_stickers that hit a completable sticker.
+  // Stats canônicos — mesma fonte das outras surfaces. Card do ranking
+  // mostra owned/total do álbum oficial (counts_for_completion=true);
+  // Coca-Cola e PANINI Extras não movem a barra.
   const { data: userStickers } = await supabase
     .from('user_stickers')
     .select('sticker_id, status, quantity')
     .eq('user_id', user.id)
 
-  let owned = 0, duplicates = 0
-  userStickers?.forEach((us) => {
-    if (!completableIds.has(us.sticker_id)) return
-    if (us.status === 'owned') owned++
-    if (us.status === 'duplicate') { owned++; duplicates++ }
-  })
+  const userMap: Record<number, UserStickerEntry> = {}
+  for (const us of (userStickers || []) as Array<{ sticker_id: number; status: string; quantity: number }>) {
+    userMap[us.sticker_id] = { status: us.status, quantity: us.quantity }
+  }
+  const albumStats = computeAlbumStats(stickers, userMap)
+  const owned = albumStats.album.pasted
+  // "Repetidas" no ranking card mostra distintos do álbum + extras combinados
+  // (mesma definição do bot e /album). Card é tight; cópias só aparecem
+  // como tooltip via formatDuplicateLabel se quisermos no futuro.
+  const duplicates = albumStats.all.duplicateStickers
 
   const specialSections = ['Coca-Cola', 'FIFA World Cup', 'PANINI Extras']
   const sections = Array.from(new Set(stickers.map((s: { section: string }) => s.section)))
@@ -116,7 +115,9 @@ export default async function RankingPage() {
       sections={sections}
       owned={owned}
       duplicates={duplicates}
-      total={completableStickers.length}
+      duplicateCopies={albumStats.all.duplicateCopies}
+      total={albumStats.album.total}
+      extrasTotal={albumStats.extras.total}
       userId={user.id}
       userDisplayName={profile?.display_name || null}
       userAvatar={profile?.avatar_url || null}

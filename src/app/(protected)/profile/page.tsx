@@ -10,6 +10,7 @@ import type { Tier } from '@/lib/tiers'
 import PaywallModal from '@/components/PaywallModal'
 import ProfileQRCode from '@/components/ProfileQRCode'
 import UserTierBadge from '@/components/UserTierBadge'
+import { computeAlbumStats, emptyAlbumStats, type AlbumStats, type UserStickerEntry } from '@/lib/album-stats'
 
 type Profile = {
   display_name: string | null
@@ -27,13 +28,6 @@ type Profile = {
   courtesy_credits_at: string | null
   courtesy_message: string | null
   courtesy_seen_at: string | null
-}
-
-type Stats = {
-  owned: number
-  missing: number
-  duplicates: number
-  total: number
 }
 
 export default function ProfilePage() {
@@ -67,7 +61,7 @@ export default function ProfilePage() {
   const [showAvulso, setShowAvulso] = useState(false)
   const [scansUsedTotal, setScansUsedTotal] = useState(0)
   const [tradesUsedTotal, setTradesUsedTotal] = useState(0)
-  const [stats, setStats] = useState<Stats>({ owned: 0, missing: 0, duplicates: 0, total: 638 })
+  const [stats, setStats] = useState<AlbumStats>(emptyAlbumStats())
   const [referralCount, setReferralCount] = useState(0)
   const [referralRewards, setReferralRewards] = useState({ trade_credits: 0, scan_credits: 0 })
   const [copied, setCopied] = useState(false)
@@ -171,29 +165,16 @@ export default function ProfilePage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Only completable stickers move the X/980 progress.
-    const { count: totalStickers } = await supabase
-      .from('stickers')
-      .select('*', { count: 'exact', head: true })
-      .eq('counts_for_completion', true)
+    const [{ data: stickerRows }, { data: userStickers }] = await Promise.all([
+      supabase.from('stickers').select('id, counts_for_completion'),
+      supabase.from('user_stickers').select('sticker_id, status, quantity').eq('user_id', user.id),
+    ])
 
-    const { data: userStickers } = await supabase
-      .from('user_stickers')
-      .select('status, stickers!inner(counts_for_completion)')
-      .eq('user_id', user.id)
-      .eq('stickers.counts_for_completion', true)
-
-    const total = totalStickers || 980
-    let owned = 0, duplicates = 0
-    userStickers?.forEach((us) => {
-      if (us.status === 'owned') owned++
-      if (us.status === 'duplicate') {
-        owned++
-        duplicates++
-      }
-    })
-
-    setStats({ owned, missing: total - owned, duplicates, total })
+    const userMap: Record<number, UserStickerEntry> = {}
+    for (const row of (userStickers || []) as Array<{ sticker_id: number; status: string; quantity: number }>) {
+      userMap[row.sticker_id] = { status: row.status, quantity: row.quantity }
+    }
+    setStats(computeAlbumStats(stickerRows || [], userMap))
   }
 
   async function saveLocation() {
@@ -645,13 +626,20 @@ export default function ProfilePage() {
           </a>
         )}
 
-        {/* Quick stats — compact, since full progress is in /album and /dashboard */}
+        {/* Quick stats — compact, since full progress is in /album and /dashboard.
+            "Repetidas" mostra cromos distintos do álbum oficial + extras combinados
+            (mesma fonte do card de /album). Cópias físicas aparecem só quando >0. */}
         <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span>✅ {stats.owned} coladas</span>
+          <span>✅ {stats.album.pasted} coladas</span>
           <span>·</span>
-          <span>🔁 {stats.duplicates} repetidas</span>
+          <span>
+            🔁 {stats.all.duplicateStickers} repetidas
+            {stats.all.duplicateCopies > 0 && (
+              <span className="text-gray-400"> ({stats.all.duplicateCopies} cópias)</span>
+            )}
+          </span>
           <span>·</span>
-          <span>❌ {stats.missing} faltam</span>
+          <span>❌ {stats.album.missing} faltam</span>
         </div>
       </div>
 

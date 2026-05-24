@@ -389,10 +389,14 @@ export default function ScanHub({
         }
       }
 
+      // Bate com totalStickers (que vem só de counts_for_completion=true).
+      // Sem o filtro, Coca/PANINI Extras coladas faziam o contador passar de
+      // 980/980. Definição canônica em src/lib/album-stats.ts.
       const { count } = await supabase
         .from('user_stickers')
-        .select('*', { count: 'exact', head: true })
+        .select('sticker_id, stickers!inner(counts_for_completion)', { count: 'exact', head: true })
         .eq('user_id', userId)
+        .eq('stickers.counts_for_completion', true)
         .in('status', ['owned', 'duplicate'])
 
       const totalQty = toSave.reduce((sum, s) => sum + (s.quantity || 1), 0)

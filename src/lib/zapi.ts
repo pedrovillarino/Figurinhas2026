@@ -1,3 +1,5 @@
+import { logWaMessage } from '@/lib/whatsapp-log'
+
 const INSTANCE_ID = process.env.ZAPI_INSTANCE_ID!
 const TOKEN = process.env.ZAPI_TOKEN!
 const CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN!
@@ -18,6 +20,8 @@ export async function sendText(phone: string, message: string) {
   if (!res.ok) {
     const err = await res.text()
     console.error('Z-API send error:', err)
+  } else {
+    void logWaMessage({ phone, direction: 'out', messageType: 'text', body: message })
   }
 
   return res.ok
@@ -51,6 +55,14 @@ export async function sendDocument(
   if (!res.ok) {
     const err = await res.text()
     console.error('Z-API sendDocument error:', err)
+  } else {
+    void logWaMessage({
+      phone,
+      direction: 'out',
+      messageType: 'document',
+      body: options.caption ?? null,
+      meta: { fileName: doc.fileName, extension: ext },
+    })
   }
   return res.ok
 }
@@ -149,6 +161,13 @@ export async function sendButtonList(
     const responseText = await res.text()
     if (res.ok) {
       console.log(`[zapi] sendButtonList: Z-API responded ${res.status} — body: ${responseText.substring(0, 300)}`)
+      void logWaMessage({
+        phone,
+        direction: 'out',
+        messageType: 'button',
+        body: enrichedMessage,
+        meta: { buttons: limited },
+      })
       return true
     }
     console.error(`[zapi] sendButtonList: Z-API error ${res.status} — body: ${responseText.substring(0, 500)}`)
@@ -192,7 +211,16 @@ export async function sendOptionList(
         },
       }),
     })
-    if (res.ok) return true
+    if (res.ok) {
+      void logWaMessage({
+        phone,
+        direction: 'out',
+        messageType: 'list',
+        body: enrichedMessage,
+        meta: { options: limited, listTitle, buttonLabel },
+      })
+      return true
+    }
     console.error('Z-API send-option-list error:', await res.text())
   } catch (err) {
     console.error('Z-API send-option-list exception:', err)
