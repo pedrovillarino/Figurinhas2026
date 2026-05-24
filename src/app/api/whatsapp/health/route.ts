@@ -77,20 +77,24 @@ export async function GET(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
 
-    // Pedro 2026-05-08: detecção de silêncio HÍBRIDA:
+    // Pedro 2026-05-08 (revisado 21/05): detecção de silêncio HÍBRIDA.
     //
-    // Janelas (mantidas):
-    //   - Pico (18:30-22:00 BR): janela 30min
-    //   - Dia (06:00-18:30 BR): janela 60min
-    //   - Cooldown noturno (22:00-01:00 BR): janela 60min
+    // Janelas (Pedro 21/05: aumentadas 3x — recebia muitos alertas/dia):
+    //   - Pico (18:30-22:00 BR): janela 90min (era 30)
+    //   - Dia (06:00-18:30 BR): janela 180min (era 60)
+    //   - Cooldown noturno (22:00-01:00 BR): janela 180min (era 60)
     //   - Sleep (01:00-06:00 BR): watchdog não dispara
     //
-    // Decisão de disparo (NOVO):
+    // Decisão de disparo:
     //   - Com 3+ dias de histórico: usa BASELINE da mesma hora-do-dia
-    //     dos últimos 7 dias (mediana). Só dispara se atual=0 E baseline≥5
+    //     dos últimos 7 dias (mediana). Só dispara se atual=0 E baseline≥15
+    //     (Pedro 21/05: era 5; aumentado pra ser mais conservador)
     //     E ratio<0.2 — anomalia genuína comparada ao padrão.
     //   - Com <3 dias de histórico: fallback pra threshold fixo (atual=0
     //     dispara). App novo, sem dado pra comparar.
+    //
+    // Cooldown entre alertas: 12h (Pedro 21/05: era 2h — gerava 4-6
+    // notificações por dia em silêncio prolongado).
     //
     // Vantagens: zero falso positivo em horas naturalmente quietas.
     const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
@@ -104,7 +108,7 @@ export async function GET(req: NextRequest) {
       (totalMinutesBR < 60)
     const isDayHour = totalMinutesBR >= 6 * 60 && totalMinutesBR < 18 * 60 + 30
     const isActiveHour = isDayHour || isPeakHour || isLateNightCooldown
-    const silenceThresholdMin = isPeakHour ? 30 : 60
+    const silenceThresholdMin = isPeakHour ? 90 : 180
 
     // Pega current_count + baseline_median + days_with_data + ratio
     const { data: baselineRows } = await sb.rpc('get_webhook_baseline', {
@@ -132,7 +136,7 @@ export async function GET(req: NextRequest) {
     const zapiOk = (results.whatsapp as { connected?: boolean })?.connected
     const useBaseline = daysWithData >= 3
     const isAnomaly = useBaseline
-      ? (recentMsgs === 0 && baselineMed >= 5 && ratio < 0.2)
+      ? (recentMsgs === 0 && baselineMed >= 15 && ratio < 0.2)
       : (recentMsgs === 0)  // fallback: app novo, sem dado pra comparar
 
     if (isAnomaly && isActiveHour && zapiOk) {
@@ -145,7 +149,7 @@ export async function GET(req: NextRequest) {
       // floodava o admin (4 msgs/h durante quieto natural manhã/dia).
       // UPDATE atômico via "or" condition garante que só UMA chamada
       // claim a janela — race-safe.
-      const COOLDOWN_HOURS = 2
+      const COOLDOWN_HOURS = 12
       const cooldownCutoff = new Date(
         Date.now() - COOLDOWN_HOURS * 3600 * 1000
       ).toISOString()
