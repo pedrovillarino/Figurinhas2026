@@ -61,15 +61,25 @@ export async function GET(req: NextRequest) {
     alerts.push(`Erro ao verificar WhatsApp: ${String(err).slice(0, 100)}`)
   }
 
-  // ── 1.5. Inbound webhook health (Pedro 2026-05-08) ──
-  // Z-API pode estar tecnicamente "connected" mas o webhook URL pode ter
-  // sido apagado/inválido — incident de hoje ficou ~14h sem receber msgs
-  // antes de detectarmos manualmente. Agora checamos:
-  //   1. Quantas msgs recebemos via webhook_dedup nas últimas 30min
-  //   2. Se 0 msgs E é horário de uso ativo (8h-23h BR)
-  //   3. Auto-recovery: SOMENTE PUT update-webhook-received (hardcoded em
-  //      setReceiveWebhook — nunca aliasar outros tipos pra essa URL).
-  //   4. Notifica Pedro do auto-recovery via WhatsApp.
+  // ── 1.5. Inbound webhook watchdog (Pedro 2026-05-08, reescrito 2026-06-04) ──
+  //
+  // A Z-API pode seguir "connected" (ENVIO ok) mas PARAR de entregar as
+  // mensagens RECEBIDAS no nosso webhook — silenciosamente. Foi o incident
+  // 2026-06-02: ~36h sem receber nada enquanto o envio seguia normal.
+  //
+  // O watchdog anterior gateava o recovery numa condição composta (baseline
+  // median + ratio via RPC). Empiricamente ele NUNCA disparou nesse incident
+  // e não tínhamos como saber por quê — não logávamos os gates. Reescrito pra:
+  //   1. Trigger SIMPLES e observável: "há quanto tempo não recebemos nada?",
+  //      lido direto de webhook_dedup (sem depender de RPC/baseline/mediana).
+  //   2. Logar SEMPRE todos os gates (nunca mais ficar cego).
+  //   3. Recovery em 2 níveis: (a) re-setar a URL do webhook — idempotente e
+  //      barato, roda toda vez que silencioso; (b) restart da instância só se
+  //      o silêncio persistir e respeitando cooldown (caro: reconecta sessão).
+  //   4. Alertar admin por WhatsApp E email (cooldown 12h, claim atômico).
+  //
+  // Janela ativa (BR): fora dela (madrugada 01:00-06:00) o watchdog dorme —
+  // silêncio natural não é anomalia.
   try {
     const { createClient } = await import('@supabase/supabase-js')
     const sb = createClient(
@@ -77,129 +87,133 @@ export async function GET(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
 
-    // Pedro 2026-05-08 (revisado 21/05): detecção de silêncio HÍBRIDA.
-    //
-    // Janelas (Pedro 21/05: aumentadas 3x — recebia muitos alertas/dia):
-    //   - Pico (18:30-22:00 BR): janela 90min (era 30)
-    //   - Dia (06:00-18:30 BR): janela 180min (era 60)
-    //   - Cooldown noturno (22:00-01:00 BR): janela 180min (era 60)
-    //   - Sleep (01:00-06:00 BR): watchdog não dispara
-    //
-    // Decisão de disparo:
-    //   - Com 3+ dias de histórico: usa BASELINE da mesma hora-do-dia
-    //     dos últimos 7 dias (mediana). Só dispara se atual=0 E baseline≥15
-    //     (Pedro 21/05: era 5; aumentado pra ser mais conservador)
-    //     E ratio<0.2 — anomalia genuína comparada ao padrão.
-    //   - Com <3 dias de histórico: fallback pra threshold fixo (atual=0
-    //     dispara). App novo, sem dado pra comparar.
-    //
-    // Cooldown entre alertas: 12h (Pedro 21/05: era 2h — gerava 4-6
-    // notificações por dia em silêncio prolongado).
-    //
-    // Vantagens: zero falso positivo em horas naturalmente quietas.
     const nowBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
     const hourBR = nowBR.getHours()
-    const minutesBR = nowBR.getMinutes()
-    const totalMinutesBR = hourBR * 60 + minutesBR
+    const totalMinutesBR = hourBR * 60 + nowBR.getMinutes()
 
     const isPeakHour = totalMinutesBR >= 18 * 60 + 30 && totalMinutesBR < 22 * 60
     const isLateNightCooldown =
-      (totalMinutesBR >= 22 * 60 && totalMinutesBR < 24 * 60) ||
-      (totalMinutesBR < 60)
+      (totalMinutesBR >= 22 * 60 && totalMinutesBR < 24 * 60) || (totalMinutesBR < 60)
     const isDayHour = totalMinutesBR >= 6 * 60 && totalMinutesBR < 18 * 60 + 30
     const isActiveHour = isDayHour || isPeakHour || isLateNightCooldown
     const silenceThresholdMin = isPeakHour ? 90 : 180
+    const RESTART_AFTER_MIN = 30 // restart só se silencioso por tanto tempo
 
-    // Pega current_count + baseline_median + days_with_data + ratio
-    const { data: baselineRows } = await sb.rpc('get_webhook_baseline', {
-      window_minutes: silenceThresholdMin,
-    })
-    const baseline = baselineRows?.[0] ?? { current_count: 0, baseline_median: 0, days_with_data: 0, ratio_to_baseline: 1 }
+    // Trigger primário: nº de msgs recebidas na janela (index em created_at).
+    const windowStart = new Date(Date.now() - silenceThresholdMin * 60 * 1000).toISOString()
+    const { count: recentCount } = await sb
+      .from('webhook_dedup')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', windowStart)
+    const inboundSilent = (recentCount ?? 0) === 0
 
-    const recentMsgs = Number(baseline.current_count ?? 0)
-    const baselineMed = Number(baseline.baseline_median ?? 0)
-    const daysWithData = Number(baseline.days_with_data ?? 0)
-    const ratio = Number(baseline.ratio_to_baseline ?? 1)
-
-    results.webhook_inbound = {
-      msgs_in_window: recentMsgs,
-      window_minutes: silenceThresholdMin,
-      baseline_median: baselineMed,
-      days_with_baseline_data: daysWithData,
-      ratio_to_baseline: ratio,
-      hour_br: hourBR,
-      is_peak_hour: isPeakHour,
-      is_active_hour: isActiveHour,
+    // Minutos desde a última recebida (só quando silencioso — query rara).
+    let minutesSilent: number | null = null
+    if (inboundSilent) {
+      const { data: lastIn } = await sb
+        .from('webhook_dedup')
+        .select('created_at')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (lastIn?.created_at) {
+        minutesSilent = Math.round((Date.now() - Date.parse(lastIn.created_at)) / 60000)
+      }
     }
 
-    // Trigger logic:
-    const zapiOk = (results.whatsapp as { connected?: boolean })?.connected
-    const useBaseline = daysWithData >= 3
-    const isAnomaly = useBaseline
-      ? (recentMsgs === 0 && baselineMed >= 15 && ratio < 0.2)
-      : (recentMsgs === 0)  // fallback: app novo, sem dado pra comparar
+    const zapiOk = (results.whatsapp as { connected?: boolean })?.connected === true
+    const shouldRecover = inboundSilent && isActiveHour && zapiOk
 
-    if (isAnomaly && isActiveHour && zapiOk) {
-      console.warn('[Health] Webhook inbound silent — triggering auto-recovery')
-      const recovered = await setReceiveWebhook()
-      results.webhook_action = recovered ? 'recovery_triggered' : 'recovery_failed'
+    results.webhook_inbound = {
+      msgs_in_window: recentCount ?? 0,
+      window_minutes: silenceThresholdMin,
+      minutes_silent: minutesSilent,
+      hour_br: hourBR,
+      is_active_hour: isActiveHour,
+      zapi_connected: zapiOk,
+      should_recover: shouldRecover,
+    }
+    // SEMPRE logar os gates — lição nº1 do incident 2026-06-02 (watchdog cego).
+    console.log('[Health] watchdog gates', JSON.stringify(results.webhook_inbound))
 
-      // Pedro 2026-05-08: cooldown atômico de 2h pra notification.
-      // Sem isso, watchdog rodando a cada 15min em silêncio prolongado
-      // floodava o admin (4 msgs/h durante quieto natural manhã/dia).
-      // UPDATE atômico via "or" condition garante que só UMA chamada
-      // claim a janela — race-safe.
+    if (shouldRecover) {
+      console.warn(`[Health] Inbound silent (${minutesSilent ?? '?'}min, ${recentCount ?? 0} in ${silenceThresholdMin}min) — re-setting webhook`)
+      const reset = await setReceiveWebhook()
+      results.webhook_action = reset ? 'webhook_reset' : 'webhook_reset_failed'
+
+      // Nível 2: restart da instância se o silêncio persistir. Caro (reconecta
+      // a sessão WhatsApp), então claim atômico com cooldown de RESTART_AFTER_MIN
+      // pra rodar no máximo uma vez por janela. Isolado em try próprio: se a
+      // coluna/claim falhar, o re-set acima e o alerta abaixo não são afetados.
+      let restarted: boolean | undefined
+      if ((minutesSilent ?? Infinity) >= RESTART_AFTER_MIN) {
+        try {
+          const restartCutoff = new Date(Date.now() - RESTART_AFTER_MIN * 60 * 1000).toISOString()
+          const { data: claimedRestart } = await sb
+            .from('watchdog_state')
+            .update({ last_restart_at: new Date().toISOString() })
+            .eq('id', 'webhook_recovery')
+            .or(`last_restart_at.is.null,last_restart_at.lt.${restartCutoff}`)
+            .select('id')
+          if (claimedRestart && claimedRestart.length > 0) {
+            console.warn('[Health] Inbound still silent — restarting Z-API instance')
+            restarted = await restartInstance()
+            results.webhook_restart = restarted ? 'restarted' : 'restart_failed'
+          }
+        } catch (e) {
+          console.error('[Health] restart claim failed:', e)
+        }
+      }
+
+      // Alerta admin com cooldown atômico de 12h (claim race-safe via "or").
       const COOLDOWN_HOURS = 12
-      const cooldownCutoff = new Date(
-        Date.now() - COOLDOWN_HOURS * 3600 * 1000
-      ).toISOString()
+      const cooldownCutoff = new Date(Date.now() - COOLDOWN_HOURS * 3600 * 1000).toISOString()
       const { data: claimed } = await sb
         .from('watchdog_state')
         .update({ last_alert_at: new Date().toISOString() })
         .eq('id', 'webhook_recovery')
         .or(`last_alert_at.is.null,last_alert_at.lt.${cooldownCutoff}`)
         .select('id')
+      const shouldNotify = !!(claimed && claimed.length > 0)
+      results.recovery_alert = shouldNotify ? 'sent' : 'suppressed'
 
-      const shouldNotify = claimed && claimed.length > 0
-      results.recovery_alert_cooldown = shouldNotify ? 'sent' : 'suppressed'
-
-      if (shouldNotify && ADMIN_PHONE) {
-        const baselineLine = useBaseline
-          ? `Mediana dos últimos 7 dias nessa janela: *${baselineMed} msgs*. Atual: *0*. Anomalia.`
-          : `Janela de ${silenceThresholdMin}min sem mensagens (sem histórico ainda pra comparar).`
-        const recoveryMsg = recovered
-          ? `🔧 *Watchdog WhatsApp — auto-recovery executado*\n\n` +
-            `${baselineLine} ` +
-            `Acabamos de reconfigurar a URL (PUT update-webhook-received). ` +
-            `Verifique se voltaram mensagens nos próximos minutos.\n\n` +
-            `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
-            `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
-          : `🚨 *Watchdog WhatsApp — auto-recovery FALHOU*\n\n` +
-            `${baselineLine} PUT update-webhook-received não funcionou. ` +
-            `Verificar manualmente Z-API (instance status, sessão, plano).\n\n` +
-            `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
-            `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
-        try {
-          await sendText(ADMIN_PHONE, recoveryMsg)
-          results.recovery_alert_sent = 'whatsapp'
-        } catch (e) {
-          console.error('[Health] failed to notify admin of recovery:', e)
-          results.recovery_alert_sent = 'failed'
+      if (shouldNotify) {
+        const silentLine = minutesSilent != null
+          ? `Paramos de receber mensagens há *${minutesSilent}min* (envio segue OK).`
+          : `Nenhuma mensagem recebida na janela de ${silenceThresholdMin}min (envio segue OK).`
+        const restartLine = results.webhook_restart
+          ? ` + restart da instância ${restarted ? '✅' : '❌'}`
+          : ''
+        const msg =
+          `🔧 *Watchdog WhatsApp*\n\n` +
+          `${silentLine}\n` +
+          `Ação automática: re-set do webhook ${reset ? '✅' : '❌'}${restartLine}.\n` +
+          `Confira se as mensagens voltam nos próximos minutos.\n\n` +
+          `_(Próximo aviso só daqui a ${COOLDOWN_HOURS}h se persistir.)_\n` +
+          `⏰ ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`
+        if (ADMIN_PHONE) {
+          try { await sendText(ADMIN_PHONE, msg); results.recovery_alert_whatsapp = 'sent' }
+          catch (e) { console.error('[Health] recovery WhatsApp alert failed:', e); results.recovery_alert_whatsapp = 'failed' }
         }
-
-        // Pedro 2026-05-08: pra evitar DUPLICAÇÃO entre o WhatsApp direto
-        // (acima) E o canal alerts geral (linha ~175 que envia mais 1
-        // WhatsApp + email se authed), só pushamos pro alerts SE este
-        // ciclo NÃO notificou via canal direto. Isso garante que o admin
-        // recebe UMA mensagem (preferencialmente o canal direto, mais rápido).
-      } else if (!shouldNotify) {
-        // Cooldown ativo — silenciamos completamente. Logamos só.
-        console.log('[Health] recovery alert suppressed by 2h cooldown')
+        // Email é independente do WhatsApp — que é justamente o canal que pode
+        // estar quebrado. Garante que o aviso chega mesmo no pior caso.
+        if (ADMIN_EMAIL) {
+          try {
+            await sendEmail(
+              ADMIN_EMAIL,
+              '🔧 Watchdog WhatsApp — inbound silencioso',
+              `<pre style="font-family:sans-serif;font-size:14px;white-space:pre-wrap">${msg.replace(/\*/g, '')}</pre>`,
+            )
+            results.recovery_alert_email = 'sent'
+          } catch (e) { console.error('[Health] recovery email alert failed:', e); results.recovery_alert_email = 'failed' }
+        }
+      } else {
+        console.log('[Health] recovery alert suppressed by 12h cooldown')
       }
     }
   } catch (err) {
-    results.webhook_inbound = { error: String(err).slice(0, 100) }
-    // Non-critical — don't alert (reading webhook_dedup might fail with table missing/perm)
+    results.webhook_inbound = { error: String(err).slice(0, 200) }
+    console.error('[Health] watchdog error:', err)
   }
 
   // ── 2. Supabase Connectivity ──
