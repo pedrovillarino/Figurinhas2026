@@ -277,6 +277,10 @@ export async function issueReferrerCoupon(userId: string): Promise<{
  * N = floor(confirmed / 5).
  */
 export async function shouldIssueCouponNow(referrerId: string): Promise<boolean> {
+  // Defesa em profundidade: nenhum cupom é emitido fora do período da
+  // campanha, independente do caller.
+  if (!isCampaignActive()) return false
+
   const admin = getAdmin()
 
   // Coupons gated on opt-in — non-participants don't earn campaign rewards.

@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { checkRateLimit, getIp, generalLimiter } from '@/lib/ratelimit'
 import {
   REFERRAL_CONSTANTS,
+  isCampaignActive,
   issueReferrerCoupon,
   shouldIssueCouponNow,
 } from '@/lib/referrals'
@@ -40,6 +41,12 @@ import {
 export async function POST(request: NextRequest) {
   const rlResponse = await checkRateLimit(getIp(request), generalLimiter)
   if (rlResponse) return rlResponse
+
+  // Campanha encerrada → nenhuma premiação é gerada (créditos, pontos,
+  // cupons). Callers são fire-and-forget, então o 410 é seguro.
+  if (!isCampaignActive()) {
+    return NextResponse.json({ error: 'Campanha encerrada' }, { status: 410 })
+  }
 
   try {
     // 1. Auth — get current user

@@ -4,6 +4,7 @@ import Stripe from 'stripe'
 import { TIER_CONFIG } from '@/lib/tiers'
 import { awardLigaPoints, type LigaEventType } from '@/lib/liga'
 import { trackEvent, FUNNEL_EVENTS } from '@/lib/funnel'
+import { isCampaignActive } from '@/lib/referrals'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -180,6 +181,13 @@ async function grantReferralUpgradeReward(userId: string, amountPaid: number, ti
   // Both gated on amount_paid > 0 so 100% off coupons don't count.
   if (amountPaid <= 0) {
     console.log(`Referral upgrade skipped: amount_paid=${amountPaid} (zero-cost upgrade)`)
+    return
+  }
+
+  // Campanha encerrada → ranking foi congelado no fim; upgrades posteriores
+  // não geram pontos nem notificação ao indicador.
+  if (!isCampaignActive()) {
+    console.log(`Referral upgrade skipped: campaign ended (user ${userId})`)
     return
   }
 
