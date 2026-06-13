@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1020" />
+<title>Bolão · Brasil x Marrocos</title>
+<style>
+  :root{
+    --bg:#0b1020; --card:#141c33; --card2:#0f1730; --line:#223055;
+    --ink:#eef2ff; --muted:#9aa7c7; --accent:#37d67a; --accent2:#ffd23f;
+    --br:#1f9d55; --ma:#c1272d; --warn:#ff5a5f; --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#16224a 0%,var(--bg) 55%) fixed;
+    color:var(--ink); -webkit-font-smoothing:antialiased; line-height:1.45;
+    padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 24px);
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px}
+  .head{text-align:center;margin:8px 0 18px}
+  .head h1{font-size:22px;margin:0 0 4px;letter-spacing:.2px}
+  .head p{margin:0;color:var(--muted);font-size:13px}
+  .match{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0 6px;font-size:30px}
+  .match .vs{font-size:14px;color:var(--muted);font-weight:600}
+  .pot{
+    display:flex;justify-content:space-between;gap:10px;background:var(--card2);
+    border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin:12px 0 18px;
+  }
+  .pot .b{display:flex;flex-direction:column;gap:2px}
+  .pot .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .pot .v{font-size:18px;font-weight:700}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:0 0 16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .card h2{font-size:14px;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+  input[type=text]{
+    width:100%;background:var(--card2);border:1px solid var(--line);color:var(--ink);
+    border-radius:12px;padding:13px 14px;font-size:16px;outline:none;
+  }
+  input[type=text]:focus{border-color:var(--accent)}
+  .score{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}
+  .team{flex:1;text-align:center}
+  .team .flag{font-size:34px;line-height:1}
+  .team .name{font-size:12px;color:var(--muted);margin-top:2px}
+  .stepper{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px}
+  .stepper button{
+    width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
+    background:var(--card2);color:var(--ink);font-size:22px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .stepper button:active{transform:scale(.94)}
+  .stepper .val{min-width:46px;text-align:center;font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+  .mid{font-size:22px;color:var(--muted);font-weight:700;padding:0 2px}
+  .btn{
+    -webkit-appearance:none;appearance:none;border:none;cursor:pointer;width:100%;
+    padding:14px 16px;border-radius:12px;font-size:16px;font-weight:700;color:#06210f;
+    background:var(--accent);margin-top:6px;
+  }
+  .btn:active{transform:scale(.99)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.warn{background:var(--warn);color:#2a0608}
+  .btn.gold{background:var(--accent2);color:#2a2300}
+  .row{display:flex;gap:10px}
+  .row .btn{margin-top:0}
+  .champ{
+    text-align:center;background:linear-gradient(180deg,#1d2b12,#141c33);
+    border:1px solid #3a5a1f;border-radius:var(--radius);padding:18px 16px;margin:0 0 16px;
+  }
+  .champ .crown{font-size:34px}
+  .champ .who{font-size:20px;font-weight:800;margin:6px 0 2px}
+  .champ .sub{color:var(--muted);font-size:13px}
+  .champ .prize{font-size:15px;margin-top:8px;color:var(--accent2);font-weight:700}
+  .list{list-style:none;margin:0;padding:0}
+  .list li{
+    display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);
+    border-radius:12px;margin-bottom:8px;background:var(--card2);
+  }
+  .list li.win{border-color:#3a5a1f;background:linear-gradient(180deg,#16240f,#10182e)}
+  .list .pos{width:24px;text-align:center;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+  .list .nm{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .gs{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+  .list .pt{font-weight:800;font-variant-numeric:tabular-nums;min-width:40px;text-align:right}
+  .tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:6px}
+  .empty{color:var(--muted);text-align:center;padding:14px 0;font-size:14px}
+  .muted{color:var(--muted);font-size:12px}
+  details.org{margin-top:6px}
+  details.org>summary{cursor:pointer;color:var(--muted);font-size:13px;list-style:none;text-align:center;padding:8px}
+  details.org>summary::-webkit-details-marker{display:none}
+  .hr{height:1px;background:var(--line);margin:14px 0}
+  .small{font-size:13px}
+  .center{text-align:center}
+  .lockmsg{text-align:center;color:var(--accent2);font-weight:700;font-size:13px;margin-top:8px}
+  #offline{
+    position:fixed;left:50%;bottom:16px;transform:translateX(-50%) translateY(90px);
+    background:var(--warn);color:#2a0608;font-weight:700;font-size:13px;padding:9px 16px;border-radius:999px;
+    transition:transform .25s ease;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35)
+  }
+  #offline.show{transform:translateX(-50%) translateY(0)}
+  #toast{
+    position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-80px);
+    background:#0c1430;border:1px solid var(--line);color:var(--ink);font-size:14px;font-weight:600;
+    padding:11px 18px;border-radius:999px;transition:transform .25s ease;z-index:70;box-shadow:0 8px 24px rgba(0,0,0,.4)
+  }
+  #toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>⚽ Bolão da Galera</h1>
+      <p>Palpite no placar, acerte e leve o bolo 💰</p>
+      <div class="match">
+        <span title="Brasil">🇧🇷</span>
+        <span class="vs">x</span>
+        <span title="Marrocos">🇲🇦</span>
+      </div>
+    </div>
+
+    <div class="pot">
+      <div class="b">
+        <span class="k">Entrada</span>
+        <span class="v" id="potBuyin">R$ 30,00</span>
+      </div>
+      <div class="b" style="text-align:right">
+        <span class="k">Bolo total</span>
+        <span class="v" id="potTotal">R$ 0,00</span>
+      </div>
+    </div>
+
+    <!-- Campeão -->
+    <div id="champWrap"></div>
+
+    <!-- Formulário de palpite -->
+    <div class="card" id="formCard">
+      <h2>Seu palpite</h2>
+      <label for="nomeInput">Seu nome</label>
+      <input id="nomeInput" type="text" placeholder="Ex.: João" autocomplete="name" maxlength="40" />
+
+      <div class="score">
+        <div class="team">
+          <div class="flag">🇧🇷</div>
+          <div class="name">Brasil</div>
+          <div class="stepper">
+            <button type="button" id="braMinus" aria-label="menos">–</button>
+            <span class="val" id="braVal">0</span>
+            <button type="button" id="braPlus" aria-label="mais">+</button>
+          </div>
+        </div>
+        <div class="mid">×</div>
+        <div class="team">
+          <div class="flag">🇲🇦</div>
+          <div class="name">Marrocos</div>
+          <div class="stepper">
+            <button type="button" id="maMinus" aria-label="menos">–</button>
+            <span class="val" id="maVal">0</span>
+            <button type="button" id="maPlus" aria-label="mais">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" id="submitBtn">Salvar meu palpite</button>
+      <div class="lockmsg" id="lockMsg" style="display:none">🔒 Palpites encerrados</div>
+      <div id="mineWrap"></div>
+    </div>
+
+    <!-- Palpites -->
+    <div class="card">
+      <h2>Palpites <span class="muted" id="countLbl"></span></h2>
+      <ul class="list" id="guessesWrap"></ul>
+      <div class="muted center small">Como pontua: cravada 25 · vencedor+saldo 18 · vencedor+1 gol 15 · só vencedor 10 · 1 gol 5</div>
+    </div>
+
+    <!-- Organizador -->
+    <details class="org">
+      <summary>⚙️ Sou o organizador</summary>
+      <div class="card" style="margin-top:10px">
+        <h2>Painel do organizador</h2>
+
+        <label for="buyinInput">Valor da entrada (R$)</label>
+        <div class="row">
+          <input id="buyinInput" type="text" inputmode="numeric" value="30" />
+          <button class="btn ghost" id="saveBuyin" style="width:auto;padding:13px 18px">Salvar</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <label>Resultado final</label>
+        <div class="score">
+          <div class="team">
+            <div class="flag">🇧🇷</div>
+            <div class="stepper">
+              <button type="button" id="rBraMinus">–</button>
+              <span class="val" id="rBraVal">0</span>
+              <button type="button" id="rBraPlus">+</button>
+            </div>
+          </div>
+          <div class="mid">×</div>
+          <div class="team">
+            <div class="flag">🇲🇦</div>
+            <div class="stepper">
+              <button type="button" id="rMaMinus">–</button>
+              <span class="val" id="rMaVal">0</span>
+              <button type="button" id="rMaPlus">+</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn gold" id="revealBtn">🏆 Revelar resultado &amp; pagar</button>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost" id="lockBtn">🔒 Encerrar palpites</button>
+          <button class="btn ghost" id="reopenBtn">↩︎ Reabrir placar</button>
+        </div>
+        <div class="hr"></div>
+        <button class="btn warn" id="resetBtn">🗑️ Zerar bolão</button>
+        <div class="muted center small" style="margin-top:8px">Ações do organizador pedem PIN.</div>
+      </div>
+    </details>
+
+    <div class="center muted small">Sincroniza em tempo real entre todos os celulares 📲</div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="offline">Sem conexão — tentando reconectar…</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function(){
+    "use strict";
+
+    /* ===== Config Supabase ===== */
+    var SB_URL  = "https://fivchoancyaumyoheogo.supabase.co";
+    var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpdmNob2FuY3lhdW15b2hlb2dvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjQzNTIsImV4cCI6MjA5NjcwMDM1Mn0.XLwiN8aGIdIQy9wz-BYttFx57L4f-Rl7VbuncbGGPZs";
+    var BOLAO_ID = "bra_mar";
+    var PIN = "1234";
+    var sb = supabase.createClient(SB_URL, SB_ANON);
+
+    /* ===== Estado ===== */
+    var DEFAULT = { buyin:30, locked:false, result:null, palpites:[] };
+    var state = normalize(DEFAULT);
+    var draft = { bra:0, ma:0 };
+    var resDraft = { bra:0, ma:0 };
+    var offline = false;
+    var typing = false;
+    var orgAuthed = false;
+
+    var myId   = localStorage.getItem("bolao_id")   || "";
+    var myName = localStorage.getItem("bolao_nome") || "";
+    function persistId(){ localStorage.setItem("bolao_id", myId); localStorage.setItem("bolao_nome", myName); }
+
+    /* ===== Utils ===== */
+    function $(id){ return document.getElementById(id); }
+    function uid(){ return "p_" + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+    function clampStep(v){ v = v|0; if(v<0) v=0; if(v>20) v=20; return v; }
+    function money(v){ return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+    function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+    var toastT;
+    function toast(msg){
+      var el = $("toast"); el.textContent = msg; el.classList.add("show");
+      clearTimeout(toastT); toastT = setTimeout(function(){ el.classList.remove("show"); }, 2200);
+    }
+    function pinOK(){
+      if(orgAuthed) return true;
+      var v = prompt("PIN do organizador:");
+      if(v === PIN){ orgAuthed = true; return true; }
+      if(v !== null) toast("PIN incorreto");
+      return false;
+    }
+
+    function normalize(s){
+      s = s || {};
+      var r = (s.result && typeof s.result.br === "number" && typeof s.result.ma === "number")
+        ? { br:s.result.br, ma:s.result.ma } : null;
+      return {
+        buyin: typeof s.buyin === "number" ? s.buyin : 30,
+        locked: !!s.locked,
+        result: r,
+        palpites: Array.isArray(s.palpites) ? s.palpites.slice() : []
+      };
+    }
+
+    /* ===== Pontuação ===== */
+    function sign(a,b){ return a>b?1:(a<b?-1:0); }
+    function evalP(p, res){
+      if(!res) return 0;
+      var exact = (p.br===res.br && p.ma===res.ma);
+      if(exact) return 25;
+      var sameWinner = sign(p.br,p.ma) === sign(res.br,res.ma);
+      var oneGoal = (p.br===res.br || p.ma===res.ma);
+      var sameMargin = (p.br - p.ma) === (res.br - res.ma);
+      if(sameWinner && sameMargin) return 18;
+      if(sameWinner && oneGoal)   return 15;
+      if(sameWinner)              return 10;
+      if(oneGoal)                 return 5;
+      return 0;
+    }
+    function ranked(){
+      var res = state.result;
+      return state.palpites.slice().sort(function(a,b){
+        var pa = evalP(a,res), pb = evalP(b,res);
+        if(pb !== pa) return pb - pa;
+        return a.ts - b.ts;
+      });
+    }
+    function winners(){
+      var res = state.result; if(!res) return [];
+      var best = -1, list = [];
+      state.palpites.forEach(function(p){ var s = evalP(p,res); if(s>best) best=s; });
+      if(best <= 0) return [];
+      state.palpites.forEach(function(p){ if(evalP(p,res)===best) list.push(p); });
+      return list;
+    }
+
+    /* ===== Render ===== */
+    function render(){
+      var pot = state.buyin * state.palpites.length;
+      $("potBuyin").textContent = money(state.buyin);
+      $("potTotal").textContent = money(pot);
+      $("countLbl").textContent = state.palpites.length ? "("+state.palpites.length+")" : "";
+
+      $("braVal").textContent = draft.bra;
+      $("maVal").textContent  = draft.ma;
+      $("rBraVal").textContent = resDraft.bra;
+      $("rMaVal").textContent  = resDraft.ma;
+
+      var closed = state.locked || !!state.result;
+      $("submitBtn").style.display = closed ? "none" : "block";
+      $("lockMsg").style.display = closed ? "block" : "none";
+      $("lockMsg").textContent = state.result ? "🏁 Resultado divulgado" : "🔒 Palpites encerrados";
+
+      $("offline").classList.toggle("show", offline);
+
+      renderChamp();
+      renderMine();
+      renderGuesses();
+    }
+
+    function renderChamp(){
+      var wrap = $("champWrap");
+      if(!state.result){ wrap.innerHTML = ""; return; }
+      var ws = winners();
+      var pot = state.buyin * state.palpites.length;
+      var html = '<div class="champ"><div class="crown">🏆</div>';
+      if(!ws.length){
+        html += '<div class="who">Ninguém pontuou 😅</div>'
+             +  '<div class="sub">Resultado: Brasil '+state.result.br+' × '+state.result.ma+' Marrocos</div>'
+             +  '<div class="prize">Bolo acumula: '+money(pot)+'</div>';
+      } else {
+        var share = pot / ws.length;
+        var names = ws.map(function(w){ return esc(w.nome); }).join(", ");
+        html += '<div class="who">'+names+'</div>'
+             +  '<div class="sub">Resultado: Brasil '+state.result.br+' × '+state.result.ma+' Marrocos'
+             +  ' · '+evalP(ws[0],state.result)+' pts</div>'
+             +  '<div class="prize">'+(ws.length>1?"Cada um leva ":"Leva ")+money(share)+'</div>';
+      }
+      html += '</div>';
+      wrap.innerHTML = html;
+    }
+
+    function renderMine(){
+      var wrap = $("mineWrap");
+      var mine = myId ? state.palpites.filter(function(p){ return p.id===myId; })[0] : null;
+      if(!mine){ wrap.innerHTML = ""; return; }
+      var extra = state.result ? ' · <b>'+evalP(mine,state.result)+' pts</b>' : '';
+      wrap.innerHTML = '<div class="muted center small" style="margin-top:10px">'
+        + 'Seu palpite: <b>'+esc(mine.nome)+'</b> — Brasil '+mine.br+' × '+mine.ma+' Marrocos'+extra+'</div>';
+    }
+
+    function renderGuesses(){
+      var ul = $("guessesWrap");
+      if(!state.palpites.length){
+        ul.innerHTML = '<div class="empty">Ninguém palpitou ainda. Seja o primeiro! 👀</div>';
+        return;
+      }
+      var res = state.result;
+      var ws = winners();
+      var winIds = {}; ws.forEach(function(w){ winIds[w.id]=1; });
+      var rows = ranked();
+      var html = "";
+      rows.forEach(function(p, i){
+        var isWin = res && winIds[p.id];
+        var pts = res ? evalP(p,res) : null;
+        var mineTag = (p.id===myId) ? '<span class="tag">você</span>' : '';
+        html += '<li class="'+(isWin?'win':'')+'">'
+             +    '<span class="pos">'+(res ? (i+1) : '•')+'</span>'
+             +    '<span class="nm">'+esc(p.nome)+mineTag+(isWin?' 👑':'')+'</span>'
+             +    '<span class="gs">'+p.br+'×'+p.ma+'</span>'
+             +    (res ? '<span class="pt">'+pts+'</span>' : '')
+             +  '</li>';
+      });
+      ul.innerHTML = html;
+    }
+
+    /* ===== Camada Supabase ===== */
+    function mapState(b, ps){
+      return normalize({
+        buyin: b ? b.buyin : 30,
+        locked: b ? b.locked : false,
+        result: (b && b.result_br !== null && b.result_br !== undefined)
+          ? { br:b.result_br, ma:b.result_ma } : null,
+        palpites: (ps||[]).map(function(r){
+          return { id:r.id, nome:r.nome, br:r.br, ma:r.ma, ts:Number(r.ts) };
+        })
+      });
+    }
+
+    function loadState(cb){
+      Promise.all([
+        sb.from("bolao").select("*").eq("id",BOLAO_ID).maybeSingle(),
+        sb.from("palpites").select("*").order("ts",{ascending:true})
+      ]).then(function(res){
+        var be = res[0].error, pe = res[1].error;
+        offline = !!(be && pe);
+        if(!offline) state = mapState(res[0].data, res[1].data);
+        if(cb) cb();
+      }).catch(function(){ offline = true; if(cb) cb(); });
+    }
+
+    function savePalpite(entry, cb){
+      sb.from("palpites").upsert(entry).then(function(r){
+        offline = !!r.error; if(cb) cb(r.error);
+      }, function(){ offline = true; if(cb) cb(true); });
+    }
+
+    function saveBolao(patch, cb){
+      sb.from("bolao").update(patch).eq("id",BOLAO_ID).then(function(r){
+        offline = !!r.error; if(cb) cb(r.error);
+      }, function(){ offline = true; if(cb) cb(true); });
+    }
+
+    function syncBuyinInput(){
+      if(document.activeElement !== $("buyinInput")) $("buyinInput").value = state.buyin;
+    }
+    function refresh(){ loadState(function(){ syncBuyinInput(); render(); }); }
+
+    /* ===== Eventos: palpite ===== */
+    function bindStepper(minusId, plusId, get, set){
+      $(minusId).addEventListener("click", function(){ set(clampStep(get()-1)); render(); });
+      $(plusId ).addEventListener("click", function(){ set(clampStep(get()+1)); render(); });
+    }
+    bindStepper("braMinus","braPlus", function(){return draft.bra;}, function(v){draft.bra=v;});
+    bindStepper("maMinus","maPlus",   function(){return draft.ma;},  function(v){draft.ma=v;});
+    bindStepper("rBraMinus","rBraPlus", function(){return resDraft.bra;}, function(v){resDraft.bra=v;});
+    bindStepper("rMaMinus","rMaPlus",   function(){return resDraft.ma;},  function(v){resDraft.ma=v;});
+
+    var nomeEl = $("nomeInput");
+    if(myName) nomeEl.value = myName;
+    nomeEl.addEventListener("focus", function(){ typing = true; });
+    nomeEl.addEventListener("blur",  function(){ typing = false; });
+
+    $("submitBtn").addEventListener("click", function(){
+      var nome = nomeEl.value.trim();
+      if(!nome){ toast("Põe seu nome primeiro 🙂"); nomeEl.focus(); return; }
+      if(state.locked || state.result){ toast("Palpites já encerrados"); return; }
+      myName = nome;
+      if(!myId) myId = uid();
+      persistId();
+      var entry = { id:myId, nome:nome, br:draft.bra, ma:draft.ma, ts:Date.now() };
+      $("submitBtn").disabled = true;
+      savePalpite(entry, function(err){
+        $("submitBtn").disabled = false;
+        if(err){ toast("Sem conexão — tente de novo"); render(); return; }
+        toast("Palpite registrado ✅");
+        refresh();
+      });
+    });
+
+    /* ===== Eventos: organizador ===== */
+    $("saveBuyin").addEventListener("click", function(){
+      if(!pinOK()) return;
+      var v = parseInt(($("buyinInput").value||"").replace(/\D/g,""),10);
+      if(isNaN(v) || v<0){ toast("Valor inválido"); return; }
+      saveBolao({ buyin:v }, function(err){
+        if(err){ toast("Não salvou — sem conexão"); return; }
+        toast("Entrada: "+money(v)); refresh();
+      });
+    });
+
+    $("lockBtn").addEventListener("click", function(){
+      if(!pinOK()) return;
+      saveBolao({ locked:true }, function(err){
+        if(err){ toast("Não salvou — sem conexão"); return; }
+        toast("Palpites encerrados 🔒"); refresh();
+      });
+    });
+
+    $("revealBtn").addEventListener("click", function(){
+      if(!pinOK()) return;
+      if(!confirm("Revelar Brasil "+resDraft.bra+" × "+resDraft.ma+" Marrocos e pagar os vencedores?")) return;
+      saveBolao({ result_br:resDraft.bra, result_ma:resDraft.ma, locked:true }, function(err){
+        if(err){ toast("Não salvou — sem conexão"); return; }
+        toast("Resultado revelado 🏆");
+        refresh();
+        setTimeout(function(){
+          var c = $("champWrap"); if(c.firstChild) c.scrollIntoView({behavior:"smooth", block:"center"});
+        }, 200);
+      });
+    });
+
+    $("reopenBtn").addEventListener("click", function(){
+      if(!pinOK()) return;
+      saveBolao({ result_br:null, result_ma:null }, function(err){
+        if(err){ toast("Não salvou — sem conexão"); return; }
+        toast("Placar reaberto"); refresh();
+      });
+    });
+
+    $("resetBtn").addEventListener("click", function(){
+      if(!pinOK()) return;
+      if(!confirm("Apagar TODOS os palpites e zerar o bolão? Isso não tem volta.")) return;
+      sb.from("palpites").delete().neq("id","").then(function(r){
+        if(r.error){ toast("Não zerou — sem conexão"); offline=true; render(); return; }
+        saveBolao({ locked:false, result_br:null, result_ma:null }, function(){
+          toast("Bolão zerado"); refresh();
+        });
+      }, function(){ toast("Não zerou — sem conexão"); });
+    });
+
+    /* ===== Boot + tempo real ===== */
+    refresh();
+
+    function onChange(){ if(!typing) refresh(); }
+    try {
+      sb.channel("bolao-live")
+        .on("postgres_changes", { event:"*", schema:"public", table:"palpites" }, onChange)
+        .on("postgres_changes", { event:"*", schema:"public", table:"bolao" }, onChange)
+        .subscribe();
+    } catch(e){ /* realtime indisponível — cai no polling */ }
+
+    setInterval(function(){
+      if(typing){ return; }
+      refresh();
+    }, 8000);
+
+    document.addEventListener("visibilitychange", function(){
+      if(document.visibilityState === "visible") refresh();
+    });
+  })();
+  </script>
+</body>
+</html>
